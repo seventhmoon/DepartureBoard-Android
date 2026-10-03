@@ -36,7 +36,15 @@ data class TflStopPointMatch(
 data class TflStopPointDetail(
     @Json(name = "id") val id: String,
     @Json(name = "commonName") val commonName: String? = null,
-    @Json(name = "children") val children: List<TflStopPointChild> = emptyList()
+    @Json(name = "children") val children: List<TflStopPointChild> = emptyList(),
+    @Json(name = "lines") val lines: List<TflStopPointLineIdentifier> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class TflStopPointLineIdentifier(
+    @Json(name = "id") val id: String,
+    @Json(name = "name") val name: String? = null,
+    @Json(name = "modeName") val modeName: String? = null
 )
 
 @JsonClass(generateAdapter = true)

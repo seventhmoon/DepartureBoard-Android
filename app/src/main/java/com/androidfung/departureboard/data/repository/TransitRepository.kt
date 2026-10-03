@@ -95,25 +95,40 @@ class TransitRepositoryImpl(
             try {
                 // Fetch arrivals directly, or expand child stop points if this is a bus station / transit hub
                 var rawArrivals = apiService.getArrivals(stationId)
-                if (rawArrivals.isEmpty()) {
-                    try {
-                        val detail = apiService.getStopPointDetail(stationId)
-                        val childIds = detail.children.map { it.id }.filter { it != stationId }
-                        if (childIds.isNotEmpty()) {
-                            val childArrivals = childIds.take(4).flatMap { cid ->
-                                try {
-                                    apiService.getArrivals(cid)
-                                } catch (_: Exception) {
-                                    emptyList()
-                                }
-                            }
-                            if (childArrivals.isNotEmpty()) {
-                                rawArrivals = childArrivals
+
+                try {
+                    val detail = apiService.getStopPointDetail(stationId)
+
+                    if (rawArrivals.isEmpty()) {
+                        // Prioritize tube, rail, and tram child stops before bus stops when expanding hubs
+                        val sortedChildren = detail.children.sortedByDescending { child ->
+                            when {
+                                child.id.startsWith("940G") -> 3 // Tube / Tram / Rail
+                                child.id.startsWith("910G") -> 2 // National Rail
+                                else -> 1 // Bus stops
                             }
                         }
-                    } catch (_: Exception) {
-                        // ignore detail fetch failures
+
+                        val childArrivals = mutableListOf<com.androidfung.departureboard.data.model.TflArrivalPrediction>()
+                        for (child in sortedChildren) {
+                            if (child.id != stationId) {
+                                try {
+                                    val arrivals = apiService.getArrivals(child.id)
+                                    if (arrivals.isNotEmpty()) {
+                                        childArrivals.addAll(arrivals)
+                                    }
+                                } catch (_: Exception) {
+                                    // continue to next child
+                                }
+                            }
+                        }
+
+                        if (childArrivals.isNotEmpty()) {
+                            rawArrivals = childArrivals
+                        }
                     }
+                } catch (_: Exception) {
+                    // ignore detail fetch failures
                 }
 
                 if (rawArrivals.isEmpty()) {
@@ -149,10 +164,19 @@ class TransitRepositoryImpl(
                                 platformName = item.platformName
                             )
                             val isBus = item.modeName.equals("bus", ignoreCase = true) || item.lineId?.toIntOrNull() != null
+                            val rawPlatform = item.platformName?.trim() ?: ""
                             val platformDisplay = when {
-                                !item.platformName.isNullOrBlank() && item.platformName.trim().lowercase() != "null" ->
-                                    if (isBus && !item.platformName.startsWith("Stop ", ignoreCase = true)) "Stop ${item.platformName}"
-                                    else item.platformName
+                                rawPlatform.isNotBlank() && rawPlatform.lowercase() != "null" -> {
+                                    when {
+                                        isBus && !rawPlatform.startsWith("Stop ", ignoreCase = true) -> "Stop $rawPlatform"
+                                        // Elizabeth line core stations often return "A" or "B"
+                                        rawPlatform.matches(Regex("^[A-Z0-9]$")) -> "Platform $rawPlatform"
+                                        !rawPlatform.startsWith("Platform", ignoreCase = true) &&
+                                        !rawPlatform.contains("bound", ignoreCase = true) &&
+                                        !rawPlatform.startsWith("Stop", ignoreCase = true) -> "Platform $rawPlatform"
+                                        else -> rawPlatform
+                                    }
+                                }
                                 isBus && !item.towards.isNullOrBlank() && item.towards.trim().lowercase() != "null" ->
                                     "towards ${cleanStationName(item.towards)}"
                                 else -> if (isBus) "Bus Stand" else "Platform"
@@ -176,6 +200,7 @@ class TransitRepositoryImpl(
                                 lineBadge = badge
                             )
                         }
+
                     Result.success(departures)
                 }
             } catch (e: Exception) {
@@ -255,6 +280,7 @@ class TransitRepositoryImpl(
 
         // The train terminates at this station; infer the departing destination for passengers on the platform
         return when {
+            // Northern Line
             "edgware" in currentStation -> when {
                 "via cx" in towardsLower || "charing cross" in towardsLower -> "Morden via Charing Cross"
                 "via bank" in towardsLower || "bank" in towardsLower -> "Morden via Bank"
@@ -272,18 +298,100 @@ class TransitRepositoryImpl(
                 "via bank" in towardsLower || "bank" in towardsLower -> "Morden via Bank"
                 else -> "Morden / Battersea"
             }
-            "brixton" in currentStation -> "Walthamstow Central"
-            "walthamstow" in currentStation -> "Brixton"
             "morden" in currentStation -> when {
                 "via cx" in towardsLower || "charing cross" in towardsLower -> "Edgware via Charing Cross"
                 "via bank" in towardsLower || "bank" in towardsLower -> "High Barnet via Bank"
                 else -> "Edgware / High Barnet"
             }
+            "battersea" in currentStation -> "High Barnet / Edgware via Charing Cross"
+
+            // Victoria Line
+            "brixton" in currentStation -> "Walthamstow Central"
+            "walthamstow" in currentStation -> "Brixton"
+
+            // Bakerloo Line
+            "elephant & castle" in currentStation -> "Harrow & Wealdstone / Queen's Park"
+            "harrow & wealdstone" in currentStation -> "Elephant & Castle"
+
+            // Central Line
             "west ruislip" in currentStation -> "Epping via Bank"
+            "ealing broadway" in currentStation -> when {
+                "district" in lineLower -> "Upminster via Tower Hill"
+                "elizabeth" in lineLower -> "Abbey Wood / Shenfield"
+                else -> "Epping / Hainault"
+            }
             "epping" in currentStation -> "West Ruislip / Ealing Broadway"
-            "cockfosters" in currentStation -> "Heathrow / Uxbridge"
+            "hainault" in currentStation -> "Central London via Newbury Park"
+            "woodford" in currentStation -> "Central London via Hainault"
+
+            // District & Circle Lines
+            "wimbledon" in currentStation -> when {
+                "edgware road" in towardsLower -> "Edgware Road via High Street Kensington"
+                "tower hill" in towardsLower || "upminster" in towardsLower || "barking" in towardsLower -> "Upminster via Tower Hill"
+                else -> "Upminster / Edgware Road"
+            }
+            "richmond" in currentStation -> when {
+                "overground" in lineLower || "mildmay" in lineLower -> "Stratford via Highbury & Islington"
+                else -> "Upminster via Tower Hill"
+            }
+            "upminster" in currentStation -> "Richmond / Ealing Broadway / Wimbledon"
+            "edgware road" in currentStation -> when {
+                "circle" in lineLower -> "Hammersmith via Tower Hill"
+                else -> "Wimbledon via High Street Kensington"
+            }
+            "hammersmith" in currentStation -> when {
+                "hammersmith" in lineLower -> "Barking via King's Cross"
+                else -> "Edgware Road via Aldgate"
+            }
+            "barking" in currentStation -> when {
+                "hammersmith" in lineLower -> "Hammersmith via King's Cross"
+                else -> "Wimbledon / Richmond / Ealing Broadway"
+            }
+
+            // Jubilee Line
+            "stanmore" in currentStation -> "Stratford via Central London"
+            "stratford" in currentStation -> when {
+                "jubilee" in lineLower -> "Stanmore via Central London"
+                "central" in lineLower -> "West Ruislip / Ealing Broadway"
+                "dlr" in lineLower -> "Lewisham / Woolwich Arsenal"
+                else -> "Westbound Services"
+            }
+            "canary wharf" in currentStation && "jubilee" in lineLower -> when {
+                "eastbound" in platLower || "platform 2" in platLower -> "Stratford via North Greenwich"
+                else -> "Stanmore / Wembley Park"
+            }
+
+            // Metropolitan Line
+            "aldgate" in currentStation -> "Uxbridge / Watford / Amersham"
+            "amersham" in currentStation -> "Aldgate / Baker Street"
+            "chesham" in currentStation -> "Aldgate / Baker Street"
+            "watford" in currentStation -> "Aldgate / Baker Street"
             "uxbridge" in currentStation -> if ("piccadilly" in lineLower) "Cockfosters" else "Aldgate / Baker Street"
-            "heathrow terminal 4" in currentStation || "heathrow terminal 5" in currentStation -> "Cockfosters via Central London"
+
+            // Piccadilly Line
+            "cockfosters" in currentStation -> "Heathrow / Uxbridge"
+            "heathrow terminal 4" in currentStation -> "Cockfosters via Central London"
+            "heathrow terminal 5" in currentStation -> when {
+                "elizabeth" in lineLower -> "Abbey Wood / Shenfield"
+                else -> "Cockfosters via Central London"
+            }
+
+            // Waterloo & City Line
+            "waterloo" in currentStation && ("waterloo" in lineLower || "city" in lineLower) -> "Bank"
+            "bank" in currentStation && ("waterloo" in lineLower || "city" in lineLower) -> "Waterloo"
+
+            // Elizabeth Line
+            "reading" in currentStation -> "Abbey Wood / Shenfield"
+            "shenfield" in currentStation -> "Reading / Heathrow Terminal 5"
+            "abbey wood" in currentStation -> "Reading / Heathrow Terminal 5"
+
+            // DLR
+            "tower gateway" in currentStation -> "Beckton via Canary Wharf"
+            "beckton" in currentStation -> "Tower Gateway / Bank"
+            "lewisham" in currentStation -> "Bank / Stratford"
+            "woolwich arsenal" in currentStation -> "Bank / Stratford International"
+
+            // Fallback by platform direction if available
             "southbound" in platLower -> "Southbound Services"
             "northbound" in platLower -> "Northbound Services"
             "eastbound" in platLower -> "Eastbound Services"

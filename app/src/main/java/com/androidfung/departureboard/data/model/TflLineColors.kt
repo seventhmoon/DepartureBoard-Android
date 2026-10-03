@@ -92,7 +92,11 @@ object TflLineColors {
             normalizedId == "metropolitan" || normalizedName.contains("metropolitan") ->
                 LineBadgeInfo(lineId = "metropolitan", displayName = "Metropolitan", backgroundColor = Metropolitan, textColor = LightText, mode = TransitMode.TUBE)
 
-            normalizedId == "northern" || normalizedName.contains("northern") ->
+            // Northern City Line must be checked before Tube Northern line!
+            normalizedId.contains("great-northern") || normalizedName.contains("great northern") || normalizedName.contains("northern city") ->
+                LineBadgeInfo(lineId = "great-northern", displayName = "Northern City Line", backgroundColor = Color(0xFF003882), textColor = LightText, mode = TransitMode.NATIONAL_RAIL)
+
+            normalizedId == "northern" || (normalizedName.contains("northern") && !normalizedName.contains("city")) ->
                 LineBadgeInfo(lineId = "northern", displayName = "Northern", backgroundColor = Northern, textColor = LightText, mode = TransitMode.TUBE)
 
             normalizedId == "piccadilly" || normalizedName.contains("piccadilly") ->
@@ -124,6 +128,14 @@ object TflLineColors {
             // Cable Car
             normalizedId.contains("cable-car") || normalizedName.contains("cable car") ->
                 LineBadgeInfo(lineId = "cable-car", displayName = "IFS Cloud Cable Car", backgroundColor = CableCar, textColor = LightText, mode = TransitMode.CABLE_CAR)
+
+            // Thameslink
+            normalizedId.contains("thameslink") || normalizedName.contains("thameslink") ->
+                LineBadgeInfo(lineId = "thameslink", displayName = "Thameslink", backgroundColor = Color(0xFFC70066), textColor = LightText, mode = TransitMode.NATIONAL_RAIL)
+
+            // Great Northern / Northern City Line
+            normalizedId.contains("great-northern") || normalizedName.contains("great northern") || normalizedName.contains("northern city") ->
+                LineBadgeInfo(lineId = "great-northern", displayName = "Northern City Line", backgroundColor = Color(0xFF003882), textColor = LightText, mode = TransitMode.NATIONAL_RAIL)
 
             // Bus
             mode == TransitMode.BUS || normalizedId.toIntOrNull() != null || normalizedId.matches(Regex("[a-z]?[0-9]+[a-z]?")) ->

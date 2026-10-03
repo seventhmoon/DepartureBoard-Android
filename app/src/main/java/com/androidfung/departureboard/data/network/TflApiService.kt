@@ -14,12 +14,12 @@ interface TflApiService {
 
     /**
      * Searches for stations/stops matching a query.
-     * Modes: tube, bus, dlr, overground, elizabeth-line, etc.
+     * Modes: tube, bus, dlr, overground, elizabeth-line, national-rail, etc.
      */
     @GET("StopPoint/Search/{query}")
     suspend fun searchStations(
         @Path("query") query: String,
-        @Query("modes") modes: String = "tube,bus,dlr,overground,elizabeth-line",
+        @Query("modes") modes: String = "tube,bus,dlr,overground,elizabeth-line,national-rail",
         @Query("maxResults") maxResults: Int = 20
     ): TflSearchResponse
 
@@ -40,10 +40,10 @@ interface TflApiService {
     ): com.androidfung.departureboard.data.model.TflStopPointDetail
 
     /**
-     * Fetches live line service statuses across rail and underground modes.
+     * Fetches live line service statuses across rail, underground, and Thameslink modes.
      */
     @GET("Line/Mode/{modes}/Status")
     suspend fun getLineStatuses(
-        @Path("modes") modes: String = "tube,dlr,overground,elizabeth-line"
+        @Path("modes") modes: String = "tube,dlr,overground,elizabeth-line,national-rail"
     ): List<com.androidfung.departureboard.data.model.TflLineStatusItem>
 }

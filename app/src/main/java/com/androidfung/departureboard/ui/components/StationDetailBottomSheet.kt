@@ -6,6 +6,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +50,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -95,6 +100,12 @@ fun StationDetailBottomSheet(
         ),
         label = "LivePulseAlpha"
     )
+
+    var selectedLineId by remember { mutableStateOf<String?>(null) }
+    val filteredDepartures = remember(departures, selectedLineId) {
+        if (selectedLineId == null) departures
+        else departures.filter { it.lineId.equals(selectedLineId, ignoreCase = true) }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -193,9 +204,9 @@ fun StationDetailBottomSheet(
                 }
             }
 
-            // Lines badges serving this station
+            // Lines badges serving this station - now interactive filter chips
             val distinctLines = departures.map { it.lineBadge }.distinctBy { it.lineId }
-            if (distinctLines.isNotEmpty()) {
+            if (distinctLines.size > 1) {
                 FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -203,11 +214,45 @@ fun StationDetailBottomSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    // "All" chip
+                    val isAllSelected = selectedLineId == null
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (isAllSelected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceContainerHighest
+                            )
+                            .clickable { selectedLineId = null }
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = "All Lines",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = if (isAllSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
                     distinctLines.forEach { badge ->
+                        val isSelected = selectedLineId.equals(badge.lineId, ignoreCase = true)
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(badge.backgroundColor)
+                                .background(
+                                    if (isSelected || isAllSelected) badge.backgroundColor
+                                    else badge.backgroundColor.copy(alpha = 0.35f)
+                                )
+                                .border(
+                                    width = if (isSelected) 2.dp else 0.dp,
+                                    color = if (isSelected) Color.White else Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable {
+                                    selectedLineId = if (selectedLineId == badge.lineId) null else badge.lineId
+                                }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
@@ -216,7 +261,7 @@ fun StationDetailBottomSheet(
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = badge.textColor
+                                color = if (isSelected || isAllSelected) badge.textColor else badge.textColor.copy(alpha = 0.6f)
                             )
                         }
                     }
@@ -263,7 +308,7 @@ fun StationDetailBottomSheet(
                     )
                 } else {
                     Text(
-                        text = "${departures.size} predictions",
+                        text = "${filteredDepartures.size} predictions",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -271,7 +316,7 @@ fun StationDetailBottomSheet(
             }
 
             // Departures List
-            if (departures.isEmpty() && !isLoading) {
+            if (filteredDepartures.isEmpty() && !isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -279,7 +324,7 @@ fun StationDetailBottomSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No departures currently available.\nTap refresh below to retry.",
+                        text = if (selectedLineId != null) "No departures for this line" else "No departures currently available.\nTap refresh below to retry.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 20.sp
@@ -294,7 +339,7 @@ fun StationDetailBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(
-                        items = departures,
+                        items = filteredDepartures,
                         key = { it.id }
                     ) { departure ->
                         DepartureDetailRow(departure = departure)

@@ -1,6 +1,7 @@
 package com.androidfung.departureboard.widget
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -8,7 +9,7 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.action.ActionParameters
-import androidx.glance.action.actionStartActivity
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.ActionCallback
@@ -51,6 +52,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
     companion object {
         val PREF_STATION_ID = stringPreferencesKey("widget_station_id")
         val PREF_STATION_NAME = stringPreferencesKey("widget_station_name")
+        val PREF_FILTER_LINE_ID = stringPreferencesKey("widget_filter_line_id")
+        val PREF_FILTER_LINE_NAME = stringPreferencesKey("widget_filter_line_name")
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -60,6 +63,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val prefs = androidx.glance.appwidget.state.getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
         val customStationId = prefs[PREF_STATION_ID]
         val customStationName = prefs[PREF_STATION_NAME]
+        val filterLineId = prefs[PREF_FILTER_LINE_ID]
+        val filterLineName = prefs[PREF_FILTER_LINE_NAME]
 
         val targetStation = if (!customStationId.isNullOrBlank()) {
             Station(
@@ -72,7 +77,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
             DefaultStations.POPULAR_STATIONS.first()
         }
 
-        val departures = try {
+        val allDepartures = try {
             val live = repository.getDepartures(targetStation.id, targetStation.name).getOrNull()
             if (!live.isNullOrEmpty()) live
             else DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name)
@@ -84,11 +89,25 @@ class DepartureBoardWidget : GlanceAppWidget() {
             val activePrefs = currentState<Preferences>()
             val stationId = activePrefs[PREF_STATION_ID] ?: targetStation.id
             val stationName = activePrefs[PREF_STATION_NAME] ?: targetStation.name
+            val activeFilterLineId = activePrefs[PREF_FILTER_LINE_ID] ?: filterLineId
+            val activeFilterLineName = activePrefs[PREF_FILTER_LINE_NAME] ?: filterLineName
             val activeStation = targetStation.copy(id = stationId, name = stationName)
+
+            val departures = if (!activeFilterLineId.isNullOrBlank()) {
+                val filtered = allDepartures.filter {
+                    it.lineId.equals(activeFilterLineId, ignoreCase = true) ||
+                    it.lineName.equals(activeFilterLineId, ignoreCase = true) ||
+                    it.lineBadge.displayName.equals(activeFilterLineName, ignoreCase = true)
+                }
+                filtered.ifEmpty { allDepartures }
+            } else {
+                allDepartures
+            }
 
             GlanceTheme {
                 WidgetContent(
                     station = activeStation,
+                    filterLabel = activeFilterLineName,
                     departures = departures
                 )
             }
@@ -98,15 +117,24 @@ class DepartureBoardWidget : GlanceAppWidget() {
     @Composable
     private fun WidgetContent(
         station: Station,
+        filterLabel: String?,
         departures: List<Departure>
     ) {
+        val clickIntent = Intent(androidx.glance.LocalContext.current, MainActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            data = android.net.Uri.parse("mindtheboard://station/${station.id}?name=${java.net.URLEncoder.encode(station.name, "UTF-8")}")
+            putExtra(MainActivity.EXTRA_STATION_ID, station.id)
+            putExtra(MainActivity.EXTRA_STATION_NAME, station.name)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(GlanceTheme.colors.surface)
                 .cornerRadius(22.dp)
                 .padding(14.dp)
-                .clickable(actionStartActivity<MainActivity>())
+                .clickable(actionStartActivity(clickIntent))
         ) {
             // Header Row: Mind The Board Branding + Station
             Row(
@@ -133,12 +161,17 @@ class DepartureBoardWidget : GlanceAppWidget() {
                         ),
                         maxLines = 1
                     )
+                    val subtitle = if (!filterLabel.isNullOrBlank()) {
+                        "Mind The Board • $filterLabel"
+                    } else {
+                        "Mind The Board • Live"
+                    }
                     Text(
-                        text = "Mind The Board • Live",
+                        text = subtitle,
                         style = TextStyle(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Normal,
-                            color = GlanceTheme.colors.onSurfaceVariant
+                            color = if (!filterLabel.isNullOrBlank()) GlanceTheme.colors.primary else GlanceTheme.colors.onSurfaceVariant
                         )
                     )
                 }
@@ -181,7 +214,10 @@ class DepartureBoardWidget : GlanceAppWidget() {
             } else {
                 LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
                     items(departures.take(5)) { departure ->
-                        WidgetDepartureRow(departure = departure)
+                        WidgetDepartureRow(
+                            departure = departure,
+                            station = station
+                        )
                     }
                 }
             }
@@ -189,7 +225,18 @@ class DepartureBoardWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun WidgetDepartureRow(departure: Departure) {
+    private fun WidgetDepartureRow(
+        departure: Departure,
+        station: Station
+    ) {
+        val clickIntent = Intent(androidx.glance.LocalContext.current, MainActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            data = android.net.Uri.parse("mindtheboard://station/${station.id}?name=${java.net.URLEncoder.encode(station.name, "UTF-8")}")
+            putExtra(MainActivity.EXTRA_STATION_ID, station.id)
+            putExtra(MainActivity.EXTRA_STATION_NAME, station.name)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+
         val minutes = departure.timeToStationSeconds / 60
         val isDue = departure.timeToStationSeconds <= 30
         val countdownText = if (isDue) "DUE" else "${minutes}m"
@@ -197,7 +244,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
-                .padding(vertical = 5.dp),
+                .padding(vertical = 5.dp)
+                .clickable(actionStartActivity(clickIntent)),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = GlanceModifier.defaultWeight()) {

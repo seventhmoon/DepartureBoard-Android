@@ -44,7 +44,7 @@ object DefaultStations {
             isFavorite = true
         ),
         Station(
-            id = "940GZZLUPIC",
+            id = "940GZZLUPCC",
             name = "Piccadilly Circus",
             modes = listOf("tube"),
             zone = "1",
@@ -71,7 +71,7 @@ object DefaultStations {
             isFavorite = false
         ),
         Station(
-            id = "940GZZLUPAC",
+            id = "HUBPAD",
             name = "Paddington",
             modes = listOf("tube", "elizabeth-line", "national-rail"),
             zone = "1",
@@ -80,7 +80,7 @@ object DefaultStations {
             isFavorite = false
         ),
         Station(
-            id = "940GZZLUFCN",
+            id = "HUBZFD",
             name = "Farringdon",
             modes = listOf("tube", "elizabeth-line", "national-rail"),
             zone = "1",
@@ -89,7 +89,7 @@ object DefaultStations {
             isFavorite = false
         ),
         Station(
-            id = "940GZZLULVS",
+            id = "HUBLST",
             name = "Liverpool Street",
             modes = listOf("tube", "elizabeth-line", "overground", "national-rail"),
             zone = "1",
@@ -98,7 +98,7 @@ object DefaultStations {
             isFavorite = false
         ),
         Station(
-            id = "940GZZLUCAN",
+            id = "HUBCAW",
             name = "Canary Wharf",
             modes = listOf("tube", "elizabeth-line", "dlr"),
             zone = "2",
@@ -107,7 +107,7 @@ object DefaultStations {
             isFavorite = false
         ),
         Station(
-            id = "940GZZLUBBN",
+            id = "HUBBAN",
             name = "Bank",
             modes = listOf("tube", "dlr"),
             zone = "1",

@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsSubway
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,6 +40,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -99,8 +101,8 @@ class WidgetConfigurationActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     WidgetStationPickerScreen(
-                        onStationSelected = { station ->
-                            selectStationAndFinish(station)
+                        onStationAndLineSelected = { station, lineBadge ->
+                            selectStationAndFinish(station, lineBadge)
                         },
                         onCancel = {
                             finish()
@@ -111,7 +113,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
         }
     }
 
-    private fun selectStationAndFinish(station: Station) {
+    private fun selectStationAndFinish(station: Station, lineBadge: com.androidfung.departureboard.data.model.LineBadgeInfo?) {
         val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
         coroutineScope.launch {
             val glanceManager = GlanceAppWidgetManager(this@WidgetConfigurationActivity)
@@ -121,6 +123,13 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 prefs.toMutablePreferences().apply {
                     this[DepartureBoardWidget.PREF_STATION_ID] = station.id
                     this[DepartureBoardWidget.PREF_STATION_NAME] = station.name
+                    if (lineBadge != null) {
+                        this[DepartureBoardWidget.PREF_FILTER_LINE_ID] = lineBadge.lineId
+                        this[DepartureBoardWidget.PREF_FILTER_LINE_NAME] = lineBadge.displayName
+                    } else {
+                        remove(DepartureBoardWidget.PREF_FILTER_LINE_ID)
+                        remove(DepartureBoardWidget.PREF_FILTER_LINE_NAME)
+                    }
                 }
             }
 
@@ -137,7 +146,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
 
 @Composable
 fun WidgetStationPickerScreen(
-    onStationSelected: (Station) -> Unit,
+    onStationAndLineSelected: (Station, com.androidfung.departureboard.data.model.LineBadgeInfo?) -> Unit,
     onCancel: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -145,6 +154,25 @@ fun WidgetStationPickerScreen(
     var searchQuery by remember { mutableStateOf("") }
     var stations by remember { mutableStateOf<List<Station>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+
+    // Step 2: Line selection sheet state when a multi-line station is tapped
+    var selectedStationForLines by remember { mutableStateOf<Station?>(null) }
+    var stationDepartures by remember { mutableStateOf<List<com.androidfung.departureboard.data.model.Departure>>(emptyList()) }
+    var isLoadingLines by remember { mutableStateOf(false) }
+
+    LaunchedEffect(selectedStationForLines) {
+        val st = selectedStationForLines
+        if (st != null) {
+            isLoadingLines = true
+            val deps = try {
+                repository.getDepartures(st.id, st.name).getOrDefault(emptyList())
+            } catch (_: Exception) {
+                emptyList()
+            }
+            stationDepartures = deps
+            isLoadingLines = false
+        }
+    }
 
     LaunchedEffect(Unit) {
         val saved = try {
@@ -192,7 +220,7 @@ fun WidgetStationPickerScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Choose which station this widget shows",
+                    text = "Choose which station and line this widget shows",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -259,7 +287,9 @@ fun WidgetStationPickerScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onStationSelected(station) },
+                            .clickable {
+                                selectedStationForLines = station
+                            },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -305,5 +335,123 @@ fun WidgetStationPickerScreen(
                 }
             }
         }
+    }
+
+    // Modal Sheet or Dialog to pick specific line/route
+    val activeStation = selectedStationForLines
+    if (activeStation != null) {
+        val availableLines = remember(stationDepartures) {
+            stationDepartures.map { it.lineBadge }.distinctBy { it.lineId }
+        }
+
+        AlertDialog(
+            onDismissRequest = { selectedStationForLines = null },
+            title = {
+                Text(
+                    text = activeStation.name,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Choose line or route filter for this widget:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Option 1: All Lines (no filter)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onStationAndLineSelected(activeStation, null)
+                            },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Text(
+                            text = "All Lines & Routes (Default)",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.padding(14.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (isLoadingLines) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            Text("Loading station routes...", style = MaterialTheme.typography.bodySmall)
+                        }
+                    } else if (availableLines.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Or filter to specific route:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth().height(200.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(availableLines, key = { it.lineId }) { badge ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onStationAndLineSelected(activeStation, badge)
+                                        },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = badge.backgroundColor.copy(alpha = 0.15f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(badge.backgroundColor)
+                                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                        ) {
+                                            Text(
+                                                text = badge.displayName,
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = badge.textColor
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Show only ${badge.displayName}",
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { selectedStationForLines = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

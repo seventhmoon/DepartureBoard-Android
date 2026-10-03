@@ -11,15 +11,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.CircleShape
-import com.androidfung.departureboard.ui.components.rememberReorderableGridState
-import com.androidfung.departureboard.ui.components.reorderableGrid
-import com.androidfung.departureboard.ui.components.reorderableItem
+import com.androidfung.departureboard.ui.components.rememberReorderableStaggeredGridState
+import com.androidfung.departureboard.ui.components.reorderableStaggeredGrid
+import com.androidfung.departureboard.ui.components.reorderableStaggeredItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.CircularProgressIndicator
@@ -77,9 +77,10 @@ import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
+    modifier: Modifier = Modifier,
+    initialDetailStation: Station? = null,
     onNavigateToSearch: () -> Unit = {},
     onStationClick: (Station) -> Unit = {},
-    modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -87,6 +88,12 @@ fun DashboardScreen(
 
     var showSearchSheet by rememberSaveable { mutableStateOf(false) }
     var selectedStationForDetail by remember { mutableStateOf<Station?>(null) }
+
+    LaunchedEffect(initialDetailStation) {
+        if (initialDetailStation != null) {
+            selectedStationForDetail = initialDetailStation
+        }
+    }
 
     // Handle user snackbar notifications (e.g., station deletion undo)
     LaunchedEffect(uiState.userMessage) {
@@ -173,8 +180,11 @@ fun DashboardContent(
     modifier: Modifier = Modifier
 ) {
     val pullToRefreshState = rememberPullToRefreshState()
-    val gridState = rememberLazyGridState()
-    val reorderState = rememberReorderableGridState(gridState = gridState, onMove = onMoveStation)
+    val staggeredGridState = rememberLazyStaggeredGridState()
+    val reorderState = rememberReorderableStaggeredGridState(
+        staggeredGridState = staggeredGridState,
+        onMove = onMoveStation
+    )
 
     // Expressive gradient background matching the design mockup (top dark-indigo / slate-blue to rich deep surface)
     val backgroundBrush = Brush.verticalGradient(
@@ -218,12 +228,12 @@ fun DashboardContent(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            LazyVerticalGrid(
-                state = gridState,
-                columns = GridCells.Adaptive(minSize = 360.dp),
+            LazyVerticalStaggeredGrid(
+                state = staggeredGridState,
+                columns = StaggeredGridCells.Adaptive(minSize = 360.dp),
                 modifier = Modifier
                     .fillMaxSize()
-                    .reorderableGrid(reorderState),
+                    .reorderableStaggeredGrid(reorderState),
                 contentPadding = PaddingValues(
                     start = 16.dp,
                     end = 16.dp,
@@ -231,15 +241,15 @@ fun DashboardContent(
                     bottom = 96.dp // Extra clearance for the expressive FAB
                 ),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalItemSpacing = 20.dp
             ) {
-                // Header section: "London Departures" title spanning full width
-                item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
+                // Header section: "Mind The Board" title spanning full width
+                item(key = "header", span = StaggeredGridItemSpan.FullLine) {
                     DashboardHeader()
                 }
 
                 if (uiState.isInitialLoading && uiState.stationCards.isEmpty()) {
-                    item(key = "loading", span = { GridItemSpan(maxLineSpan) }) {
+                    item(key = "loading", span = StaggeredGridItemSpan.FullLine) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -254,14 +264,14 @@ fun DashboardContent(
                     }
                 } else if (uiState.stationCards.isEmpty()) {
                     // Empty state when all stations removed spanning full width
-                    item(key = "empty_state", span = { GridItemSpan(maxLineSpan) }) {
+                    item(key = "empty_state", span = StaggeredGridItemSpan.FullLine) {
                         EmptyDashboardState(
                             onAddStationClick = onAddStationClick,
                             modifier = Modifier.padding(top = 16.dp)
                         )
                     }
                 } else {
-                    // Station Departure Cards with drag-and-drop reorder animation
+                    // Station Departure Cards in masonry / flex-like staggered flow with drag-and-drop
                     items(
                         items = uiState.stationCards,
                         key = { it.station.id }
@@ -273,7 +283,9 @@ fun DashboardContent(
                             onStationClick = onStationClick,
                             isNearest = isNearest,
                             distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
-                            modifier = Modifier.reorderableItem(reorderState, cardModel.station.id)
+                            modifier = Modifier
+                                .reorderableStaggeredItem(reorderState, cardModel.station.id)
+                                .animateItem()
                         )
                     }
                 }

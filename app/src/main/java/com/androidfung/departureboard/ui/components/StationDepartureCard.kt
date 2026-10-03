@@ -145,11 +145,7 @@ fun StationDepartureCard(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(32.dp))
-                .then(
-                    if (onStationClick != null) Modifier.clickable { onStationClick(cardModel.station) }
-                    else Modifier
-                ),
+                .clip(RoundedCornerShape(32.dp)),
             shape = RoundedCornerShape(32.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color.Transparent
@@ -189,28 +185,25 @@ fun StationDepartureCard(
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             selectedLineId = if (selectedLineId == badge.lineId) null else badge.lineId
                         },
+                        onStationClick = onStationClick,
                         isLoading = cardModel.isLoading,
                         modifier = Modifier.padding(horizontal = 22.dp)
                     )
 
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = isExpanded,
-                        enter = androidx.compose.animation.expandVertically() + fadeIn(),
-                        exit = androidx.compose.animation.shrinkVertically() + fadeOut()
-                    ) {
-                        Column {
-                            Spacer(modifier = Modifier.height(16.dp))
+                    // When collapsed/minimized, show exactly 1 departure entry (or filtered entry)
+                    // When expanded, show full list of departures
+                    val showLineBadgeOnEntries = selectedLineId == null && cardModel.availableLineBadges.size > 1
 
-                            // Departure List or Placeholder
-                            val showLineBadgeOnEntries = selectedLineId == null && cardModel.availableLineBadges.size > 1
-                            StationDeparturesContainer(
-                                departures = filteredDepartures,
-                                showLineBadge = showLineBadgeOnEntries,
-                                isLoading = cardModel.isLoading,
-                                errorMessage = cardModel.errorMessage,
-                                modifier = Modifier.padding(horizontal = 10.dp)
-                            )
-                        }
+                    Column {
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        StationDeparturesContainer(
+                            departures = if (isExpanded) filteredDepartures else filteredDepartures.take(1),
+                            showLineBadge = showLineBadgeOnEntries,
+                            isLoading = cardModel.isLoading,
+                            errorMessage = cardModel.errorMessage,
+                            modifier = Modifier.padding(horizontal = 10.dp)
+                        )
                     }
                 }
             }
@@ -227,12 +220,13 @@ private fun StationHeaderSection(
     lineBadges: List<LineBadgeInfo>,
     selectedLineId: String?,
     isExpanded: Boolean,
-    isNearest: Boolean = false,
-    distanceMeters: Double? = null,
     onToggleExpand: () -> Unit,
     onLineBadgeClick: (LineBadgeInfo) -> Unit,
     isLoading: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isNearest: Boolean = false,
+    distanceMeters: Double? = null,
+    onStationClick: ((Station) -> Unit)? = null
 ) {
     Column(modifier = modifier) {
         Row(
@@ -240,7 +234,14 @@ private fun StationHeaderSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .then(
+                        if (onStationClick != null) Modifier.clickable { onStationClick(station) }
+                        else Modifier
+                    )
+            ) {
                 if (isNearest) {
                     val distText = if (distanceMeters != null) {
                         val km = distanceMeters / 1000.0
@@ -279,15 +280,15 @@ private fun StationHeaderSection(
                 // Expand / Collapse Chevron button
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
                         .clickable(onClick = onToggleExpand),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = if (isExpanded) "▲" else "▼",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -371,10 +372,10 @@ fun LineDisruptionBanner(
 @Composable
 fun LinePillBadge(
     badge: LineBadgeInfo,
+    modifier: Modifier = Modifier,
     isSelected: Boolean = false,
     isDimmed: Boolean = false,
-    onClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    onClick: (() -> Unit)? = null
 ) {
     val isBusOrNumeric = badge.mode == TransitMode.BUS || badge.displayName.all { it.isDigit() }
     val shape = if (isBusOrNumeric && badge.displayName.length <= 3) CircleShape else RoundedCornerShape(16.dp)
@@ -427,10 +428,10 @@ fun LinePillBadge(
 @Composable
 private fun StationDeparturesContainer(
     departures: List<Departure>,
-    showLineBadge: Boolean = false,
     isLoading: Boolean,
     errorMessage: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showLineBadge: Boolean = false
 ) {
     Box(
         modifier = modifier
@@ -517,8 +518,8 @@ private fun StationDeparturesContainer(
 fun DepartureRowItem(
     departure: Departure,
     isFirst: Boolean,
-    showLineBadge: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showLineBadge: Boolean = false
 ) {
     val transitIcon = getTransitIcon(departure.modeName, departure.destinationName)
 
@@ -546,19 +547,34 @@ fun DepartureRowItem(
         // Destination & Direction details
         Column(modifier = Modifier.weight(1f)) {
             val destinationText = departure.destinationName.ifBlank { departure.lineName }
+
+            // Destination title (always left-aligned with icon above)
+            Text(
+                text = destinationText,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = if (isFirst) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = if (isFirst) 16.sp else 15.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(3.dp))
+
+            // Subtitle row: [Line/Route Chip] + Platform / Location info (Option A)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Line badge / route chip if filtering is not active and station has multiple lines
                 if (showLineBadge) {
                     val badge = departure.lineBadge
                     val isBusOrNumeric = badge.mode == TransitMode.BUS || badge.displayName.all { it.isDigit() }
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .background(badge.backgroundColor)
-                            .padding(horizontal = if (isBusOrNumeric) 6.dp else 8.dp, vertical = 2.dp),
+                            .padding(horizontal = if (isBusOrNumeric) 5.dp else 6.dp, vertical = 1.5.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -573,33 +589,21 @@ fun DepartureRowItem(
                     }
                 }
 
-                Text(
-                    text = destinationText,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = if (isFirst) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = if (isFirst) 16.sp else 15.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+                val subText = when {
+                    !departure.platformName.isBlank() -> departure.platformName
+                    !departure.currentLocation.isNullOrBlank() -> departure.currentLocation
+                    else -> departure.lineName
+                }
 
-            // Platform & line details (avoiding redundant destination repeats)
-            val subText = when {
-                !departure.platformName.isBlank() -> departure.platformName
-                !departure.currentLocation.isNullOrBlank() -> departure.currentLocation
-                else -> departure.lineName
-            }
-
-            if (!subText.isBlank()) {
-                Text(
-                    text = subText,
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                if (subText.isNotBlank()) {
+                    Text(
+                        text = subText,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
             // Live Train Progress Track for upcoming trains (due or arriving within 3 minutes)

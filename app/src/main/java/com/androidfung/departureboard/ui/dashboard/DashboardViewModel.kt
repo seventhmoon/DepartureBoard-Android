@@ -165,14 +165,29 @@ class DashboardViewModel @JvmOverloads constructor(
                 val res = results[card.station.id]
                 if (res != null && res.isSuccess) {
                     val departures = res.getOrDefault(emptyList())
-                    // Extract line badges either from departures or from station metadata, attaching live status
-                    val rawBadges = if (departures.isNotEmpty()) {
-                        departures.map { it.lineBadge }.distinctBy { it.lineId }
+                    // Extract line badges strictly from active departures, falling back to verified station lines only if departures are empty
+                    val departureBadges = departures.map { it.lineBadge }.distinctBy { it.displayName }
+                    val rawBadges = if (departureBadges.isNotEmpty()) {
+                        departureBadges.filter { badge ->
+                            // Guard: Filter out spurious depot movements (e.g. H&C depot run at Wembley Park)
+                            val isWembleyPark = card.station.id == "940GZZLUWYP" || "wembley park" in card.station.name.lowercase()
+                            !(isWembleyPark && badge.lineId.equals("hammersmith-city", ignoreCase = true))
+                        }
                     } else {
                         inferLineBadges(card.station)
                     }
 
-                    val badgesWithStatus = rawBadges.map { badge ->
+                    // Sort line badges logically: Tube/Rail lines alphabetically, then numeric Bus routes in ascending order
+                    val sortedBadges = rawBadges.sortedWith(
+                        compareBy<LineBadgeInfo> { badge ->
+                            if (badge.displayName.all { it.isDigit() }) 1 else 0
+                        }.thenBy { badge ->
+                            val num = badge.displayName.filter { it.isDigit() }.toIntOrNull()
+                            num ?: Int.MAX_VALUE
+                        }.thenBy { it.displayName }
+                    )
+
+                    val badgesWithStatus = sortedBadges.map { badge ->
                         val statusItem = lineStatuses[badge.lineId.lowercase()]
                         val firstDetail = statusItem?.lineStatuses?.firstOrNull()
                         if (firstDetail != null) {
@@ -347,39 +362,94 @@ class DashboardViewModel @JvmOverloads constructor(
 
     /**
      * Helper to infer line badges when departures haven't loaded yet.
+     * Excludes generic "National-rail" or unused "Bus" badges.
      */
     private fun inferLineBadges(station: Station): List<LineBadgeInfo> {
         val badges = mutableListOf<LineBadgeInfo>()
-        station.modes.forEach { mode ->
-            when (mode.lowercase()) {
-                "tube" -> {
-                    // Match popular tube station lines
-                    when (station.id) {
-                        "940GZZLUOXC" -> {
-                            badges.add(TflLineColors.getLineBadge("victoria", "Victoria", "tube"))
-                            badges.add(TflLineColors.getLineBadge("central", "Central", "tube"))
-                            badges.add(TflLineColors.getLineBadge("bakerloo", "Bakerloo", "tube"))
-                        }
-                        "940GZZLUKSX" -> {
-                            badges.add(TflLineColors.getLineBadge("victoria", "Victoria", "tube"))
-                            badges.add(TflLineColors.getLineBadge("northern", "Northern", "tube"))
-                            badges.add(TflLineColors.getLineBadge("piccadilly", "Piccadilly", "tube"))
-                        }
-                        else -> badges.add(TflLineColors.getLineBadge("tube", "Underground", "tube"))
+        val stName = station.name.lowercase()
+
+        when {
+            "oxford circus" in stName || station.id == "940GZZLUOXC" -> {
+                badges.add(TflLineColors.getLineBadge("bakerloo", "Bakerloo", "tube"))
+                badges.add(TflLineColors.getLineBadge("central", "Central", "tube"))
+                badges.add(TflLineColors.getLineBadge("victoria", "Victoria", "tube"))
+            }
+            "king's cross" in stName || station.id == "940GZZLUKSX" -> {
+                badges.add(TflLineColors.getLineBadge("circle", "Circle", "tube"))
+                badges.add(TflLineColors.getLineBadge("hammersmith-city", "Hammersmith & City", "tube"))
+                badges.add(TflLineColors.getLineBadge("metropolitan", "Metropolitan", "tube"))
+                badges.add(TflLineColors.getLineBadge("northern", "Northern", "tube"))
+                badges.add(TflLineColors.getLineBadge("piccadilly", "Piccadilly", "tube"))
+                badges.add(TflLineColors.getLineBadge("victoria", "Victoria", "tube"))
+            }
+            "waterloo" in stName || station.id == "940GZZLUWLO" -> {
+                badges.add(TflLineColors.getLineBadge("bakerloo", "Bakerloo", "tube"))
+                badges.add(TflLineColors.getLineBadge("jubilee", "Jubilee", "tube"))
+                badges.add(TflLineColors.getLineBadge("northern", "Northern", "tube"))
+                badges.add(TflLineColors.getLineBadge("waterloo-city", "Waterloo & City", "tube"))
+            }
+            "victoria" in stName || station.id == "940GZZLUVIC" -> {
+                badges.add(TflLineColors.getLineBadge("circle", "Circle", "tube"))
+                badges.add(TflLineColors.getLineBadge("district", "District", "tube"))
+                badges.add(TflLineColors.getLineBadge("victoria", "Victoria", "tube"))
+            }
+            "london bridge" in stName || station.id == "940GZZLULNB" -> {
+                badges.add(TflLineColors.getLineBadge("jubilee", "Jubilee", "tube"))
+                badges.add(TflLineColors.getLineBadge("northern", "Northern", "tube"))
+            }
+            "kentish town" in stName -> {
+                badges.add(TflLineColors.getLineBadge("northern", "Northern", "tube"))
+            }
+            "old street" in stName -> {
+                badges.add(TflLineColors.getLineBadge("northern", "Northern", "tube"))
+            }
+            "ealing broadway" in stName || station.id == "940GZZLUEBY" -> {
+                badges.add(TflLineColors.getLineBadge("central", "Central", "tube"))
+                badges.add(TflLineColors.getLineBadge("district", "District", "tube"))
+                badges.add(TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
+            }
+            "wembley park" in stName || station.id == "940GZZLUWYP" -> {
+                badges.add(TflLineColors.getLineBadge("jubilee", "Jubilee", "tube"))
+                badges.add(TflLineColors.getLineBadge("metropolitan", "Metropolitan", "tube"))
+            }
+            "paddington" in stName || station.id == "HUBPAD" || station.id == "940GZZLUPAC" -> {
+                badges.add(TflLineColors.getLineBadge("bakerloo", "Bakerloo", "tube"))
+                badges.add(TflLineColors.getLineBadge("circle", "Circle", "tube"))
+                badges.add(TflLineColors.getLineBadge("district", "District", "tube"))
+                badges.add(TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
+                badges.add(TflLineColors.getLineBadge("hammersmith-city", "Hammersmith & City", "tube"))
+            }
+            "farringdon" in stName || station.id == "HUBZFD" -> {
+                badges.add(TflLineColors.getLineBadge("circle", "Circle", "tube"))
+                badges.add(TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
+                badges.add(TflLineColors.getLineBadge("hammersmith-city", "Hammersmith & City", "tube"))
+                badges.add(TflLineColors.getLineBadge("metropolitan", "Metropolitan", "tube"))
+            }
+            "liverpool street" in stName || station.id == "HUBLST" -> {
+                badges.add(TflLineColors.getLineBadge("central", "Central", "tube"))
+                badges.add(TflLineColors.getLineBadge("circle", "Circle", "tube"))
+                badges.add(TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
+                badges.add(TflLineColors.getLineBadge("hammersmith-city", "Hammersmith & City", "tube"))
+                badges.add(TflLineColors.getLineBadge("metropolitan", "Metropolitan", "tube"))
+                badges.add(TflLineColors.getLineBadge("overground", "London Overground", "overground"))
+            }
+            else -> {
+                station.modes.forEach { mode ->
+                    when (mode.lowercase()) {
+                        "tube" -> badges.add(TflLineColors.getLineBadge("tube", "Underground", "tube"))
+                        "elizabeth-line" -> badges.add(TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
+                        "overground" -> badges.add(TflLineColors.getLineBadge("overground", "Overground", "overground"))
+                        "dlr" -> badges.add(TflLineColors.getLineBadge("dlr", "DLR", "dlr"))
+                        "tram" -> badges.add(TflLineColors.getLineBadge("tram", "Tram", "tram"))
+                        // Explicitly exclude generic "bus" or "national-rail" placeholders
                     }
                 }
-                "bus" -> badges.add(TflLineColors.getLineBadge("bus", "Bus", "bus"))
-                "elizabeth-line" -> badges.add(TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
-                "overground" -> badges.add(TflLineColors.getLineBadge("overground", "Overground", "overground"))
-                "dlr" -> badges.add(TflLineColors.getLineBadge("dlr", "DLR", "dlr"))
-                else -> badges.add(TflLineColors.getLineBadge(null, mode.replaceFirstChar { it.uppercase() }, mode))
             }
         }
-        return badges.distinctBy { it.displayName }
+        return badges.distinctBy { it.displayName }.sortedBy { it.displayName }
     }
 
     override fun onCleared() {
-        super.onCleared()
         stopCountdownTicker()
         stopAutoRefreshPolling()
     }
