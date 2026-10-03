@@ -1,0 +1,397 @@
+package com.androidfung.departureboard.ui.dashboard
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
+import com.androidfung.departureboard.ui.components.rememberReorderableGridState
+import com.androidfung.departureboard.ui.components.reorderableGrid
+import com.androidfung.departureboard.ui.components.reorderableItem
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.androidfung.departureboard.data.model.DefaultStations
+import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TflLineColors
+import com.androidfung.departureboard.ui.components.EmptyDashboardState
+import com.androidfung.departureboard.ui.components.SearchStationBottomSheet
+import com.androidfung.departureboard.ui.components.StationDepartureCard
+import com.androidfung.departureboard.ui.components.StationDetailBottomSheet
+import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
+
+/**
+ * Departure Board Dashboard Screen.
+ *
+ * Implements:
+ * - Pixel Clock-inspired departure cards with TfL line badges, platform details, and live countdowns.
+ * - Material 3 Expressive design with pill chips, smooth gradient backgrounds, and expressive floating action button (+).
+ * - Pull-to-refresh & auto-refresh (via ViewModel).
+ * - Swipe-to-delete with Snackbar undo action.
+ * - Clean empty state when no stations are saved.
+ * - Search station picker & station details bottom sheets.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DashboardScreen(
+    onNavigateToSearch: () -> Unit = {},
+    onStationClick: (Station) -> Unit = {},
+    modifier: Modifier = Modifier,
+    viewModel: DashboardViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    var showSearchSheet by rememberSaveable { mutableStateOf(false) }
+    var selectedStationForDetail by remember { mutableStateOf<Station?>(null) }
+
+    // Handle user snackbar notifications (e.g., station deletion undo)
+    LaunchedEffect(uiState.userMessage) {
+        val message = uiState.userMessage
+        if (message != null) {
+            val result = snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoRemoveStation()
+            }
+            viewModel.clearUserMessage()
+        }
+    }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(uiState.stationCards.size) {
+        if (uiState.stationCards.isNotEmpty()) {
+            viewModel.updateNearestStation(context)
+        }
+    }
+
+    DashboardContent(
+        uiState = uiState,
+        snackbarHostState = snackbarHostState,
+        onRefresh = { viewModel.refreshDepartures(isManualPullToRefresh = true) },
+        onDismissStation = { station -> viewModel.removeStation(station) },
+        onMoveStation = { fromIndex, toIndex -> viewModel.moveStation(fromIndex, toIndex) },
+        onAddStationClick = {
+            showSearchSheet = true
+            onNavigateToSearch()
+        },
+        onStationClick = { station ->
+            selectedStationForDetail = station
+            onStationClick(station)
+        },
+        modifier = modifier
+    )
+
+    // Search & Add Station Sheet
+    if (showSearchSheet) {
+        SearchStationBottomSheet(
+            onDismissRequest = { showSearchSheet = false },
+            onStationSelected = { station ->
+                viewModel.addStation(station)
+                showSearchSheet = false
+            },
+            savedStationIds = remember(uiState.stationCards) {
+                uiState.stationCards.map { it.station.id }.toSet()
+            },
+            onSearchQuery = { query -> viewModel.searchStations(query) }
+        )
+    }
+
+    // Station Departure Details Sheet
+    selectedStationForDetail?.let { station ->
+        val cardModel = uiState.stationCards.firstOrNull { it.station.id == station.id }
+        StationDetailBottomSheet(
+            station = station,
+            departures = cardModel?.departures ?: emptyList(),
+            isLoading = cardModel?.isLoading ?: false,
+            onRefresh = { viewModel.refreshStation(station) },
+            onRemoveStation = { stationToRemove ->
+                viewModel.removeStation(stationToRemove)
+                selectedStationForDetail = null
+            },
+            onDismissRequest = { selectedStationForDetail = null }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DashboardContent(
+    uiState: DashboardUiState,
+    snackbarHostState: SnackbarHostState,
+    onRefresh: () -> Unit,
+    onDismissStation: (Station) -> Unit,
+    onMoveStation: (fromIndex: Int, toIndex: Int) -> Unit,
+    onAddStationClick: () -> Unit,
+    onStationClick: (Station) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val pullToRefreshState = rememberPullToRefreshState()
+    val gridState = rememberLazyGridState()
+    val reorderState = rememberReorderableGridState(gridState = gridState, onMove = onMoveStation)
+
+    // Expressive gradient background matching the design mockup (top dark-indigo / slate-blue to rich deep surface)
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
+            MaterialTheme.colorScheme.surface
+        )
+    )
+
+    Scaffold(
+        modifier = modifier
+            .fillMaxSize()
+            .background(backgroundBrush),
+        containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
+            // Expressive FAB (+) with vibrant accent color (coral orange / energetic teal)
+            FloatingActionButton(
+                onClick = onAddStationClick,
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
+                modifier = Modifier
+                    .padding(end = 4.dp, bottom = 4.dp)
+                    .size(62.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = "Add Station",
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+        }
+    ) { innerPadding ->
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = onRefresh,
+            state = pullToRefreshState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            LazyVerticalGrid(
+                state = gridState,
+                columns = GridCells.Adaptive(minSize = 360.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .reorderableGrid(reorderState),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 12.dp,
+                    bottom = 96.dp // Extra clearance for the expressive FAB
+                ),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                // Header section: "London Departures" title spanning full width
+                item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
+                    DashboardHeader()
+                }
+
+                if (uiState.isInitialLoading && uiState.stationCards.isEmpty()) {
+                    item(key = "loading", span = { GridItemSpan(maxLineSpan) }) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(260.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                strokeWidth = 3.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                } else if (uiState.stationCards.isEmpty()) {
+                    // Empty state when all stations removed spanning full width
+                    item(key = "empty_state", span = { GridItemSpan(maxLineSpan) }) {
+                        EmptyDashboardState(
+                            onAddStationClick = onAddStationClick,
+                            modifier = Modifier.padding(top = 16.dp)
+                        )
+                    }
+                } else {
+                    // Station Departure Cards with drag-and-drop reorder animation
+                    items(
+                        items = uiState.stationCards,
+                        key = { it.station.id }
+                    ) { cardModel ->
+                        val isNearest = uiState.nearestStationId == cardModel.station.id
+                        StationDepartureCard(
+                            cardModel = cardModel,
+                            onDismissStation = onDismissStation,
+                            onStationClick = onStationClick,
+                            isNearest = isNearest,
+                            distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
+                            modifier = Modifier.reorderableItem(reorderState, cardModel.station.id)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Expressive header component with clean title typography.
+ */
+@Composable
+fun DashboardHeader(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Mind The Board",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp,
+                    lineHeight = 34.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+// =================== PREVIEWS ===================
+
+@Preview(name = "Dashboard - Light Mode", showBackground = true)
+@Composable
+fun DashboardScreenLightPreview() {
+    val kxStation = DefaultStations.POPULAR_STATIONS[1]
+    val oxStation = DefaultStations.POPULAR_STATIONS[0]
+
+    val state = DashboardUiState(
+        isInitialLoading = false,
+        stationCards = listOf(
+            StationCardUiModel(
+                station = kxStation,
+                departures = DefaultStations.getFallbackDepartures(kxStation.id, kxStation.name),
+                availableLineBadges = listOf(
+                    TflLineColors.getLineBadge("victoria", "Victoria", "tube"),
+                    TflLineColors.getLineBadge("northern", "Northern", "tube"),
+                    TflLineColors.getLineBadge("piccadilly", "Piccadilly", "tube")
+                )
+            ),
+            StationCardUiModel(
+                station = oxStation,
+                departures = DefaultStations.getFallbackDepartures(oxStation.id, oxStation.name),
+                availableLineBadges = listOf(
+                    TflLineColors.getLineBadge("central", "Central", "tube"),
+                    TflLineColors.getLineBadge("bakerloo", "Bakerloo", "tube")
+                )
+            )
+        )
+    )
+
+    DepartureBoardTheme(darkTheme = false) {
+        DashboardContent(
+            uiState = state,
+            snackbarHostState = remember { SnackbarHostState() },
+            onRefresh = {},
+            onDismissStation = {},
+            onMoveStation = { _, _ -> },
+            onAddStationClick = {},
+            onStationClick = {}
+        )
+    }
+}
+
+@Preview(name = "Dashboard - Dark Mode", showBackground = true)
+@Composable
+fun DashboardScreenDarkPreview() {
+    val kxStation = DefaultStations.POPULAR_STATIONS[1]
+    val oxStation = DefaultStations.POPULAR_STATIONS[0]
+
+    val state = DashboardUiState(
+        isInitialLoading = false,
+        stationCards = listOf(
+            StationCardUiModel(
+                station = kxStation,
+                departures = DefaultStations.getFallbackDepartures(kxStation.id, kxStation.name),
+                availableLineBadges = listOf(
+                    TflLineColors.getLineBadge("victoria", "Victoria", "tube"),
+                    TflLineColors.getLineBadge("northern", "Northern", "tube"),
+                    TflLineColors.getLineBadge("piccadilly", "Piccadilly", "tube")
+                )
+            ),
+            StationCardUiModel(
+                station = oxStation,
+                departures = DefaultStations.getFallbackDepartures(oxStation.id, oxStation.name),
+                availableLineBadges = listOf(
+                    TflLineColors.getLineBadge("central", "Central", "tube"),
+                    TflLineColors.getLineBadge("bakerloo", "Bakerloo", "tube")
+                )
+            )
+        )
+    )
+
+    DepartureBoardTheme(darkTheme = true) {
+        DashboardContent(
+            uiState = state,
+            snackbarHostState = remember { SnackbarHostState() },
+            onRefresh = {},
+            onDismissStation = {},
+            onMoveStation = { _, _ -> },
+            onAddStationClick = {},
+            onStationClick = {}
+        )
+    }
+}

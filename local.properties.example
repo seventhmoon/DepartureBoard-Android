@@ -1,0 +1,5 @@
+## Sample local.properties file for open-source contributors
+## Copy this to local.properties and fill in your details
+
+sdk.dir=/path/to/your/Android/sdk
+TFL_API_KEY=your_tfl_api_key_here

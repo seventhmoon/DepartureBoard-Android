@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Mind The Board</string>
+    <string name="widget_name">Mind The Board</string>
+    <string name="widget_description">Live London departure predictions for saved stations</string>
+</resources>

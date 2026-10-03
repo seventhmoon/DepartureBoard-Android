@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp"
+    android:height="120dp"
+    android:viewportWidth="240"
+    android:viewportHeight="160">
+
+    <!-- Card Background -->
+    <path
+        android:fillColor="#171B26"
+        android:pathData="M 16,0
+            H 224
+            A 16,16 0 0,1 240,16
+            V 144
+            A 16,16 0 0,1 224,160
+            H 16
+            A 16,16 0 0,1 0,144
+            V 16
+            A 16,16 0 0,1 16,0
+            Z" />
+
+    <!-- Station Header: Name & Mode -->
+    <!-- Roundel circle icon -->
+    <path
+        android:fillColor="#E32017"
+        android:fillType="evenOdd"
+        android:pathData="M 28,20
+            A 10,10 0 1,1 27.99,20
+            Z
+            M 28,23.5
+            A 6.5,6.5 0 1,0 28.01,23.5
+            Z" />
+    <path
+        android:fillColor="#001489"
+        android:pathData="M 16,28 H 40 V 32 H 16 Z" />
+
+    <!-- Station name line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 46,24 H 130 V 30 H 46 Z" />
+
+    <!-- Subtitle (Departures) line -->
+    <path
+        android:fillColor="#8E9099"
+        android:pathData="M 46,34 H 96 V 38 H 46 Z" />
+
+    <!-- Refresh icon placeholder -->
+    <path
+        android:fillColor="#262A38"
+        android:pathData="M 206,18
+            A 8,8 0 1,1 205.99,18
+            Z" />
+
+    <!-- Divider -->
+    <path
+        android:fillColor="#262A38"
+        android:pathData="M 16,48 H 224 V 50 H 16 Z" />
+
+    <!-- Row 1: Destination, Platform, DUE -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 20,60 H 120 V 68 H 20 Z" />
+    <path
+        android:fillColor="#8E9099"
+        android:pathData="M 20,72 H 80 V 78 H 20 Z" />
+    <!-- DUE badge -->
+    <path
+        android:fillColor="#E32017"
+        android:pathData="M 190,62
+            H 218
+            A 5,5 0 0,1 223,67
+            V 71
+            A 5,5 0 0,1 218,76
+            H 190
+            A 5,5 0 0,1 185,71
+            V 67
+            A 5,5 0 0,1 190,62
+            Z" />
+
+    <!-- Row 2: Destination, Platform, 2m -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 20,92 H 110 V 100 H 20 Z" />
+    <path
+        android:fillColor="#8E9099"
+        android:pathData="M 20,104 H 75 V 110 H 20 Z" />
+    <!-- 2m badge -->
+    <path
+        android:fillColor="#0037BD"
+        android:pathData="M 194,94
+            H 218
+            A 5,5 0 0,1 223,99
+            V 103
+            A 5,5 0 0,1 218,108
+            H 194
+            A 5,5 0 0,1 189,103
+            V 99
+            A 5,5 0 0,1 194,94
+            Z" />
+
+    <!-- Row 3: Destination, Platform, 5m -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 20,124 H 130 V 132 H 20 Z" />
+    <path
+        android:fillColor="#8E9099"
+        android:pathData="M 20,136 H 85 V 142 H 20 Z" />
+    <!-- 5m badge -->
+    <path
+        android:fillColor="#0037BD"
+        android:pathData="M 194,126
+            H 218
+            A 5,5 0 0,1 223,131
+            V 135
+            A 5,5 0 0,1 218,140
+            H 194
+            A 5,5 0 0,1 189,135
+            V 131
+            A 5,5 0 0,1 194,126
+            Z" />
+
+</vector>
