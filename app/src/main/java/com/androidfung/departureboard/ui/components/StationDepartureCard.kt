@@ -107,18 +107,28 @@ fun StationDepartureCard(
     }
 
     // Require deliberate swipe gesture (EndToStart only, with 50% positional threshold)
-    // to prevent accidental removal while panning vertically
-    val dismissState = rememberSwipeToDismissBoxState(
-        positionalThreshold = { totalDistance -> totalDistance * 0.5f },
-        confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                onDismissStation(cardModel.station)
-                true
-            } else {
-                false
+    // to prevent accidental removal while panning vertically.
+    // Key by station.id so restoring a deleted station produces a fresh, un-swiped state.
+    val dismissState = androidx.compose.runtime.key(cardModel.station.id) {
+        rememberSwipeToDismissBoxState(
+            positionalThreshold = { totalDistance -> totalDistance * 0.5f },
+            confirmValueChange = { dismissValue ->
+                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                    onDismissStation(cardModel.station)
+                    true
+                } else {
+                    false
+                }
             }
+        )
+    }
+
+    // Reset dismiss state if station is restored/re-added to avoid staying swiped on the red delete box
+    androidx.compose.runtime.LaunchedEffect(cardModel.station.id, cardModel.departures) {
+        if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
+            dismissState.snapTo(SwipeToDismissBoxValue.Settled)
         }
-    )
+    }
 
     SwipeToDismissBox(
         state = dismissState,

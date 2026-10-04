@@ -237,8 +237,30 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val countdownText = if (isDue) "DUE" else "${minutes}m"
 
         val isBus = departure.modeName.equals("bus", ignoreCase = true) || departure.lineId.toIntOrNull() != null
+        val badge = departure.lineBadge
         val routeLineLabel = departure.lineName.ifBlank { departure.lineId }
         val platformOrStand = departure.platformName.takeIf { it.isNotBlank() && it.lowercase() != "null" }
+
+        val badgeText = if (isBus) {
+            routeLineLabel
+        } else {
+            when (departure.lineId.lowercase()) {
+                "hammersmith-city", "hammersmith & city" -> "H&C"
+                "waterloo-city", "waterloo & city" -> "W&C"
+                "elizabeth-line", "elizabeth" -> "Eliz"
+                "overground" -> "Over"
+                "district" -> "Dist"
+                "piccadilly" -> "Picc"
+                "metropolitan" -> "Met"
+                "victoria" -> "Vic"
+                "central" -> "Cent"
+                "bakerloo" -> "Bak"
+                "northern" -> "North"
+                "jubilee" -> "Jub"
+                "circle" -> "Circ"
+                else -> if (badge.displayName.length <= 4) badge.displayName else badge.displayName.take(4)
+            }
+        }
 
         val subtitleText = when {
             isBus && !platformOrStand.isNullOrBlank() -> "$routeLineLabel • $platformOrStand"
@@ -254,27 +276,25 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 .clickable(actionStartActivity(clickIntent)),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isBus) {
-                // High-visibility Bus Route Badge (e.g. "221", "240", "382", "SL1")
-                Box(
-                    modifier = GlanceModifier
-                        .size(width = 36.dp, height = 24.dp)
-                        .cornerRadius(6.dp)
-                        .background(GlanceTheme.colors.primary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = routeLineLabel,
-                        style = TextStyle(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = GlanceTheme.colors.onPrimary
-                        ),
-                        maxLines = 1
-                    )
-                }
-                Spacer(modifier = GlanceModifier.width(8.dp))
+            // Line / Route Pill Badge for both Tube/Rail and Buses using official line colors
+            Box(
+                modifier = GlanceModifier
+                    .size(width = 38.dp, height = 24.dp)
+                    .cornerRadius(6.dp)
+                    .background(badge.backgroundColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = badgeText,
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = androidx.glance.color.ColorProvider(day = badge.textColor, night = badge.textColor)
+                    ),
+                    maxLines = 1
+                )
             }
+            Spacer(modifier = GlanceModifier.width(8.dp))
 
             Column(modifier = GlanceModifier.defaultWeight()) {
                 Text(

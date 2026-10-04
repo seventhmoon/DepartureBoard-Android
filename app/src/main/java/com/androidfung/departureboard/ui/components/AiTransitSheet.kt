@@ -105,9 +105,12 @@ fun AiTransitSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier
     ) {
+        val scrollState = androidx.compose.foundation.rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .androidx.compose.foundation.layout.imePadding()
+                .androidx.compose.foundation.verticalScroll(scrollState)
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
             // Header
