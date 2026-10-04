@@ -86,7 +86,8 @@ fun StationDepartureCard(
     modifier: Modifier = Modifier,
     isNearest: Boolean = false,
     distanceMeters: Double? = null,
-    onStationClick: ((Station) -> Unit)? = null
+    onStationClick: ((Station) -> Unit)? = null,
+    onToggleExpand: (() -> Unit)? = null
 ) {
     var selectedLineId by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
     var selectedDirection by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
@@ -105,9 +106,12 @@ fun StationDepartureCard(
         }
     }
 
+    // Require deliberate swipe gesture (EndToStart only, with 50% positional threshold)
+    // to prevent accidental removal while panning vertically
     val dismissState = rememberSwipeToDismissBoxState(
+        positionalThreshold = { totalDistance -> totalDistance * 0.5f },
         confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.EndToStart || dismissValue == SwipeToDismissBoxValue.StartToEnd) {
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
                 onDismissStation(cardModel.station)
                 true
             } else {
@@ -118,6 +122,8 @@ fun StationDepartureCard(
 
     SwipeToDismissBox(
         state = dismissState,
+        enableDismissFromStartToEnd = false, // Disable right-swipe dismissal to prevent conflicts
+        enableDismissFromEndToStart = true,
         modifier = modifier.fillMaxWidth(),
         backgroundContent = {
             val direction = dismissState.dismissDirection
@@ -165,7 +171,7 @@ fun StationDepartureCard(
             // Gradient background: subtle surface container gradient in both light and dark themes
             val topGradientColor = MaterialTheme.colorScheme.surfaceVariant
             val bottomGradientColor = MaterialTheme.colorScheme.surfaceContainer
-            var isExpanded by rememberSaveable(cardModel.station.id) { mutableStateOf(true) }
+            val isExpanded = cardModel.isExpanded
 
             Box(
                 modifier = Modifier
@@ -190,7 +196,7 @@ fun StationDepartureCard(
                         distanceMeters = distanceMeters,
                         onToggleExpand = {
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                            isExpanded = !isExpanded
+                            onToggleExpand?.invoke()
                         },
                         onLineBadgeClick = { badge ->
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)

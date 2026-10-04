@@ -387,12 +387,18 @@ class TransitRepositoryImpl(
         val platLower = (platformName ?: "").lowercase()
         val lineLower = (lineId ?: "").lowercase()
 
-        val isTerminatingAtThisStation = rawDest.isNotBlank() && rawDest.equals(currentStation, ignoreCase = true)
-        if (!isTerminatingAtThisStation) {
+        val isTerminatingAtThisStation = rawDest.isNotBlank() && (
+            rawDest.equals(currentStation, ignoreCase = true) ||
+            rawDest.startsWith(currentStation, ignoreCase = true) ||
+            currentStation.startsWith(rawDest, ignoreCase = true)
+        )
+        val isGenericCheckFront = rawDest.contains("check front of train", ignoreCase = true)
+
+        if (!isTerminatingAtThisStation && !isGenericCheckFront) {
             return rawDest
         }
 
-        // The train terminates at this station; infer the departing destination for passengers on the platform
+        // The train terminates at this station or reports "Check Front of Train"; infer the departing destination for passengers on the platform
         return when {
             // Northern Line
             "edgware" in currentStation -> when {

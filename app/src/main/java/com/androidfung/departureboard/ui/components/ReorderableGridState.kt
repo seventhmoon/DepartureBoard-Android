@@ -42,8 +42,8 @@ class ReorderableGridState(
                     y in item.offset.y..(item.offset.y + item.size.height)
         } ?: return
 
-        // Skip non-station items like header
-        if (hitItem.key == "header" || hitItem.key == "loading" || hitItem.key == "empty_state") {
+        // Skip non-station items like header, quick_jump_pills
+        if (hitItem.key == "header" || hitItem.key == "quick_jump_pills" || hitItem.key == "loading" || hitItem.key == "empty_state") {
             return
         }
 

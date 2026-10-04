@@ -12,7 +12,8 @@ data class StationCardUiModel(
     val departures: List<Departure> = emptyList(),
     val availableLineBadges: List<LineBadgeInfo> = emptyList(),
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isExpanded: Boolean = true
 )
 
 /**

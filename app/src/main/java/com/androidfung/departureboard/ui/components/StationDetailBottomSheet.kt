@@ -337,8 +337,10 @@ fun StationDetailBottomSheet(
                 }
             }
 
-            // Sub-stops filter chips (e.g. Stop P, Stop S, Stop Z4, Platform 1, etc.)
-            if (distinctStops.size > 1) {
+            // Only show sub-stops / stand filter chips for bus stops/stations (e.g. Stop P, Stop S, Stop Z4).
+            // Tube and rail stations already have clear Line and Cardinal Direction filters.
+            val isBusStop = station.modes.contains("bus") && station.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+            if (isBusStop && distinctStops.size > 1) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),

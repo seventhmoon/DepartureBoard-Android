@@ -19,8 +19,14 @@ object LocationHelper {
     suspend fun getCurrentLocation(context: Context): Location? {
         return try {
             val fusedClient = LocationServices.getFusedLocationProviderClient(context)
-            val cts = CancellationTokenSource()
-            fusedClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token).await()
+            // First check lastLocation for instant response
+            val lastLoc = fusedClient.lastLocation.await()
+            if (lastLoc != null) {
+                lastLoc
+            } else {
+                val cts = CancellationTokenSource()
+                fusedClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token).await()
+            }
         } catch (_: Exception) {
             null
         }

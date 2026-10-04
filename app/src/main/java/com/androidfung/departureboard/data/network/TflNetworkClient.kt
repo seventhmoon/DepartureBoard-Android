@@ -30,11 +30,20 @@ object TflNetworkClient {
     }
 
     private val okHttpClient: OkHttpClient by lazy {
-        val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+        val loggingInterceptor = HttpLoggingInterceptor { message ->
+            // Redact app_key from logcat so secret API keys are never exposed in logs
+            val redacted = message.replace(Regex("""([?&]app_key=)[^&\s]+""", RegexOption.IGNORE_CASE), "$1[REDACTED]")
+            android.util.Log.d("OkHttp", redacted)
+        }.apply {
+            level = if (com.androidfung.departureboard.BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BASIC
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
 
         val builder = OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
             .addInterceptor { chain ->
                 val originalRequest = chain.request()
                 val originalUrl = originalRequest.url
@@ -51,7 +60,6 @@ object TflNetworkClient {
                     .build()
                 chain.proceed(newRequest)
             }
-            .addInterceptor(loggingInterceptor)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
 

@@ -22,11 +22,16 @@ import com.androidfung.departureboard.ui.components.reorderableStaggeredGrid
 import com.androidfung.departureboard.ui.components.reorderableStaggeredItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.UnfoldLess
+import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -41,8 +46,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -87,6 +94,7 @@ fun DashboardScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showSearchSheet by rememberSaveable { mutableStateOf(false) }
+    var showAiSheet by rememberSaveable { mutableStateOf(false) }
     var selectedStationForDetail by remember { mutableStateOf<Station?>(null) }
 
     LaunchedEffect(initialDetailStation) {
@@ -132,6 +140,10 @@ fun DashboardScreen(
             selectedStationForDetail = station
             onStationClick(station)
         },
+        onToggleStationExpand = { stationId -> viewModel.toggleStationExpand(stationId) },
+        onExpandAll = { viewModel.expandAll() },
+        onCollapseAll = { viewModel.collapseAll() },
+        onAiAssistantClick = { showAiSheet = true },
         modifier = modifier
     )
 
@@ -165,6 +177,19 @@ fun DashboardScreen(
             onDismissRequest = { selectedStationForDetail = null }
         )
     }
+
+    // Gemini AI Natural Language Transit Assistant Sheet
+    if (showAiSheet) {
+        val application = androidx.compose.ui.platform.LocalContext.current.applicationContext as android.app.Application
+        val repository = remember { com.androidfung.departureboard.data.repository.TransitRepositoryImpl(application) }
+        val nearest = uiState.stationCards.firstOrNull { it.station.id == uiState.nearestStationId }?.station
+        com.androidfung.departureboard.ui.components.AiTransitSheet(
+            onDismissRequest = { showAiSheet = false },
+            repository = repository,
+            savedStations = uiState.stationCards.map { it.station },
+            nearestStation = nearest
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -177,6 +202,10 @@ fun DashboardContent(
     onMoveStation: (fromIndex: Int, toIndex: Int) -> Unit,
     onAddStationClick: () -> Unit,
     onStationClick: (Station) -> Unit,
+    onToggleStationExpand: (String) -> Unit = {},
+    onExpandAll: () -> Unit = {},
+    onCollapseAll: () -> Unit = {},
+    onAiAssistantClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val pullToRefreshState = rememberPullToRefreshState()
@@ -245,7 +274,60 @@ fun DashboardContent(
             ) {
                 // Header section: "Mind The Board" title spanning full width
                 item(key = "header", span = StaggeredGridItemSpan.FullLine) {
-                    DashboardHeader()
+                    val allExpanded = uiState.stationCards.all { it.isExpanded }
+                    DashboardHeader(
+                        allExpanded = allExpanded,
+                        onToggleExpandAll = {
+                            if (allExpanded) onCollapseAll() else onExpandAll()
+                        },
+                        onAiAssistantClick = onAiAssistantClick
+                    )
+                }
+
+                // Station Quick-Jump Chips (Horizontal scrolling row of all saved stations)
+                if (uiState.stationCards.size > 1) {
+                    item(key = "quick_jump_pills", span = StaggeredGridItemSpan.FullLine) {
+                        val scope = rememberCoroutineScope()
+                        androidx.compose.foundation.lazy.LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(horizontal = 2.dp)
+                        ) {
+                            val indexedStations = uiState.stationCards.mapIndexed { idx, card -> idx to card.station }
+                            items(
+                                count = indexedStations.size,
+                                key = { indexedStations[it].second.id }
+                            ) { i ->
+                                val (cardIndex, station) = indexedStations[i]
+                                androidx.compose.material3.FilterChip(
+                                    selected = false,
+                                    onClick = {
+                                        scope.launch {
+                                            // cardIndex + 2 accounts for header and quick-jump items
+                                            staggeredGridState.animateScrollToItem((cardIndex + 2).coerceAtLeast(0))
+                                        }
+                                    },
+                                    label = {
+                                        Text(
+                                            text = station.displayName,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    },
+                                    colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        width = 0.5.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    ),
+                                    shape = CircleShape
+                                )
+                            }
+                        }
+                    }
                 }
 
                 if (uiState.isInitialLoading && uiState.stationCards.isEmpty()) {
@@ -283,6 +365,7 @@ fun DashboardContent(
                             onStationClick = onStationClick,
                             isNearest = isNearest,
                             distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
+                            onToggleExpand = { onToggleStationExpand(cardModel.station.id) },
                             modifier = Modifier
                                 .reorderableStaggeredItem(reorderState, cardModel.station.id)
                                 .animateItem()
@@ -299,14 +382,17 @@ fun DashboardContent(
  */
 @Composable
 fun DashboardHeader(
+    allExpanded: Boolean = true,
+    onToggleExpandAll: () -> Unit = {},
+    onAiAssistantClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 8.dp),
+            .padding(horizontal = 4.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -318,6 +404,35 @@ fun DashboardHeader(
                 ),
                 color = MaterialTheme.colorScheme.onSurface
             )
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            // Expand All / Collapse All Toggle Button
+            IconButton(onClick = onToggleExpandAll) {
+                Icon(
+                    imageVector = if (allExpanded) Icons.Rounded.UnfoldLess else Icons.Rounded.UnfoldMore,
+                    contentDescription = if (allExpanded) "Collapse all cards" else "Expand all cards",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Gemini AI Transit Assistant Action Button
+            IconButton(
+                onClick = onAiAssistantClick,
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.AutoAwesome,
+                    contentDescription = "Ask Transit AI Assistant",
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         }
     }
 }

@@ -42,8 +42,8 @@ class ReorderableStaggeredGridState(
                     y in item.offset.y..(item.offset.y + item.size.height)
         } ?: return
 
-        // Skip non-station items like header, loading, or empty_state
-        if (hitItem.key == "header" || hitItem.key == "loading" || hitItem.key == "empty_state") {
+        // Skip non-station items like header, quick_jump_pills, loading, or empty_state
+        if (hitItem.key == "header" || hitItem.key == "quick_jump_pills" || hitItem.key == "loading" || hitItem.key == "empty_state") {
             return
         }
 
@@ -66,6 +66,7 @@ class ReorderableStaggeredGridState(
             val targetItem = staggeredGridState.layoutInfo.visibleItemsInfo.firstOrNull { item ->
                 item.key != draggingKey &&
                         item.key != "header" &&
+                        item.key != "quick_jump_pills" &&
                         item.key != "loading" &&
                         item.key != "empty_state" &&
                         targetCenterX.toInt() in item.offset.x..(item.offset.x + item.size.width) &&
@@ -73,12 +74,14 @@ class ReorderableStaggeredGridState(
             }
 
             if (targetItem != null) {
-                // Header is at index 0, so station cards start at index 1
+                // Find station indices by accounting for header and quick-jump items
+                val visibleKeys = staggeredGridState.layoutInfo.visibleItemsInfo
                 val fromGridIndex = currentDraggedItem.index
                 val toGridIndex = targetItem.index
 
-                val fromStationIndex = fromGridIndex - 1
-                val toStationIndex = toGridIndex - 1
+                val headerOffset = if (visibleKeys.any { it.key == "quick_jump_pills" }) 2 else 1
+                val fromStationIndex = fromGridIndex - headerOffset
+                val toStationIndex = toGridIndex - headerOffset
 
                 if (fromStationIndex >= 0 && toStationIndex >= 0 && fromStationIndex != toStationIndex) {
                     onMove(fromStationIndex, toStationIndex)

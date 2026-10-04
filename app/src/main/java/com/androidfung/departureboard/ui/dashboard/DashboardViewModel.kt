@@ -289,6 +289,42 @@ class DashboardViewModel @JvmOverloads constructor(
     }
 
     /**
+     * Toggles expansion state for an individual station card.
+     */
+    fun toggleStationExpand(stationId: String) {
+        _uiState.update { state ->
+            val updated = state.stationCards.map { card ->
+                if (card.station.id == stationId) {
+                    card.copy(isExpanded = !card.isExpanded)
+                } else {
+                    card
+                }
+            }
+            state.copy(stationCards = updated)
+        }
+    }
+
+    /**
+     * Expands all station departure cards.
+     */
+    fun expandAll() {
+        _uiState.update { state ->
+            val updated = state.stationCards.map { it.copy(isExpanded = true) }
+            state.copy(stationCards = updated)
+        }
+    }
+
+    /**
+     * Minimizes (collapses) all station departure cards to compact overview rows.
+     */
+    fun collapseAll() {
+        _uiState.update { state ->
+            val updated = state.stationCards.map { it.copy(isExpanded = false) }
+            state.copy(stationCards = updated)
+        }
+    }
+
+    /**
      * Reorders stations when dragged and dropped, updating state immediately and persisting order.
      */
     fun moveStation(fromIndex: Int, toIndex: Int) {
@@ -342,6 +378,7 @@ class DashboardViewModel @JvmOverloads constructor(
                 val stations = _uiState.value.stationCards.map { it.station }
                 val nearest = com.androidfung.departureboard.util.LocationHelper.findNearestStation(location, stations)
                 if (nearest != null) {
+                    android.util.Log.d("LocationHelper", "Found nearest station: ${nearest.first.name} (${nearest.second}m away)")
                     _uiState.update {
                         it.copy(
                             nearestStationId = nearest.first.id,
@@ -349,6 +386,8 @@ class DashboardViewModel @JvmOverloads constructor(
                         )
                     }
                 }
+            } else {
+                android.util.Log.w("LocationHelper", "Location was null")
             }
         }
     }

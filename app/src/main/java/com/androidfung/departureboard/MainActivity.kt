@@ -16,6 +16,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.androidfung.departureboard.data.model.Station
+import com.google.android.play.core.appupdate.AppUpdateManager
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.UpdateAvailability
 
 class MainActivity : ComponentActivity() {
 
@@ -25,12 +29,17 @@ class MainActivity : ComponentActivity() {
     }
 
     private var initialStation by mutableStateOf<Station?>(null)
+    private lateinit var appUpdateManager: AppUpdateManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleIntent(intent)
         com.androidfung.departureboard.widget.WidgetUpdateWorker.enqueuePeriodicUpdate(applicationContext)
+
+        // Check for Google Play In-App Updates
+        appUpdateManager = AppUpdateManagerFactory.create(this)
+        checkForAppUpdate()
 
         setContent {
             DepartureBoardTheme {
@@ -42,6 +51,43 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun checkForAppUpdate() {
+        try {
+            val appUpdateInfoTask = appUpdateManager.appUpdateInfo
+            appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
+                if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                    appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
+                ) {
+                    // Flexible in-app update available
+                    try {
+                        appUpdateManager.startUpdateFlowForResult(
+                            appUpdateInfo,
+                            AppUpdateType.FLEXIBLE,
+                            this,
+                            1001
+                        )
+                    } catch (_: Exception) {}
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
+    override fun onResume() {
+        super.onResume()
+        try {
+            appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
+                if (info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
+                    appUpdateManager.startUpdateFlowForResult(
+                        info,
+                        AppUpdateType.FLEXIBLE,
+                        this,
+                        1001
+                    )
+                }
+            }
+        } catch (_: Exception) {}
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -63,6 +109,8 @@ class MainActivity : ComponentActivity() {
                 modes = listOf("tube"),
                 isFavorite = true
             )
+        } else {
+            initialStation = null
         }
     }
 }
