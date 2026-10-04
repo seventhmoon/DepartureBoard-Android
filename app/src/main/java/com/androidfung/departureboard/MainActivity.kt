@@ -42,7 +42,8 @@ class MainActivity : ComponentActivity() {
         checkForAppUpdate()
 
         setContent {
-            DepartureBoardTheme {
+            // Enable Dynamic Color / Monet theming on Android 12+ while maintaining TfL brand accents
+            DepartureBoardTheme(dynamicColor = true) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

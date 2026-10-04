@@ -37,12 +37,14 @@ interface TransitRepository {
  */
 class TransitRepositoryImpl(
     private val apiService: TflApiService = TflNetworkClient.apiService,
-    private val dataStore: StationPreferencesDataSource
+    private val dataStore: StationPreferencesDataSource,
+    private val departureDao: com.androidfung.departureboard.data.db.DepartureDao? = null
 ) : TransitRepository {
 
     constructor(context: Context) : this(
         apiService = TflNetworkClient.apiService,
-        dataStore = StationPreferencesDataStore(context.applicationContext)
+        dataStore = StationPreferencesDataStore(context.applicationContext),
+        departureDao = com.androidfung.departureboard.data.db.AppDatabase.getInstance(context.applicationContext).departureDao()
     )
 
     override val savedStationsFlow: Flow<List<Station>> = dataStore.savedStationsFlow
@@ -297,20 +299,41 @@ class TransitRepositoryImpl(
                             )
                         }
 
+                    // Save fresh departures to Room database cache for instantaneous cold starts & offline viewing
+                    if (departures.isNotEmpty() && departureDao != null) {
+                        try {
+                            departureDao.replaceDeparturesForStation(
+                                stationId,
+                                departures.map { com.androidfung.departureboard.data.db.CachedDepartureEntity.fromDeparture(it) }
+                            )
+                        } catch (_: Exception) {}
+                    }
+
                     Result.success(departures)
                 }
             } catch (e: Exception) {
-                // If network fails, serve fallback departures for popular stations
-                val fallbacks = DefaultStations.getFallbackDepartures(stationId, stationName)
-                if (fallbacks.isNotEmpty()) {
-                    Result.success(fallbacks)
+                // 1. Try serving from Room database cache first
+                val cached = departureDao?.getDeparturesForStation(stationId)?.map { it.toDeparture() }
+                if (!cached.isNullOrEmpty()) {
+                    Result.success(cached)
                 } else {
-                    Result.failure(e)
+                    // 2. If no DB cache, serve static timetable fallback departures for popular stations
+                    val fallbacks = DefaultStations.getFallbackDepartures(stationId, stationName)
+                    if (fallbacks.isNotEmpty()) {
+                        Result.success(fallbacks)
+                    } else {
+                        Result.failure(e)
+                    }
                 }
             }
         }
 
     override fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>> = flow {
+        // Emit Room cached data first if available, then fetch fresh network
+        val cached = departureDao?.getDeparturesForStation(stationId)?.map { it.toDeparture() }
+        if (!cached.isNullOrEmpty()) {
+            emit(Result.success(cached))
+        }
         emit(getDepartures(stationId, stationName))
     }.flowOn(Dispatchers.IO)
 

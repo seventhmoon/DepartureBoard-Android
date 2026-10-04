@@ -207,16 +207,17 @@ fun StationDepartureCard(
                                 .distinct()
 
                             if (selectedLineId != badge.lineId) {
-                                // 1st click: Filter by line (all directions)
+                                // 1st click: Filter by line (all departures for this line)
                                 selectedLineId = badge.lineId
                                 selectedDirection = null
-                            } else if (availableDirections.isNotEmpty()) {
+                            } else if (availableDirections.size > 1) {
+                                // Multi-direction line (e.g. through stations): cycle through available directions
                                 val currentIndex = if (selectedDirection == null) -1 else availableDirections.indexOf(selectedDirection)
-                                if (currentIndex == -1 && availableDirections.isNotEmpty()) {
+                                if (currentIndex == -1) {
                                     // 2nd click: First direction
                                     selectedDirection = availableDirections[0]
                                 } else if (currentIndex in 0 until availableDirections.lastIndex) {
-                                    // 3rd click (or next directions): Next direction
+                                    // 3rd+ click: Next direction
                                     selectedDirection = availableDirections[currentIndex + 1]
                                 } else {
                                     // Loop completes: deselect line & direction
@@ -224,7 +225,8 @@ fun StationDepartureCard(
                                     selectedDirection = null
                                 }
                             } else {
-                                // Line has no specific directions detected: simply toggle off
+                                // Terminus or single-direction line (e.g. Ealing Broadway for Central & District):
+                                // 2nd click directly deselects without redundant direction cycling
                                 selectedLineId = null
                                 selectedDirection = null
                             }
@@ -283,56 +285,81 @@ private fun StationHeaderSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
+            Row(
                 modifier = Modifier
                     .weight(1f)
                     .then(
                         if (onStationClick != null) Modifier.clickable { onStationClick(station) }
                         else Modifier
-                    )
-            ) {
-                if (isNearest) {
-                    val distText = if (distanceMeters != null) {
-                        val km = distanceMeters / 1000.0
-                        if (km < 1.0) "${distanceMeters.toInt()}m away" else "%.1f km away".format(km)
-                    } else "Nearby"
-                    Text(
-                        text = "📍 $distText",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                }
-                Text(
-                    text = station.displayName,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Header Transport Mode Icon indicator
+                val primaryMode = station.modes.firstOrNull { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr", "tram", "bus") }
+                    ?: station.modes.firstOrNull() ?: "tube"
+                val modeIcon = getTransitIconForMode(primaryMode)
 
-                // Subtitle: Bus stop "towards ..." indicator (e.g. "towards Edgware or Millbrook Park")
-                // Only show for single-stand bus stops where all routes share the same direction.
-                // Multi-stand bus stations/hubs (like North Finchley Bus Station) have divergent directions and sub-stops.
-                val distinctTowards = departures.mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }.distinct()
-                val isSingleDirectionBusStop = station.modes.contains("bus") && distinctTowards.size == 1 &&
-                        station.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = modeIcon,
+                        contentDescription = primaryMode,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
 
-                if (isSingleDirectionBusStop) {
-                    Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    if (isNearest) {
+                        val distText = if (distanceMeters != null) {
+                            val km = distanceMeters / 1000.0
+                            if (km < 1.0) "${distanceMeters.toInt()}m away" else "%.1f km away".format(km)
+                        } else "Nearby"
+                        Text(
+                            text = "📍 $distText",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                    }
                     Text(
-                        text = "towards ${distinctTowards.first()}",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
+                        text = station.displayName,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
+
+                    // Subtitle: Bus stop "towards ..." indicator (e.g. "towards Edgware or Millbrook Park")
+                    // Only show for single-stand bus stops where all routes share the same direction.
+                    // Multi-stand bus stations/hubs (like North Finchley Bus Station) have divergent directions and sub-stops.
+                    val distinctTowards = departures.mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }.distinct()
+                    val isSingleDirectionBusStop = station.modes.contains("bus") && distinctTowards.size == 1 &&
+                            station.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+
+                    if (isSingleDirectionBusStop) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "towards ${distinctTowards.first()}",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
 
@@ -625,18 +652,139 @@ private fun StationDeparturesContainer(
 }
 
 /**
- * Individual departure row styled with transit mode icon, destination, platform/direction,
- * line badge (when multiple lines exist), and high-contrast Pixel Clock countdown display.
+ * TfL Roundel drawn with exact geometry and official line color.
+ * The classic TfL roundel consists of an outer colored circular ring and a horizontal bar.
+ * Designed with fixed size (38.dp wide x 28.dp high) so that all rows align perfectly.
+ * For dark colors (such as Northern line black, Piccadilly dark blue, or Liberty line grey) in dark mode,
+ * a crisp subtle outline/border is rendered so the shape remains sharp, distinct, and legible.
+ */
+@Composable
+fun TflRoundel(
+    ringColor: Color,
+    barColor: Color = ringColor,
+    modifier: Modifier = Modifier
+) {
+    // Check luminance: if the color is very dark (< 0.25 luminance) in dark mode,
+    // add an outline stroke so the roundel doesn't blend into dark surfaces.
+    val luminance = 0.299f * ringColor.red + 0.587f * ringColor.green + 0.114f * ringColor.blue
+    val needsContrastBorder = luminance < 0.25f
+    val outlineColor = if (needsContrastBorder) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f) else Color.Transparent
+
+    androidx.compose.foundation.Canvas(
+        modifier = modifier
+            .size(width = 38.dp, height = 28.dp)
+            .semantics { contentDescription = "Line roundel" }
+    ) {
+        val centerX = size.width / 2f
+        val centerY = size.height / 2f
+        val ringRadius = size.height * 0.44f // ~12.3dp
+        val strokeWidth = ringRadius * 0.36f // clean TfL annular thickness
+        val outlineWidth = 1.dp.toPx()
+
+        val barWidth = size.width * 0.82f
+        val barHeight = ringRadius * 0.58f
+        val barLeft = centerX - (barWidth / 2f)
+        val barTop = centerY - (barHeight / 2f)
+
+        // If contrast border is needed, draw the outer subtle edge
+        if (needsContrastBorder) {
+            // Outer ring border
+            drawCircle(
+                color = outlineColor,
+                radius = ringRadius + (strokeWidth / 2f) + (outlineWidth / 2f),
+                center = androidx.compose.ui.geometry.Offset(centerX, centerY),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = outlineWidth)
+            )
+            // Inner ring border
+            drawCircle(
+                color = outlineColor,
+                radius = ringRadius - (strokeWidth / 2f) - (outlineWidth / 2f),
+                center = androidx.compose.ui.geometry.Offset(centerX, centerY),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = outlineWidth)
+            )
+            // Horizontal bar border
+            drawRoundRect(
+                color = outlineColor,
+                topLeft = androidx.compose.ui.geometry.Offset(barLeft - outlineWidth, barTop - outlineWidth),
+                size = androidx.compose.ui.geometry.Size(barWidth + (outlineWidth * 2f), barHeight + (outlineWidth * 2f)),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(x = 2.dp.toPx(), y = 2.dp.toPx()),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = outlineWidth)
+            )
+        }
+
+        // 1. Draw outer colored ring
+        drawCircle(
+            color = ringColor,
+            radius = ringRadius,
+            center = androidx.compose.ui.geometry.Offset(centerX, centerY),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
+        )
+
+        // 2. Draw horizontal bar through the center
+        drawRoundRect(
+            color = barColor,
+            topLeft = androidx.compose.ui.geometry.Offset(barLeft, barTop),
+            size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(x = 2.dp.toPx(), y = 2.dp.toPx())
+        )
+    }
+}
+
+/**
+ * Line or bus route indicator badge shown on the left of each departure row.
+ * All indicators share a uniform 38dp x 28dp size so departure texts align uniformly:
+ * - Bus: Red (or mode color) route number badge (e.g. "73", "390", "N5").
+ * - Tube / Overground / Elizabeth Line / DLR: Official line-colored TfL Roundel vector.
+ */
+@Composable
+fun DepartureLineRouteIndicator(
+    departure: Departure,
+    modifier: Modifier = Modifier
+) {
+    val badge = departure.lineBadge
+    val isBus = badge.mode == TransitMode.BUS || departure.modeName.equals("bus", ignoreCase = true)
+
+    if (isBus) {
+        // High-contrast Route badge with fixed dimensions (38dp x 28dp)
+        Box(
+            modifier = modifier
+                .size(width = 38.dp, height = 28.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(badge.backgroundColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = badge.displayName,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = if (badge.displayName.length > 3) 12.sp else 13.sp
+                ),
+                color = badge.textColor,
+                maxLines = 1
+            )
+        }
+    } else {
+        // Tube, Overground (Liberty, Lioness, Mildmay, Suffragette, Weaver, Windrush), Elizabeth line, DLR, etc.
+        // Render a TfL roundel in the line's official color with identical 38dp x 28dp bounds.
+        TflRoundel(
+            ringColor = badge.backgroundColor,
+            barColor = badge.backgroundColor,
+            modifier = modifier
+        )
+    }
+}
+
+/**
+ * Individual departure row styled with line/route indicator, destination, platform/direction,
+ * and high-contrast Pixel Clock countdown display.
  */
 @Composable
 fun DepartureRowItem(
     departure: Departure,
     isFirst: Boolean,
     modifier: Modifier = Modifier,
-    showLineBadge: Boolean = false
+    @Suppress("UNUSED_PARAMETER") showLineBadge: Boolean = false
 ) {
-    val transitIcon = getTransitIcon(departure.modeName, departure.destinationName)
-
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -646,23 +794,16 @@ fun DepartureRowItem(
             },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Transit Mode Icon
-        Icon(
-            imageVector = transitIcon,
-            contentDescription = departure.modeName,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .size(24.dp)
-                .padding(end = 4.dp)
-        )
+        // Line or Bus Route Indicator Badge replacing the generic mode icon
+        DepartureLineRouteIndicator(departure = departure)
 
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         // Destination & Direction details
         Column(modifier = Modifier.weight(1f)) {
             val destinationText = departure.destinationName.ifBlank { departure.lineName }
 
-            // Destination title (always left-aligned with icon above)
+            // Destination title
             Text(
                 text = destinationText,
                 style = MaterialTheme.typography.bodyLarge.copy(
@@ -674,60 +815,25 @@ fun DepartureRowItem(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(3.dp))
-
-            // Subtitle row: [Line/Route Chip] + [Platform Pill Tag]
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                if (showLineBadge) {
-                    val badge = departure.lineBadge
-                    val isBusOrNumeric = badge.mode == TransitMode.BUS || badge.displayName.all { it.isDigit() }
-                    // Keep line badges compact: abbreviate long line names if needed or cap width
-                    val abbreviatedLineName = when (badge.lineId.lowercase()) {
-                        "hammersmith-city" -> "H&C"
-                        "waterloo-city" -> "W&C"
-                        else -> badge.displayName
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(badge.backgroundColor)
-                            .padding(horizontal = if (isBusOrNumeric) 5.dp else 6.dp, vertical = 1.5.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = abbreviatedLineName,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp
-                            ),
-                            color = badge.textColor,
-                            maxLines = 1
-                        )
-                    }
-                }
-
-                // High-visibility Platform Pill Tag
-                if (departure.platformName.isNotBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = departure.platformName,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 11.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
-                    }
+            // Subtitle row: [Platform Pill Tag / Towards]
+            if (departure.platformName.isNotBlank()) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = departure.platformName,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
                 }
             }
 
@@ -916,17 +1022,15 @@ fun CountdownBadge(
 }
 
 /**
- * Selects an appropriate Material icon for the transit mode or destination.
+ * Selects an appropriate Material icon for a transit mode string.
  */
-private fun getTransitIcon(modeName: String?, destination: String): ImageVector {
-    if (destination.contains("Airport", ignoreCase = true) || destination.contains("Heathrow", ignoreCase = true)) {
-        return Icons.Rounded.Flight
-    }
-    return when (TransitMode.fromModeString(modeName)) {
-        TransitMode.BUS -> Icons.Rounded.DirectionsBus
-        TransitMode.TUBE -> Icons.Rounded.DirectionsSubway
-        TransitMode.OVERGROUND, TransitMode.ELIZABETH_LINE, TransitMode.NATIONAL_RAIL -> Icons.Rounded.DirectionsRailway
-        TransitMode.TRAM -> Icons.Rounded.Tram
+fun getTransitIconForMode(mode: String?): ImageVector {
+    if (mode == null) return Icons.Rounded.DirectionsSubway
+    return when (mode.lowercase().trim()) {
+        "tube", "underground" -> Icons.Rounded.DirectionsSubway
+        "bus" -> Icons.Rounded.DirectionsBus
+        "national-rail", "overground", "elizabeth-line" -> Icons.Rounded.DirectionsRailway
+        "dlr", "tram" -> Icons.Rounded.Tram
         else -> Icons.Rounded.DirectionsSubway
     }
 }
@@ -945,6 +1049,86 @@ fun StationDepartureCardLightPreview() {
             TflLineColors.getLineBadge("victoria", "Victoria", "tube"),
             TflLineColors.getLineBadge("northern", "Northern", "tube"),
             TflLineColors.getLineBadge("piccadilly", "Piccadilly", "tube")
+        ),
+        isLoading = false
+    )
+
+    DepartureBoardTheme(darkTheme = false) {
+        Box(
+            modifier = Modifier
+                .background(Color(0xFFE7EDF7))
+                .padding(16.dp)
+        ) {
+            StationDepartureCard(
+                cardModel = cardModel,
+                onDismissStation = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Station Departure Card - Bus Stop Preview", showBackground = true)
+@Composable
+fun StationDepartureCardBusStopPreview() {
+    val busStation = Station(
+        id = "490008660N",
+        name = "Tottenham Court Road",
+        modes = listOf("bus")
+    )
+    val busDepartures = listOf(
+        Departure(
+            id = "bus-1",
+            stationId = busStation.id,
+            stationName = busStation.name,
+            lineId = "73",
+            lineName = "73",
+            destinationName = "Oxford Circus",
+            towards = "Oxford Circus",
+            platformName = "Stop T",
+            timeToStationSeconds = 45,
+            expectedArrivalIso = "2025-01-01T12:00:45Z",
+            currentLocation = "Approaching",
+            modeName = "bus",
+            lineBadge = TflLineColors.getLineBadge("73", "73", "bus")
+        ),
+        Departure(
+            id = "bus-2",
+            stationId = busStation.id,
+            stationName = busStation.name,
+            lineId = "390",
+            lineName = "390",
+            destinationName = "Victoria",
+            towards = "Victoria",
+            platformName = "Stop T",
+            timeToStationSeconds = 180,
+            expectedArrivalIso = "2025-01-01T12:03:00Z",
+            currentLocation = "2 stops away",
+            modeName = "bus",
+            lineBadge = TflLineColors.getLineBadge("390", "390", "bus")
+        ),
+        Departure(
+            id = "bus-3",
+            stationId = busStation.id,
+            stationName = busStation.name,
+            lineId = "14",
+            lineName = "14",
+            destinationName = "Putney Heath",
+            towards = "Putney Heath",
+            platformName = "Stop T",
+            timeToStationSeconds = 420,
+            expectedArrivalIso = "2025-01-01T12:07:00Z",
+            currentLocation = "On route",
+            modeName = "bus",
+            lineBadge = TflLineColors.getLineBadge("14", "14", "bus")
+        )
+    )
+    val cardModel = StationCardUiModel(
+        station = busStation,
+        departures = busDepartures,
+        availableLineBadges = listOf(
+            TflLineColors.getLineBadge("73", "73", "bus"),
+            TflLineColors.getLineBadge("390", "390", "bus"),
+            TflLineColors.getLineBadge("14", "14", "bus")
         ),
         isLoading = false
     )

@@ -353,10 +353,15 @@ fun DashboardContent(
                         )
                     }
                 } else {
-                    // Station Departure Cards in masonry / flex-like staggered flow with drag-and-drop
+                    // Station Departure Cards in adaptive staggered grid
+                    // If nearest station exists on wide screens / foldables, span the nearest card full line for prominent visibility
                     items(
                         items = uiState.stationCards,
-                        key = { it.station.id + it.station.name } // Combined string to ensure unique keys
+                        key = { it.station.id + it.station.name },
+                        span = { cardModel ->
+                            val isNearest = uiState.nearestStationId == cardModel.station.id
+                            if (isNearest) StaggeredGridItemSpan.FullLine else StaggeredGridItemSpan.SingleLane
+                        }
                     ) { cardModel ->
                         val isNearest = uiState.nearestStationId == cardModel.station.id
                         StationDepartureCard(

@@ -300,9 +300,10 @@ fun StationDetailBottomSheet(
                                     if (selectedLineId != badge.lineId) {
                                         selectedLineId = badge.lineId
                                         selectedDirection = null
-                                    } else if (availableDirections.isNotEmpty()) {
+                                    } else if (availableDirections.size > 1) {
+                                        // Multi-direction line: cycle through available directions
                                         val currentIndex = if (selectedDirection == null) -1 else availableDirections.indexOf(selectedDirection)
-                                        if (currentIndex == -1 && availableDirections.isNotEmpty()) {
+                                        if (currentIndex == -1) {
                                             selectedDirection = availableDirections[0]
                                         } else if (currentIndex in 0 until availableDirections.lastIndex) {
                                             selectedDirection = availableDirections[currentIndex + 1]
@@ -311,6 +312,7 @@ fun StationDetailBottomSheet(
                                             selectedDirection = null
                                         }
                                     } else {
+                                        // Terminus or single-direction line: deselect directly
                                         selectedLineId = null
                                         selectedDirection = null
                                     }

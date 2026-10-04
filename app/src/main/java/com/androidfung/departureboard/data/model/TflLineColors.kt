@@ -42,6 +42,14 @@ object TflLineColors {
     // Other TfL Rail & Mass Transit Modes
     val ElizabethLine = Color(0xFF6950A1)
     val LondonOverground = Color(0xFFEE7C0E)
+    // 6 London Overground lines (2024 TfL standard)
+    val OvergroundLiberty = Color(0xFF606667)
+    val OvergroundLioness = Color(0xFFEF9600)
+    val OvergroundMildmay = Color(0xFF2774AE)
+    val OvergroundSuffragette = Color(0xFF5BA763)
+    val OvergroundWeaver = Color(0xFF893B67)
+    val OvergroundWindrush = Color(0xFFD22730)
+
     val Dlr = Color(0xFF00A4A7)
     val Tram = Color(0xFF00BD19)
     val CableCar = Color(0xFFE21836)
@@ -112,9 +120,27 @@ object TflLineColors {
             normalizedId == "elizabeth" || normalizedId == "elizabeth-line" || normalizedName.contains("elizabeth") ->
                 LineBadgeInfo(lineId = "elizabeth-line", displayName = "Elizabeth line", backgroundColor = ElizabethLine, textColor = LightText, mode = TransitMode.ELIZABETH_LINE)
 
-            // Overground
-            normalizedId.contains("overground") || normalizedName.contains("overground") ||
-            normalizedId in listOf("lioness", "mildmay", "windrush", "weaver", "suffragette", "liberty") ->
+            // Overground individual lines (TfL 2024 named lines)
+            normalizedId == "liberty" || normalizedName.contains("liberty") ->
+                LineBadgeInfo(lineId = "liberty", displayName = "Liberty", backgroundColor = OvergroundLiberty, textColor = LightText, mode = TransitMode.OVERGROUND)
+
+            normalizedId == "lioness" || normalizedName.contains("lioness") ->
+                LineBadgeInfo(lineId = "lioness", displayName = "Lioness", backgroundColor = OvergroundLioness, textColor = LightText, mode = TransitMode.OVERGROUND)
+
+            normalizedId == "mildmay" || normalizedName.contains("mildmay") ->
+                LineBadgeInfo(lineId = "mildmay", displayName = "Mildmay", backgroundColor = OvergroundMildmay, textColor = LightText, mode = TransitMode.OVERGROUND)
+
+            normalizedId == "suffragette" || normalizedName.contains("suffragette") ->
+                LineBadgeInfo(lineId = "suffragette", displayName = "Suffragette", backgroundColor = OvergroundSuffragette, textColor = LightText, mode = TransitMode.OVERGROUND)
+
+            normalizedId == "weaver" || normalizedName.contains("weaver") ->
+                LineBadgeInfo(lineId = "weaver", displayName = "Weaver", backgroundColor = OvergroundWeaver, textColor = LightText, mode = TransitMode.OVERGROUND)
+
+            normalizedId == "windrush" || normalizedName.contains("windrush") ->
+                LineBadgeInfo(lineId = "windrush", displayName = "Windrush", backgroundColor = OvergroundWindrush, textColor = LightText, mode = TransitMode.OVERGROUND)
+
+            // London Overground generic / fallback
+            normalizedId.contains("overground") || normalizedName.contains("overground") ->
                 LineBadgeInfo(lineId = "overground", displayName = displayName.ifBlank { "London Overground" }, backgroundColor = LondonOverground, textColor = LightText, mode = TransitMode.OVERGROUND)
 
             // DLR

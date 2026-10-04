@@ -45,6 +45,7 @@ object TflNetworkClient {
         val builder = OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .addInterceptor { chain ->
+                // Resilience: Exponential backoff retry for transient network hiccups or rate limits (HTTP 429 / 503)
                 val originalRequest = chain.request()
                 val originalUrl = originalRequest.url
                 val apiKey = com.androidfung.departureboard.BuildConfig.TFL_API_KEY
@@ -58,7 +59,32 @@ object TflNetworkClient {
                 val newRequest = originalRequest.newBuilder()
                     .url(newUrl)
                     .build()
-                chain.proceed(newRequest)
+
+                var response: okhttp3.Response? = null
+                var attempt = 0
+                val maxAttempts = 3
+                var delayMillis = 500L
+
+                while (attempt < maxAttempts) {
+                    try {
+                        response?.close()
+                        response = chain.proceed(newRequest)
+                        if (response.isSuccessful || (response.code != 429 && response.code != 503)) {
+                            return@addInterceptor response
+                        }
+                    } catch (e: java.io.IOException) {
+                        if (attempt == maxAttempts - 1) throw e
+                    }
+                    attempt++
+                    try {
+                        Thread.sleep(delayMillis)
+                    } catch (_: InterruptedException) {
+                        break
+                    }
+                    delayMillis *= 2
+                }
+
+                response ?: chain.proceed(newRequest)
             }
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
