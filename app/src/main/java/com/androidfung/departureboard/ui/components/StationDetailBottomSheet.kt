@@ -1,5 +1,6 @@
 package com.androidfung.departureboard.ui.components
 
+import android.content.Intent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DirectionsBus
 import androidx.compose.material.icons.rounded.DirectionsRailway
 import androidx.compose.material.icons.rounded.DirectionsSubway
+import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Tram
 import androidx.compose.material3.ButtonDefaults
@@ -68,6 +70,7 @@ import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TflLineColors
+import com.androidfung.departureboard.ui.components.LineDisruptionBanner
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 
 /**
@@ -84,6 +87,7 @@ fun StationDetailBottomSheet(
     onRemoveStation: (Station) -> Unit,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    initialSelectedLineId: String? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val primaryMode = station.modes.firstOrNull() ?: "tube"
@@ -101,10 +105,34 @@ fun StationDetailBottomSheet(
         label = "LivePulseAlpha"
     )
 
-    var selectedLineId by remember { mutableStateOf<String?>(null) }
-    val filteredDepartures = remember(departures, selectedLineId) {
-        if (selectedLineId == null) departures
-        else departures.filter { it.lineId.equals(selectedLineId, ignoreCase = true) }
+    var selectedLineId by remember(initialSelectedLineId) { mutableStateOf(initialSelectedLineId) }
+    var selectedDirection by remember { mutableStateOf<String?>(null) }
+    var selectedStopId by remember { mutableStateOf<String?>(null) }
+
+    // Distinct sub-stops (bays/platforms) present in departures (e.g. Stop A, Stop P, Stop Z4, Platform 1, etc.)
+    val distinctStops = remember(departures) {
+        departures
+            .filter { it.platformName.isNotBlank() && it.platformName != "Platform" && it.platformName != "Bus Stand" }
+            .distinctBy { it.platformName }
+            .sortedBy { it.platformName }
+    }
+
+    val filteredDepartures = remember(departures, selectedLineId, selectedDirection, selectedStopId) {
+        departures.filter { departure ->
+            // Filter by sub-stop if selected
+            if (selectedStopId != null && !departure.platformName.equals(selectedStopId, ignoreCase = true)) {
+                return@filter false
+            }
+            if (selectedLineId != null && !departure.lineId.equals(selectedLineId, ignoreCase = true)) {
+                return@filter false
+            }
+            if (selectedDirection != null) {
+                val matchesDirection = departure.direction.equals(selectedDirection, ignoreCase = true) ||
+                        departure.platformName.contains(selectedDirection!!, ignoreCase = true)
+                if (!matchesDirection) return@filter false
+            }
+            true
+        }
     }
 
     ModalBottomSheet(
@@ -151,7 +179,7 @@ fun StationDetailBottomSheet(
 
                     Column {
                         Text(
-                            text = station.name,
+                            text = station.displayName,
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 20.sp
@@ -160,6 +188,24 @@ fun StationDetailBottomSheet(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
+
+                        // Subtitle: Bus stop "towards ..." indicator for single-direction bus stops
+                        val distinctTowards = departures.mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }.distinct()
+                        val isSingleDirectionBusStop = station.modes.contains("bus") && distinctTowards.size == 1 &&
+                                station.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+
+                        if (isSingleDirectionBusStop) {
+                            Text(
+                                text = "towards ${distinctTowards.first()}",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -214,35 +260,30 @@ fun StationDetailBottomSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // "All" chip
-                    val isAllSelected = selectedLineId == null
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (isAllSelected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.surfaceContainerHighest
-                            )
-                            .clickable { selectedLineId = null }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Text(
-                            text = "All Lines",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = if (isAllSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
+                    val hasActiveSelection = selectedLineId != null
                     distinctLines.forEach { badge ->
                         val isSelected = selectedLineId.equals(badge.lineId, ignoreCase = true)
+                        val directionIndicator = when (if (isSelected) selectedDirection?.lowercase() else null) {
+                            "eastbound" -> "→ EB"
+                            "westbound" -> "← WB"
+                            "northbound" -> "↑ NB"
+                            "southbound" -> "↓ SB"
+                            "inbound" -> "IN"
+                            "outbound" -> "OUT"
+                            else -> null
+                        }
+
+                        val labelText = if (!directionIndicator.isNullOrBlank()) {
+                            "${badge.displayName} $directionIndicator"
+                        } else {
+                            badge.displayName
+                        }
+
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
-                                    if (isSelected || isAllSelected) badge.backgroundColor
+                                    if (isSelected || !hasActiveSelection) badge.backgroundColor
                                     else badge.backgroundColor.copy(alpha = 0.35f)
                                 )
                                 .border(
@@ -251,18 +292,98 @@ fun StationDetailBottomSheet(
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
-                                    selectedLineId = if (selectedLineId == badge.lineId) null else badge.lineId
+                                    val lineDepartures = departures.filter { it.lineId.equals(badge.lineId, ignoreCase = true) }
+                                    val availableDirections = lineDepartures
+                                        .mapNotNull { it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound").firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) } }
+                                        .distinct()
+
+                                    if (selectedLineId != badge.lineId) {
+                                        selectedLineId = badge.lineId
+                                        selectedDirection = null
+                                    } else if (availableDirections.isNotEmpty()) {
+                                        val currentIndex = if (selectedDirection == null) -1 else availableDirections.indexOf(selectedDirection)
+                                        if (currentIndex == -1 && availableDirections.isNotEmpty()) {
+                                            selectedDirection = availableDirections[0]
+                                        } else if (currentIndex in 0 until availableDirections.lastIndex) {
+                                            selectedDirection = availableDirections[currentIndex + 1]
+                                        } else {
+                                            selectedLineId = null
+                                            selectedDirection = null
+                                        }
+                                    } else {
+                                        selectedLineId = null
+                                        selectedDirection = null
+                                    }
                                 }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = badge.displayName,
+                                text = labelText,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = if (isSelected || isAllSelected) badge.textColor else badge.textColor.copy(alpha = 0.6f)
+                                color = if (isSelected || !hasActiveSelection) badge.textColor else badge.textColor.copy(alpha = 0.6f)
                             )
+                        }
+                    }
+                }
+
+                // If selected line has disruptions, show a disruption banner right under the badges in detail sheet
+                val activeBadge = distinctLines.firstOrNull { it.lineId.equals(selectedLineId, ignoreCase = true) }
+                if (activeBadge != null && activeBadge.isDisrupted) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LineDisruptionBanner(badge = activeBadge)
+                }
+            }
+
+            // Sub-stops filter chips (e.g. Stop P, Stop S, Stop Z4, Platform 1, etc.)
+            if (distinctStops.size > 1) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Stops / Stands:",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    FlowRow(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        distinctStops.forEach { subStop ->
+                            val isSelected = selectedStopId.equals(subStop.platformName, ignoreCase = true)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                    .border(
+                                        width = if (isSelected) 1.5.dp else 0.dp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable {
+                                        selectedStopId = if (selectedStopId == subStop.platformName) null else subStop.platformName
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = subStop.platformName,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    ),
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -340,7 +461,7 @@ fun StationDetailBottomSheet(
                 ) {
                     items(
                         items = filteredDepartures,
-                        key = { it.id }
+                        key = { it.id + it.timeToStationSeconds } // Combine id and time to ensure uniqueness
                     ) { departure ->
                         DepartureDetailRow(departure = departure)
                     }
@@ -351,13 +472,47 @@ fun StationDetailBottomSheet(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Action Buttons Footer
+            // Action Buttons Footer: Open in Maps, Refresh, and Remove
+            val context = androidx.compose.ui.platform.LocalContext.current
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Open in Google Maps Button
+                OutlinedButton(
+                    onClick = {
+                        val geoUri = if (station.lat != null && station.lon != null) {
+                            android.net.Uri.parse("geo:${station.lat},${station.lon}?q=${station.lat},${station.lon}(${java.net.URLEncoder.encode(station.name, "UTF-8")})")
+                        } else {
+                            android.net.Uri.parse("geo:0,0?q=${java.net.URLEncoder.encode("${station.name} London", "UTF-8")}")
+                        }
+                        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri)
+                        try {
+                            context.startActivity(mapIntent)
+                        } catch (_: Exception) {
+                            // Fallback to browser Google Maps
+                            val browserUri = if (station.lat != null && station.lon != null) {
+                                android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=${station.lat},${station.lon}")
+                            } else {
+                                android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=${java.net.URLEncoder.encode("${station.name} London", "UTF-8")}")
+                            }
+                            context.startActivity(Intent(Intent.ACTION_VIEW, browserUri))
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Map,
+                        contentDescription = "Open in Maps",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Maps")
+                }
+
                 OutlinedButton(
                     onClick = onRefresh,
                     modifier = Modifier.weight(1f),
@@ -368,7 +523,7 @@ fun StationDetailBottomSheet(
                         contentDescription = "Refresh",
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text("Refresh")
                 }
 
@@ -389,7 +544,7 @@ fun StationDetailBottomSheet(
                         contentDescription = "Remove station",
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text("Remove")
                 }
             }

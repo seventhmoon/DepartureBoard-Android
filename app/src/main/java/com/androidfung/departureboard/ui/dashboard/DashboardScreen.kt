@@ -274,7 +274,7 @@ fun DashboardContent(
                     // Station Departure Cards in masonry / flex-like staggered flow with drag-and-drop
                     items(
                         items = uiState.stationCards,
-                        key = { it.station.id }
+                        key = { it.station.id + it.station.name } // Combined string to ensure unique keys
                     ) { cardModel ->
                         val isNearest = uiState.nearestStationId == cardModel.station.id
                         StationDepartureCard(

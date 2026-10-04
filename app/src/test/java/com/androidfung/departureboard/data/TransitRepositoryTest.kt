@@ -43,6 +43,14 @@ class TransitRepositoryTest {
         override suspend fun getStopPointDetail(stopPointId: String): com.androidfung.departureboard.data.model.TflStopPointDetail {
             return com.androidfung.departureboard.data.model.TflStopPointDetail(id = stopPointId)
         }
+
+        override suspend fun getLineStopPoints(lineId: String): List<com.androidfung.departureboard.data.model.TflStopPointChild> {
+            return emptyList()
+        }
+
+        override suspend fun getLineRoute(lineId: String): com.androidfung.departureboard.data.model.TflLineRouteResponse {
+            return com.androidfung.departureboard.data.model.TflLineRouteResponse(id = lineId, name = lineId)
+        }
     }
 
     // Fake in-memory implementation of StationPreferencesDataSource
@@ -153,6 +161,20 @@ class TransitRepositoryTest {
     }
 
     @Test
+    fun testGetDepartures_successfulApiEmptyReturnsEmptyList() = runTest {
+        val fakeApi = FakeTflApiService(arrivalsResult = emptyList())
+        val repo = TransitRepositoryImpl(
+            apiService = fakeApi,
+            dataStore = FakeStationPreferencesDataSource()
+        )
+
+        val result = repo.getDepartures("940GZZLUOXC", "Oxford Circus")
+        assertTrue(result.isSuccess)
+        val departures = result.getOrNull()!!
+        assertTrue(departures.isEmpty())
+    }
+
+    @Test
     fun testGetDepartures_networkFailureUsesFallback() = runTest {
         val fakeApi = FakeTflApiService(shouldThrow = true)
         val repo = TransitRepositoryImpl(
@@ -165,6 +187,62 @@ class TransitRepositoryTest {
         val departures = result.getOrNull()!!
         assertTrue(departures.isNotEmpty())
         assertEquals("Oxford Circus", departures[0].stationName)
+    }
+
+    @Test
+    fun testBatterseaPowerStationNamePreserved() = runTest {
+        val fakeApi = FakeTflApiService(
+            arrivalsResult = listOf(
+                TflArrivalPrediction(
+                    id = "arr_bps_1",
+                    stationName = "Battersea Power Station Underground Station",
+                    lineId = "northern",
+                    lineName = "Northern",
+                    platformName = "Platform 1",
+                    destinationName = "Battersea Power Station Underground Station",
+                    towards = "Battersea Power Station",
+                    timeToStation = 120,
+                    modeName = "tube"
+                )
+            )
+        )
+        val repo = TransitRepositoryImpl(
+            apiService = fakeApi,
+            dataStore = FakeStationPreferencesDataSource()
+        )
+
+        val result = repo.getDepartures("940GZZLUBPS", "Battersea Power Station Underground Station")
+        assertTrue(result.isSuccess)
+        val departures = result.getOrNull()!!
+        assertEquals("Battersea Power Station", departures[0].stationName)
+    }
+
+    @Test
+    fun testBusStopIndicatorPreserved() = runTest {
+        val fakeApi = FakeTflApiService(
+            arrivalsResult = listOf(
+                TflArrivalPrediction(
+                    id = "arr_bus_1",
+                    stationName = "Mill Hill East Station (Stop A)",
+                    lineId = "221",
+                    lineName = "221",
+                    platformName = "Stop A",
+                    destinationName = "Turnpike Lane Station",
+                    towards = "Turnpike Lane",
+                    timeToStation = 180,
+                    modeName = "bus"
+                )
+            )
+        )
+        val repo = TransitRepositoryImpl(
+            apiService = fakeApi,
+            dataStore = FakeStationPreferencesDataSource()
+        )
+
+        val result = repo.getDepartures("490000185A", "Mill Hill East Station (Stop A)")
+        assertTrue(result.isSuccess)
+        val departures = result.getOrNull()!!
+        assertEquals("Mill Hill East (Stop A)", departures[0].stationName)
     }
 
     @Test

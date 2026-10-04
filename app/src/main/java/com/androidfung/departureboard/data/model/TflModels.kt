@@ -21,6 +21,7 @@ data class TflSearchResponse(
 data class TflStopPointMatch(
     @Json(name = "id") val id: String,
     @Json(name = "name") val name: String,
+    @Json(name = "towards") val towards: String? = null,
     @Json(name = "modes") val modes: List<String> = emptyList(),
     @Json(name = "lat") val lat: Double? = null,
     @Json(name = "lon") val lon: Double? = null,
@@ -36,6 +37,8 @@ data class TflStopPointMatch(
 data class TflStopPointDetail(
     @Json(name = "id") val id: String,
     @Json(name = "commonName") val commonName: String? = null,
+    @Json(name = "indicator") val indicator: String? = null,
+    @Json(name = "stopLetter") val stopLetter: String? = null,
     @Json(name = "children") val children: List<TflStopPointChild> = emptyList(),
     @Json(name = "lines") val lines: List<TflStopPointLineIdentifier> = emptyList()
 )
@@ -48,10 +51,23 @@ data class TflStopPointLineIdentifier(
 )
 
 @JsonClass(generateAdapter = true)
+data class TflAdditionalProperty(
+    @Json(name = "category") val category: String? = null,
+    @Json(name = "key") val key: String = "",
+    @Json(name = "value") val value: String = ""
+)
+
+@JsonClass(generateAdapter = true)
 data class TflStopPointChild(
     @Json(name = "id") val id: String,
     @Json(name = "commonName") val commonName: String? = null,
-    @Json(name = "indicator") val indicator: String? = null
+    @Json(name = "indicator") val indicator: String? = null,
+    @Json(name = "stopLetter") val stopLetter: String? = null,
+    @Json(name = "towards") val towards: String? = null,
+    @Json(name = "modes") val modes: List<String> = emptyList(),
+    @Json(name = "lat") val lat: Double? = null,
+    @Json(name = "lon") val lon: Double? = null,
+    @Json(name = "additionalProperties") val additionalProperties: List<TflAdditionalProperty> = emptyList()
 )
 
 /**
@@ -96,5 +112,24 @@ data class TflLineStatusDetail(
     @Json(name = "statusSeverity") val statusSeverity: Int = 10, // 10 = Good Service
     @Json(name = "statusSeverityDescription") val statusSeverityDescription: String = "Good Service",
     @Json(name = "reason") val reason: String? = null
+)
+
+/**
+ * TfL Line Route response for querying line sections and endpoints.
+ */
+@JsonClass(generateAdapter = true)
+data class TflLineRouteResponse(
+    @Json(name = "id") val id: String,
+    @Json(name = "name") val name: String,
+    @Json(name = "modeName") val modeName: String? = null,
+    @Json(name = "routeSections") val routeSections: List<TflRouteSection> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class TflRouteSection(
+    @Json(name = "name") val name: String = "",
+    @Json(name = "direction") val direction: String? = null,
+    @Json(name = "originationName") val originationName: String? = null,
+    @Json(name = "destinationName") val destinationName: String? = null
 )
 

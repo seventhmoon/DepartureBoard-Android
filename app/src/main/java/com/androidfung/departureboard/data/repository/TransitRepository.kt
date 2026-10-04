@@ -57,9 +57,35 @@ class TransitRepositoryImpl(
         try {
             val response = apiService.searchStations(query = trimmed)
             val matchedStations = response.matches.map { match ->
+                val cleaned = cleanStationName(match.name)
+                val isBus = match.modes.any { it.equals("bus", ignoreCase = true) }
+                val isBusOnly = isBus && match.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+
+                // Disambiguate individual bus stops (e.g. "Euston Station (Stop C)", "Euston Station (Stop B, towards Aldwych)")
+                val stopLetter = if (isBusOnly && !cleaned.contains("Stop ", ignoreCase = true)) {
+                    val m = Regex("^490\\d+([A-Za-z0-9]+)$").find(match.id)
+                    m?.groupValues?.getOrNull(1)?.uppercase()
+                } else null
+
+                val towards = match.towards?.takeIf { it.isNotBlank() && it.trim().lowercase() != "null" }
+
+                val details = mutableListOf<String>()
+                if (!stopLetter.isNullOrBlank()) {
+                    details.add("Stop $stopLetter")
+                }
+                if (towards != null && !cleaned.contains("towards", ignoreCase = true)) {
+                    details.add("towards $towards")
+                }
+
+                val displayName = if (details.isNotEmpty()) {
+                    "$cleaned (${details.joinToString(", ")})"
+                } else {
+                    cleaned
+                }
+
                 Station(
                     id = match.id,
-                    name = cleanStationName(match.name),
+                    name = displayName,
                     modes = match.modes,
                     zone = match.zone,
                     lat = match.lat,
@@ -68,8 +94,67 @@ class TransitRepositoryImpl(
                 )
             }
 
-            if (matchedStations.isNotEmpty()) {
-                Result.success(matchedStations)
+            // If query looks like a bus route (e.g. "221", "SL1", "73", "N20", "390"),
+            // also query TfL Line StopPoints to provide direct bus stops along that route
+            val busRouteRegex = Regex("""^(?:[0-9]{1,3}|[A-Za-z]{1,2}[0-9]{1,3})$""", RegexOption.IGNORE_CASE)
+            val isPotentialBusRoute = busRouteRegex.matches(trimmed)
+
+            val routeStopStations = mutableListOf<Station>()
+            if (isPotentialBusRoute) {
+                try {
+                    val lineId = trimmed.lowercase()
+                    val stopPoints = apiService.getLineStopPoints(lineId)
+                    val busStops = stopPoints.filter { it.modes.contains("bus") || it.id.startsWith("490") }
+                    busStops.forEach { sp ->
+                        val common = sp.commonName ?: "Bus Stop"
+                        val cleaned = cleanStationName(common)
+                        val letter = sp.stopLetter?.takeIf { it.isNotBlank() }
+                            ?: sp.indicator?.takeIf { it.startsWith("Stop ", ignoreCase = true) }?.removePrefix("Stop ")?.trim()
+                            ?: Regex("^490\\d+([A-Za-z0-9]+)$").find(sp.id)?.groupValues?.getOrNull(1)?.uppercase()
+
+                        val towards = sp.towards?.takeIf { it.isNotBlank() && it.trim().lowercase() != "null" }
+                            ?: sp.additionalProperties.firstOrNull { it.key.equals("Towards", ignoreCase = true) }?.value?.takeIf { it.isNotBlank() }
+
+                        val details = mutableListOf<String>()
+                        if (!letter.isNullOrBlank()) {
+                            details.add("Stop $letter")
+                        }
+                        if (towards != null && !cleaned.contains("towards", ignoreCase = true)) {
+                            details.add("towards $towards")
+                        }
+
+                        val displayName = if (details.isNotEmpty()) {
+                            "$cleaned (${details.joinToString(", ")})"
+                        } else {
+                            cleaned
+                        }
+
+                        routeStopStations.add(
+                            Station(
+                                id = sp.id,
+                                name = displayName,
+                                modes = listOf("bus"),
+                                zone = sp.additionalProperties.firstOrNull { it.key.equals("Zone", ignoreCase = true) }?.value,
+                                lat = sp.lat,
+                                lon = sp.lon,
+                                isFavorite = false
+                            )
+                        )
+                    }
+                } catch (_: Exception) {
+                    // Line search optional fallback
+                }
+            }
+
+            // Combine results, prioritizing exact bus route stops if route matched
+            val combinedResults = if (routeStopStations.isNotEmpty()) {
+                (routeStopStations + matchedStations).distinctBy { it.id }
+            } else {
+                matchedStations
+            }
+
+            if (combinedResults.isNotEmpty()) {
+                Result.success(combinedResults)
             } else {
                 // Check local default stations for a match
                 val localMatches = DefaultStations.POPULAR_STATIONS.filter {
@@ -132,9 +217,8 @@ class TransitRepositoryImpl(
                 }
 
                 if (rawArrivals.isEmpty()) {
-                    // Provide fallback if empty list returned
-                    val fallbacks = DefaultStations.getFallbackDepartures(stationId, stationName)
-                    Result.success(fallbacks)
+                    // API succeeded and returned no departures (e.g. service ended / last train has gone)
+                    Result.success(emptyList())
                 } else {
                     // Filter duplicates: at terminus stations (like Edgware), TfL publishes the exact same incoming train
                     // (same vehicleId or same timeToStation & destination) onto multiple platforms before platform assignment is finalized.
@@ -184,6 +268,17 @@ class TransitRepositoryImpl(
 
                             val cleanTowards = item.towards?.takeIf { it.trim().lowercase() != "null" }?.let { cleanStationName(it) }
 
+                            // Resolve normalized cardinal direction (Eastbound, Westbound, Northbound, Southbound, Inbound, Outbound)
+                            val resolvedDirection = when {
+                                rawPlatform.contains("Eastbound", ignoreCase = true) -> "Eastbound"
+                                rawPlatform.contains("Westbound", ignoreCase = true) -> "Westbound"
+                                rawPlatform.contains("Northbound", ignoreCase = true) -> "Northbound"
+                                rawPlatform.contains("Southbound", ignoreCase = true) -> "Southbound"
+                                item.direction?.equals("inbound", ignoreCase = true) == true -> "Inbound"
+                                item.direction?.equals("outbound", ignoreCase = true) == true -> "Outbound"
+                                else -> null
+                            }
+
                             Departure(
                                 id = item.id,
                                 stationId = item.naptanId ?: stationId,
@@ -193,6 +288,7 @@ class TransitRepositoryImpl(
                                 platformName = platformDisplay,
                                 destinationName = resolvedDest.ifBlank { "Destination" },
                                 towards = cleanTowards,
+                                direction = resolvedDirection,
                                 timeToStationSeconds = item.timeToStation,
                                 expectedArrivalIso = item.expectedArrival,
                                 currentLocation = item.currentLocation?.takeIf { it.trim().lowercase() != "null" },
@@ -245,15 +341,33 @@ class TransitRepositoryImpl(
     }
 
     private fun cleanStationName(name: String): String {
-        return name
+        val trimmed = name.trim()
+        // "Battersea Power Station" has "Station" as part of its proper landmark name
+        if (trimmed.startsWith("Battersea Power Station", ignoreCase = true)) {
+            return trimmed
+                .replace(" Underground Station", "")
+                .replace(" Underground", "")
+                .replace(" Rail Station", "")
+                .trim()
+        }
+
+        // Preserve any stop indicators and towards clauses in parentheses, e.g. "Euston (Stop D)", "Euston (Stop B, towards Aldwych)"
+        val parenthesisMatch = Regex("""\s*(\([^)]+\))$""").find(trimmed)
+        val suffix = parenthesisMatch?.value ?: ""
+        val baseName = if (parenthesisMatch != null) trimmed.substring(0, parenthesisMatch.range.first).trim() else trimmed
+
+        val cleanedBase = baseName
             .replace(" Underground Station", "")
             .replace(" Underground", "")
             .replace(" Rail Station", "")
             .replace(" DLR Station", "")
             .replace(" Tram Stop", "")
             .replace(" Bus Station", "")
-            .replace(" Station", "")
+            .replace(Regex("""\s+Station$"""), "")
             .trim()
+
+        val trimmedSuffix = suffix.trim()
+        return if (trimmedSuffix.isNotEmpty()) "$cleanedBase $trimmedSuffix" else cleanedBase
     }
 
     /**

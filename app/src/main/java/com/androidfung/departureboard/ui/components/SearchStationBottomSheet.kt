@@ -186,7 +186,7 @@ fun SearchStationBottomSheet(
                     .padding(vertical = 8.dp),
                 placeholder = {
                     Text(
-                        text = "Search station or stop (e.g. King's Cross)...",
+                        text = "Search station or bus route (e.g. 221, SL1)...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -311,7 +311,7 @@ fun SearchStationBottomSheet(
                 ) {
                     items(
                         items = filteredResults,
-                        key = { it.id }
+                        key = { it.id + it.name } // Combined id and name for uniqueness
                     ) { station ->
                         val isAlreadySaved = savedStationIds.contains(station.id)
                         StationSearchResultRow(

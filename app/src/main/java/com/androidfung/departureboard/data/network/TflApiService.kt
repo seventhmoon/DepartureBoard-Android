@@ -40,6 +40,22 @@ interface TflApiService {
     ): com.androidfung.departureboard.data.model.TflStopPointDetail
 
     /**
+     * Fetches StopPoints served by a specific line / bus route (e.g. "221", "SL1", "73").
+     */
+    @GET("Line/{id}/StopPoints")
+    suspend fun getLineStopPoints(
+        @Path("id") lineId: String
+    ): List<com.androidfung.departureboard.data.model.TflStopPointChild>
+
+    /**
+     * Fetches route sections and terminal endpoints for a specific line / route.
+     */
+    @GET("Line/{id}/Route")
+    suspend fun getLineRoute(
+        @Path("id") lineId: String
+    ): com.androidfung.departureboard.data.model.TflLineRouteResponse
+
+    /**
      * Fetches live line service statuses across rail, underground, and Thameslink modes.
      */
     @GET("Line/Mode/{modes}/Status")

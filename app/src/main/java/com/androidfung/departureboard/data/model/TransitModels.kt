@@ -15,7 +15,26 @@ data class Station(
     val lat: Double? = null,
     val lon: Double? = null,
     val isFavorite: Boolean = false
-)
+) {
+    /**
+     * User-facing display name that includes bus stop letter (e.g. "Euston (Stop D)")
+     * if the station is an individual bus stop stand and not already indicated.
+     */
+    val displayName: String
+        get() {
+            val isBusOnly = modes.contains("bus") && modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+            if (!isBusOnly) return name
+
+            val match = Regex("^490\\d+([A-Za-z0-9]+)$").find(id)
+            if (match != null) {
+                val letter = match.groupValues[1].uppercase()
+                if (!name.contains(Regex("\\bStop\\s+$letter\\b", RegexOption.IGNORE_CASE)) && !name.contains("(")) {
+                    return "$name (Stop $letter)"
+                }
+            }
+            return name
+        }
+}
 
 /**
  * Clean domain representation of a live departure prediction.
@@ -29,6 +48,7 @@ data class Departure(
     val platformName: String,
     val destinationName: String,
     val towards: String?,
+    val direction: String? = null,
     val timeToStationSeconds: Int,
     val expectedArrivalIso: String?,
     val currentLocation: String?,

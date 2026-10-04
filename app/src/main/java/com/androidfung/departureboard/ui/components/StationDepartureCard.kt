@@ -30,7 +30,10 @@ import androidx.compose.material.icons.rounded.DirectionsBus
 import androidx.compose.material.icons.rounded.DirectionsRailway
 import androidx.compose.material.icons.rounded.DirectionsSubway
 import androidx.compose.material.icons.rounded.Flight
+import androidx.compose.material.icons.rounded.NightsStay
 import androidx.compose.material.icons.rounded.Tram
+import androidx.compose.material.icons.rounded.UnfoldLess
+import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -86,12 +89,19 @@ fun StationDepartureCard(
     onStationClick: ((Station) -> Unit)? = null
 ) {
     var selectedLineId by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
+    var selectedDirection by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
 
-    val filteredDepartures = remember(cardModel.departures, selectedLineId) {
+    val filteredDepartures = remember(cardModel.departures, selectedLineId, selectedDirection) {
         if (selectedLineId == null) {
             cardModel.departures
         } else {
-            cardModel.departures.filter { it.lineId.equals(selectedLineId, ignoreCase = true) }
+            cardModel.departures.filter { departure ->
+                val lineMatches = departure.lineId.equals(selectedLineId, ignoreCase = true)
+                if (!lineMatches) return@filter false
+                if (selectedDirection == null) true
+                else departure.direction.equals(selectedDirection, ignoreCase = true) ||
+                     departure.platformName.contains(selectedDirection!!, ignoreCase = true)
+            }
         }
     }
 
@@ -174,6 +184,7 @@ fun StationDepartureCard(
                         station = cardModel.station,
                         lineBadges = cardModel.availableLineBadges,
                         selectedLineId = selectedLineId,
+                        selectedDirection = selectedDirection,
                         isExpanded = isExpanded,
                         isNearest = isNearest,
                         distanceMeters = distanceMeters,
@@ -183,10 +194,39 @@ fun StationDepartureCard(
                         },
                         onLineBadgeClick = { badge ->
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                            selectedLineId = if (selectedLineId == badge.lineId) null else badge.lineId
+                            // Find directions available for this line at this station
+                            val lineDepartures = cardModel.departures.filter { it.lineId.equals(badge.lineId, ignoreCase = true) }
+                            val availableDirections = lineDepartures
+                                .mapNotNull { it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound").firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) } }
+                                .distinct()
+
+                            if (selectedLineId != badge.lineId) {
+                                // 1st click: Filter by line (all directions)
+                                selectedLineId = badge.lineId
+                                selectedDirection = null
+                            } else if (availableDirections.isNotEmpty()) {
+                                val currentIndex = if (selectedDirection == null) -1 else availableDirections.indexOf(selectedDirection)
+                                if (currentIndex == -1 && availableDirections.isNotEmpty()) {
+                                    // 2nd click: First direction
+                                    selectedDirection = availableDirections[0]
+                                } else if (currentIndex in 0 until availableDirections.lastIndex) {
+                                    // 3rd click (or next directions): Next direction
+                                    selectedDirection = availableDirections[currentIndex + 1]
+                                } else {
+                                    // Loop completes: deselect line & direction
+                                    selectedLineId = null
+                                    selectedDirection = null
+                                }
+                            } else {
+                                // Line has no specific directions detected: simply toggle off
+                                selectedLineId = null
+                                selectedDirection = null
+                            }
                         },
                         onStationClick = onStationClick,
                         isLoading = cardModel.isLoading,
+                        departures = cardModel.departures,
+                        hasDepartures = cardModel.departures.isNotEmpty(),
                         modifier = Modifier.padding(horizontal = 22.dp)
                     )
 
@@ -219,11 +259,14 @@ private fun StationHeaderSection(
     station: Station,
     lineBadges: List<LineBadgeInfo>,
     selectedLineId: String?,
+    selectedDirection: String?,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     onLineBadgeClick: (LineBadgeInfo) -> Unit,
     isLoading: Boolean,
     modifier: Modifier = Modifier,
+    departures: List<Departure> = emptyList(),
+    hasDepartures: Boolean = true,
     isNearest: Boolean = false,
     distanceMeters: Double? = null,
     onStationClick: ((Station) -> Unit)? = null
@@ -255,7 +298,7 @@ private fun StationHeaderSection(
                     Spacer(modifier = Modifier.height(2.dp))
                 }
                 Text(
-                    text = station.name,
+                    text = station.displayName,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp
@@ -264,6 +307,27 @@ private fun StationHeaderSection(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+
+                // Subtitle: Bus stop "towards ..." indicator (e.g. "towards Edgware or Millbrook Park")
+                // Only show for single-stand bus stops where all routes share the same direction.
+                // Multi-stand bus stations/hubs (like North Finchley Bus Station) have divergent directions and sub-stops.
+                val distinctTowards = departures.mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }.distinct()
+                val isSingleDirectionBusStop = station.modes.contains("bus") && distinctTowards.size == 1 &&
+                        station.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+
+                if (isSingleDirectionBusStop) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "towards ${distinctTowards.first()}",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -277,7 +341,7 @@ private fun StationHeaderSection(
                     )
                 }
 
-                // Expand / Collapse Chevron button
+                // Expand / Collapse Unfold button
                 Box(
                     modifier = Modifier
                         .size(44.dp)
@@ -285,16 +349,21 @@ private fun StationHeaderSection(
                         .clickable(onClick = onToggleExpand),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (isExpanded) "▲" else "▼",
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
-                        color = MaterialTheme.colorScheme.primary
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Rounded.UnfoldLess else Icons.Rounded.UnfoldMore,
+                        contentDescription = if (isExpanded) "Collapse departures" else "Expand departures",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
         }
 
-        if (lineBadges.isNotEmpty()) {
+        // Option C: When there are no departures, only display the line badges if any line has disruptions.
+        // If service is normal / closed and there are no departures or disruptions, hide the chips.
+        val shouldShowBadges = lineBadges.isNotEmpty() && (hasDepartures || isLoading || lineBadges.any { it.isDisrupted })
+
+        if (shouldShowBadges) {
             Spacer(modifier = Modifier.height(12.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -306,6 +375,7 @@ private fun StationHeaderSection(
                     LinePillBadge(
                         badge = badge,
                         isSelected = isSelected,
+                        selectedDirection = if (isSelected) selectedDirection else null,
                         isDimmed = isDimmed,
                         onClick = { onLineBadgeClick(badge) }
                     )
@@ -374,6 +444,7 @@ fun LinePillBadge(
     badge: LineBadgeInfo,
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
+    selectedDirection: String? = null,
     isDimmed: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
@@ -383,6 +454,16 @@ fun LinePillBadge(
     val alpha = if (isDimmed) 0.35f else 1.0f
     val borderWidth = if (isSelected) 2.dp else if (badge.isDisrupted) 1.5.dp else 0.dp
     val borderColor = if (isSelected) MaterialTheme.colorScheme.onSurface else if (badge.isDisrupted) Color(0xFFFFC107) else Color.Transparent
+
+    val directionIndicator = when (selectedDirection?.lowercase()) {
+        "eastbound" -> "→ EB"
+        "westbound" -> "← WB"
+        "northbound" -> "↑ NB"
+        "southbound" -> "↓ SB"
+        "inbound" -> "IN"
+        "outbound" -> "OUT"
+        else -> null
+    }
 
     Box(
         modifier = modifier
@@ -400,8 +481,13 @@ fun LinePillBadge(
         contentAlignment = Alignment.Center
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            val labelText = if (!directionIndicator.isNullOrBlank()) {
+                "${badge.displayName} $directionIndicator"
+            } else {
+                badge.displayName
+            }
             Text(
-                text = badge.displayName,
+                text = labelText,
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
                     fontSize = 13.sp
@@ -445,11 +531,17 @@ private fun StationDeparturesContainer(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     val displayList = departures.take(5)
                     displayList.forEachIndexed { index, departure ->
-                        DepartureRowItem(
-                            departure = departure,
-                            isFirst = index == 0,
-                            showLineBadge = showLineBadge
-                        )
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = true,
+                            enter = androidx.compose.animation.fadeIn(),
+                            exit = androidx.compose.animation.fadeOut()
+                        ) {
+                            DepartureRowItem(
+                                departure = departure,
+                                isFirst = index == 0,
+                                showLineBadge = showLineBadge
+                            )
+                        }
                         if (index < displayList.lastIndex) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(start = 38.dp, end = 4.dp),
@@ -496,14 +588,30 @@ private fun StationDeparturesContainer(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 22.dp),
+                        .padding(vertical = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No upcoming departures",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.NightsStay,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Text(
+                            text = "No upcoming departures",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Service may have ended for the day",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        )
+                    }
                 }
             }
         }
@@ -562,7 +670,7 @@ fun DepartureRowItem(
 
             Spacer(modifier = Modifier.height(3.dp))
 
-            // Subtitle row: [Line/Route Chip] + Platform / Location info (Option A)
+            // Subtitle row: [Line/Route Chip] + [Platform Pill Tag]
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -570,6 +678,12 @@ fun DepartureRowItem(
                 if (showLineBadge) {
                     val badge = departure.lineBadge
                     val isBusOrNumeric = badge.mode == TransitMode.BUS || badge.displayName.all { it.isDigit() }
+                    // Keep line badges compact: abbreviate long line names if needed or cap width
+                    val abbreviatedLineName = when (badge.lineId.lowercase()) {
+                        "hammersmith-city" -> "H&C"
+                        "waterloo-city" -> "W&C"
+                        else -> badge.displayName
+                    }
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
@@ -578,7 +692,7 @@ fun DepartureRowItem(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = badge.displayName,
+                            text = abbreviatedLineName,
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp
@@ -589,27 +703,36 @@ fun DepartureRowItem(
                     }
                 }
 
-                val subText = when {
-                    !departure.platformName.isBlank() -> departure.platformName
-                    !departure.currentLocation.isNullOrBlank() -> departure.currentLocation
-                    else -> departure.lineName
-                }
-
-                if (subText.isNotBlank()) {
-                    Text(
-                        text = subText,
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                // High-visibility Platform Pill Tag
+                if (departure.platformName.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = departure.platformName,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
 
-            // Live Train Progress Track for upcoming trains (due or arriving within 3 minutes)
+            // Live Progress Track for upcoming departures (due or arriving within 3 minutes)
             if (departure.timeToStationSeconds <= 180) {
                 Spacer(modifier = Modifier.height(4.dp))
-                LiveTrainTrackIndicator(timeToStationSeconds = departure.timeToStationSeconds)
+                val isBus = departure.modeName.equals("bus", ignoreCase = true)
+                LiveTrainTrackIndicator(
+                    timeToStationSeconds = departure.timeToStationSeconds,
+                    isBus = isBus
+                )
             }
         }
 
@@ -649,10 +772,11 @@ fun DepartureRowItem(
 @Composable
 fun LiveTrainTrackIndicator(
     timeToStationSeconds: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isBus: Boolean = false
 ) {
     val stage = when {
-        timeToStationSeconds <= 30 -> 2 // At platform
+        timeToStationSeconds <= 30 -> 2 // At platform / stop
         timeToStationSeconds <= 90 -> 1 // Arriving / Approaching
         else -> 0 // In transit
     }
@@ -688,7 +812,7 @@ fun LiveTrainTrackIndicator(
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = when (stage) {
-                2 -> "At platform"
+                2 -> if (isBus) "At stop" else "At platform"
                 1 -> "Approaching"
                 else -> "In transit"
             },

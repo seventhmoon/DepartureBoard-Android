@@ -60,7 +60,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val repository = TransitRepositoryImpl(context)
 
         // Glance currentState reads the per-widget preferences directly in provideContent or provideGlance
-        val prefs = androidx.glance.appwidget.state.getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
+        val prefs: Preferences = androidx.glance.appwidget.state.getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
         val customStationId = prefs[PREF_STATION_ID]
         val customStationName = prefs[PREF_STATION_NAME]
         val filterLineId = prefs[PREF_FILTER_LINE_ID]
@@ -78,37 +78,32 @@ class DepartureBoardWidget : GlanceAppWidget() {
         }
 
         val allDepartures = try {
-            val live = repository.getDepartures(targetStation.id, targetStation.name).getOrNull()
-            if (!live.isNullOrEmpty()) live
-            else DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name)
+            val live = repository.getDepartures(targetStation.id, targetStation.name)
+            if (live.isSuccess) {
+                live.getOrDefault(emptyList())
+            } else {
+                DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name)
+            }
         } catch (_: Exception) {
             DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name)
         }
 
-        provideContent {
-            val activePrefs = currentState<Preferences>()
-            val stationId = activePrefs[PREF_STATION_ID] ?: targetStation.id
-            val stationName = activePrefs[PREF_STATION_NAME] ?: targetStation.name
-            val activeFilterLineId = activePrefs[PREF_FILTER_LINE_ID] ?: filterLineId
-            val activeFilterLineName = activePrefs[PREF_FILTER_LINE_NAME] ?: filterLineName
-            val activeStation = targetStation.copy(id = stationId, name = stationName)
-
-            val departures = if (!activeFilterLineId.isNullOrBlank()) {
-                val filtered = allDepartures.filter {
-                    it.lineId.equals(activeFilterLineId, ignoreCase = true) ||
-                    it.lineName.equals(activeFilterLineId, ignoreCase = true) ||
-                    it.lineBadge.displayName.equals(activeFilterLineName, ignoreCase = true)
-                }
-                filtered.ifEmpty { allDepartures }
-            } else {
-                allDepartures
+        val filteredDepartures = if (!filterLineId.isNullOrBlank()) {
+            allDepartures.filter {
+                it.lineId.equals(filterLineId, ignoreCase = true) ||
+                it.lineName.equals(filterLineId, ignoreCase = true) ||
+                (!filterLineName.isNullOrBlank() && it.lineBadge.displayName.equals(filterLineName, ignoreCase = true))
             }
+        } else {
+            allDepartures
+        }
 
+        provideContent {
             GlanceTheme {
                 WidgetContent(
-                    station = activeStation,
-                    filterLabel = activeFilterLineName,
-                    departures = departures
+                    station = targetStation,
+                    filterLabel = filterLineName,
+                    departures = filteredDepartures
                 )
             }
         }
@@ -153,7 +148,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
 
                 Column(modifier = GlanceModifier.defaultWeight()) {
                     Text(
-                        text = station.name,
+                        text = station.displayName,
                         style = TextStyle(
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
@@ -176,11 +171,11 @@ class DepartureBoardWidget : GlanceAppWidget() {
                     )
                 }
 
-                // Interactive Refresh Button
+                // Interactive Refresh Button with generous hit target
                 Box(
                     modifier = GlanceModifier
-                        .size(30.dp)
-                        .cornerRadius(15.dp)
+                        .size(38.dp)
+                        .cornerRadius(19.dp)
                         .background(GlanceTheme.colors.surfaceVariant)
                         .clickable(actionRunCallback<RefreshWidgetAction>()),
                     contentAlignment = Alignment.Center
@@ -188,7 +183,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
                     Text(
                         text = "↻",
                         style = TextStyle(
-                            fontSize = 16.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = GlanceTheme.colors.onSurfaceVariant
                         )
@@ -304,6 +299,8 @@ class RefreshWidgetAction : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
+        // Enqueue immediate background update worker as well to ensure WorkManager schedule stays alive
+        WidgetUpdateWorker.enqueuePeriodicUpdate(context.applicationContext)
         DepartureBoardWidget().update(context, glanceId)
     }
 }

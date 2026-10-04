@@ -122,7 +122,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
             updateAppWidgetState(this@WidgetConfigurationActivity, PreferencesGlanceStateDefinition, glanceId) { prefs ->
                 prefs.toMutablePreferences().apply {
                     this[DepartureBoardWidget.PREF_STATION_ID] = station.id
-                    this[DepartureBoardWidget.PREF_STATION_NAME] = station.name
+                    this[DepartureBoardWidget.PREF_STATION_NAME] = station.displayName
                     if (lineBadge != null) {
                         this[DepartureBoardWidget.PREF_FILTER_LINE_ID] = lineBadge.lineId
                         this[DepartureBoardWidget.PREF_FILTER_LINE_NAME] = lineBadge.displayName
@@ -283,7 +283,7 @@ fun WidgetStationPickerScreen(
                     .weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(stations, key = { it.id }) { station ->
+                items(stations, key = { it.id + it.name }) { station -> // Adding name to ensure uniqueness
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -320,7 +320,7 @@ fun WidgetStationPickerScreen(
 
                             Column {
                                 Text(
-                                    text = station.name,
+                                    text = station.displayName,
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -348,7 +348,7 @@ fun WidgetStationPickerScreen(
             onDismissRequest = { selectedStationForLines = null },
             title = {
                 Text(
-                    text = activeStation.name,
+                    text = activeStation.displayName,
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
             },
@@ -405,7 +405,7 @@ fun WidgetStationPickerScreen(
                             modifier = Modifier.fillMaxWidth().height(200.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(availableLines, key = { it.lineId }) { badge ->
+                            items(availableLines, key = { it.lineId + it.displayName }) { badge -> // Adding displayName for uniqueness
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()

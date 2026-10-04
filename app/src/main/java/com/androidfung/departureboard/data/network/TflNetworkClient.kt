@@ -21,12 +21,20 @@ object TflNetworkClient {
             .build()
     }
 
+    private var cacheDir: java.io.File? = null
+
+    fun initialize(context: android.content.Context) {
+        if (cacheDir == null) {
+            cacheDir = java.io.File(context.applicationContext.cacheDir, "http_cache")
+        }
+    }
+
     private val okHttpClient: OkHttpClient by lazy {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
         }
 
-        OkHttpClient.Builder()
+        val builder = OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val originalRequest = chain.request()
                 val originalUrl = originalRequest.url
@@ -46,7 +54,15 @@ object TflNetworkClient {
             .addInterceptor(loggingInterceptor)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
-            .build()
+
+        cacheDir?.let { dir ->
+            try {
+                // 10 MB HTTP response cache for offline access underground
+                builder.cache(okhttp3.Cache(dir, 10L * 1024 * 1024))
+            } catch (_: Exception) {}
+        }
+
+        builder.build()
     }
 
     private val retrofit: Retrofit by lazy {
