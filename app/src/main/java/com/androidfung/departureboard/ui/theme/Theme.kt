@@ -31,6 +31,7 @@ private val TflDarkColorScheme = darkColorScheme(
     surfaceVariant = TflDarkSurfaceVariant,
     onSurfaceVariant = TflDarkOnSurfaceVariant,
     outline = TflDarkOutline,
+    outlineVariant = TflDarkOutlineVariant,
     surfaceContainer = TflDarkSurfaceContainer,
     surfaceContainerHigh = TflDarkSurfaceContainerHigh,
     surfaceContainerHighest = TflDarkSurfaceContainerHighest,
@@ -57,6 +58,7 @@ private val TflLightColorScheme = lightColorScheme(
     surfaceVariant = TflLightSurfaceVariant,
     onSurfaceVariant = TflLightOnSurfaceVariant,
     outline = TflLightOutline,
+    outlineVariant = TflLightOutlineVariant,
     surfaceContainer = TflLightSurfaceContainer,
     surfaceContainerHigh = TflLightSurfaceContainerHigh,
     surfaceContainerHighest = TflLightSurfaceContainerHighest,
@@ -66,8 +68,8 @@ private val TflLightColorScheme = lightColorScheme(
 @Composable
 fun DepartureBoardTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Keep TfL's distinctive branding identity as default
-    dynamicColor: Boolean = false,
+    // Material 3 Dynamic Color (Android 12+) enabled by default
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

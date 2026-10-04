@@ -3,10 +3,17 @@ package com.androidfung.departureboard.data.repository
 import android.content.Context
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataSource
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataStore
+import com.androidfung.departureboard.data.db.AppDatabase
+import com.androidfung.departureboard.data.db.CachedDepartureEntity
+import com.androidfung.departureboard.data.db.DepartureDao
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.TflLineColors
+import com.androidfung.departureboard.data.model.TflLineStatusItem
+import com.androidfung.departureboard.data.model.TflStopPointChild
+import com.androidfung.departureboard.data.model.TflStopPointMatch
 import com.androidfung.departureboard.data.network.TflApiService
 import com.androidfung.departureboard.data.network.TflNetworkClient
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +32,7 @@ interface TransitRepository {
     suspend fun searchStations(query: String): Result<List<Station>>
     suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>>
     fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>>
-    suspend fun getLineStatuses(): Map<String, com.androidfung.departureboard.data.model.TflLineStatusItem>
+    suspend fun getLineStatuses(): Map<String, TflLineStatusItem>
     suspend fun saveStation(station: Station)
     suspend fun reorderStations(stations: List<Station>)
     suspend fun removeStation(stationId: String)
@@ -33,18 +40,18 @@ interface TransitRepository {
 }
 
 /**
- * Implementation of TransitRepository using TfL API, DataStore, and offline fallbacks.
+ * Implementation of TransitRepository using TfL API, DataStore, and Room offline cache.
  */
 class TransitRepositoryImpl(
     private val apiService: TflApiService = TflNetworkClient.apiService,
     private val dataStore: StationPreferencesDataSource,
-    private val departureDao: com.androidfung.departureboard.data.db.DepartureDao? = null
+    private val departureDao: DepartureDao? = null
 ) : TransitRepository {
 
     constructor(context: Context) : this(
         apiService = TflNetworkClient.apiService,
         dataStore = StationPreferencesDataStore(context.applicationContext),
-        departureDao = com.androidfung.departureboard.data.db.AppDatabase.getInstance(context.applicationContext).departureDao()
+        departureDao = AppDatabase.getInstance(context.applicationContext).departureDao()
     )
 
     override val savedStationsFlow: Flow<List<Station>> = dataStore.savedStationsFlow
@@ -59,94 +66,10 @@ class TransitRepositoryImpl(
         try {
             val response = apiService.searchStations(query = trimmed)
             val matchedStations = response.matches.map { match ->
-                val cleaned = cleanStationName(match.name)
-                val isBus = match.modes.any { it.equals("bus", ignoreCase = true) }
-                val isBusOnly = isBus && match.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
-
-                // Disambiguate individual bus stops (e.g. "Euston Station (Stop C)", "Euston Station (Stop B, towards Aldwych)")
-                val stopLetter = if (isBusOnly && !cleaned.contains("Stop ", ignoreCase = true)) {
-                    val m = Regex("^490\\d+([A-Za-z0-9]+)$").find(match.id)
-                    m?.groupValues?.getOrNull(1)?.uppercase()
-                } else null
-
-                val towards = match.towards?.takeIf { it.isNotBlank() && it.trim().lowercase() != "null" }
-
-                val details = mutableListOf<String>()
-                if (!stopLetter.isNullOrBlank()) {
-                    details.add("Stop $stopLetter")
-                }
-                if (towards != null && !cleaned.contains("towards", ignoreCase = true)) {
-                    details.add("towards $towards")
-                }
-
-                val displayName = if (details.isNotEmpty()) {
-                    "$cleaned (${details.joinToString(", ")})"
-                } else {
-                    cleaned
-                }
-
-                Station(
-                    id = match.id,
-                    name = displayName,
-                    modes = match.modes,
-                    zone = match.zone,
-                    lat = match.lat,
-                    lon = match.lon,
-                    isFavorite = false
-                )
+                createStationFromMatch(match)
             }
 
-            // If query looks like a bus route (e.g. "221", "SL1", "73", "N20", "390"),
-            // also query TfL Line StopPoints to provide direct bus stops along that route
-            val busRouteRegex = Regex("""^(?:[0-9]{1,3}|[A-Za-z]{1,2}[0-9]{1,3})$""", RegexOption.IGNORE_CASE)
-            val isPotentialBusRoute = busRouteRegex.matches(trimmed)
-
-            val routeStopStations = mutableListOf<Station>()
-            if (isPotentialBusRoute) {
-                try {
-                    val lineId = trimmed.lowercase()
-                    val stopPoints = apiService.getLineStopPoints(lineId)
-                    val busStops = stopPoints.filter { it.modes.contains("bus") || it.id.startsWith("490") }
-                    busStops.forEach { sp ->
-                        val common = sp.commonName ?: "Bus Stop"
-                        val cleaned = cleanStationName(common)
-                        val letter = sp.stopLetter?.takeIf { it.isNotBlank() }
-                            ?: sp.indicator?.takeIf { it.startsWith("Stop ", ignoreCase = true) }?.removePrefix("Stop ")?.trim()
-                            ?: Regex("^490\\d+([A-Za-z0-9]+)$").find(sp.id)?.groupValues?.getOrNull(1)?.uppercase()
-
-                        val towards = sp.towards?.takeIf { it.isNotBlank() && it.trim().lowercase() != "null" }
-                            ?: sp.additionalProperties.firstOrNull { it.key.equals("Towards", ignoreCase = true) }?.value?.takeIf { it.isNotBlank() }
-
-                        val details = mutableListOf<String>()
-                        if (!letter.isNullOrBlank()) {
-                            details.add("Stop $letter")
-                        }
-                        if (towards != null && !cleaned.contains("towards", ignoreCase = true)) {
-                            details.add("towards $towards")
-                        }
-
-                        val displayName = if (details.isNotEmpty()) {
-                            "$cleaned (${details.joinToString(", ")})"
-                        } else {
-                            cleaned
-                        }
-
-                        routeStopStations.add(
-                            Station(
-                                id = sp.id,
-                                name = displayName,
-                                modes = listOf("bus"),
-                                zone = sp.additionalProperties.firstOrNull { it.key.equals("Zone", ignoreCase = true) }?.value,
-                                lat = sp.lat,
-                                lon = sp.lon,
-                                isFavorite = false
-                            )
-                        )
-                    }
-                } catch (_: Exception) {
-                    // Line search optional fallback
-                }
-            }
+            val routeStopStations = findRouteStopsIfApplicable(trimmed)
 
             // Combine results, prioritizing exact bus route stops if route matched
             val combinedResults = if (routeStopStations.isNotEmpty()) {
@@ -158,14 +81,12 @@ class TransitRepositoryImpl(
             if (combinedResults.isNotEmpty()) {
                 Result.success(combinedResults)
             } else {
-                // Check local default stations for a match
                 val localMatches = DefaultStations.POPULAR_STATIONS.filter {
                     it.name.contains(trimmed, ignoreCase = true)
                 }
                 Result.success(localMatches)
             }
         } catch (e: Exception) {
-            // Offline fallback: filter local popular stations
             val localMatches = DefaultStations.POPULAR_STATIONS.filter {
                 it.name.contains(trimmed, ignoreCase = true)
             }
@@ -180,172 +101,25 @@ class TransitRepositoryImpl(
     override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> =
         withContext(Dispatchers.IO) {
             try {
-                // Fetch arrivals directly, or expand child stop points if this is a bus station / transit hub
-                var rawArrivals = apiService.getArrivals(stationId)
-
-                try {
-                    val detail = apiService.getStopPointDetail(stationId)
-
-                    if (rawArrivals.isEmpty()) {
-                        // Prioritize tube, rail, and tram child stops before bus stops when expanding hubs
-                        val sortedChildren = detail.children.sortedByDescending { child ->
-                            when {
-                                child.id.startsWith("940G") -> 3 // Tube / Tram / Rail
-                                child.id.startsWith("910G") -> 2 // National Rail
-                                else -> 1 // Bus stops
-                            }
-                        }
-
-                        val childArrivals = mutableListOf<com.androidfung.departureboard.data.model.TflArrivalPrediction>()
-                        for (child in sortedChildren) {
-                            if (child.id != stationId) {
-                                try {
-                                    val arrivals = apiService.getArrivals(child.id)
-                                    if (arrivals.isNotEmpty()) {
-                                        childArrivals.addAll(arrivals)
-                                    }
-                                } catch (_: Exception) {
-                                    // continue to next child
-                                }
-                            }
-                        }
-
-                        if (childArrivals.isNotEmpty()) {
-                            rawArrivals = childArrivals
-                        }
-                    }
-                } catch (_: Exception) {
-                    // ignore detail fetch failures
-                }
+                val rawArrivals = fetchRawArrivalsWithHubExpansion(stationId)
 
                 if (rawArrivals.isEmpty()) {
-                    // API succeeded and returned no departures (e.g. service ended / last train has gone)
                     Result.success(emptyList())
                 } else {
-                    // Filter duplicates: at terminus stations (like Edgware), TfL publishes the exact same incoming train
-                    // (same vehicleId or same timeToStation & destination) onto multiple platforms before platform assignment is finalized.
-                    val distinctArrivals = rawArrivals
-                        .distinctBy { item ->
-                            if (!item.vehicleId.isNullOrBlank()) {
-                                item.vehicleId
-                            } else {
-                                "${item.lineId}_${item.destinationName}_${item.timeToStation / 30}"
-                            }
-                        }
-
+                    val distinctArrivals = deduplicateArrivals(rawArrivals)
                     val departures = distinctArrivals
                         .sortedBy { it.timeToStation }
-                        .map { item ->
-                            val lineName = item.lineName ?: item.lineId ?: "Transit"
-                            val badge = TflLineColors.getLineBadge(
-                                lineId = item.lineId,
-                                lineName = item.lineName,
-                                modeName = item.modeName
-                            )
-                            val resolvedDest = resolveOutboundDestination(
-                                stationName = stationName,
-                                itemDestination = item.destinationName,
-                                itemTowards = item.towards,
-                                lineId = item.lineId,
-                                platformName = item.platformName
-                            )
-                            val isBus = item.modeName.equals("bus", ignoreCase = true) || item.lineId?.toIntOrNull() != null
-                            val rawPlatform = item.platformName?.trim() ?: ""
-                            val platformDisplay = when {
-                                rawPlatform.isNotBlank() && rawPlatform.lowercase() != "null" -> {
-                                    when {
-                                        isBus && !rawPlatform.startsWith("Stop ", ignoreCase = true) -> "Stop $rawPlatform"
-                                        // Elizabeth line core stations often return "A" or "B"
-                                        rawPlatform.matches(Regex("^[A-Z0-9]$")) -> "Platform $rawPlatform"
-                                        !rawPlatform.startsWith("Platform", ignoreCase = true) &&
-                                        !rawPlatform.contains("bound", ignoreCase = true) &&
-                                        !rawPlatform.startsWith("Stop", ignoreCase = true) -> "Platform $rawPlatform"
-                                        else -> rawPlatform
-                                    }
-                                }
-                                isBus && !item.towards.isNullOrBlank() && item.towards.trim().lowercase() != "null" ->
-                                    "towards ${cleanStationName(item.towards)}"
-                                else -> if (isBus) "Bus Stand" else "Platform"
-                            }
+                        .map { mapPredictionToDeparture(it, stationId, stationName) }
 
-                            val cleanTowards = item.towards?.takeIf { it.trim().lowercase() != "null" }?.let { cleanStationName(it) }
-
-                            // Resolve normalized cardinal direction (Eastbound, Westbound, Northbound, Southbound)
-                            val isElizabeth = item.lineId?.contains("elizabeth", ignoreCase = true) == true ||
-                                    item.lineName?.contains("elizabeth", ignoreCase = true) == true
-                            val resolvedDirection = when {
-                                rawPlatform.contains("Eastbound", ignoreCase = true) -> "Eastbound"
-                                rawPlatform.contains("Westbound", ignoreCase = true) -> "Westbound"
-                                rawPlatform.contains("Northbound", ignoreCase = true) -> "Northbound"
-                                rawPlatform.contains("Southbound", ignoreCase = true) -> "Southbound"
-                                // Elizabeth line: map destinations and in/outbound to cardinal Eastbound / Westbound
-                                isElizabeth -> {
-                                    val destLower = resolvedDest.lowercase()
-                                    when {
-                                        destLower.contains("abbey wood") || destLower.contains("shenfield") ||
-                                        destLower.contains("liverpool street") || destLower.contains("paddington") ||
-                                        destLower.contains("stratford") || item.direction.equals("inbound", ignoreCase = true) -> "Eastbound"
-
-                                        destLower.contains("reading") || destLower.contains("heathrow") ||
-                                        destLower.contains("maidenhead") || item.direction.equals("outbound", ignoreCase = true) -> "Westbound"
-
-                                        else -> null
-                                    }
-                                }
-                                item.direction?.equals("inbound", ignoreCase = true) == true -> "Inbound"
-                                item.direction?.equals("outbound", ignoreCase = true) == true -> "Outbound"
-                                else -> null
-                            }
-
-                            Departure(
-                                id = item.id,
-                                stationId = item.naptanId ?: stationId,
-                                stationName = cleanStationName(item.stationName ?: stationName),
-                                lineId = item.lineId ?: "transit",
-                                lineName = lineName,
-                                platformName = platformDisplay,
-                                destinationName = resolvedDest.ifBlank { "Destination" },
-                                towards = cleanTowards,
-                                direction = resolvedDirection,
-                                timeToStationSeconds = item.timeToStation,
-                                expectedArrivalIso = item.expectedArrival,
-                                currentLocation = item.currentLocation?.takeIf { it.trim().lowercase() != "null" },
-                                modeName = item.modeName ?: if (isBus) "bus" else "tube",
-                                lineBadge = badge
-                            )
-                        }
-
-                    // Save fresh departures to Room database cache for instantaneous cold starts & offline viewing
-                    if (departures.isNotEmpty() && departureDao != null) {
-                        try {
-                            departureDao.replaceDeparturesForStation(
-                                stationId,
-                                departures.map { com.androidfung.departureboard.data.db.CachedDepartureEntity.fromDeparture(it) }
-                            )
-                        } catch (_: Exception) {}
-                    }
-
+                    cacheDeparturesSafely(stationId, departures)
                     Result.success(departures)
                 }
             } catch (e: Exception) {
-                // 1. Try serving from Room database cache first
-                val cached = departureDao?.getDeparturesForStation(stationId)?.map { it.toDeparture() }
-                if (!cached.isNullOrEmpty()) {
-                    Result.success(cached)
-                } else {
-                    // 2. If no DB cache, serve static timetable fallback departures for popular stations
-                    val fallbacks = DefaultStations.getFallbackDepartures(stationId, stationName)
-                    if (fallbacks.isNotEmpty()) {
-                        Result.success(fallbacks)
-                    } else {
-                        Result.failure(e)
-                    }
-                }
+                fallbackDepartures(stationId, stationName, e)
             }
         }
 
     override fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>> = flow {
-        // Emit Room cached data first if available, then fetch fresh network
         val cached = departureDao?.getDeparturesForStation(stationId)?.map { it.toDeparture() }
         if (!cached.isNullOrEmpty()) {
             emit(Result.success(cached))
@@ -353,209 +127,253 @@ class TransitRepositoryImpl(
         emit(getDepartures(stationId, stationName))
     }.flowOn(Dispatchers.IO)
 
-    override suspend fun getLineStatuses(): Map<String, com.androidfung.departureboard.data.model.TflLineStatusItem> =
-        withContext(Dispatchers.IO) {
-            try {
-                val statuses = apiService.getLineStatuses()
-                statuses.associateBy { it.id.lowercase() }
-            } catch (_: Exception) {
-                emptyMap()
-            }
+    override suspend fun getLineStatuses(): Map<String, TflLineStatusItem> = withContext(Dispatchers.IO) {
+        try {
+            apiService.getLineStatuses().associateBy { it.id.lowercase() }
+        } catch (_: Exception) {
+            emptyMap()
         }
-
-    override suspend fun saveStation(station: Station) {
-        dataStore.saveStation(station)
     }
 
-    override suspend fun reorderStations(stations: List<Station>) {
-        dataStore.saveStations(stations)
-    }
+    override suspend fun saveStation(station: Station) = dataStore.saveStation(station)
+    override suspend fun reorderStations(stations: List<Station>) = dataStore.saveStations(stations)
+    override suspend fun removeStation(stationId: String) = dataStore.removeStation(stationId)
+    override suspend fun setRecentStationId(stationId: String) = dataStore.setRecentStationId(stationId)
 
-    override suspend fun removeStation(stationId: String) {
-        dataStore.removeStation(stationId)
-    }
+    // =========================================================================
+    // Private Helpers: Search & Station Building
+    // =========================================================================
 
-    override suspend fun setRecentStationId(stationId: String) {
-        dataStore.setRecentStationId(stationId)
-    }
+    private fun createStationFromMatch(match: TflStopPointMatch): Station {
+        val cleaned = StationNameFormatter.clean(match.name)
+        val isBus = match.modes.any { it.equals("bus", ignoreCase = true) }
+        val isBusOnly = isBus && match.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
 
-    private fun cleanStationName(name: String): String {
-        val trimmed = name.trim()
-        // "Battersea Power Station" has "Station" as part of its proper landmark name
-        if (trimmed.startsWith("Battersea Power Station", ignoreCase = true)) {
-            return trimmed
-                .replace(" Underground Station", "")
-                .replace(" Underground", "")
-                .replace(" Rail Station", "")
-                .trim()
-        }
+        val stopLetter = if (isBusOnly && !cleaned.contains("Stop ", ignoreCase = true)) {
+            Regex("^490\\d+([A-Za-z0-9]+)$").find(match.id)?.groupValues?.getOrNull(1)?.uppercase()
+        } else null
 
-        // Preserve any stop indicators and towards clauses in parentheses, e.g. "Euston (Stop D)", "Euston (Stop B, towards Aldwych)"
-        val parenthesisMatch = Regex("""\s*(\([^)]+\))$""").find(trimmed)
-        val suffix = parenthesisMatch?.value ?: ""
-        val baseName = if (parenthesisMatch != null) trimmed.substring(0, parenthesisMatch.range.first).trim() else trimmed
+        val towards = match.towards?.takeIf { it.isNotBlank() && it.trim().lowercase() != "null" }
+        val displayName = buildDisambiguatedStopName(cleaned, stopLetter, towards)
 
-        val cleanedBase = baseName
-            .replace(" Underground Station", "")
-            .replace(" Underground", "")
-            .replace(" Rail Station", "")
-            .replace(" DLR Station", "")
-            .replace(" Tram Stop", "")
-            .replace(" Bus Station", "")
-            .replace(Regex("""\s+Station$"""), "")
-            .trim()
-
-        val trimmedSuffix = suffix.trim()
-        return if (trimmedSuffix.isNotEmpty()) "$cleanedBase $trimmedSuffix" else cleanedBase
-    }
-
-    /**
-     * Resolves the outbound destination for terminus stations when TfL's prediction API reports
-     * inbound terminating trains arriving at the station itself (e.g. Edgware, Mill Hill East, Brixton).
-     */
-    private fun resolveOutboundDestination(
-        stationName: String,
-        itemDestination: String?,
-        itemTowards: String?,
-        lineId: String?,
-        platformName: String?
-    ): String {
-        val currentStation = cleanStationName(stationName).lowercase()
-        val rawDest = cleanStationName(itemDestination ?: itemTowards ?: "Destination")
-        val towardsLower = (itemTowards ?: "").lowercase()
-        val platLower = (platformName ?: "").lowercase()
-        val lineLower = (lineId ?: "").lowercase()
-
-        val isTerminatingAtThisStation = rawDest.isNotBlank() && (
-            rawDest.equals(currentStation, ignoreCase = true) ||
-            rawDest.startsWith(currentStation, ignoreCase = true) ||
-            currentStation.startsWith(rawDest, ignoreCase = true)
+        return Station(
+            id = match.id,
+            name = displayName,
+            modes = match.modes,
+            zone = match.zone,
+            lat = match.lat,
+            lon = match.lon,
+            isFavorite = false
         )
-        val isGenericCheckFront = rawDest.contains("check front of train", ignoreCase = true)
+    }
 
-        if (!isTerminatingAtThisStation && !isGenericCheckFront) {
-            return rawDest
+    private suspend fun findRouteStopsIfApplicable(query: String): List<Station> {
+        val busRouteRegex = Regex("""^(?:[0-9]{1,3}|[A-Za-z]{1,2}[0-9]{1,3})$""", RegexOption.IGNORE_CASE)
+        if (!busRouteRegex.matches(query)) return emptyList()
+
+        return try {
+            val stopPoints = apiService.getLineStopPoints(query.lowercase())
+            stopPoints
+                .filter { it.modes.contains("bus") || it.id.startsWith("490") }
+                .map { sp -> createStationFromStopPoint(sp) }
+        } catch (_: Exception) {
+            emptyList()
         }
+    }
 
-        // The train terminates at this station or reports "Check Front of Train"; infer the departing destination for passengers on the platform
+    private fun createStationFromStopPoint(sp: TflStopPointChild): Station {
+        val common = sp.commonName ?: "Bus Stop"
+        val cleaned = StationNameFormatter.clean(common)
+        val letter = sp.stopLetter?.takeIf { it.isNotBlank() }
+            ?: sp.indicator?.takeIf { it.startsWith("Stop ", ignoreCase = true) }?.removePrefix("Stop ")?.trim()
+            ?: Regex("^490\\d+([A-Za-z0-9]+)$").find(sp.id)?.groupValues?.getOrNull(1)?.uppercase()
+
+        val towards = sp.towards?.takeIf { it.isNotBlank() && it.trim().lowercase() != "null" }
+            ?: sp.additionalProperties.firstOrNull { it.key.equals("Towards", ignoreCase = true) }?.value?.takeIf { it.isNotBlank() }
+
+        val displayName = buildDisambiguatedStopName(cleaned, letter, towards)
+
+        return Station(
+            id = sp.id,
+            name = displayName,
+            modes = listOf("bus"),
+            zone = sp.additionalProperties.firstOrNull { it.key.equals("Zone", ignoreCase = true) }?.value,
+            lat = sp.lat,
+            lon = sp.lon,
+            isFavorite = false
+        )
+    }
+
+    private fun buildDisambiguatedStopName(cleaned: String, stopLetter: String?, towards: String?): String {
+        val details = mutableListOf<String>()
+        if (!stopLetter.isNullOrBlank()) {
+            details.add("Stop $stopLetter")
+        }
+        if (towards != null && !cleaned.contains("towards", ignoreCase = true)) {
+            details.add("towards $towards")
+        }
+        return if (details.isNotEmpty()) "$cleaned (${details.joinToString(", ")})" else cleaned
+    }
+
+    // =========================================================================
+    // Private Helpers: Departure Fetching, Deduplication & Mapping
+    // =========================================================================
+
+    private suspend fun fetchRawArrivalsWithHubExpansion(stationId: String): List<TflArrivalPrediction> {
+        var arrivals = apiService.getArrivals(stationId)
+        if (arrivals.isNotEmpty()) return arrivals
+
+        try {
+            val detail = apiService.getStopPointDetail(stationId)
+            val sortedChildren = detail.children.sortedByDescending { child ->
+                when {
+                    child.id.startsWith("940G") -> 3 // Tube / Tram / Rail
+                    child.id.startsWith("910G") -> 2 // National Rail
+                    else -> 1 // Bus stops
+                }
+            }
+
+            val childArrivals = mutableListOf<TflArrivalPrediction>()
+            for (child in sortedChildren) {
+                if (child.id != stationId) {
+                    try {
+                        val childResult = apiService.getArrivals(child.id)
+                        if (childResult.isNotEmpty()) {
+                            childArrivals.addAll(childResult)
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+            if (childArrivals.isNotEmpty()) {
+                arrivals = childArrivals
+            }
+        } catch (_: Exception) {}
+
+        return arrivals
+    }
+
+    private fun deduplicateArrivals(rawArrivals: List<TflArrivalPrediction>): List<TflArrivalPrediction> {
+        return rawArrivals.distinctBy { item ->
+            if (!item.vehicleId.isNullOrBlank()) {
+                item.vehicleId
+            } else {
+                "${item.lineId}_${item.destinationName}_${item.timeToStation / 30}"
+            }
+        }
+    }
+
+    private fun mapPredictionToDeparture(
+        item: TflArrivalPrediction,
+        stationId: String,
+        stationName: String
+    ): Departure {
+        val lineName = item.lineName ?: item.lineId ?: "Transit"
+        val badge = TflLineColors.getLineBadge(
+            lineId = item.lineId,
+            lineName = item.lineName,
+            modeName = item.modeName
+        )
+        val resolvedDest = DestinationResolver.resolve(
+            stationName = stationName,
+            itemDestination = item.destinationName,
+            itemTowards = item.towards,
+            lineId = item.lineId,
+            platformName = item.platformName
+        )
+        val isBus = item.modeName.equals("bus", ignoreCase = true) || item.lineId?.toIntOrNull() != null
+        val platformDisplay = formatPlatformDisplay(item.platformName, item.towards, isBus)
+        val cleanTowards = item.towards?.takeIf { it.trim().lowercase() != "null" }?.let { StationNameFormatter.clean(it) }
+        val resolvedDirection = resolveCardinalDirection(item, resolvedDest)
+
+        return Departure(
+            id = item.id,
+            stationId = item.naptanId ?: stationId,
+            stationName = StationNameFormatter.clean(item.stationName ?: stationName),
+            lineId = item.lineId ?: "transit",
+            lineName = lineName,
+            platformName = platformDisplay,
+            destinationName = resolvedDest.ifBlank { "Destination" },
+            towards = cleanTowards,
+            direction = resolvedDirection,
+            timeToStationSeconds = item.timeToStation,
+            expectedArrivalIso = item.expectedArrival,
+            currentLocation = item.currentLocation?.takeIf { it.trim().lowercase() != "null" },
+            modeName = item.modeName ?: if (isBus) "bus" else "tube",
+            lineBadge = badge
+        )
+    }
+
+    private fun formatPlatformDisplay(rawPlatform: String?, towards: String?, isBus: Boolean): String {
+        val trimmed = rawPlatform?.trim() ?: ""
         return when {
-            // Northern Line
-            "edgware" in currentStation -> when {
-                "via cx" in towardsLower || "charing cross" in towardsLower -> "Morden via Charing Cross"
-                "via bank" in towardsLower || "bank" in towardsLower -> "Morden via Bank"
-                "battersea" in towardsLower -> "Battersea Power Station"
-                else -> "Morden / Battersea"
+            trimmed.isNotBlank() && trimmed.lowercase() != "null" -> when {
+                isBus && !trimmed.startsWith("Stop ", ignoreCase = true) -> "Stop $trimmed"
+                trimmed.matches(Regex("^[A-Z0-9]$")) -> "Platform $trimmed"
+                !trimmed.startsWith("Platform", ignoreCase = true) &&
+                !trimmed.contains("bound", ignoreCase = true) &&
+                !trimmed.startsWith("Stop", ignoreCase = true) -> "Platform $trimmed"
+                else -> trimmed
             }
-            "mill hill east" in currentStation -> when {
-                "battersea" in towardsLower -> "Battersea Power Station"
-                "via cx" in towardsLower || "charing cross" in towardsLower -> "Battersea via Charing Cross"
-                "via bank" in towardsLower || "bank" in towardsLower -> "Morden via Bank"
-                else -> "Finchley Central"
-            }
-            "high barnet" in currentStation -> when {
-                "via cx" in towardsLower || "charing cross" in towardsLower -> "Battersea Power Station"
-                "via bank" in towardsLower || "bank" in towardsLower -> "Morden via Bank"
-                else -> "Morden / Battersea"
-            }
-            "morden" in currentStation -> when {
-                "via cx" in towardsLower || "charing cross" in towardsLower -> "Edgware via Charing Cross"
-                "via bank" in towardsLower || "bank" in towardsLower -> "High Barnet via Bank"
-                else -> "Edgware / High Barnet"
-            }
-            "battersea" in currentStation -> "High Barnet / Edgware via Charing Cross"
+            isBus && !towards.isNullOrBlank() && towards.trim().lowercase() != "null" ->
+                "towards ${StationNameFormatter.clean(towards)}"
+            else -> if (isBus) "Bus Stand" else "Platform"
+        }
+    }
 
-            // Victoria Line
-            "brixton" in currentStation -> "Walthamstow Central"
-            "walthamstow" in currentStation -> "Brixton"
+    private fun resolveCardinalDirection(item: TflArrivalPrediction, resolvedDest: String): String? {
+        val rawPlatform = item.platformName?.trim() ?: ""
+        val isElizabeth = item.lineId?.contains("elizabeth", ignoreCase = true) == true ||
+                item.lineName?.contains("elizabeth", ignoreCase = true) == true
 
-            // Bakerloo Line
-            "elephant & castle" in currentStation -> "Harrow & Wealdstone / Queen's Park"
-            "harrow & wealdstone" in currentStation -> "Elephant & Castle"
+        return when {
+            rawPlatform.contains("Eastbound", ignoreCase = true) -> "Eastbound"
+            rawPlatform.contains("Westbound", ignoreCase = true) -> "Westbound"
+            rawPlatform.contains("Northbound", ignoreCase = true) -> "Northbound"
+            rawPlatform.contains("Southbound", ignoreCase = true) -> "Southbound"
+            isElizabeth -> {
+                val destLower = resolvedDest.lowercase()
+                when {
+                    destLower.contains("abbey wood") || destLower.contains("shenfield") ||
+                    destLower.contains("liverpool street") || destLower.contains("paddington") ||
+                    destLower.contains("stratford") || item.direction.equals("inbound", ignoreCase = true) -> "Eastbound"
 
-            // Central Line
-            "west ruislip" in currentStation -> "Epping via Bank"
-            "ealing broadway" in currentStation -> when {
-                "district" in lineLower -> "Upminster via Tower Hill"
-                "elizabeth" in lineLower -> "Abbey Wood / Shenfield"
-                else -> "Epping / Hainault"
+                    destLower.contains("reading") || destLower.contains("heathrow") ||
+                    destLower.contains("maidenhead") || item.direction.equals("outbound", ignoreCase = true) -> "Westbound"
+
+                    else -> null
+                }
             }
-            "epping" in currentStation -> "West Ruislip / Ealing Broadway"
-            "hainault" in currentStation -> "Central London via Newbury Park"
-            "woodford" in currentStation -> "Central London via Hainault"
+            item.direction?.equals("inbound", ignoreCase = true) == true -> "Inbound"
+            item.direction?.equals("outbound", ignoreCase = true) == true -> "Outbound"
+            else -> null
+        }
+    }
 
-            // District & Circle Lines
-            "wimbledon" in currentStation -> when {
-                "edgware road" in towardsLower -> "Edgware Road via High Street Kensington"
-                "tower hill" in towardsLower || "upminster" in towardsLower || "barking" in towardsLower -> "Upminster via Tower Hill"
-                else -> "Upminster / Edgware Road"
-            }
-            "richmond" in currentStation -> when {
-                "overground" in lineLower || "mildmay" in lineLower -> "Stratford via Highbury & Islington"
-                else -> "Upminster via Tower Hill"
-            }
-            "upminster" in currentStation -> "Richmond / Ealing Broadway / Wimbledon"
-            "edgware road" in currentStation -> when {
-                "circle" in lineLower -> "Hammersmith via Tower Hill"
-                else -> "Wimbledon via High Street Kensington"
-            }
-            "hammersmith" in currentStation -> when {
-                "hammersmith" in lineLower -> "Barking via King's Cross"
-                else -> "Edgware Road via Aldgate"
-            }
-            "barking" in currentStation -> when {
-                "hammersmith" in lineLower -> "Hammersmith via King's Cross"
-                else -> "Wimbledon / Richmond / Ealing Broadway"
-            }
+    private suspend fun cacheDeparturesSafely(stationId: String, departures: List<Departure>) {
+        if (departures.isNotEmpty() && departureDao != null) {
+            try {
+                departureDao.replaceDeparturesForStation(
+                    stationId,
+                    departures.map { CachedDepartureEntity.fromDeparture(it) }
+                )
+            } catch (_: Exception) {}
+        }
+    }
 
-            // Jubilee Line
-            "stanmore" in currentStation -> "Stratford via Central London"
-            "stratford" in currentStation -> when {
-                "jubilee" in lineLower -> "Stanmore via Central London"
-                "central" in lineLower -> "West Ruislip / Ealing Broadway"
-                "dlr" in lineLower -> "Lewisham / Woolwich Arsenal"
-                else -> "Westbound Services"
-            }
-            "canary wharf" in currentStation && "jubilee" in lineLower -> when {
-                "eastbound" in platLower || "platform 2" in platLower -> "Stratford via North Greenwich"
-                else -> "Stanmore / Wembley Park"
-            }
-
-            // Metropolitan Line
-            "aldgate" in currentStation -> "Uxbridge / Watford / Amersham"
-            "amersham" in currentStation -> "Aldgate / Baker Street"
-            "chesham" in currentStation -> "Aldgate / Baker Street"
-            "watford" in currentStation -> "Aldgate / Baker Street"
-            "uxbridge" in currentStation -> if ("piccadilly" in lineLower) "Cockfosters" else "Aldgate / Baker Street"
-
-            // Piccadilly Line
-            "cockfosters" in currentStation -> "Heathrow / Uxbridge"
-            "heathrow terminal 4" in currentStation -> "Cockfosters via Central London"
-            "heathrow terminal 5" in currentStation -> when {
-                "elizabeth" in lineLower -> "Abbey Wood / Shenfield"
-                else -> "Cockfosters via Central London"
-            }
-
-            // Waterloo & City Line
-            "waterloo" in currentStation && ("waterloo" in lineLower || "city" in lineLower) -> "Bank"
-            "bank" in currentStation && ("waterloo" in lineLower || "city" in lineLower) -> "Waterloo"
-
-            // Elizabeth Line
-            "reading" in currentStation -> "Abbey Wood / Shenfield"
-            "shenfield" in currentStation -> "Reading / Heathrow Terminal 5"
-            "abbey wood" in currentStation -> "Reading / Heathrow Terminal 5"
-
-            // DLR
-            "tower gateway" in currentStation -> "Beckton via Canary Wharf"
-            "beckton" in currentStation -> "Tower Gateway / Bank"
-            "lewisham" in currentStation -> "Bank / Stratford"
-            "woolwich arsenal" in currentStation -> "Bank / Stratford International"
-
-            // Fallback by platform direction if available
-            "southbound" in platLower -> "Southbound Services"
-            "northbound" in platLower -> "Northbound Services"
-            "eastbound" in platLower -> "Eastbound Services"
-            "westbound" in platLower -> "Westbound Services"
-            else -> "Outbound Services"
+    private suspend fun fallbackDepartures(
+        stationId: String,
+        stationName: String,
+        originalException: Exception
+    ): Result<List<Departure>> {
+        val cached = departureDao?.getDeparturesForStation(stationId)?.map { it.toDeparture() }
+        if (!cached.isNullOrEmpty()) {
+            return Result.success(cached)
+        }
+        val fallbacks = DefaultStations.getFallbackDepartures(stationId, stationName)
+        return if (fallbacks.isNotEmpty()) {
+            Result.success(fallbacks)
+        } else {
+            Result.failure(originalException)
         }
     }
 }

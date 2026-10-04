@@ -97,7 +97,7 @@ fun StationDepartureCard(
             cardModel.departures
         } else {
             cardModel.departures.filter { departure ->
-                val lineMatches = isSameLine(departure.lineId, selectedLineId)
+                val lineMatches = TransitIconHelper.isSameLine(departure.lineId, selectedLineId)
                 if (!lineMatches) return@filter false
                 if (selectedDirection == null) true
                 else departure.direction.equals(selectedDirection, ignoreCase = true) ||
@@ -109,6 +109,7 @@ fun StationDepartureCard(
     // Require deliberate swipe gesture (EndToStart only, with 50% positional threshold)
     // to prevent accidental removal while panning vertically.
     // Key by station.id so restoring a deleted station produces a fresh, un-swiped state.
+    @Suppress("DEPRECATION")
     val dismissState = androidx.compose.runtime.key(cardModel.station.id) {
         rememberSwipeToDismissBoxState(
             positionalThreshold = { totalDistance -> totalDistance * 0.5f },
@@ -211,12 +212,12 @@ fun StationDepartureCard(
                         onLineBadgeClick = { badge ->
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             // Find departures & directions available for this line at this station
-                            val lineDepartures = cardModel.departures.filter { isSameLine(it.lineId, badge.lineId) }
+                            val lineDepartures = cardModel.departures.filter { TransitIconHelper.isSameLine(it.lineId, badge.lineId) }
                             val availableDirections = lineDepartures
                                 .mapNotNull { it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound").firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) } }
                                 .distinct()
 
-                            if (!isSameLine(selectedLineId, badge.lineId)) {
+                            if (!TransitIconHelper.isSameLine(selectedLineId, badge.lineId)) {
                                 // 1st click: Filter by line (all departures for this line)
                                 selectedLineId = badge.lineId
                                 selectedDirection = null
@@ -307,7 +308,7 @@ private fun StationHeaderSection(
                 // Header Transport Mode Icon indicator
                 val primaryMode = station.modes.firstOrNull { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr", "tram", "bus") }
                     ?: station.modes.firstOrNull() ?: "tube"
-                val modeIcon = getTransitIconForMode(primaryMode)
+                val modeIcon = TransitIconHelper.getTransitIconForMode(primaryMode)
 
                 Box(
                     modifier = Modifier
@@ -413,7 +414,7 @@ private fun StationHeaderSection(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 lineBadges.forEach { badge ->
-                    val isSelected = isSameLine(selectedLineId, badge.lineId)
+                    val isSelected = TransitIconHelper.isSameLine(selectedLineId, badge.lineId)
                     val isDimmed = selectedLineId != null && !isSelected
                     LinePillBadge(
                         badge = badge,
@@ -426,7 +427,7 @@ private fun StationHeaderSection(
             }
 
             // If selected line has disruptions, show a disruption banner right under the badges
-            val activeBadge = lineBadges.firstOrNull { isSameLine(it.lineId, selectedLineId) }
+            val activeBadge = lineBadges.firstOrNull { TransitIconHelper.isSameLine(it.lineId, selectedLineId) }
             if (activeBadge != null && activeBadge.isDisrupted) {
                 Spacer(modifier = Modifier.height(8.dp))
                 LineDisruptionBanner(badge = activeBadge)
@@ -495,8 +496,16 @@ fun LinePillBadge(
     val shape = if (isBusOrNumeric && badge.displayName.length <= 3) CircleShape else RoundedCornerShape(16.dp)
 
     val alpha = if (isDimmed) 0.35f else 1.0f
-    val borderWidth = if (isSelected) 2.dp else if (badge.isDisrupted) 1.5.dp else 0.dp
-    val borderColor = if (isSelected) MaterialTheme.colorScheme.onSurface else if (badge.isDisrupted) Color(0xFFFFC107) else Color.Transparent
+
+    // Detect very dark background colors (e.g. Northern line black) to add a subtle contrasting border in dark mode
+    val badgeLuminance = 0.299f * badge.backgroundColor.red + 0.587f * badge.backgroundColor.green + 0.114f * badge.backgroundColor.blue
+    val isVeryDarkBadge = badgeLuminance < 0.2f
+
+    val defaultBorderWidth = if (isVeryDarkBadge) 1.dp else 0.dp
+    val defaultBorderColor = if (isVeryDarkBadge) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f) else Color.Transparent
+
+    val borderWidth = if (isSelected) 2.dp else if (badge.isDisrupted) 1.5.dp else defaultBorderWidth
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.onSurface else if (badge.isDisrupted) Color(0xFFFFC107) else defaultBorderColor
 
     val directionIndicator = when (selectedDirection?.lowercase()) {
         "eastbound" -> "→ EB"
@@ -566,7 +575,12 @@ private fun StationDeparturesContainer(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(26.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.90f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                shape = RoundedCornerShape(26.dp)
+            )
             .padding(vertical = 8.dp, horizontal = 14.dp)
     ) {
         when {
@@ -671,15 +685,9 @@ private fun StationDeparturesContainer(
 @Composable
 fun TflRoundel(
     ringColor: Color,
-    barColor: Color = ringColor,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    barColor: Color = ringColor
 ) {
-    // Check luminance: if the color is very dark (< 0.25 luminance) in dark mode,
-    // add an outline stroke so the roundel doesn't blend into dark surfaces.
-    val luminance = 0.299f * ringColor.red + 0.587f * ringColor.green + 0.114f * ringColor.blue
-    val needsContrastBorder = luminance < 0.25f
-    val outlineColor = if (needsContrastBorder) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f) else Color.Transparent
-
     androidx.compose.foundation.Canvas(
         modifier = modifier
             .size(width = 38.dp, height = 28.dp)
@@ -689,38 +697,11 @@ fun TflRoundel(
         val centerY = size.height / 2f
         val ringRadius = size.height * 0.44f // ~12.3dp
         val strokeWidth = ringRadius * 0.36f // clean TfL annular thickness
-        val outlineWidth = 1.dp.toPx()
 
         val barWidth = size.width * 0.82f
         val barHeight = ringRadius * 0.58f
         val barLeft = centerX - (barWidth / 2f)
         val barTop = centerY - (barHeight / 2f)
-
-        // If contrast border is needed, draw the outer subtle edge
-        if (needsContrastBorder) {
-            // Outer ring border
-            drawCircle(
-                color = outlineColor,
-                radius = ringRadius + (strokeWidth / 2f) + (outlineWidth / 2f),
-                center = androidx.compose.ui.geometry.Offset(centerX, centerY),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = outlineWidth)
-            )
-            // Inner ring border
-            drawCircle(
-                color = outlineColor,
-                radius = ringRadius - (strokeWidth / 2f) - (outlineWidth / 2f),
-                center = androidx.compose.ui.geometry.Offset(centerX, centerY),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = outlineWidth)
-            )
-            // Horizontal bar border
-            drawRoundRect(
-                color = outlineColor,
-                topLeft = androidx.compose.ui.geometry.Offset(barLeft - outlineWidth, barTop - outlineWidth),
-                size = androidx.compose.ui.geometry.Size(barWidth + (outlineWidth * 2f), barHeight + (outlineWidth * 2f)),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(x = 2.dp.toPx(), y = 2.dp.toPx()),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = outlineWidth)
-            )
-        }
 
         // 1. Draw outer colored ring
         drawCircle(
@@ -737,328 +718,6 @@ fun TflRoundel(
             size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(x = 2.dp.toPx(), y = 2.dp.toPx())
         )
-    }
-}
-
-/**
- * Line or bus route indicator badge shown on the left of each departure row.
- * All indicators share a uniform 38dp x 28dp size so departure texts align uniformly:
- * - Bus: Red (or mode color) route number badge (e.g. "73", "390", "N5").
- * - Tube / Overground / Elizabeth Line / DLR: Official line-colored TfL Roundel vector.
- */
-@Composable
-fun DepartureLineRouteIndicator(
-    departure: Departure,
-    modifier: Modifier = Modifier
-) {
-    val badge = departure.lineBadge
-    val isBus = badge.mode == TransitMode.BUS || departure.modeName.equals("bus", ignoreCase = true)
-
-    if (isBus) {
-        // High-contrast Route badge with fixed dimensions (38dp x 28dp)
-        Box(
-            modifier = modifier
-                .size(width = 38.dp, height = 28.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(badge.backgroundColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = badge.displayName,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = if (badge.displayName.length > 3) 12.sp else 13.sp
-                ),
-                color = badge.textColor,
-                maxLines = 1
-            )
-        }
-    } else {
-        // Tube, Overground (Liberty, Lioness, Mildmay, Suffragette, Weaver, Windrush), Elizabeth line, DLR, etc.
-        // Render a TfL roundel in the line's official color with identical 38dp x 28dp bounds.
-        TflRoundel(
-            ringColor = badge.backgroundColor,
-            barColor = badge.backgroundColor,
-            modifier = modifier
-        )
-    }
-}
-
-/**
- * Individual departure row styled with line/route indicator, destination, platform/direction,
- * and high-contrast Pixel Clock countdown display.
- */
-@Composable
-fun DepartureRowItem(
-    departure: Departure,
-    isFirst: Boolean,
-    modifier: Modifier = Modifier,
-    @Suppress("UNUSED_PARAMETER") showLineBadge: Boolean = false
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 10.dp, horizontal = 4.dp)
-            .semantics {
-                contentDescription = "${departure.destinationName}, arriving in ${departure.formattedTimeToArrival}"
-            },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Line or Bus Route Indicator Badge replacing the generic mode icon
-        DepartureLineRouteIndicator(departure = departure)
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Destination & Direction details
-        Column(modifier = Modifier.weight(1f)) {
-            val destinationText = departure.destinationName.ifBlank { departure.lineName }
-
-            // Destination title
-            Text(
-                text = destinationText,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = if (isFirst) FontWeight.Bold else FontWeight.Medium,
-                    fontSize = if (isFirst) 16.sp else 15.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            // Subtitle row: [Platform Pill Tag / Towards]
-            if (departure.platformName.isNotBlank()) {
-                Spacer(modifier = Modifier.height(3.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = departure.platformName,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
-                    )
-                }
-            }
-
-            // Live Progress Track for upcoming departures (due or arriving within 3 minutes)
-            if (departure.timeToStationSeconds <= 180) {
-                Spacer(modifier = Modifier.height(4.dp))
-                val isBus = departure.modeName.equals("bus", ignoreCase = true)
-                LiveTrainTrackIndicator(
-                    timeToStationSeconds = departure.timeToStationSeconds,
-                    isBus = isBus
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Countdown & Actual Clock Time
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.Center
-        ) {
-            CountdownBadge(
-                timeToStationSeconds = departure.timeToStationSeconds,
-                isFirst = isFirst,
-                lineColor = departure.lineBadge.backgroundColor
-            )
-
-            val clockTime = departure.formattedActualClockTime
-            if (!clockTime.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(3.dp))
-                Text(
-                    text = clockTime,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
-                )
-            }
-        }
-    }
-}
-
-/**
- * Mini visual track progression indicator (e.g. ●───○───○ At Platform).
- */
-@Composable
-fun LiveTrainTrackIndicator(
-    timeToStationSeconds: Int,
-    modifier: Modifier = Modifier,
-    isBus: Boolean = false
-) {
-    val stage = when {
-        timeToStationSeconds <= 30 -> 2 // At platform / stop
-        timeToStationSeconds <= 90 -> 1 // Arriving / Approaching
-        else -> 0 // In transit
-    }
-
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        repeat(3) { step ->
-            val isActive = step <= stage
-            Box(
-                modifier = Modifier
-                    .size(if (step == stage) 6.dp else 4.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isActive) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-            )
-            if (step < 2) {
-                Box(
-                    modifier = Modifier
-                        .width(10.dp)
-                        .height(1.5.dp)
-                        .background(
-                            if (step < stage) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                        )
-                )
-            }
-        }
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = when (stage) {
-                2 -> if (isBus) "At stop" else "At platform"
-                1 -> "Approaching"
-                else -> "In transit"
-            },
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-            color = if (stage == 2) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-/**
- * London platform LED / Flip-style countdown badge with animated number transitions.
- */
-@Composable
-fun CountdownBadge(
-    timeToStationSeconds: Int,
-    isFirst: Boolean,
-    lineColor: Color,
-    modifier: Modifier = Modifier
-) {
-    val minutes = timeToStationSeconds / 60
-    val isDue = timeToStationSeconds <= 30
-
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.End
-    ) {
-        if (isDue) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFE32017).copy(alpha = 0.15f))
-                    .border(1.dp, Color(0xFFE32017).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 9.dp, vertical = 5.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "DUE",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontFamily = FontFamily.Monospace,
-                        letterSpacing = 1.sp,
-                        fontSize = 14.sp
-                    ),
-                    color = Color(0xFFE32017)
-                )
-            }
-        } else {
-            // London Platform Dot-Matrix LED / Flip Card Display
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF161A22))
-                    .border(1.dp, Color(0xFF282E3E), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    androidx.compose.animation.AnimatedContent(
-                        targetState = minutes,
-                        transitionSpec = {
-                            if (targetState > initialState) {
-                                androidx.compose.animation.slideInVertically { height -> height } + androidx.compose.animation.fadeIn() togetherWith
-                                        androidx.compose.animation.slideOutVertically { height -> -height } + androidx.compose.animation.fadeOut()
-                            } else {
-                                androidx.compose.animation.slideInVertically { height -> -height } + androidx.compose.animation.fadeIn() togetherWith
-                                        androidx.compose.animation.slideOutVertically { height -> height } + androidx.compose.animation.fadeOut()
-                            }
-                        },
-                        label = "MinutesFlipAnimation"
-                    ) { targetMinutes ->
-                        Text(
-                            text = targetMinutes.toString(),
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = if (isFirst) 17.sp else 15.sp
-                            ),
-                            color = Color(0xFFFFB800) // Classic London Amber Dot-Matrix LED
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = "m",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 11.sp
-                        ),
-                        color = Color(0xFFFFB800).copy(alpha = 0.75f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Helper to match line IDs permissively across TfL conventions (e.g. "elizabeth" vs "elizabeth-line", "hammersmith-city" vs "hammersmith").
- */
-fun isSameLine(lineId1: String?, lineId2: String?): Boolean {
-    if (lineId1.isNullOrBlank() || lineId2.isNullOrBlank()) return false
-    val id1 = lineId1.lowercase().trim()
-    val id2 = lineId2.lowercase().trim()
-    if (id1 == id2) return true
-    // Elizabeth line aliases
-    if ((id1 == "elizabeth" || id1 == "elizabeth-line") && (id2 == "elizabeth" || id2 == "elizabeth-line")) return true
-    // Hammersmith & City aliases
-    if ((id1.contains("hammersmith") || id1 == "h&c") && (id2.contains("hammersmith") || id2 == "h&c")) return true
-    // Waterloo & City aliases
-    if ((id1.contains("waterloo") || id1 == "w&c") && (id2.contains("waterloo") || id2 == "w&c")) return true
-    return false
-}
-
-/**
- * Selects an appropriate Material icon for a transit mode string.
- */
-fun getTransitIconForMode(mode: String?): ImageVector {
-    if (mode == null) return Icons.Rounded.DirectionsSubway
-    return when (mode.lowercase().trim()) {
-        "tube", "underground" -> Icons.Rounded.DirectionsSubway
-        "bus" -> Icons.Rounded.DirectionsBus
-        "national-rail", "overground", "elizabeth-line" -> Icons.Rounded.DirectionsRailway
-        "dlr", "tram" -> Icons.Rounded.Tram
-        else -> Icons.Rounded.DirectionsSubway
     }
 }
 

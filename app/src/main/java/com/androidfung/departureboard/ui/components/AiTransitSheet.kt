@@ -1,5 +1,7 @@
 package com.androidfung.departureboard.ui.components
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,15 +13,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,6 +51,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
+import android.app.Activity
+import android.content.Intent
+import android.speech.RecognizerIntent
+import android.widget.Toast
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,8 +74,9 @@ fun AiTransitSheet(
     onDismissRequest: () -> Unit,
     repository: TransitRepository,
     savedStations: List<Station>,
-    nearestStation: Station? = null,
     modifier: Modifier = Modifier,
+    nearestStation: Station? = null,
+    initialTriggerSpeech: Boolean = false,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -74,12 +86,31 @@ fun AiTransitSheet(
     var isThinking by remember { mutableStateOf(false) }
     var aiResult by remember { mutableStateOf<AiTransitResult?>(null) }
 
-    val quickPrompts = listOf(
-        "Next train to Mill Hill East",
-        "Next departure to Morden",
-        "When is the next 221 bus?",
-        "Next train from Richmond"
-    )
+    // Dynamic, location-aware & frequently asked suggestions
+    val quickPrompts = remember(nearestStation, savedStations) {
+        val prompts = mutableListOf<String>()
+
+        // 1. Location-aware nearest tube station prompt
+        prompts.add("Next train from the nearest tube station")
+
+        // 2. Specific saved station prompt if available
+        val primaryOrigin = nearestStation ?: savedStations.firstOrNull()
+        if (primaryOrigin != null) {
+            val originShortName = primaryOrigin.displayName.substringBefore("(").trim()
+            val isBusStop = primaryOrigin.modes.contains("bus") && primaryOrigin.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+            if (isBusStop) {
+                prompts.add("Next bus from $originShortName")
+            } else {
+                prompts.add("Next train from $originShortName")
+            }
+        }
+
+        // Popular frequent commuter London queries
+        prompts.add("Any Tube delays or disruptions?")
+        prompts.add("Next Central line train")
+        prompts.add("Elizabeth line status")
+        prompts.take(4)
+    }
 
     fun submitQuery(prompt: String) {
         if (prompt.isBlank()) return
@@ -99,18 +130,54 @@ fun AiTransitSheet(
         }
     }
 
+    val context = LocalContext.current
+    val speechRecognizerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spokenText = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+            if (!spokenText.isNullOrBlank()) {
+                queryText = spokenText
+                submitQuery(spokenText)
+            }
+        }
+    }
+
+    val launchSpeechToText = {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Prompt your departure question...")
+        }
+        try {
+            speechRecognizerLauncher.launch(intent)
+        } catch (_: Exception) {
+            Toast.makeText(context, "Speech recognition is not available on this device", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(initialTriggerSpeech) {
+        if (initialTriggerSpeech) {
+            launchSpeechToText()
+        }
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier
     ) {
-        val scrollState = androidx.compose.foundation.rememberScrollState()
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .androidx.compose.foundation.layout.imePadding()
-                .androidx.compose.foundation.verticalScroll(scrollState)
+                .imePadding()
+                .verticalScroll(scrollState)
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
             // Header
@@ -144,7 +211,7 @@ fun AiTransitSheet(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Transit AI Assistant",
+                            text = "Prompt Departure AI",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -234,6 +301,51 @@ fun AiTransitSheet(
                                 }
                             }
                         }
+
+                        // One-tap Action Chips for Trip Planning & Routing
+                        val orig = aiResult?.originQuery
+                        val dest = aiResult?.destinationQuery
+                        if (!orig.isNullOrBlank() && !dest.isNullOrBlank()) {
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                androidx.compose.material3.OutlinedButton(
+                                    onClick = {
+                                        val mapsUri = android.net.Uri.parse(
+                                            "https://www.google.com/maps/dir/?api=1&origin=${java.net.URLEncoder.encode("$orig London", "UTF-8")}&destination=${java.net.URLEncoder.encode("$dest London", "UTF-8")}&travelmode=transit"
+                                        )
+                                        val mapsIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, mapsUri).apply {
+                                            setPackage("com.google.android.apps.maps")
+                                        }
+                                        try {
+                                            context.startActivity(mapsIntent)
+                                        } catch (_: Exception) {
+                                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, mapsUri))
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("🗺️ Google Maps", fontSize = 12.sp, maxLines = 1)
+                                }
+
+                                androidx.compose.material3.OutlinedButton(
+                                    onClick = {
+                                        val tflUri = android.net.Uri.parse(
+                                            "https://tfl.gov.uk/plan-a-journey/results?InputFrom=${java.net.URLEncoder.encode(orig, "UTF-8")}&InputTo=${java.net.URLEncoder.encode(dest, "UTF-8")}"
+                                        )
+                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, tflUri))
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("🚇 TfL Planner", fontSize = 12.sp, maxLines = 1)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -276,26 +388,43 @@ fun AiTransitSheet(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(
-                        "Ask: \"next train to Mill Hill East\"...",
+                        "Ask or speak: \"train to Mill Hill East\"...",
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                 },
                 trailingIcon = {
-                    IconButton(
-                        onClick = { submitQuery(queryText) },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        modifier = Modifier
-                            .padding(end = 6.dp)
-                            .size(36.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.Send,
-                            contentDescription = "Send Query",
-                            modifier = Modifier.size(18.dp)
-                        )
+                        // Voice Prompt (Speech-to-Text) Button
+                        IconButton(
+                            onClick = launchSpeechToText,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Mic,
+                                contentDescription = "Speak Departure Prompt",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        // Submit Query Button
+                        IconButton(
+                            onClick = { submitQuery(queryText) },
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.Send,
+                                contentDescription = "Send Query",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 },
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(

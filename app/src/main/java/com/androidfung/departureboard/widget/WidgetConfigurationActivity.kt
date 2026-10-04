@@ -114,12 +114,12 @@ class WidgetConfigurationActivity : ComponentActivity() {
     }
 
     private fun selectStationAndFinish(station: Station, lineBadge: com.androidfung.departureboard.data.model.LineBadgeInfo?) {
-        val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
+        val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
         coroutineScope.launch {
-            val glanceManager = GlanceAppWidgetManager(this@WidgetConfigurationActivity)
+            val glanceManager = GlanceAppWidgetManager(applicationContext)
             val glanceId = glanceManager.getGlanceIdBy(appWidgetId)
 
-            updateAppWidgetState(this@WidgetConfigurationActivity, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+            updateAppWidgetState(applicationContext, PreferencesGlanceStateDefinition, glanceId) { prefs ->
                 prefs.toMutablePreferences().apply {
                     this[DepartureBoardWidget.PREF_STATION_ID] = station.id
                     this[DepartureBoardWidget.PREF_STATION_NAME] = station.displayName
@@ -133,13 +133,18 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 }
             }
 
-            DepartureBoardWidget().update(this@WidgetConfigurationActivity, glanceId)
+            // Small delay to ensure DataStore file write is committed before triggering Glance render pass
+            delay(100L)
 
-            val resultValue = Intent().apply {
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            DepartureBoardWidget().update(applicationContext, glanceId)
+
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                val resultValue = Intent().apply {
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                }
+                setResult(RESULT_OK, resultValue)
+                finish()
             }
-            setResult(RESULT_OK, resultValue)
-            finish()
         }
     }
 }

@@ -15,3 +15,7 @@
 # Keep Glance AppWidget and receiver components
 -keep class * extends androidx.glance.appwidget.GlanceAppWidget { *; }
 -keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver { *; }
+
+# Suppress warnings for OkHttp internals
+-dontwarn okhttp3.internal.Util
+

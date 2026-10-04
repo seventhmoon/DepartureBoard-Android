@@ -100,7 +100,8 @@ data class LineBadgeInfo(
     val mode: TransitMode = TransitMode.OTHER,
     val statusSeverity: Int = 10, // 10 = Good Service
     val statusDescription: String? = null,
-    val disruptionReason: String? = null
+    val disruptionReason: String? = null,
+    val lineCode: String = ""
 ) {
     val isDisrupted: Boolean get() = statusSeverity < 10
 }

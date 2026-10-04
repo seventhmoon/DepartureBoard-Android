@@ -187,7 +187,8 @@ fun DashboardScreen(
             onDismissRequest = { showAiSheet = false },
             repository = repository,
             savedStations = uiState.stationCards.map { it.station },
-            nearestStation = nearest
+            nearestStation = nearest,
+            initialTriggerSpeech = false
         )
     }
 }
@@ -202,11 +203,11 @@ fun DashboardContent(
     onMoveStation: (fromIndex: Int, toIndex: Int) -> Unit,
     onAddStationClick: () -> Unit,
     onStationClick: (Station) -> Unit,
+    modifier: Modifier = Modifier,
     onToggleStationExpand: (String) -> Unit = {},
     onExpandAll: () -> Unit = {},
     onCollapseAll: () -> Unit = {},
-    onAiAssistantClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onAiAssistantClick: () -> Unit = {}
 ) {
     val pullToRefreshState = rememberPullToRefreshState()
     val staggeredGridState = rememberLazyStaggeredGridState()
@@ -230,9 +231,9 @@ fun DashboardContent(
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            // Expressive FAB (+) with vibrant accent color (coral orange / energetic teal)
+            // Expressive FAB for Prompt Departure Transit AI Assistant
             FloatingActionButton(
-                onClick = onAddStationClick,
+                onClick = onAiAssistantClick,
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -242,9 +243,9 @@ fun DashboardContent(
                     .size(62.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.Add,
-                    contentDescription = "Add Station",
-                    modifier = Modifier.size(30.dp)
+                    imageVector = Icons.Rounded.AutoAwesome,
+                    contentDescription = "Ask Prompt Departure AI",
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }
@@ -272,7 +273,7 @@ fun DashboardContent(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalItemSpacing = 20.dp
             ) {
-                // Header section: "Mind The Board" title spanning full width
+                // Header section: "Prompt Departure" title spanning full width
                 item(key = "header", span = StaggeredGridItemSpan.FullLine) {
                     val allExpanded = uiState.stationCards.all { it.isExpanded }
                     DashboardHeader(
@@ -280,54 +281,8 @@ fun DashboardContent(
                         onToggleExpandAll = {
                             if (allExpanded) onCollapseAll() else onExpandAll()
                         },
-                        onAiAssistantClick = onAiAssistantClick
+                        onAddStationClick = onAddStationClick
                     )
-                }
-
-                // Station Quick-Jump Chips (Horizontal scrolling row of all saved stations)
-                if (uiState.stationCards.size > 1) {
-                    item(key = "quick_jump_pills", span = StaggeredGridItemSpan.FullLine) {
-                        val scope = rememberCoroutineScope()
-                        androidx.compose.foundation.lazy.LazyRow(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(horizontal = 2.dp)
-                        ) {
-                            val indexedStations = uiState.stationCards.mapIndexed { idx, card -> idx to card.station }
-                            items(
-                                count = indexedStations.size,
-                                key = { indexedStations[it].second.id }
-                            ) { i ->
-                                val (cardIndex, station) = indexedStations[i]
-                                androidx.compose.material3.FilterChip(
-                                    selected = false,
-                                    onClick = {
-                                        scope.launch {
-                                            // cardIndex + 2 accounts for header and quick-jump items
-                                            staggeredGridState.animateScrollToItem((cardIndex + 2).coerceAtLeast(0))
-                                        }
-                                    },
-                                    label = {
-                                        Text(
-                                            text = station.displayName,
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    },
-                                    colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    ),
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        width = 0.5.dp,
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                    ),
-                                    shape = CircleShape
-                                )
-                            }
-                        }
-                    }
                 }
 
                 if (uiState.isInitialLoading && uiState.stationCards.isEmpty()) {
@@ -387,10 +342,10 @@ fun DashboardContent(
  */
 @Composable
 fun DashboardHeader(
+    modifier: Modifier = Modifier,
     allExpanded: Boolean = true,
     onToggleExpandAll: () -> Unit = {},
-    onAiAssistantClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onAddStationClick: () -> Unit = {}
 ) {
     Row(
         modifier = modifier
@@ -401,7 +356,7 @@ fun DashboardHeader(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Mind The Board",
+                text = "Prompt Departure",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp,
@@ -424,18 +379,18 @@ fun DashboardHeader(
                 )
             }
 
-            // Gemini AI Transit Assistant Action Button
+            // Add Station Action Button
             IconButton(
-                onClick = onAiAssistantClick,
+                onClick = onAddStationClick,
                 colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                    contentColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.AutoAwesome,
-                    contentDescription = "Ask Transit AI Assistant",
-                    modifier = Modifier.size(22.dp)
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = "Add Station",
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -481,6 +436,7 @@ fun DashboardScreenLightPreview() {
             onDismissStation = {},
             onMoveStation = { _, _ -> },
             onAddStationClick = {},
+            onAiAssistantClick = {},
             onStationClick = {}
         )
     }
@@ -523,6 +479,7 @@ fun DashboardScreenDarkPreview() {
             onDismissStation = {},
             onMoveStation = { _, _ -> },
             onAddStationClick = {},
+            onAiAssistantClick = {},
             onStationClick = {}
         )
     }

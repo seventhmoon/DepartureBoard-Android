@@ -1,4 +1,4 @@
-# Mind The Board 🚇
+# Prompt Departure 🚇
 
 A modern, high-performance London transit departure board app built for Android with **Jetpack Compose**, **Material 3 Expressive**, and **Glance AppWidgets**. Powered by the **Transport for London (TfL) Unified API**.
 
@@ -9,10 +9,17 @@ A modern, high-performance London transit departure board app built for Android 
 - **🔴 Live Departure Countdowns & Amber Dot-Matrix Display:**
   - Real-time arrival predictions inspired by classic London Underground platform dot-matrix LED displays with animated rolling digits.
   - Accompanied by exact London scheduled clock times (e.g. `18:02`, `18:14`) and live train track progression indicators (*Approaching*, *At Platform*, *In Transit*).
-- **🚇 Complete Network Coverage:**
-  - Seamless support for all London transit modes: **London Underground**, **Elizabeth line**, **London Overground**, **DLR**, **London Buses**, and **Trams**.
-  - Intelligent route and line badge chips for multi-line interchange hubs (e.g., King's Cross St. Pancras, Victoria, Stratford).
+- **🚇 Complete Network Coverage & Official TfL Roundels:**
+  - Seamless support for all London transit modes: **London Underground**, **Elizabeth line**, **London Overground** (including all 6 2024 named lines: Liberty, Lioness, Mildmay, Suffragette, Weaver, Windrush), **DLR**, **London Buses**, and **Trams**.
+  - **Vector TfL Line Roundels:** Departure rows lead with crisp, uniform TfL roundels tinted in official line brand colors, with adaptive dark-mode contrast borders for dark lines (Northern, Piccadilly).
+  - **Transport Mode Header Indicators:** Station cards feature circular transit mode badges to immediately distinguish Tube stations, Bus stops, and Rail interchanges.
+  - **Smart Direction & Terminus Filtering:** Tap any line badge to filter departures; through stations cycle through cardinal directions (`→ EB`, `← WB`, etc.), while terminus stations toggle directly without redundant direction cycling.
   - Outbound destination resolving across **all 40 London terminus stations** (Wimbledon, Edgware, Mill Hill East, Brixton, Stanmore, Ealing Broadway, etc.).
+- **🤖 Intelligent Hybrid Transit AI Assistant:**
+  - Natural language commuter assistant powered by **On-Device Gemini Nano** (via Android ML Kit Prompt API) with seamless cloud fallback via **Firebase AI Logic (Gemini 1.5 Flash)**.
+  - Resolves natural language queries, colloquial names, and station typos (e.g., *"when is the next mill hill east train from Bank"* or *"Heathrow T5 from Farringdon"*).
+  - Automatically queries live TfL line statuses, disruptions, and delays with one-tap Suggested Questions tailored to the user's nearest station.
+  - Built-in software keyboard (`imePadding`) and scroll support for comfortable typing.
 - **⚡ Interactive Home Screen Widgets (Glance):**
   - Live London departure boards directly on your Android home screen.
   - **Per-Widget Station & Line Filtering:** Dedicate widgets to a specific station and route (e.g. show *only* the Northern line at King's Cross or bus route *221* at your local bus stop).
@@ -33,10 +40,11 @@ A modern, high-performance London transit departure board app built for Android 
 ## 🛠️ Tech Stack & Architecture
 
 - **UI:** [Jetpack Compose](https://developer.android.com/jetpack/compose) with Material 3 Expressive design tokens.
+- **AI / Generative Model:** Hybrid on-device **Gemini Nano** ([ML Kit GenAI Prompt API](https://developers.google.com/ml-kit)) + Cloud **Gemini 1.5 Flash** ([Firebase AI Logic](https://firebase.google.com/docs/ai-logic)).
 - **Widgets:** [Glance AppWidget](https://developer.android.com/jetpack/compose/glance) backed by DataStore Preferences.
 - **Architecture:** Unidirectional Data Flow (MVI/MVVM), Kotlin Coroutines & `StateFlow`.
 - **Networking:** [Retrofit 2](https://square.github.io/retrofit/) + [Moshi](https://github.com/square/moshi) with Kotlin code-generation (KSP).
-- **Persistence:** [Jetpack DataStore](https://developer.android.com/topic/libraries/architecture/datastore) (Preferences DataStore).
+- **Persistence:** [Room Database](https://developer.android.com/training/data-storage/room) for instantaneous offline caching & [Jetpack DataStore](https://developer.android.com/topic/libraries/architecture/datastore) (Preferences DataStore).
 - **Background Work:** [AndroidX WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager) for periodic background widget updates.
 - **Location:** Google Play Services Location (`FusedLocationProviderClient`).
 
@@ -86,7 +94,7 @@ Or deploy directly to your device or emulator via Android Studio.
 ## 📱 Home Screen Widget Setup
 
 1. Long-press on your device's home screen and choose **Widgets**.
-2. Scroll to **Mind The Board** and drag the departure card onto your home screen.
+2. Scroll to **Prompt Departure** and drag the departure card onto your home screen.
 3. In the configuration dialog:
    - Select any London Underground, Rail, or Bus station.
    - Choose whether to display **All Lines & Routes** or filter to a **Specific Route** (e.g., Victoria Line or Bus 221).
@@ -97,7 +105,7 @@ Or deploy directly to your device or emulator via Android Studio.
 ## 📄 License
 
 ```text
-Copyright 2026 Mind The Board Contributors
+Copyright 2026 Prompt Departure Contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Mind The Board"
+rootProject.name = "Prompt Departure"
 include(":app")
  

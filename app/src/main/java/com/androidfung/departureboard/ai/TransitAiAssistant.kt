@@ -12,7 +12,9 @@ import kotlinx.coroutines.withContext
 data class AiTransitResult(
     val answer: String,
     val matchedStation: Station? = null,
-    val matchedDepartures: List<Departure> = emptyList()
+    val matchedDepartures: List<Departure> = emptyList(),
+    val originQuery: String? = null,
+    val destinationQuery: String? = null
 )
 
 /**

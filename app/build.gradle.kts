@@ -20,7 +20,7 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 3
+        versionCode = 6
         versionName = "1.0.1-261004"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -58,6 +58,14 @@ android {
         warningsAsErrors = false
         abortOnError = false
         disable += setOf("UnusedAttribute", "GradleDependency", "NewerVersionAvailable", "UseKtx")
+    }
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.addAll(
+            "-Xannotation-default-target=param-property"
+        )
     }
 }
 
@@ -110,6 +118,7 @@ dependencies {
     testImplementation(libs.androidx.core)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

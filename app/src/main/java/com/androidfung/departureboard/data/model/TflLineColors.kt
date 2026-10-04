@@ -80,99 +80,95 @@ object TflLineColors {
         return when {
             // Underground Lines
             normalizedId == "bakerloo" || normalizedName.contains("bakerloo") ->
-                LineBadgeInfo(lineId = "bakerloo", displayName = "Bakerloo", backgroundColor = Bakerloo, textColor = LightText, mode = TransitMode.TUBE)
+                LineBadgeInfo(lineId = "bakerloo", displayName = "Bakerloo", backgroundColor = Bakerloo, textColor = LightText, mode = TransitMode.TUBE, lineCode = "BAK")
 
             normalizedId == "central" || normalizedName.contains("central") ->
-                LineBadgeInfo(lineId = "central", displayName = "Central", backgroundColor = Central, textColor = LightText, mode = TransitMode.TUBE)
+                LineBadgeInfo(lineId = "central", displayName = "Central", backgroundColor = Central, textColor = LightText, mode = TransitMode.TUBE, lineCode = "CEN")
 
             normalizedId == "circle" || normalizedName.contains("circle") ->
-                LineBadgeInfo(lineId = "circle", displayName = "Circle", backgroundColor = Circle, textColor = DarkText, mode = TransitMode.TUBE)
+                LineBadgeInfo(lineId = "circle", displayName = "Circle", backgroundColor = Circle, textColor = DarkText, mode = TransitMode.TUBE, lineCode = "CIR")
 
             normalizedId == "district" || normalizedName.contains("district") ->
-                LineBadgeInfo(lineId = "district", displayName = "District", backgroundColor = District, textColor = LightText, mode = TransitMode.TUBE)
+                LineBadgeInfo(lineId = "district", displayName = "District", backgroundColor = District, textColor = LightText, mode = TransitMode.TUBE, lineCode = "DIS")
 
             normalizedId.contains("hammersmith") || normalizedName.contains("hammersmith") ->
-                LineBadgeInfo(lineId = "hammersmith-city", displayName = "Hammersmith & City", backgroundColor = HammersmithAndCity, textColor = DarkText, mode = TransitMode.TUBE)
+                LineBadgeInfo(lineId = "hammersmith-city", displayName = "Hammersmith & City", backgroundColor = HammersmithAndCity, textColor = DarkText, mode = TransitMode.TUBE, lineCode = "H&C")
 
             normalizedId == "jubilee" || normalizedName.contains("jubilee") ->
-                LineBadgeInfo(lineId = "jubilee", displayName = "Jubilee", backgroundColor = Jubilee, textColor = LightText, mode = TransitMode.TUBE)
+                LineBadgeInfo(lineId = "jubilee", displayName = "Jubilee", backgroundColor = Jubilee, textColor = LightText, mode = TransitMode.TUBE, lineCode = "JUB")
 
             normalizedId == "metropolitan" || normalizedName.contains("metropolitan") ->
-                LineBadgeInfo(lineId = "metropolitan", displayName = "Metropolitan", backgroundColor = Metropolitan, textColor = LightText, mode = TransitMode.TUBE)
+                LineBadgeInfo(lineId = "metropolitan", displayName = "Metropolitan", backgroundColor = Metropolitan, textColor = LightText, mode = TransitMode.TUBE, lineCode = "MET")
 
             // Northern City Line must be checked before Tube Northern line!
             normalizedId.contains("great-northern") || normalizedName.contains("great northern") || normalizedName.contains("northern city") ->
-                LineBadgeInfo(lineId = "great-northern", displayName = "Northern City Line", backgroundColor = Color(0xFF003882), textColor = LightText, mode = TransitMode.NATIONAL_RAIL)
+                LineBadgeInfo(lineId = "great-northern", displayName = "Northern City Line", backgroundColor = Color(0xFF003882), textColor = LightText, mode = TransitMode.NATIONAL_RAIL, lineCode = "NCL")
 
             normalizedId == "northern" || (normalizedName.contains("northern") && !normalizedName.contains("city")) ->
-                LineBadgeInfo(lineId = "northern", displayName = "Northern", backgroundColor = Northern, textColor = LightText, mode = TransitMode.TUBE)
+                LineBadgeInfo(lineId = "northern", displayName = "Northern", backgroundColor = Northern, textColor = LightText, mode = TransitMode.TUBE, lineCode = "NOR")
 
             normalizedId == "piccadilly" || normalizedName.contains("piccadilly") ->
-                LineBadgeInfo(lineId = "piccadilly", displayName = "Piccadilly", backgroundColor = Piccadilly, textColor = LightText, mode = TransitMode.TUBE)
+                LineBadgeInfo(lineId = "piccadilly", displayName = "Piccadilly", backgroundColor = Piccadilly, textColor = LightText, mode = TransitMode.TUBE, lineCode = "PIC")
 
             normalizedId == "victoria" || normalizedName.contains("victoria") ->
-                LineBadgeInfo(lineId = "victoria", displayName = "Victoria", backgroundColor = Victoria, textColor = LightText, mode = TransitMode.TUBE)
+                LineBadgeInfo(lineId = "victoria", displayName = "Victoria", backgroundColor = Victoria, textColor = LightText, mode = TransitMode.TUBE, lineCode = "VIC")
 
             normalizedId.contains("waterloo") || normalizedName.contains("waterloo & city") ->
-                LineBadgeInfo(lineId = "waterloo-city", displayName = "Waterloo & City", backgroundColor = WaterlooAndCity, textColor = DarkText, mode = TransitMode.TUBE)
+                LineBadgeInfo(lineId = "waterloo-city", displayName = "Waterloo & City", backgroundColor = WaterlooAndCity, textColor = DarkText, mode = TransitMode.TUBE, lineCode = "W&C")
 
             // Elizabeth Line
             normalizedId == "elizabeth" || normalizedId == "elizabeth-line" || normalizedName.contains("elizabeth") ->
-                LineBadgeInfo(lineId = "elizabeth-line", displayName = "Elizabeth line", backgroundColor = ElizabethLine, textColor = LightText, mode = TransitMode.ELIZABETH_LINE)
+                LineBadgeInfo(lineId = "elizabeth-line", displayName = "Elizabeth line", backgroundColor = ElizabethLine, textColor = LightText, mode = TransitMode.ELIZABETH_LINE, lineCode = "ELIZ")
 
             // Overground individual lines (TfL 2024 named lines)
             normalizedId == "liberty" || normalizedName.contains("liberty") ->
-                LineBadgeInfo(lineId = "liberty", displayName = "Liberty", backgroundColor = OvergroundLiberty, textColor = LightText, mode = TransitMode.OVERGROUND)
+                LineBadgeInfo(lineId = "liberty", displayName = "Liberty", backgroundColor = OvergroundLiberty, textColor = LightText, mode = TransitMode.OVERGROUND, lineCode = "LIB")
 
             normalizedId == "lioness" || normalizedName.contains("lioness") ->
-                LineBadgeInfo(lineId = "lioness", displayName = "Lioness", backgroundColor = OvergroundLioness, textColor = LightText, mode = TransitMode.OVERGROUND)
+                LineBadgeInfo(lineId = "lioness", displayName = "Lioness", backgroundColor = OvergroundLioness, textColor = LightText, mode = TransitMode.OVERGROUND, lineCode = "LIO")
 
             normalizedId == "mildmay" || normalizedName.contains("mildmay") ->
-                LineBadgeInfo(lineId = "mildmay", displayName = "Mildmay", backgroundColor = OvergroundMildmay, textColor = LightText, mode = TransitMode.OVERGROUND)
+                LineBadgeInfo(lineId = "mildmay", displayName = "Mildmay", backgroundColor = OvergroundMildmay, textColor = LightText, mode = TransitMode.OVERGROUND, lineCode = "MIL")
 
             normalizedId == "suffragette" || normalizedName.contains("suffragette") ->
-                LineBadgeInfo(lineId = "suffragette", displayName = "Suffragette", backgroundColor = OvergroundSuffragette, textColor = LightText, mode = TransitMode.OVERGROUND)
+                LineBadgeInfo(lineId = "suffragette", displayName = "Suffragette", backgroundColor = OvergroundSuffragette, textColor = LightText, mode = TransitMode.OVERGROUND, lineCode = "SUF")
 
             normalizedId == "weaver" || normalizedName.contains("weaver") ->
-                LineBadgeInfo(lineId = "weaver", displayName = "Weaver", backgroundColor = OvergroundWeaver, textColor = LightText, mode = TransitMode.OVERGROUND)
+                LineBadgeInfo(lineId = "weaver", displayName = "Weaver", backgroundColor = OvergroundWeaver, textColor = LightText, mode = TransitMode.OVERGROUND, lineCode = "WEA")
 
             normalizedId == "windrush" || normalizedName.contains("windrush") ->
-                LineBadgeInfo(lineId = "windrush", displayName = "Windrush", backgroundColor = OvergroundWindrush, textColor = LightText, mode = TransitMode.OVERGROUND)
+                LineBadgeInfo(lineId = "windrush", displayName = "Windrush", backgroundColor = OvergroundWindrush, textColor = LightText, mode = TransitMode.OVERGROUND, lineCode = "WIN")
 
             // London Overground generic / fallback
             normalizedId.contains("overground") || normalizedName.contains("overground") ->
-                LineBadgeInfo(lineId = "overground", displayName = displayName.ifBlank { "London Overground" }, backgroundColor = LondonOverground, textColor = LightText, mode = TransitMode.OVERGROUND)
+                LineBadgeInfo(lineId = "overground", displayName = displayName.ifBlank { "London Overground" }, backgroundColor = LondonOverground, textColor = LightText, mode = TransitMode.OVERGROUND, lineCode = "LO")
 
             // DLR
             normalizedId == "dlr" || normalizedName.contains("dlr") || normalizedName.contains("docklands") ->
-                LineBadgeInfo(lineId = "dlr", displayName = "DLR", backgroundColor = Dlr, textColor = LightText, mode = TransitMode.DLR)
+                LineBadgeInfo(lineId = "dlr", displayName = "DLR", backgroundColor = Dlr, textColor = LightText, mode = TransitMode.DLR, lineCode = "DLR")
 
             // Tram
             normalizedId.contains("tram") || normalizedName.contains("tram") ->
-                LineBadgeInfo(lineId = "tram", displayName = "Tram", backgroundColor = Tram, textColor = DarkText, mode = TransitMode.TRAM)
+                LineBadgeInfo(lineId = "tram", displayName = "Tram", backgroundColor = Tram, textColor = DarkText, mode = TransitMode.TRAM, lineCode = "TRAM")
 
             // Cable Car
             normalizedId.contains("cable-car") || normalizedName.contains("cable car") ->
-                LineBadgeInfo(lineId = "cable-car", displayName = "IFS Cloud Cable Car", backgroundColor = CableCar, textColor = LightText, mode = TransitMode.CABLE_CAR)
+                LineBadgeInfo(lineId = "cable-car", displayName = "IFS Cloud Cable Car", backgroundColor = CableCar, textColor = LightText, mode = TransitMode.CABLE_CAR, lineCode = "IFS")
 
             // Thameslink
             normalizedId.contains("thameslink") || normalizedName.contains("thameslink") ->
-                LineBadgeInfo(lineId = "thameslink", displayName = "Thameslink", backgroundColor = Color(0xFFC70066), textColor = LightText, mode = TransitMode.NATIONAL_RAIL)
-
-            // Great Northern / Northern City Line
-            normalizedId.contains("great-northern") || normalizedName.contains("great northern") || normalizedName.contains("northern city") ->
-                LineBadgeInfo(lineId = "great-northern", displayName = "Northern City Line", backgroundColor = Color(0xFF003882), textColor = LightText, mode = TransitMode.NATIONAL_RAIL)
+                LineBadgeInfo(lineId = "thameslink", displayName = "Thameslink", backgroundColor = Color(0xFFC70066), textColor = LightText, mode = TransitMode.NATIONAL_RAIL, lineCode = "TL")
 
             // Bus
             mode == TransitMode.BUS || normalizedId.toIntOrNull() != null || normalizedId.matches(Regex("[a-z]?[0-9]+[a-z]?")) ->
-                LineBadgeInfo(lineId = lineId ?: "bus", displayName = displayName, backgroundColor = Bus, textColor = LightText, mode = TransitMode.BUS)
+                LineBadgeInfo(lineId = lineId ?: "bus", displayName = displayName, backgroundColor = Bus, textColor = LightText, mode = TransitMode.BUS, lineCode = displayName)
 
             // National Rail
             mode == TransitMode.NATIONAL_RAIL || normalizedId.contains("national-rail") ->
-                LineBadgeInfo(lineId = "national-rail", displayName = displayName.ifBlank { "National Rail" }, backgroundColor = NationalRail, textColor = LightText, mode = TransitMode.NATIONAL_RAIL)
+                LineBadgeInfo(lineId = "national-rail", displayName = displayName.ifBlank { "National Rail" }, backgroundColor = NationalRail, textColor = LightText, mode = TransitMode.NATIONAL_RAIL, lineCode = "NR")
 
             else ->
-                LineBadgeInfo(lineId = lineId ?: "transit", displayName = displayName, backgroundColor = DefaultTransit, textColor = LightText, mode = mode)
+                LineBadgeInfo(lineId = lineId ?: "transit", displayName = displayName, backgroundColor = DefaultTransit, textColor = LightText, mode = mode, lineCode = displayName.take(3).uppercase())
         }
     }
 }
