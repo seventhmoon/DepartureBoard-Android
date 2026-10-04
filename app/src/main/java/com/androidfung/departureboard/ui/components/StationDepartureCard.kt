@@ -97,7 +97,7 @@ fun StationDepartureCard(
             cardModel.departures
         } else {
             cardModel.departures.filter { departure ->
-                val lineMatches = departure.lineId.equals(selectedLineId, ignoreCase = true)
+                val lineMatches = isSameLine(departure.lineId, selectedLineId)
                 if (!lineMatches) return@filter false
                 if (selectedDirection == null) true
                 else departure.direction.equals(selectedDirection, ignoreCase = true) ||
@@ -200,13 +200,13 @@ fun StationDepartureCard(
                         },
                         onLineBadgeClick = { badge ->
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                            // Find directions available for this line at this station
-                            val lineDepartures = cardModel.departures.filter { it.lineId.equals(badge.lineId, ignoreCase = true) }
+                            // Find departures & directions available for this line at this station
+                            val lineDepartures = cardModel.departures.filter { isSameLine(it.lineId, badge.lineId) }
                             val availableDirections = lineDepartures
                                 .mapNotNull { it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound").firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) } }
                                 .distinct()
 
-                            if (selectedLineId != badge.lineId) {
+                            if (!isSameLine(selectedLineId, badge.lineId)) {
                                 // 1st click: Filter by line (all departures for this line)
                                 selectedLineId = badge.lineId
                                 selectedDirection = null
@@ -403,7 +403,7 @@ private fun StationHeaderSection(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 lineBadges.forEach { badge ->
-                    val isSelected = selectedLineId == badge.lineId
+                    val isSelected = isSameLine(selectedLineId, badge.lineId)
                     val isDimmed = selectedLineId != null && !isSelected
                     LinePillBadge(
                         badge = badge,
@@ -416,7 +416,7 @@ private fun StationHeaderSection(
             }
 
             // If selected line has disruptions, show a disruption banner right under the badges
-            val activeBadge = lineBadges.firstOrNull { it.lineId == selectedLineId }
+            val activeBadge = lineBadges.firstOrNull { isSameLine(it.lineId, selectedLineId) }
             if (activeBadge != null && activeBadge.isDisrupted) {
                 Spacer(modifier = Modifier.height(8.dp))
                 LineDisruptionBanner(badge = activeBadge)
@@ -1019,6 +1019,23 @@ fun CountdownBadge(
             }
         }
     }
+}
+
+/**
+ * Helper to match line IDs permissively across TfL conventions (e.g. "elizabeth" vs "elizabeth-line", "hammersmith-city" vs "hammersmith").
+ */
+fun isSameLine(lineId1: String?, lineId2: String?): Boolean {
+    if (lineId1.isNullOrBlank() || lineId2.isNullOrBlank()) return false
+    val id1 = lineId1.lowercase().trim()
+    val id2 = lineId2.lowercase().trim()
+    if (id1 == id2) return true
+    // Elizabeth line aliases
+    if ((id1 == "elizabeth" || id1 == "elizabeth-line") && (id2 == "elizabeth" || id2 == "elizabeth-line")) return true
+    // Hammersmith & City aliases
+    if ((id1.contains("hammersmith") || id1 == "h&c") && (id2.contains("hammersmith") || id2 == "h&c")) return true
+    // Waterloo & City aliases
+    if ((id1.contains("waterloo") || id1 == "w&c") && (id2.contains("waterloo") || id2 == "w&c")) return true
+    return false
 }
 
 /**

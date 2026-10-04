@@ -236,6 +236,17 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val isDue = departure.timeToStationSeconds <= 30
         val countdownText = if (isDue) "DUE" else "${minutes}m"
 
+        val isBus = departure.modeName.equals("bus", ignoreCase = true) || departure.lineId.toIntOrNull() != null
+        val routeLineLabel = departure.lineName.ifBlank { departure.lineId }
+        val platformOrStand = departure.platformName.takeIf { it.isNotBlank() && it.lowercase() != "null" }
+
+        val subtitleText = when {
+            isBus && !platformOrStand.isNullOrBlank() -> "$routeLineLabel • $platformOrStand"
+            isBus -> routeLineLabel
+            !platformOrStand.isNullOrBlank() -> platformOrStand
+            else -> routeLineLabel
+        }
+
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
@@ -243,6 +254,28 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 .clickable(actionStartActivity(clickIntent)),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (isBus) {
+                // High-visibility Bus Route Badge (e.g. "221", "240", "382", "SL1")
+                Box(
+                    modifier = GlanceModifier
+                        .size(width = 36.dp, height = 24.dp)
+                        .cornerRadius(6.dp)
+                        .background(GlanceTheme.colors.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = routeLineLabel,
+                        style = TextStyle(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GlanceTheme.colors.onPrimary
+                        ),
+                        maxLines = 1
+                    )
+                }
+                Spacer(modifier = GlanceModifier.width(8.dp))
+            }
+
             Column(modifier = GlanceModifier.defaultWeight()) {
                 Text(
                     text = departure.destinationName,
@@ -254,10 +287,11 @@ class DepartureBoardWidget : GlanceAppWidget() {
                     maxLines = 1
                 )
                 Text(
-                    text = departure.platformName.ifBlank { departure.lineName },
+                    text = subtitleText,
                     style = TextStyle(
                         fontSize = 11.sp,
-                        color = GlanceTheme.colors.onSurfaceVariant
+                        color = GlanceTheme.colors.onSurfaceVariant,
+                        fontWeight = FontWeight.Normal
                     ),
                     maxLines = 1
                 )

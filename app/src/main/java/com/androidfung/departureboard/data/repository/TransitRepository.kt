@@ -270,12 +270,28 @@ class TransitRepositoryImpl(
 
                             val cleanTowards = item.towards?.takeIf { it.trim().lowercase() != "null" }?.let { cleanStationName(it) }
 
-                            // Resolve normalized cardinal direction (Eastbound, Westbound, Northbound, Southbound, Inbound, Outbound)
+                            // Resolve normalized cardinal direction (Eastbound, Westbound, Northbound, Southbound)
+                            val isElizabeth = item.lineId?.contains("elizabeth", ignoreCase = true) == true ||
+                                    item.lineName?.contains("elizabeth", ignoreCase = true) == true
                             val resolvedDirection = when {
                                 rawPlatform.contains("Eastbound", ignoreCase = true) -> "Eastbound"
                                 rawPlatform.contains("Westbound", ignoreCase = true) -> "Westbound"
                                 rawPlatform.contains("Northbound", ignoreCase = true) -> "Northbound"
                                 rawPlatform.contains("Southbound", ignoreCase = true) -> "Southbound"
+                                // Elizabeth line: map destinations and in/outbound to cardinal Eastbound / Westbound
+                                isElizabeth -> {
+                                    val destLower = resolvedDest.lowercase()
+                                    when {
+                                        destLower.contains("abbey wood") || destLower.contains("shenfield") ||
+                                        destLower.contains("liverpool street") || destLower.contains("paddington") ||
+                                        destLower.contains("stratford") || item.direction.equals("inbound", ignoreCase = true) -> "Eastbound"
+
+                                        destLower.contains("reading") || destLower.contains("heathrow") ||
+                                        destLower.contains("maidenhead") || item.direction.equals("outbound", ignoreCase = true) -> "Westbound"
+
+                                        else -> null
+                                    }
+                                }
                                 item.direction?.equals("inbound", ignoreCase = true) == true -> "Inbound"
                                 item.direction?.equals("outbound", ignoreCase = true) == true -> "Outbound"
                                 else -> null

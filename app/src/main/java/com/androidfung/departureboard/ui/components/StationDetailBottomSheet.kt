@@ -123,7 +123,7 @@ fun StationDetailBottomSheet(
             if (selectedStopId != null && !departure.platformName.equals(selectedStopId, ignoreCase = true)) {
                 return@filter false
             }
-            if (selectedLineId != null && !departure.lineId.equals(selectedLineId, ignoreCase = true)) {
+            if (selectedLineId != null && !isSameLine(departure.lineId, selectedLineId)) {
                 return@filter false
             }
             if (selectedDirection != null) {
@@ -292,12 +292,12 @@ fun StationDetailBottomSheet(
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
-                                    val lineDepartures = departures.filter { it.lineId.equals(badge.lineId, ignoreCase = true) }
+                                    val lineDepartures = departures.filter { isSameLine(it.lineId, badge.lineId) }
                                     val availableDirections = lineDepartures
                                         .mapNotNull { it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound").firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) } }
                                         .distinct()
 
-                                    if (selectedLineId != badge.lineId) {
+                                    if (!isSameLine(selectedLineId, badge.lineId)) {
                                         selectedLineId = badge.lineId
                                         selectedDirection = null
                                     } else if (availableDirections.size > 1) {
