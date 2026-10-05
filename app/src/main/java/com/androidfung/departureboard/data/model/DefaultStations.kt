@@ -14,16 +14,60 @@ object DefaultStations {
             zone = "1",
             lat = 51.5152,
             lon = -0.1419,
-            isFavorite = true
+            isFavorite = true,
+            lines = listOf(
+                StationLineInfo("bakerloo", "Bakerloo", "tube"),
+                StationLineInfo("central", "Central", "tube"),
+                StationLineInfo("victoria", "Victoria", "tube")
+            )
         ),
         Station(
             id = "940GZZLUKSX",
             name = "King's Cross St. Pancras",
-            modes = listOf("tube", "national-rail"),
+            modes = listOf("tube"),
             zone = "1",
             lat = 51.5308,
             lon = -0.1238,
-            isFavorite = true
+            isFavorite = true,
+            lines = listOf(
+                StationLineInfo("circle", "Circle", "tube"),
+                StationLineInfo("hammersmith-city", "Hammersmith & City", "tube"),
+                StationLineInfo("metropolitan", "Metropolitan", "tube"),
+                StationLineInfo("northern", "Northern", "tube"),
+                StationLineInfo("piccadilly", "Piccadilly", "tube"),
+                StationLineInfo("victoria", "Victoria", "tube")
+            )
+        ),
+        Station(
+            id = "910GKNGX",
+            name = "King's Cross",
+            modes = listOf("national-rail"),
+            zone = "1",
+            lat = 51.5316,
+            lon = -0.1235,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("london-north-eastern-railway", "LNER", "national-rail"),
+                StationLineInfo("great-northern", "Great Northern", "national-rail"),
+                StationLineInfo("grand-central", "Grand Central", "national-rail"),
+                StationLineInfo("hull-trains", "Hull Trains", "national-rail"),
+                StationLineInfo("lumo", "Lumo", "national-rail"),
+                StationLineInfo("thameslink", "Thameslink", "national-rail")
+            )
+        ),
+        Station(
+            id = "910GSTPX",
+            name = "St Pancras International",
+            modes = listOf("national-rail", "international-rail"),
+            zone = "1",
+            lat = 51.5316,
+            lon = -0.1261,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("thameslink", "Thameslink", "national-rail"),
+                StationLineInfo("southeastern", "Southeastern", "national-rail"),
+                StationLineInfo("east-midlands-railway", "East Midlands Railway", "national-rail")
+            )
         ),
         Station(
             id = "940GZZLUWLO",
@@ -32,7 +76,14 @@ object DefaultStations {
             zone = "1",
             lat = 51.5036,
             lon = -0.1143,
-            isFavorite = true
+            isFavorite = true,
+            lines = listOf(
+                StationLineInfo("bakerloo", "Bakerloo", "tube"),
+                StationLineInfo("jubilee", "Jubilee", "tube"),
+                StationLineInfo("northern", "Northern", "tube"),
+                StationLineInfo("waterloo-city", "Waterloo & City", "tube"),
+                StationLineInfo("south-western-railway", "South Western Railway", "national-rail")
+            )
         ),
         Station(
             id = "940GZZLUVIC",
@@ -41,7 +92,12 @@ object DefaultStations {
             zone = "1",
             lat = 51.4965,
             lon = -0.1447,
-            isFavorite = true
+            isFavorite = true,
+            lines = listOf(
+                StationLineInfo("circle", "Circle", "tube"),
+                StationLineInfo("district", "District", "tube"),
+                StationLineInfo("victoria", "Victoria", "tube")
+            )
         ),
         Station(
             id = "940GZZLUPCC",
@@ -50,7 +106,11 @@ object DefaultStations {
             zone = "1",
             lat = 51.5101,
             lon = -0.1342,
-            isFavorite = false
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("bakerloo", "Bakerloo", "tube"),
+                StationLineInfo("piccadilly", "Piccadilly", "tube")
+            )
         ),
         Station(
             id = "940GZZLUWSM",
@@ -59,7 +119,12 @@ object DefaultStations {
             zone = "1",
             lat = 51.5014,
             lon = -0.1251,
-            isFavorite = false
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("circle", "Circle", "tube"),
+                StationLineInfo("district", "District", "tube"),
+                StationLineInfo("jubilee", "Jubilee", "tube")
+            )
         ),
         Station(
             id = "940GZZLULNB",
@@ -68,7 +133,12 @@ object DefaultStations {
             zone = "1",
             lat = 51.5057,
             lon = -0.0863,
-            isFavorite = false
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("jubilee", "Jubilee", "tube"),
+                StationLineInfo("northern", "Northern", "tube"),
+                StationLineInfo("thameslink", "Thameslink", "national-rail")
+            )
         ),
         Station(
             id = "HUBPAD",
@@ -77,7 +147,16 @@ object DefaultStations {
             zone = "1",
             lat = 51.5165,
             lon = -0.1757,
-            isFavorite = false
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("bakerloo", "Bakerloo", "tube"),
+                StationLineInfo("circle", "Circle", "tube"),
+                StationLineInfo("district", "District", "tube"),
+                StationLineInfo("elizabeth", "Elizabeth line", "elizabeth-line"),
+                StationLineInfo("hammersmith-city", "Hammersmith & City", "tube"),
+                StationLineInfo("great-western-railway", "Great Western Railway", "national-rail"),
+                StationLineInfo("heathrow-express", "Heathrow Express", "national-rail")
+            )
         ),
         Station(
             id = "HUBZFD",
@@ -86,7 +165,14 @@ object DefaultStations {
             zone = "1",
             lat = 51.5202,
             lon = -0.1051,
-            isFavorite = false
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("circle", "Circle", "tube"),
+                StationLineInfo("elizabeth", "Elizabeth line", "elizabeth-line"),
+                StationLineInfo("hammersmith-city", "Hammersmith & City", "tube"),
+                StationLineInfo("metropolitan", "Metropolitan", "tube"),
+                StationLineInfo("thameslink", "Thameslink", "national-rail")
+            )
         ),
         Station(
             id = "HUBLST",
@@ -95,7 +181,15 @@ object DefaultStations {
             zone = "1",
             lat = 51.5178,
             lon = -0.0823,
-            isFavorite = false
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("central", "Central", "tube"),
+                StationLineInfo("circle", "Circle", "tube"),
+                StationLineInfo("elizabeth", "Elizabeth line", "elizabeth-line"),
+                StationLineInfo("hammersmith-city", "Hammersmith & City", "tube"),
+                StationLineInfo("metropolitan", "Metropolitan", "tube"),
+                StationLineInfo("weaver", "Weaver", "overground")
+            )
         ),
         Station(
             id = "HUBCAW",
@@ -104,7 +198,12 @@ object DefaultStations {
             zone = "2",
             lat = 51.5054,
             lon = -0.0173,
-            isFavorite = false
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("jubilee", "Jubilee", "tube"),
+                StationLineInfo("elizabeth", "Elizabeth line", "elizabeth-line"),
+                StationLineInfo("dlr", "DLR", "dlr")
+            )
         ),
         Station(
             id = "HUBBAN",
@@ -113,7 +212,13 @@ object DefaultStations {
             zone = "1",
             lat = 51.5134,
             lon = -0.0890,
-            isFavorite = false
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("central", "Central", "tube"),
+                StationLineInfo("northern", "Northern", "tube"),
+                StationLineInfo("waterloo-city", "Waterloo & City", "tube"),
+                StationLineInfo("dlr", "DLR", "dlr")
+            )
         )
     )
 

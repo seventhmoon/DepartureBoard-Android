@@ -162,7 +162,8 @@ data class StationDto(
     val zone: String? = null,
     val lat: Double? = null,
     val lon: Double? = null,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val lines: List<StationLineDto> = emptyList()
 ) {
     fun toStation(): Station = Station(
         id = id,
@@ -171,9 +172,29 @@ data class StationDto(
         zone = zone,
         lat = lat,
         lon = lon,
-        isFavorite = isFavorite
+        isFavorite = isFavorite,
+        lines = lines.map { it.toStationLineInfo() }
     )
 }
+
+data class StationLineDto(
+    val id: String,
+    val name: String,
+    val mode: String? = null
+) {
+    fun toStationLineInfo(): com.androidfung.departureboard.data.model.StationLineInfo =
+        com.androidfung.departureboard.data.model.StationLineInfo(
+            id = id,
+            name = name,
+            mode = mode
+        )
+}
+
+fun com.androidfung.departureboard.data.model.StationLineInfo.toDto(): StationLineDto = StationLineDto(
+    id = id,
+    name = name,
+    mode = mode
+)
 
 fun Station.toDto(): StationDto = StationDto(
     id = id,
@@ -182,5 +203,7 @@ fun Station.toDto(): StationDto = StationDto(
     zone = zone,
     lat = lat,
     lon = lon,
-    isFavorite = isFavorite
+    isFavorite = isFavorite,
+    lines = lines.map { it.toDto() }
 )
+

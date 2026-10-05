@@ -2,6 +2,7 @@ package com.androidfung.departureboard.ai
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.repository.TransitRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -71,7 +72,7 @@ class TransitAiAssistant(
                 compareBy<Station> { 
                     if (it.id == nearestStation.id) 0 else 1 
                 }.thenBy {
-                    if (isTrainQuery && it.modes.any { m -> m in listOf("tube", "overground", "elizabeth-line", "national-rail") }) 0 else 1
+                    if (isTrainQuery && it.modes.any { m -> TransitMode.fromModeString(m).isRail }) 0 else 1
                 }
             )
         } else {
@@ -82,8 +83,8 @@ class TransitAiAssistant(
             originStation != null -> listOf(originStation)
             defaultOrigin != null && targetDestinationName == null && queriedLine == null -> {
                 // If asking "when is the next train?", use nearest tube/train station if train is requested
-                val origin = if (isTrainQuery && defaultOrigin.modes.all { it == "bus" }) {
-                    sortedSavedStations.firstOrNull { it.modes.any { m -> m in listOf("tube", "overground", "elizabeth-line", "national-rail") } } ?: defaultOrigin
+                val origin = if (isTrainQuery && defaultOrigin.isBusOnly) {
+                    sortedSavedStations.firstOrNull { it.modes.any { m -> TransitMode.fromModeString(m).isRail } } ?: defaultOrigin
                 } else defaultOrigin
                 listOf(origin)
             }

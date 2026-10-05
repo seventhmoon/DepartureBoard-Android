@@ -50,6 +50,10 @@ class DashboardViewModelTest {
             return Result.success(DefaultStations.getFallbackDepartures(stationId, stationName))
         }
 
+        override suspend fun getBatchDepartures(stations: List<Station>): Map<String, Result<List<Departure>>> {
+            return stations.associate { it.id to getDepartures(it.id, it.name) }
+        }
+
         override fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>> {
             return flowOf(Result.success(DefaultStations.getFallbackDepartures(stationId, stationName)))
         }

@@ -14,20 +14,21 @@ data class Station(
     val zone: String? = null,
     val lat: Double? = null,
     val lon: Double? = null,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val lines: List<StationLineInfo> = emptyList()
 ) {
+    val isBusOnly: Boolean get() = TransitMode.isBusOnly(modes)
+
     /**
      * User-facing display name that includes bus stop letter (e.g. "Euston (Stop D)")
      * if the station is an individual bus stop stand and not already indicated.
      */
     val displayName: String
         get() {
-            val isBusOnly = modes.contains("bus") && modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
             if (!isBusOnly) return name
 
-            val match = Regex("^490\\d+([A-Za-z0-9]+)$").find(id)
-            if (match != null) {
-                val letter = match.groupValues[1].uppercase()
+            val letter = Regex("^490\\d+([A-Za-z0-9]+)$").find(id)?.groupValues?.getOrNull(1)?.uppercase()
+            if (letter != null) {
                 if (!name.contains(Regex("\\bStop\\s+$letter\\b", RegexOption.IGNORE_CASE)) && !name.contains("(")) {
                     return "$name (Stop $letter)"
                 }
@@ -35,6 +36,16 @@ data class Station(
             return name
         }
 }
+
+/**
+ * Domain representation of a transit line serving a station.
+ */
+@Serializable
+data class StationLineInfo(
+    val id: String,
+    val name: String,
+    val mode: String? = null
+)
 
 /**
  * Clean domain representation of a live departure prediction.
@@ -120,11 +131,31 @@ enum class TransitMode(val id: String, val displayName: String) {
     TRAM("tram", "Tram"),
     OTHER("other", "Transit");
 
+    val isRail: Boolean get() = this in RAIL_MODES
+
     companion object {
+        val RAIL_MODES: Set<TransitMode> = setOf(
+            TUBE,
+            OVERGROUND,
+            ELIZABETH_LINE,
+            NATIONAL_RAIL,
+            DLR
+        )
+
         fun fromModeString(modeStr: String?): TransitMode {
             if (modeStr == null) return OTHER
             val normalized = modeStr.lowercase().trim()
             return entries.firstOrNull { it.id == normalized } ?: OTHER
+        }
+
+        fun fromModes(modes: Collection<String>?): Set<TransitMode> {
+            if (modes.isNullOrEmpty()) return emptySet()
+            return modes.map { fromModeString(it) }.toSet()
+        }
+
+        fun isBusOnly(modes: Collection<String>?): Boolean {
+            val parsed = fromModes(modes)
+            return parsed.contains(BUS) && parsed.none { it in RAIL_MODES }
         }
     }
 }

@@ -214,7 +214,13 @@ fun StationDepartureCard(
                             // Find departures & directions available for this line at this station
                             val lineDepartures = cardModel.departures.filter { TransitIconHelper.isSameLine(it.lineId, badge.lineId) }
                             val availableDirections = lineDepartures
-                                .mapNotNull { it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound").firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) } }
+                                .mapNotNull { it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound", "Inbound", "Outbound").firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) } }
+                                .distinct()
+                                .map {
+                                    if (it.equals("Inbound", ignoreCase = true) && badge.lineId.contains("northern", ignoreCase = true)) "Northbound"
+                                    else if (it.equals("Outbound", ignoreCase = true) && badge.lineId.contains("northern", ignoreCase = true)) "Southbound"
+                                    else it
+                                }
                                 .distinct()
 
                             if (!TransitIconHelper.isSameLine(selectedLineId, badge.lineId)) {
@@ -355,8 +361,7 @@ private fun StationHeaderSection(
                     // Only show for single-stand bus stops where all routes share the same direction.
                     // Multi-stand bus stations/hubs (like North Finchley Bus Station) have divergent directions and sub-stops.
                     val distinctTowards = departures.mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }.distinct()
-                    val isSingleDirectionBusStop = station.modes.contains("bus") && distinctTowards.size == 1 &&
-                            station.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+                    val isSingleDirectionBusStop = station.isBusOnly && distinctTowards.size == 1
 
                     if (isSingleDirectionBusStop) {
                         Spacer(modifier = Modifier.height(2.dp))
@@ -632,12 +637,23 @@ private fun StationDeparturesContainer(
                         .padding(vertical = 22.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = errorMessage,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = errorMessage,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "Pull down or tap to retry",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
 

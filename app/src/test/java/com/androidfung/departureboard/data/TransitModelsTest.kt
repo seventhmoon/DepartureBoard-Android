@@ -69,9 +69,29 @@ class TransitModelsTest {
         assertTrue(DefaultStations.POPULAR_STATIONS.isNotEmpty())
         val oxfordCircus = DefaultStations.POPULAR_STATIONS.firstOrNull { it.name == "Oxford Circus" }
         assertNotNull(oxfordCircus)
+        assertTrue(oxfordCircus!!.lines.isNotEmpty())
+        assertEquals(listOf("bakerloo", "central", "victoria"), oxfordCircus.lines.map { it.id })
 
         val fallbacks = DefaultStations.getFallbackDepartures("940GZZLUOXC", "Oxford Circus")
         assertTrue(fallbacks.isNotEmpty())
         assertEquals("Oxford Circus", fallbacks.first().stationName)
+    }
+
+    @Test
+    fun testStationLineInferrerWithDynamicLines() {
+        val station = com.androidfung.departureboard.data.model.Station(
+            id = "custom_1",
+            name = "Custom Station",
+            modes = listOf("tube", "overground"),
+            lines = listOf(
+                com.androidfung.departureboard.data.model.StationLineInfo("weaver", "Weaver", "overground"),
+                com.androidfung.departureboard.data.model.StationLineInfo("central", "Central", "tube")
+            )
+        )
+        val badges = com.androidfung.departureboard.data.model.StationLineInferrer.infer(station)
+        assertEquals(2, badges.size)
+        assertEquals("Central", badges[0].displayName)
+        assertEquals("Weaver", badges[1].displayName)
+        assertEquals(TransitMode.OVERGROUND, badges[1].mode)
     }
 }

@@ -123,7 +123,7 @@ fun StationDetailBottomSheet(
             if (selectedStopId != null && !departure.platformName.equals(selectedStopId, ignoreCase = true)) {
                 return@filter false
             }
-            if (selectedLineId != null && !isSameLine(departure.lineId, selectedLineId)) {
+            if (selectedLineId != null && !TransitIconHelper.isSameLine(departure.lineId, selectedLineId)) {
                 return@filter false
             }
             if (selectedDirection != null) {
@@ -191,8 +191,7 @@ fun StationDetailBottomSheet(
 
                         // Subtitle: Bus stop "towards ..." indicator for single-direction bus stops
                         val distinctTowards = departures.mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }.distinct()
-                        val isSingleDirectionBusStop = station.modes.contains("bus") && distinctTowards.size == 1 &&
-                                station.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+                    val isSingleDirectionBusStop = station.isBusOnly && distinctTowards.size == 1
 
                         if (isSingleDirectionBusStop) {
                             Text(
@@ -292,12 +291,18 @@ fun StationDetailBottomSheet(
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
-                                    val lineDepartures = departures.filter { isSameLine(it.lineId, badge.lineId) }
+                                        val lineDepartures = departures.filter { TransitIconHelper.isSameLine(it.lineId, badge.lineId) }
                                     val availableDirections = lineDepartures
-                                        .mapNotNull { it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound").firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) } }
+                                        .mapNotNull { it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound", "Inbound", "Outbound").firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) } }
+                                        .distinct()
+                                        .map {
+                                            if (it.equals("Inbound", ignoreCase = true) && badge.lineId.contains("northern", ignoreCase = true)) "Northbound"
+                                            else if (it.equals("Outbound", ignoreCase = true) && badge.lineId.contains("northern", ignoreCase = true)) "Southbound"
+                                            else it
+                                        }
                                         .distinct()
 
-                                    if (!isSameLine(selectedLineId, badge.lineId)) {
+                                    if (!TransitIconHelper.isSameLine(selectedLineId, badge.lineId)) {
                                         selectedLineId = badge.lineId
                                         selectedDirection = null
                                     } else if (availableDirections.size > 1) {
@@ -341,7 +346,7 @@ fun StationDetailBottomSheet(
 
             // Only show sub-stops / stand filter chips for bus stops/stations (e.g. Stop P, Stop S, Stop Z4).
             // Tube and rail stations already have clear Line and Cardinal Direction filters.
-            val isBusStop = station.modes.contains("bus") && station.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+            val isBusStop = station.isBusOnly
             if (isBusStop && distinctStops.size > 1) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -514,7 +519,7 @@ fun StationDetailBottomSheet(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Maps")
+                    Text("Maps", maxLines = 1)
                 }
 
                 OutlinedButton(
@@ -528,7 +533,7 @@ fun StationDetailBottomSheet(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Refresh")
+                    Text("Refresh", maxLines = 1)
                 }
 
                 FilledTonalButton(
@@ -549,7 +554,7 @@ fun StationDetailBottomSheet(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Remove")
+                    Text("Remove", maxLines = 1)
                 }
             }
         }

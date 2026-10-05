@@ -37,7 +37,11 @@ object TransitIconHelper {
         if (id1 == id2) return true
 
         // Elizabeth line aliases
-        if ((id1 == "elizabeth" || id1 == "elizabeth-line") && (id2 == "elizabeth" || id2 == "elizabeth-line")) return true
+        if ((id1 == "elizabeth" || id1 == "elizabeth-line" || id1 == "xr") && 
+            (id2 == "elizabeth" || id2 == "elizabeth-line" || id2 == "xr")) return true
+        // Lioness & London Overground aliases for Watford DC line / Euston
+        if ((id1 == "lioness" || id1 == "overground" || id1 == "nr-lo") &&
+            (id2 == "lioness" || id2 == "overground" || id2 == "nr-lo")) return true
         // Hammersmith & City aliases
         if ((id1.contains("hammersmith") || id1 == "h&c") && (id2.contains("hammersmith") || id2 == "h&c")) return true
         // Waterloo & City aliases

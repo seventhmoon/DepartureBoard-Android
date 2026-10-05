@@ -40,7 +40,14 @@ data class TflStopPointDetail(
     @Json(name = "indicator") val indicator: String? = null,
     @Json(name = "stopLetter") val stopLetter: String? = null,
     @Json(name = "children") val children: List<TflStopPointChild> = emptyList(),
-    @Json(name = "lines") val lines: List<TflStopPointLineIdentifier> = emptyList()
+    @Json(name = "lines") val lines: List<TflStopPointLineIdentifier> = emptyList(),
+    @Json(name = "lineModeGroups") val lineModeGroups: List<TflLineModeGroup> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class TflLineModeGroup(
+    @Json(name = "modeName") val modeName: String? = null,
+    @Json(name = "lineIdentifier") val lineIdentifier: List<String> = emptyList()
 )
 
 @JsonClass(generateAdapter = true)

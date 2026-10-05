@@ -7,6 +7,7 @@ import com.androidfung.departureboard.data.model.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.TflSearchResponse
 import com.androidfung.departureboard.data.model.TflStopPointMatch
 import com.androidfung.departureboard.data.network.TflApiService
+import com.androidfung.departureboard.data.repository.NationalRailStationCodes
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,6 +51,16 @@ class TransitRepositoryTest {
 
         override suspend fun getLineRoute(lineId: String): com.androidfung.departureboard.data.model.TflLineRouteResponse {
             return com.androidfung.departureboard.data.model.TflLineRouteResponse(id = lineId, name = lineId)
+        }
+    }
+
+    private class FakeNrApiService(
+        var boardResponse: com.androidfung.departureboard.data.model.NrBoardResponse = com.androidfung.departureboard.data.model.NrBoardResponse(),
+        var shouldThrow: Boolean = false
+    ) : com.androidfung.departureboard.data.network.NationalRailApiService {
+        override suspend fun getDepartureBoard(crs: String, numRows: Int): com.androidfung.departureboard.data.model.NrBoardResponse {
+            if (shouldThrow) throw IOException("NR Network error")
+            return boardResponse
         }
     }
 
@@ -175,18 +186,70 @@ class TransitRepositoryTest {
     }
 
     @Test
-    fun testGetDepartures_networkFailureUsesFallback() = runTest {
+    fun testGetDepartures_networkFailureWithoutCacheReturnsFailure() = runTest {
         val fakeApi = FakeTflApiService(shouldThrow = true)
+        val fakeNrApi = FakeNrApiService(shouldThrow = true)
         val repo = TransitRepositoryImpl(
             apiService = fakeApi,
+            nrApiService = fakeNrApi,
             dataStore = FakeStationPreferencesDataSource()
         )
 
         val result = repo.getDepartures("940GZZLUOXC", "Oxford Circus")
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun testGetDepartures_includesNationalRailServices() = runTest {
+        val fakeApi = FakeTflApiService(arrivalsResult = emptyList())
+        val fakeNrApi = FakeNrApiService(
+            boardResponse = com.androidfung.departureboard.data.model.NrBoardResponse(
+                locationName = "London Kings Cross",
+                crs = "KGX",
+                trainServices = listOf(
+                    com.androidfung.departureboard.data.model.NrTrainService(
+                        serviceId = "nr_1",
+                        operator = "LNER",
+                        operatorCode = "GR",
+                        std = "14:00",
+                        etd = "On time",
+                        platform = "1",
+                        destination = listOf(
+                            com.androidfung.departureboard.data.model.NrLocation(
+                                locationName = "Edinburgh",
+                                crs = "EDB"
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val repo = TransitRepositoryImpl(
+            apiService = fakeApi,
+            nrApiService = fakeNrApi,
+            dataStore = FakeStationPreferencesDataSource()
+        )
+
+        NationalRailStationCodes.setDao(object : com.androidfung.departureboard.data.db.StationCrsDao {
+            override suspend fun getCrsCodesForStationId(stationId: String): List<String> {
+                return if (stationId == "910GKNGX") listOf("KGX") else emptyList()
+            }
+            override suspend fun getCrsCodesForExactName(normalizedName: String): List<String> = emptyList()
+            override suspend fun getCrsCodesForNameKeyword(keyword: String): List<String> = emptyList()
+            override suspend fun insertAll(mappings: List<com.androidfung.departureboard.data.db.StationCrsEntity>) {}
+            override suspend fun getCount(): Int = 1
+        })
+
+        // National Rail King's Cross mainline station (CRS: KGX)
+        val result = repo.getDepartures("910GKNGX", "King's Cross")
         assertTrue(result.isSuccess)
         val departures = result.getOrNull()!!
-        assertTrue(departures.isNotEmpty())
-        assertEquals("Oxford Circus", departures[0].stationName)
+        assertEquals(1, departures.size)
+        assertEquals("Edinburgh", departures[0].destinationName)
+        assertEquals("LNER", departures[0].lineName)
+        assertEquals("Platform 1", departures[0].platformName)
+        assertEquals(com.androidfung.departureboard.data.model.TransitMode.NATIONAL_RAIL, departures[0].lineBadge.mode)
     }
 
     @Test

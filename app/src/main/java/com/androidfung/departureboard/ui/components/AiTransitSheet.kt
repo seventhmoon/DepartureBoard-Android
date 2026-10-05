@@ -97,7 +97,7 @@ fun AiTransitSheet(
         val primaryOrigin = nearestStation ?: savedStations.firstOrNull()
         if (primaryOrigin != null) {
             val originShortName = primaryOrigin.displayName.substringBefore("(").trim()
-            val isBusStop = primaryOrigin.modes.contains("bus") && primaryOrigin.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
+            val isBusStop = primaryOrigin.isBusOnly
             if (isBusStop) {
                 prompts.add("Next bus from $originShortName")
             } else {

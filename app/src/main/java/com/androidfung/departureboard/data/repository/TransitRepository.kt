@@ -10,13 +10,16 @@ import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TflArrivalPrediction
-import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TflLineStatusItem
-import com.androidfung.departureboard.data.model.TflStopPointChild
-import com.androidfung.departureboard.data.model.TflStopPointMatch
+import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.network.NationalRailApiService
+import com.androidfung.departureboard.data.network.NationalRailNetworkClient
 import com.androidfung.departureboard.data.network.TflApiService
 import com.androidfung.departureboard.data.network.TflNetworkClient
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -31,6 +34,7 @@ interface TransitRepository {
 
     suspend fun searchStations(query: String): Result<List<Station>>
     suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>>
+    suspend fun getBatchDepartures(stations: List<Station>): Map<String, Result<List<Departure>>>
     fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>>
     suspend fun getLineStatuses(): Map<String, TflLineStatusItem>
     suspend fun saveStation(station: Station)
@@ -40,16 +44,18 @@ interface TransitRepository {
 }
 
 /**
- * Implementation of TransitRepository using TfL API, DataStore, and Room offline cache.
+ * Implementation of TransitRepository using TfL API, National Rail (NRE Darwin) API, DataStore, and Room offline cache.
  */
 class TransitRepositoryImpl(
     private val apiService: TflApiService = TflNetworkClient.apiService,
+    private val nrApiService: NationalRailApiService = NationalRailNetworkClient.apiService,
     private val dataStore: StationPreferencesDataSource,
     private val departureDao: DepartureDao? = null
 ) : TransitRepository {
 
     constructor(context: Context) : this(
         apiService = TflNetworkClient.apiService,
+        nrApiService = NationalRailNetworkClient.apiService,
         dataStore = StationPreferencesDataStore(context.applicationContext),
         departureDao = AppDatabase.getInstance(context.applicationContext).departureDao()
     )
@@ -65,17 +71,32 @@ class TransitRepositoryImpl(
 
         try {
             val response = apiService.searchStations(query = trimmed)
-            val matchedStations = response.matches.map { match ->
-                createStationFromMatch(match)
+            val matchedStations = response.matches.flatMap { match ->
+                TflStationMapper.fromStopPointMatch(match)
+            }
+
+            // Hydrate station lines from StopPoint API for non-bus stations that don't have lines yet
+            val hydratedStations = matchedStations.map { station ->
+                if (!station.isBusOnly && station.lines.isEmpty()) {
+                    try {
+                        val detail = apiService.getStopPointDetail(station.id)
+                        val lines = TflStationMapper.extractLines(detail)
+                        if (lines.isNotEmpty()) station.copy(lines = lines) else station
+                    } catch (_: Exception) {
+                        station
+                    }
+                } else {
+                    station
+                }
             }
 
             val routeStopStations = findRouteStopsIfApplicable(trimmed)
 
             // Combine results, prioritizing exact bus route stops if route matched
             val combinedResults = if (routeStopStations.isNotEmpty()) {
-                (routeStopStations + matchedStations).distinctBy { it.id }
+                (routeStopStations + hydratedStations).distinctBy { it.id }
             } else {
-                matchedStations
+                hydratedStations
             }
 
             if (combinedResults.isNotEmpty()) {
@@ -101,21 +122,83 @@ class TransitRepositoryImpl(
     override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> =
         withContext(Dispatchers.IO) {
             try {
-                val rawArrivals = fetchRawArrivalsWithHubExpansion(stationId)
+                var tflError: Exception? = null
+                var nrError: Exception? = null
 
-                if (rawArrivals.isEmpty()) {
-                    Result.success(emptyList())
-                } else {
-                    val distinctArrivals = deduplicateArrivals(rawArrivals)
-                    val departures = distinctArrivals
-                        .sortedBy { it.timeToStation }
-                        .map { mapPredictionToDeparture(it, stationId, stationName) }
+                // 1. Fetch TfL arrivals (Underground, Elizabeth Line, Overground, DLR, Buses)
+                val tflArrivalsDeferred = async {
+                    try {
+                        fetchRawArrivalsWithHubExpansion(stationId)
+                    } catch (e: Exception) {
+                        tflError = e
+                        emptyList()
+                    }
+                }
 
-                    cacheDeparturesSafely(stationId, departures)
-                    Result.success(departures)
+                // 2. Fetch National Rail departures if station has known CRS code(s)
+                val crsCodes = NationalRailStationCodes.findCrsCodes(stationId, stationName)
+                val nrServicesDeferred = async {
+                    if (crsCodes.isNotEmpty()) {
+                        val collectedServices = mutableListOf<com.androidfung.departureboard.data.model.NrTrainService>()
+                        for (crs in crsCodes) {
+                            try {
+                                val board = nrApiService.getDepartureBoard(crs)
+                                board.trainServices?.let { collectedServices.addAll(it) }
+                            } catch (e: Exception) {
+                                nrError = e
+                            }
+                        }
+                        collectedServices
+                    } else {
+                        emptyList()
+                    }
+                }
+
+                val rawArrivals = tflArrivalsDeferred.await()
+                val nrServices = nrServicesDeferred.await()
+
+                val tflDepartures = if (rawArrivals.isNotEmpty()) {
+                    val distinct = TflDepartureMapper.deduplicate(rawArrivals)
+                    distinct.map { TflDepartureMapper.mapToDeparture(it, stationId, stationName) }
+                } else emptyList()
+
+                val nrDepartures = nrServices.map { service ->
+                    NationalRailDepartureMapper.mapToDeparture(service, stationId, stationName)
+                }
+
+                // Deduplicate cross-feed overlaps (e.g. Elizabeth line or Lioness line reported by both TfL and National Rail)
+                val combinedDepartures = mergeAndDeduplicateFeeds(tflDepartures, nrDepartures)
+                    .sortedBy { it.timeToStationSeconds }
+
+                when {
+                    combinedDepartures.isNotEmpty() -> {
+                        cacheDeparturesSafely(stationId, combinedDepartures)
+                        Result.success(combinedDepartures)
+                    }
+                    tflError != null && (crsCodes.isEmpty() || nrError != null) -> {
+                        fallbackDepartures(stationId, tflError ?: Exception("Network error"))
+                    }
+                    else -> {
+                        Result.success(emptyList())
+                    }
                 }
             } catch (e: Exception) {
-                fallbackDepartures(stationId, stationName, e)
+                fallbackDepartures(stationId, e)
+            }
+        }
+
+    override suspend fun getBatchDepartures(stations: List<Station>): Map<String, Result<List<Departure>>> =
+        withContext(Dispatchers.IO) {
+            if (stations.isEmpty()) return@withContext emptyMap()
+            
+            // TfL /StopPoint/{id}/Arrivals only accepts a single ID.
+            // Execute concurrent requests in parallel across all stations.
+            coroutineScope {
+                stations.map { station ->
+                    async {
+                        station.id to getDepartures(station.id, station.name)
+                    }
+                }.awaitAll().toMap()
             }
         }
 
@@ -127,11 +210,26 @@ class TransitRepositoryImpl(
         emit(getDepartures(stationId, stationName))
     }.flowOn(Dispatchers.IO)
 
+    // In-memory cache for TfL line statuses with 3-minute TTL (line statuses change slowly)
+    private var cachedLineStatuses: Map<String, TflLineStatusItem> = emptyMap()
+    private var lineStatusesCacheTimestamp: Long = 0L
+    private val LINE_STATUS_CACHE_TTL_MS = 180_000L // 3 minutes
+
     override suspend fun getLineStatuses(): Map<String, TflLineStatusItem> = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        if (cachedLineStatuses.isNotEmpty() && (now - lineStatusesCacheTimestamp) < LINE_STATUS_CACHE_TTL_MS) {
+            return@withContext cachedLineStatuses
+        }
+
         try {
-            apiService.getLineStatuses().associateBy { it.id.lowercase() }
+            val fresh = apiService.getLineStatuses().associateBy { it.id.lowercase() }
+            if (fresh.isNotEmpty()) {
+                cachedLineStatuses = fresh
+                lineStatusesCacheTimestamp = now
+            }
+            cachedLineStatuses
         } catch (_: Exception) {
-            emptyMap()
+            cachedLineStatuses
         }
     }
 
@@ -141,31 +239,8 @@ class TransitRepositoryImpl(
     override suspend fun setRecentStationId(stationId: String) = dataStore.setRecentStationId(stationId)
 
     // =========================================================================
-    // Private Helpers: Search & Station Building
+    // Private Helpers: Search & Route Stops
     // =========================================================================
-
-    private fun createStationFromMatch(match: TflStopPointMatch): Station {
-        val cleaned = StationNameFormatter.clean(match.name)
-        val isBus = match.modes.any { it.equals("bus", ignoreCase = true) }
-        val isBusOnly = isBus && match.modes.none { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr") }
-
-        val stopLetter = if (isBusOnly && !cleaned.contains("Stop ", ignoreCase = true)) {
-            Regex("^490\\d+([A-Za-z0-9]+)$").find(match.id)?.groupValues?.getOrNull(1)?.uppercase()
-        } else null
-
-        val towards = match.towards?.takeIf { it.isNotBlank() && it.trim().lowercase() != "null" }
-        val displayName = buildDisambiguatedStopName(cleaned, stopLetter, towards)
-
-        return Station(
-            id = match.id,
-            name = displayName,
-            modes = match.modes,
-            zone = match.zone,
-            lat = match.lat,
-            lon = match.lon,
-            isFavorite = false
-        )
-    }
 
     private suspend fun findRouteStopsIfApplicable(query: String): List<Station> {
         val busRouteRegex = Regex("""^(?:[0-9]{1,3}|[A-Za-z]{1,2}[0-9]{1,3})$""", RegexOption.IGNORE_CASE)
@@ -174,49 +249,15 @@ class TransitRepositoryImpl(
         return try {
             val stopPoints = apiService.getLineStopPoints(query.lowercase())
             stopPoints
-                .filter { it.modes.contains("bus") || it.id.startsWith("490") }
-                .map { sp -> createStationFromStopPoint(sp) }
+                .filter { it.modes.contains(TransitMode.BUS.id) || it.id.startsWith(TflStopPointUtils.PREFIX_BUS_STOP) }
+                .map { sp -> TflStationMapper.fromStopPointChild(sp) }
         } catch (_: Exception) {
             emptyList()
         }
     }
 
-    private fun createStationFromStopPoint(sp: TflStopPointChild): Station {
-        val common = sp.commonName ?: "Bus Stop"
-        val cleaned = StationNameFormatter.clean(common)
-        val letter = sp.stopLetter?.takeIf { it.isNotBlank() }
-            ?: sp.indicator?.takeIf { it.startsWith("Stop ", ignoreCase = true) }?.removePrefix("Stop ")?.trim()
-            ?: Regex("^490\\d+([A-Za-z0-9]+)$").find(sp.id)?.groupValues?.getOrNull(1)?.uppercase()
-
-        val towards = sp.towards?.takeIf { it.isNotBlank() && it.trim().lowercase() != "null" }
-            ?: sp.additionalProperties.firstOrNull { it.key.equals("Towards", ignoreCase = true) }?.value?.takeIf { it.isNotBlank() }
-
-        val displayName = buildDisambiguatedStopName(cleaned, letter, towards)
-
-        return Station(
-            id = sp.id,
-            name = displayName,
-            modes = listOf("bus"),
-            zone = sp.additionalProperties.firstOrNull { it.key.equals("Zone", ignoreCase = true) }?.value,
-            lat = sp.lat,
-            lon = sp.lon,
-            isFavorite = false
-        )
-    }
-
-    private fun buildDisambiguatedStopName(cleaned: String, stopLetter: String?, towards: String?): String {
-        val details = mutableListOf<String>()
-        if (!stopLetter.isNullOrBlank()) {
-            details.add("Stop $stopLetter")
-        }
-        if (towards != null && !cleaned.contains("towards", ignoreCase = true)) {
-            details.add("towards $towards")
-        }
-        return if (details.isNotEmpty()) "$cleaned (${details.joinToString(", ")})" else cleaned
-    }
-
     // =========================================================================
-    // Private Helpers: Departure Fetching, Deduplication & Mapping
+    // Private Helpers: Departure Fetching with Hub Expansion
     // =========================================================================
 
     private suspend fun fetchRawArrivalsWithHubExpansion(stationId: String): List<TflArrivalPrediction> {
@@ -226,11 +267,7 @@ class TransitRepositoryImpl(
         try {
             val detail = apiService.getStopPointDetail(stationId)
             val sortedChildren = detail.children.sortedByDescending { child ->
-                when {
-                    child.id.startsWith("940G") -> 3 // Tube / Tram / Rail
-                    child.id.startsWith("910G") -> 2 // National Rail
-                    else -> 1 // Bus stops
-                }
+                TflStopPointUtils.getHubChildPriority(child.id)
             }
 
             val childArrivals = mutableListOf<TflArrivalPrediction>()
@@ -252,103 +289,6 @@ class TransitRepositoryImpl(
         return arrivals
     }
 
-    private fun deduplicateArrivals(rawArrivals: List<TflArrivalPrediction>): List<TflArrivalPrediction> {
-        return rawArrivals.distinctBy { item ->
-            if (!item.vehicleId.isNullOrBlank()) {
-                item.vehicleId
-            } else {
-                "${item.lineId}_${item.destinationName}_${item.timeToStation / 30}"
-            }
-        }
-    }
-
-    private fun mapPredictionToDeparture(
-        item: TflArrivalPrediction,
-        stationId: String,
-        stationName: String
-    ): Departure {
-        val lineName = item.lineName ?: item.lineId ?: "Transit"
-        val badge = TflLineColors.getLineBadge(
-            lineId = item.lineId,
-            lineName = item.lineName,
-            modeName = item.modeName
-        )
-        val resolvedDest = DestinationResolver.resolve(
-            stationName = stationName,
-            itemDestination = item.destinationName,
-            itemTowards = item.towards,
-            lineId = item.lineId,
-            platformName = item.platformName
-        )
-        val isBus = item.modeName.equals("bus", ignoreCase = true) || item.lineId?.toIntOrNull() != null
-        val platformDisplay = formatPlatformDisplay(item.platformName, item.towards, isBus)
-        val cleanTowards = item.towards?.takeIf { it.trim().lowercase() != "null" }?.let { StationNameFormatter.clean(it) }
-        val resolvedDirection = resolveCardinalDirection(item, resolvedDest)
-
-        return Departure(
-            id = item.id,
-            stationId = item.naptanId ?: stationId,
-            stationName = StationNameFormatter.clean(item.stationName ?: stationName),
-            lineId = item.lineId ?: "transit",
-            lineName = lineName,
-            platformName = platformDisplay,
-            destinationName = resolvedDest.ifBlank { "Destination" },
-            towards = cleanTowards,
-            direction = resolvedDirection,
-            timeToStationSeconds = item.timeToStation,
-            expectedArrivalIso = item.expectedArrival,
-            currentLocation = item.currentLocation?.takeIf { it.trim().lowercase() != "null" },
-            modeName = item.modeName ?: if (isBus) "bus" else "tube",
-            lineBadge = badge
-        )
-    }
-
-    private fun formatPlatformDisplay(rawPlatform: String?, towards: String?, isBus: Boolean): String {
-        val trimmed = rawPlatform?.trim() ?: ""
-        return when {
-            trimmed.isNotBlank() && trimmed.lowercase() != "null" -> when {
-                isBus && !trimmed.startsWith("Stop ", ignoreCase = true) -> "Stop $trimmed"
-                trimmed.matches(Regex("^[A-Z0-9]$")) -> "Platform $trimmed"
-                !trimmed.startsWith("Platform", ignoreCase = true) &&
-                !trimmed.contains("bound", ignoreCase = true) &&
-                !trimmed.startsWith("Stop", ignoreCase = true) -> "Platform $trimmed"
-                else -> trimmed
-            }
-            isBus && !towards.isNullOrBlank() && towards.trim().lowercase() != "null" ->
-                "towards ${StationNameFormatter.clean(towards)}"
-            else -> if (isBus) "Bus Stand" else "Platform"
-        }
-    }
-
-    private fun resolveCardinalDirection(item: TflArrivalPrediction, resolvedDest: String): String? {
-        val rawPlatform = item.platformName?.trim() ?: ""
-        val isElizabeth = item.lineId?.contains("elizabeth", ignoreCase = true) == true ||
-                item.lineName?.contains("elizabeth", ignoreCase = true) == true
-
-        return when {
-            rawPlatform.contains("Eastbound", ignoreCase = true) -> "Eastbound"
-            rawPlatform.contains("Westbound", ignoreCase = true) -> "Westbound"
-            rawPlatform.contains("Northbound", ignoreCase = true) -> "Northbound"
-            rawPlatform.contains("Southbound", ignoreCase = true) -> "Southbound"
-            isElizabeth -> {
-                val destLower = resolvedDest.lowercase()
-                when {
-                    destLower.contains("abbey wood") || destLower.contains("shenfield") ||
-                    destLower.contains("liverpool street") || destLower.contains("paddington") ||
-                    destLower.contains("stratford") || item.direction.equals("inbound", ignoreCase = true) -> "Eastbound"
-
-                    destLower.contains("reading") || destLower.contains("heathrow") ||
-                    destLower.contains("maidenhead") || item.direction.equals("outbound", ignoreCase = true) -> "Westbound"
-
-                    else -> null
-                }
-            }
-            item.direction?.equals("inbound", ignoreCase = true) == true -> "Inbound"
-            item.direction?.equals("outbound", ignoreCase = true) == true -> "Outbound"
-            else -> null
-        }
-    }
-
     private suspend fun cacheDeparturesSafely(stationId: String, departures: List<Departure>) {
         if (departures.isNotEmpty() && departureDao != null) {
             try {
@@ -360,18 +300,40 @@ class TransitRepositoryImpl(
         }
     }
 
+    /**
+     * Merges TfL predictions and National Rail services, avoiding duplicate entries for lines
+     * reported by both sources (such as Elizabeth line and Overground/Lioness).
+     */
+    private fun mergeAndDeduplicateFeeds(
+        tflDepartures: List<Departure>,
+        nrDepartures: List<Departure>
+    ): List<Departure> {
+        if (tflDepartures.isEmpty()) return nrDepartures
+        if (nrDepartures.isEmpty()) return tflDepartures
+
+        val result = tflDepartures.toMutableList()
+
+        for (nr in nrDepartures) {
+            // Check if TfL already has an equivalent prediction for the same line and destination within 90 seconds
+            val isDuplicate = result.any { tfl ->
+                (tfl.lineId == nr.lineId || tfl.lineName.equals(nr.lineName, ignoreCase = true)) &&
+                (tfl.destinationName.contains(nr.destinationName, ignoreCase = true) || nr.destinationName.contains(tfl.destinationName, ignoreCase = true)) &&
+                kotlin.math.abs(tfl.timeToStationSeconds - nr.timeToStationSeconds) < 120
+            }
+            if (!isDuplicate) {
+                result.add(nr)
+            }
+        }
+        return result
+    }
+
     private suspend fun fallbackDepartures(
         stationId: String,
-        stationName: String,
         originalException: Exception
     ): Result<List<Departure>> {
         val cached = departureDao?.getDeparturesForStation(stationId)?.map { it.toDeparture() }
-        if (!cached.isNullOrEmpty()) {
-            return Result.success(cached)
-        }
-        val fallbacks = DefaultStations.getFallbackDepartures(stationId, stationName)
-        return if (fallbacks.isNotEmpty()) {
-            Result.success(fallbacks)
+        return if (!cached.isNullOrEmpty()) {
+            Result.success(cached)
         } else {
             Result.failure(originalException)
         }

@@ -1,10 +1,337 @@
 package com.androidfung.departureboard.data.repository
 
 /**
+ * Rule configuration for resolving outbound destinations when TfL reports terminating trains
+ * at the station itself or generic messages like "Check Front of Train".
+ */
+internal data class TerminusResolutionRule(
+    val stationMatcher: (station: String) -> Boolean,
+    val lineMatcher: ((line: String) -> Boolean)? = null,
+    val subConditions: List<SubCondition> = emptyList(),
+    val defaultDestination: String
+) {
+    data class SubCondition(
+        val matches: (towards: String, platform: String, line: String) -> Boolean,
+        val destination: String
+    )
+}
+
+/**
  * Resolves the outbound destination for terminus stations when TfL's prediction API reports
  * inbound terminating trains arriving at the station itself (e.g. Edgware, Mill Hill East, Brixton).
  */
 internal object DestinationResolver {
+
+    private val RULES = listOf(
+        // Northern Line
+        TerminusResolutionRule(
+            stationMatcher = { "edgware" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "via cx" in towards || "charing cross" in towards },
+                    destination = "Morden via Charing Cross"
+                ),
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "via bank" in towards || "bank" in towards },
+                    destination = "Morden via Bank"
+                ),
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "battersea" in towards },
+                    destination = "Battersea Power Station"
+                )
+            ),
+            defaultDestination = "Morden / Battersea"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "mill hill east" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "battersea" in towards },
+                    destination = "Battersea Power Station"
+                ),
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "via cx" in towards || "charing cross" in towards },
+                    destination = "Battersea via Charing Cross"
+                ),
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "via bank" in towards || "bank" in towards },
+                    destination = "Morden via Bank"
+                )
+            ),
+            defaultDestination = "Finchley Central"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "high barnet" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "via cx" in towards || "charing cross" in towards },
+                    destination = "Battersea Power Station"
+                ),
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "via bank" in towards || "bank" in towards },
+                    destination = "Morden via Bank"
+                )
+            ),
+            defaultDestination = "Morden / Battersea"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "morden" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "via cx" in towards || "charing cross" in towards },
+                    destination = "Edgware via Charing Cross"
+                ),
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "via bank" in towards || "bank" in towards },
+                    destination = "High Barnet via Bank"
+                )
+            ),
+            defaultDestination = "Edgware / High Barnet"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "battersea" in it },
+            defaultDestination = "High Barnet / Edgware via Charing Cross"
+        ),
+
+        // Victoria Line
+        TerminusResolutionRule(
+            stationMatcher = { "brixton" in it },
+            defaultDestination = "Walthamstow Central"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "walthamstow" in it },
+            defaultDestination = "Brixton"
+        ),
+
+        // Bakerloo Line
+        TerminusResolutionRule(
+            stationMatcher = { "elephant & castle" in it },
+            defaultDestination = "Harrow & Wealdstone / Queen's Park"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "harrow & wealdstone" in it },
+            defaultDestination = "Elephant & Castle"
+        ),
+
+        // Central Line
+        TerminusResolutionRule(
+            stationMatcher = { "west ruislip" in it },
+            defaultDestination = "Epping via Bank"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "ealing broadway" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, _, line -> "district" in line },
+                    destination = "Upminster via Tower Hill"
+                ),
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, _, line -> "elizabeth" in line },
+                    destination = "Abbey Wood / Shenfield"
+                )
+            ),
+            defaultDestination = "Epping / Hainault"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "epping" in it },
+            defaultDestination = "West Ruislip / Ealing Broadway"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "hainault" in it },
+            defaultDestination = "Central London via Newbury Park"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "woodford" in it },
+            defaultDestination = "Central London via Hainault"
+        ),
+
+        // District & Circle Lines
+        TerminusResolutionRule(
+            stationMatcher = { "wimbledon" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "edgware road" in towards },
+                    destination = "Edgware Road via High Street Kensington"
+                ),
+                TerminusResolutionRule.SubCondition(
+                    matches = { towards, _, _ -> "tower hill" in towards || "upminster" in towards || "barking" in towards },
+                    destination = "Upminster via Tower Hill"
+                )
+            ),
+            defaultDestination = "Upminster / Edgware Road"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "richmond" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, _, line -> "overground" in line || "mildmay" in line },
+                    destination = "Stratford via Highbury & Islington"
+                )
+            ),
+            defaultDestination = "Upminster via Tower Hill"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "upminster" in it },
+            defaultDestination = "Richmond / Ealing Broadway / Wimbledon"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "edgware road" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, _, line -> "circle" in line },
+                    destination = "Hammersmith via Tower Hill"
+                )
+            ),
+            defaultDestination = "Wimbledon via High Street Kensington"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "hammersmith" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, _, line -> "hammersmith" in line },
+                    destination = "Barking via King's Cross"
+                )
+            ),
+            defaultDestination = "Edgware Road via Aldgate"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "barking" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, _, line -> "hammersmith" in line },
+                    destination = "Hammersmith via King's Cross"
+                )
+            ),
+            defaultDestination = "Wimbledon / Richmond / Ealing Broadway"
+        ),
+
+        // Jubilee Line
+        TerminusResolutionRule(
+            stationMatcher = { "stanmore" in it },
+            defaultDestination = "Stratford via Central London"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "stratford" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, _, line -> "jubilee" in line },
+                    destination = "Stanmore via Central London"
+                ),
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, _, line -> "central" in line },
+                    destination = "West Ruislip / Ealing Broadway"
+                ),
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, _, line -> "dlr" in line },
+                    destination = "Lewisham / Woolwich Arsenal"
+                )
+            ),
+            defaultDestination = "Westbound Services"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "canary wharf" in it },
+            lineMatcher = { "jubilee" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, plat, _ -> "eastbound" in plat || "platform 2" in plat },
+                    destination = "Stratford via North Greenwich"
+                )
+            ),
+            defaultDestination = "Stanmore / Wembley Park"
+        ),
+
+        // Metropolitan Line
+        TerminusResolutionRule(
+            stationMatcher = { "aldgate" in it },
+            defaultDestination = "Uxbridge / Watford / Amersham"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "amersham" in it },
+            defaultDestination = "Aldgate / Baker Street"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "chesham" in it },
+            defaultDestination = "Aldgate / Baker Street"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "watford" in it },
+            defaultDestination = "Aldgate / Baker Street"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "uxbridge" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, _, line -> "piccadilly" in line },
+                    destination = "Cockfosters"
+                )
+            ),
+            defaultDestination = "Aldgate / Baker Street"
+        ),
+
+        // Piccadilly Line
+        TerminusResolutionRule(
+            stationMatcher = { "cockfosters" in it },
+            defaultDestination = "Heathrow / Uxbridge"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "heathrow terminal 4" in it },
+            defaultDestination = "Cockfosters via Central London"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "heathrow terminal 5" in it },
+            subConditions = listOf(
+                TerminusResolutionRule.SubCondition(
+                    matches = { _, _, line -> "elizabeth" in line },
+                    destination = "Abbey Wood / Shenfield"
+                )
+            ),
+            defaultDestination = "Cockfosters via Central London"
+        ),
+
+        // Waterloo & City Line
+        TerminusResolutionRule(
+            stationMatcher = { "waterloo" in it },
+            lineMatcher = { "waterloo" in it || "city" in it },
+            defaultDestination = "Bank"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "bank" in it },
+            lineMatcher = { "waterloo" in it || "city" in it },
+            defaultDestination = "Waterloo"
+        ),
+
+        // Elizabeth Line
+        TerminusResolutionRule(
+            stationMatcher = { "reading" in it },
+            defaultDestination = "Abbey Wood / Shenfield"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "shenfield" in it },
+            defaultDestination = "Reading / Heathrow Terminal 5"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "abbey wood" in it },
+            defaultDestination = "Reading / Heathrow Terminal 5"
+        ),
+
+        // DLR
+        TerminusResolutionRule(
+            stationMatcher = { "tower gateway" in it },
+            defaultDestination = "Beckton via Canary Wharf"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "beckton" in it },
+            defaultDestination = "Tower Gateway / Bank"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "lewisham" in it },
+            defaultDestination = "Bank / Stratford"
+        ),
+        TerminusResolutionRule(
+            stationMatcher = { "woolwich arsenal" in it },
+            defaultDestination = "Bank / Stratford International"
+        )
+    )
 
     fun resolve(
         stationName: String,
@@ -30,120 +357,22 @@ internal object DestinationResolver {
             return rawDest
         }
 
-        // The train terminates at this station or reports "Check Front of Train"; infer the departing destination for passengers on the platform
+        // Check configured rules
+        val matchedRule = RULES.firstOrNull { rule ->
+            rule.stationMatcher(currentStation) && (rule.lineMatcher == null || rule.lineMatcher.invoke(lineLower))
+        }
+
+        if (matchedRule != null) {
+            for (subCondition in matchedRule.subConditions) {
+                if (subCondition.matches(towardsLower, platLower, lineLower)) {
+                    return subCondition.destination
+                }
+            }
+            return matchedRule.defaultDestination
+        }
+
+        // Fallback by platform direction if available
         return when {
-            // Northern Line
-            "edgware" in currentStation -> when {
-                "via cx" in towardsLower || "charing cross" in towardsLower -> "Morden via Charing Cross"
-                "via bank" in towardsLower || "bank" in towardsLower -> "Morden via Bank"
-                "battersea" in towardsLower -> "Battersea Power Station"
-                else -> "Morden / Battersea"
-            }
-            "mill hill east" in currentStation -> when {
-                "battersea" in towardsLower -> "Battersea Power Station"
-                "via cx" in towardsLower || "charing cross" in towardsLower -> "Battersea via Charing Cross"
-                "via bank" in towardsLower || "bank" in towardsLower -> "Morden via Bank"
-                else -> "Finchley Central"
-            }
-            "high barnet" in currentStation -> when {
-                "via cx" in towardsLower || "charing cross" in towardsLower -> "Battersea Power Station"
-                "via bank" in towardsLower || "bank" in towardsLower -> "Morden via Bank"
-                else -> "Morden / Battersea"
-            }
-            "morden" in currentStation -> when {
-                "via cx" in towardsLower || "charing cross" in towardsLower -> "Edgware via Charing Cross"
-                "via bank" in towardsLower || "bank" in towardsLower -> "High Barnet via Bank"
-                else -> "Edgware / High Barnet"
-            }
-            "battersea" in currentStation -> "High Barnet / Edgware via Charing Cross"
-
-            // Victoria Line
-            "brixton" in currentStation -> "Walthamstow Central"
-            "walthamstow" in currentStation -> "Brixton"
-
-            // Bakerloo Line
-            "elephant & castle" in currentStation -> "Harrow & Wealdstone / Queen's Park"
-            "harrow & wealdstone" in currentStation -> "Elephant & Castle"
-
-            // Central Line
-            "west ruislip" in currentStation -> "Epping via Bank"
-            "ealing broadway" in currentStation -> when {
-                "district" in lineLower -> "Upminster via Tower Hill"
-                "elizabeth" in lineLower -> "Abbey Wood / Shenfield"
-                else -> "Epping / Hainault"
-            }
-            "epping" in currentStation -> "West Ruislip / Ealing Broadway"
-            "hainault" in currentStation -> "Central London via Newbury Park"
-            "woodford" in currentStation -> "Central London via Hainault"
-
-            // District & Circle Lines
-            "wimbledon" in currentStation -> when {
-                "edgware road" in towardsLower -> "Edgware Road via High Street Kensington"
-                "tower hill" in towardsLower || "upminster" in towardsLower || "barking" in towardsLower -> "Upminster via Tower Hill"
-                else -> "Upminster / Edgware Road"
-            }
-            "richmond" in currentStation -> when {
-                "overground" in lineLower || "mildmay" in lineLower -> "Stratford via Highbury & Islington"
-                else -> "Upminster via Tower Hill"
-            }
-            "upminster" in currentStation -> "Richmond / Ealing Broadway / Wimbledon"
-            "edgware road" in currentStation -> when {
-                "circle" in lineLower -> "Hammersmith via Tower Hill"
-                else -> "Wimbledon via High Street Kensington"
-            }
-            "hammersmith" in currentStation -> when {
-                "hammersmith" in lineLower -> "Barking via King's Cross"
-                else -> "Edgware Road via Aldgate"
-            }
-            "barking" in currentStation -> when {
-                "hammersmith" in lineLower -> "Hammersmith via King's Cross"
-                else -> "Wimbledon / Richmond / Ealing Broadway"
-            }
-
-            // Jubilee Line
-            "stanmore" in currentStation -> "Stratford via Central London"
-            "stratford" in currentStation -> when {
-                "jubilee" in lineLower -> "Stanmore via Central London"
-                "central" in lineLower -> "West Ruislip / Ealing Broadway"
-                "dlr" in lineLower -> "Lewisham / Woolwich Arsenal"
-                else -> "Westbound Services"
-            }
-            "canary wharf" in currentStation && "jubilee" in lineLower -> when {
-                "eastbound" in platLower || "platform 2" in platLower -> "Stratford via North Greenwich"
-                else -> "Stanmore / Wembley Park"
-            }
-
-            // Metropolitan Line
-            "aldgate" in currentStation -> "Uxbridge / Watford / Amersham"
-            "amersham" in currentStation -> "Aldgate / Baker Street"
-            "chesham" in currentStation -> "Aldgate / Baker Street"
-            "watford" in currentStation -> "Aldgate / Baker Street"
-            "uxbridge" in currentStation -> if ("piccadilly" in lineLower) "Cockfosters" else "Aldgate / Baker Street"
-
-            // Piccadilly Line
-            "cockfosters" in currentStation -> "Heathrow / Uxbridge"
-            "heathrow terminal 4" in currentStation -> "Cockfosters via Central London"
-            "heathrow terminal 5" in currentStation -> when {
-                "elizabeth" in lineLower -> "Abbey Wood / Shenfield"
-                else -> "Cockfosters via Central London"
-            }
-
-            // Waterloo & City Line
-            "waterloo" in currentStation && ("waterloo" in lineLower || "city" in lineLower) -> "Bank"
-            "bank" in currentStation && ("waterloo" in lineLower || "city" in lineLower) -> "Waterloo"
-
-            // Elizabeth Line
-            "reading" in currentStation -> "Abbey Wood / Shenfield"
-            "shenfield" in currentStation -> "Reading / Heathrow Terminal 5"
-            "abbey wood" in currentStation -> "Reading / Heathrow Terminal 5"
-
-            // DLR
-            "tower gateway" in currentStation -> "Beckton via Canary Wharf"
-            "beckton" in currentStation -> "Tower Gateway / Bank"
-            "lewisham" in currentStation -> "Bank / Stratford"
-            "woolwich arsenal" in currentStation -> "Bank / Stratford International"
-
-            // Fallback by platform direction if available
             "southbound" in platLower -> "Southbound Services"
             "northbound" in platLower -> "Northbound Services"
             "eastbound" in platLower -> "Eastbound Services"

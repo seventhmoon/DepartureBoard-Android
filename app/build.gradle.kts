@@ -20,8 +20,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 6
-        versionName = "1.0.1-261004"
+        versionCode = 7
+        versionName = "1.0.1-261005"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -34,6 +34,9 @@ android {
         }
         val tflApiKey = props.getProperty("TFL_API_KEY") ?: System.getenv("TFL_API_KEY") ?: ""
         buildConfigField("String", "TFL_API_KEY", "\"$tflApiKey\"")
+
+        val nrApiKey = props.getProperty("NATIONAL_RAIL_API_KEY") ?: System.getenv("NATIONAL_RAIL_API_KEY") ?: ""
+        buildConfigField("String", "NATIONAL_RAIL_API_KEY", "\"$nrApiKey\"")
     }
 
     buildTypes {

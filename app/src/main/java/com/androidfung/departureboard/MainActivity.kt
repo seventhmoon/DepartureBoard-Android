@@ -54,6 +54,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun checkForAppUpdate() {
         try {
             val appUpdateInfoTask = appUpdateManager.appUpdateInfo
@@ -75,6 +76,7 @@ class MainActivity : ComponentActivity() {
         } catch (_: Exception) {}
     }
 
+    @Suppress("DEPRECATION")
     override fun onResume() {
         super.onResume()
         try {

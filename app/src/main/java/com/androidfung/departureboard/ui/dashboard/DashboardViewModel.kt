@@ -44,7 +44,7 @@ class DashboardViewModel @JvmOverloads constructor(
         observeSavedStations()
         if (enablePeriodicTasks) {
             startCountdownTicker()
-            startAutoRefreshPolling()
+            // startAutoRefreshPolling() will be triggered lifecycle-aware from DashboardScreen
         }
     }
 
@@ -60,7 +60,7 @@ class DashboardViewModel @JvmOverloads constructor(
                         )
                     }
                 } else {
-                    // Retain existing departures for stations if available
+                    // Retain existing departures for stations if available, or prefill from offline cache
                     val existingMap = _uiState.value.stationCards.associateBy { it.station.id }
                     val newCards = stations.map { station ->
                         existingMap[station.id]?.copy(station = station)
@@ -76,6 +76,7 @@ class DashboardViewModel @JvmOverloads constructor(
                             isInitialLoading = false
                         )
                     }
+                    // Fetch fresh arrivals using batched multi-station endpoint
                     refreshDeparturesForStations(stations)
                 }
             }
@@ -149,16 +150,10 @@ class DashboardViewModel @JvmOverloads constructor(
 
     private suspend fun refreshDeparturesForStations(stations: List<Station>) {
         val lineStatusesDeferred = viewModelScope.async { repository.getLineStatuses() }
-
-        val deferredDepartures = stations.map { station ->
-            viewModelScope.async {
-                val result = repository.getDepartures(station.id, station.name)
-                station.id to result
-            }
-        }
+        val batchDeparturesDeferred = viewModelScope.async { repository.getBatchDepartures(stations) }
 
         val lineStatuses = lineStatusesDeferred.await()
-        val results = deferredDepartures.awaitAll().toMap()
+        val results = batchDeparturesDeferred.await()
 
         _uiState.update { state ->
             val updatedCards = state.stationCards.map { card ->
@@ -404,88 +399,7 @@ class DashboardViewModel @JvmOverloads constructor(
      * Excludes generic "National-rail" or unused "Bus" badges.
      */
     private fun inferLineBadges(station: Station): List<LineBadgeInfo> {
-        val badges = mutableListOf<LineBadgeInfo>()
-        val stName = station.name.lowercase()
-
-        when {
-            "oxford circus" in stName || station.id == "940GZZLUOXC" -> {
-                badges.add(TflLineColors.getLineBadge("bakerloo", "Bakerloo", "tube"))
-                badges.add(TflLineColors.getLineBadge("central", "Central", "tube"))
-                badges.add(TflLineColors.getLineBadge("victoria", "Victoria", "tube"))
-            }
-            "king's cross" in stName || station.id == "940GZZLUKSX" -> {
-                badges.add(TflLineColors.getLineBadge("circle", "Circle", "tube"))
-                badges.add(TflLineColors.getLineBadge("hammersmith-city", "Hammersmith & City", "tube"))
-                badges.add(TflLineColors.getLineBadge("metropolitan", "Metropolitan", "tube"))
-                badges.add(TflLineColors.getLineBadge("northern", "Northern", "tube"))
-                badges.add(TflLineColors.getLineBadge("piccadilly", "Piccadilly", "tube"))
-                badges.add(TflLineColors.getLineBadge("victoria", "Victoria", "tube"))
-            }
-            "waterloo" in stName || station.id == "940GZZLUWLO" -> {
-                badges.add(TflLineColors.getLineBadge("bakerloo", "Bakerloo", "tube"))
-                badges.add(TflLineColors.getLineBadge("jubilee", "Jubilee", "tube"))
-                badges.add(TflLineColors.getLineBadge("northern", "Northern", "tube"))
-                badges.add(TflLineColors.getLineBadge("waterloo-city", "Waterloo & City", "tube"))
-            }
-            "victoria" in stName || station.id == "940GZZLUVIC" -> {
-                badges.add(TflLineColors.getLineBadge("circle", "Circle", "tube"))
-                badges.add(TflLineColors.getLineBadge("district", "District", "tube"))
-                badges.add(TflLineColors.getLineBadge("victoria", "Victoria", "tube"))
-            }
-            "london bridge" in stName || station.id == "940GZZLULNB" -> {
-                badges.add(TflLineColors.getLineBadge("jubilee", "Jubilee", "tube"))
-                badges.add(TflLineColors.getLineBadge("northern", "Northern", "tube"))
-            }
-            "kentish town" in stName -> {
-                badges.add(TflLineColors.getLineBadge("northern", "Northern", "tube"))
-            }
-            "old street" in stName -> {
-                badges.add(TflLineColors.getLineBadge("northern", "Northern", "tube"))
-            }
-            "ealing broadway" in stName || station.id == "940GZZLUEBY" -> {
-                badges.add(TflLineColors.getLineBadge("central", "Central", "tube"))
-                badges.add(TflLineColors.getLineBadge("district", "District", "tube"))
-                badges.add(TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
-            }
-            "wembley park" in stName || station.id == "940GZZLUWYP" -> {
-                badges.add(TflLineColors.getLineBadge("jubilee", "Jubilee", "tube"))
-                badges.add(TflLineColors.getLineBadge("metropolitan", "Metropolitan", "tube"))
-            }
-            "paddington" in stName || station.id == "HUBPAD" || station.id == "940GZZLUPAC" -> {
-                badges.add(TflLineColors.getLineBadge("bakerloo", "Bakerloo", "tube"))
-                badges.add(TflLineColors.getLineBadge("circle", "Circle", "tube"))
-                badges.add(TflLineColors.getLineBadge("district", "District", "tube"))
-                badges.add(TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
-                badges.add(TflLineColors.getLineBadge("hammersmith-city", "Hammersmith & City", "tube"))
-            }
-            "farringdon" in stName || station.id == "HUBZFD" -> {
-                badges.add(TflLineColors.getLineBadge("circle", "Circle", "tube"))
-                badges.add(TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
-                badges.add(TflLineColors.getLineBadge("hammersmith-city", "Hammersmith & City", "tube"))
-                badges.add(TflLineColors.getLineBadge("metropolitan", "Metropolitan", "tube"))
-            }
-            "liverpool street" in stName || station.id == "HUBLST" -> {
-                badges.add(TflLineColors.getLineBadge("central", "Central", "tube"))
-                badges.add(TflLineColors.getLineBadge("circle", "Circle", "tube"))
-                badges.add(TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
-                badges.add(TflLineColors.getLineBadge("hammersmith-city", "Hammersmith & City", "tube"))
-                badges.add(TflLineColors.getLineBadge("metropolitan", "Metropolitan", "tube"))
-                badges.add(TflLineColors.getLineBadge("overground", "London Overground", "overground"))
-            }
-            else -> {
-                station.modes.forEach { mode ->
-                    when (mode.lowercase()) {
-                        "tube" -> badges.add(TflLineColors.getLineBadge("tube", "Underground", "tube"))
-                        "elizabeth-line" -> badges.add(TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
-                        "overground" -> badges.add(TflLineColors.getLineBadge("overground", "Overground", "overground"))
-                        "dlr" -> badges.add(TflLineColors.getLineBadge("dlr", "DLR", "dlr"))
-                        "tram" -> badges.add(TflLineColors.getLineBadge("tram", "Tram", "tram"))
-                        // Explicitly exclude generic "bus" or "national-rail" placeholders
-                    }
-                }
-            }
-        }
-        return badges.distinctBy { it.displayName }.sortedBy { it.displayName }
+        return com.androidfung.departureboard.data.model.StationLineInferrer.infer(station)
     }
 
     override fun onCleared() {

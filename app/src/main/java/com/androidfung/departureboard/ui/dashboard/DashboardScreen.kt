@@ -119,6 +119,14 @@ fun DashboardScreen(
         }
     }
 
+    // Automatically pause auto-refresh polling when screen is backgrounded or inactive
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        viewModel.startAutoRefreshPolling()
+        onPauseOrDispose {
+            viewModel.stopAutoRefreshPolling()
+        }
+    }
+
     val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(uiState.stationCards.size) {
         if (uiState.stationCards.isNotEmpty()) {
@@ -309,14 +317,11 @@ fun DashboardContent(
                     }
                 } else {
                     // Station Departure Cards in adaptive staggered grid
-                    // If nearest station exists on wide screens / foldables, span the nearest card full line for prominent visibility
+                    // All cards uniformly occupy 1 column for consistent grid layout
                     items(
                         items = uiState.stationCards,
                         key = { it.station.id + it.station.name },
-                        span = { cardModel ->
-                            val isNearest = uiState.nearestStationId == cardModel.station.id
-                            if (isNearest) StaggeredGridItemSpan.FullLine else StaggeredGridItemSpan.SingleLane
-                        }
+                        span = { StaggeredGridItemSpan.SingleLane }
                     ) { cardModel ->
                         val isNearest = uiState.nearestStationId == cardModel.station.id
                         StationDepartureCard(

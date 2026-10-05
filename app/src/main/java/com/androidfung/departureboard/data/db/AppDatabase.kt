@@ -6,13 +6,17 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [CachedDepartureEntity::class],
-    version = 1,
+    entities = [
+        CachedDepartureEntity::class,
+        StationCrsEntity::class
+    ],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun departureDao(): DepartureDao
+    abstract fun stationCrsDao(): StationCrsDao
 
     companion object {
         @Volatile
@@ -25,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "departure_board.db"
                 )
+                    .createFromAsset("station_crs.db")
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     .also { instance = it }
