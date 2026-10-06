@@ -64,6 +64,15 @@ object TflLineColors {
     val LightText = Color(0xFFFFFFFF)
 
     /**
+     * Set of standard London Underground line IDs for fast O(1) membership check.
+     */
+    val TUBE_LINE_IDS: Set<String> = setOf(
+        "bakerloo", "central", "circle", "district", "hammersmith-city",
+        "jubilee", "metropolitan", "northern", "piccadilly", "victoria",
+        "waterloo-city", "tube"
+    )
+
+    /**
      * Resolves the badge styling for a given line ID and/or mode name.
      */
     fun getLineBadge(lineId: String?, lineName: String?, modeName: String?): LineBadgeInfo {

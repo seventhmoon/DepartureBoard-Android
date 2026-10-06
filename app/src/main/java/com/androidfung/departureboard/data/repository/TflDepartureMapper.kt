@@ -48,7 +48,7 @@ internal object TflDepartureMapper {
         )
         val isBus = item.modeName.equals(TransitMode.BUS.id, ignoreCase = true) || item.lineId?.toIntOrNull() != null
         val platformDisplay = PlatformFormatter.format(item.platformName, item.towards, isBus)
-        val cleanTowards = item.towards?.takeIf { it.trim().lowercase() != "null" }?.let { StationNameFormatter.clean(it) }
+        val cleanTowards = item.towards?.takeIf { !it.trim().equals("null", ignoreCase = true) }?.let { StationNameFormatter.clean(it) }
         val resolvedDirection = resolveCardinalDirection(item, resolvedDest, stationName)
 
         return Departure(
@@ -63,7 +63,7 @@ internal object TflDepartureMapper {
             direction = resolvedDirection,
             timeToStationSeconds = item.timeToStation,
             expectedArrivalIso = item.expectedArrival,
-            currentLocation = item.currentLocation?.takeIf { it.trim().lowercase() != "null" },
+            currentLocation = item.currentLocation?.takeIf { !it.trim().equals("null", ignoreCase = true) },
             modeName = item.modeName ?: if (isBus) TransitMode.BUS.id else TransitMode.TUBE.id,
             lineBadge = badge
         )
@@ -95,6 +95,16 @@ internal object TflDepartureMapper {
         resolvedDest: String,
         currentStationName: String
     ): String? {
+        // Fast O(1) CRS/NaPTAN machine identifier check
+        val resolved = ElizabethLineDirectionResolver.resolve(
+            destinationNaptanId = item.destinationNaptanId,
+            platformName = item.platformName,
+            destinationName = resolvedDest,
+            apiDirection = item.direction
+        )
+        if (resolved != null) return resolved
+
+        // Fallback to relative longitude calculation
         val destLon = findStationLongitude(resolvedDest, item.destinationNaptanId)
         val currentLon = findStationLongitude(currentStationName, item.naptanId)
 
@@ -105,12 +115,7 @@ internal object TflDepartureMapper {
             }
         }
 
-        // Fallback to API direction
-        return when {
-            item.direction.equals("inbound", ignoreCase = true) -> "Eastbound"
-            item.direction.equals("outbound", ignoreCase = true) -> "Westbound"
-            else -> null
-        }
+        return null
     }
 
     private fun findStationLongitude(nameOrCleaned: String, stationId: String?): Double? {

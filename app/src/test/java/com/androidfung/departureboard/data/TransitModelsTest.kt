@@ -38,6 +38,21 @@ class TransitModelsTest {
     }
 
     @Test
+    fun testLineBadgeInfoNaturalComparator() {
+        val bus102 = com.androidfung.departureboard.data.model.LineBadgeInfo("102", "102", androidx.compose.ui.graphics.Color.Red)
+        val bus13 = com.androidfung.departureboard.data.model.LineBadgeInfo("13", "13", androidx.compose.ui.graphics.Color.Red)
+        val bus460 = com.androidfung.departureboard.data.model.LineBadgeInfo("460", "460", androidx.compose.ui.graphics.Color.Red)
+        val victoria = com.androidfung.departureboard.data.model.LineBadgeInfo("victoria", "Victoria", androidx.compose.ui.graphics.Color.Blue)
+        val bakerloo = com.androidfung.departureboard.data.model.LineBadgeInfo("bakerloo", "Bakerloo", androidx.compose.ui.graphics.Color.Gray)
+
+        val unsorted = listOf(victoria, bus102, bakerloo, bus460, bus13)
+        val sorted = unsorted.sortedWith(com.androidfung.departureboard.data.model.LineBadgeInfo.NATURAL_COMPARATOR)
+
+        val names = sorted.map { it.displayName }
+        assertEquals(listOf("13", "102", "460", "Bakerloo", "Victoria"), names)
+    }
+
+    @Test
     fun testFormattedTimeToArrival() {
         val badge = TflLineColors.getLineBadge("victoria", "Victoria", "tube")
         val dueDeparture = Departure(

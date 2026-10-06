@@ -9,15 +9,15 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Station
+import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "station_preferences")
+internal val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "station_preferences")
 
 /**
  * Interface defining station preferences data source operations.
@@ -36,8 +36,9 @@ interface StationPreferencesDataSource {
  */
 class StationPreferencesDataStore(private val context: Context) : StationPreferencesDataSource {
 
+    // Moshi code-generated adapters (KSP @JsonClass) resolve automatically via ClassIndex;
+    // no reflective KotlinJsonAdapterFactory is needed, keeping release (R8) builds safe.
     private val moshi = Moshi.Builder()
-        .addLast(KotlinJsonAdapterFactory())
         .build()
 
     private val stationListType = Types.newParameterizedType(List::class.java, StationDto::class.java)
@@ -66,9 +67,12 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
             } else {
                 try {
                     val dtos = stationListAdapter.fromJson(json)
-                    if (dtos.isNullOrEmpty()) {
+                    if (dtos == null) {
+                        // JSON is the literal "null" — treat as never-saved → popular defaults
                         DefaultStations.POPULAR_STATIONS
                     } else {
+                        // An explicitly empty list is preserved so the dashboard can show
+                        // its empty state instead of silently resurrecting the defaults.
                         dtos.map { it.toStation() }
                     }
                 } catch (_: Exception) {
@@ -154,7 +158,10 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
 
 /**
  * Lightweight DTO for serializing stations to JSON.
+ * Code-generated Moshi adapter (no runtime reflection) so R8/minified release builds
+ * keep the DataStore JSON round-trip intact.
  */
+@JsonClass(generateAdapter = true)
 data class StationDto(
     val id: String,
     val name: String,
@@ -177,6 +184,7 @@ data class StationDto(
     )
 }
 
+@JsonClass(generateAdapter = true)
 data class StationLineDto(
     val id: String,
     val name: String,

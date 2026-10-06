@@ -36,8 +36,23 @@ class TransitAiAssistant(
     suspend fun answerQuery(
         query: String,
         savedStations: List<Station>,
-        nearestStation: Station? = null
+        nearestStation: Station? = null,
+        modelType: AiModelType = AiModelType.LOGIC_FALLBACK
     ): AiTransitResult = withContext(Dispatchers.Default) {
+        val result = executeQueryInternal(query, savedStations, nearestStation)
+        val prefix = when (modelType) {
+            AiModelType.LOCAL -> "🤖 [Local AI] "
+            AiModelType.CLOUD -> "☁️ [Cloud LLM] "
+            AiModelType.LOGIC_FALLBACK -> ""
+        }
+        result.copy(answer = "$prefix${result.answer}")
+    }
+
+    private suspend fun executeQueryInternal(
+        query: String,
+        savedStations: List<Station>,
+        nearestStation: Station? = null
+    ): AiTransitResult {
         val cleanQuery = query.trim().lowercase()
 
         // 1. Check if the query asks about a specific bus line (e.g. "221", "SL1", "73")
@@ -67,111 +82,67 @@ class TransitAiAssistant(
         // If query asks about trains ("train", "tube", "underground"), prioritize tube/rail stations over bus stops
         val isTrainQuery = cleanQuery.contains("train") || cleanQuery.contains("tube") || cleanQuery.contains("underground")
 
-        val sortedSavedStations = if (nearestStation != null) {
-            savedStations.sortedWith(
-                compareBy<Station> { 
-                    if (it.id == nearestStation.id) 0 else 1 
-                }.thenBy {
-                    if (isTrainQuery && it.modes.any { m -> TransitMode.fromModeString(m).isRail }) 0 else 1
-                }
-            )
-        } else {
-            savedStations
+        // 5. Named line recognition (e.g. "Central line", "Victoria", "Elizabeth line", "Northern")
+        val namedLine = KNOWN_LINES.firstOrNull { alias ->
+            alias.keywords.any { kw -> cleanQuery.contains(kw) }
         }
+
+        // 6. Service-status intent (e.g. "Any Tube delays or disruptions?", "Elizabeth line status")
+        val isStatusQuery = STATUS_KEYWORDS.any { kw -> cleanQuery.contains(kw) }
+        if (isStatusQuery) {
+            return answerStatusQuery(namedLine, defaultOrigin)
+        }
+
+        // Candidate origins: prioritize user's physical nearest station first, followed by saved stations
+        val allOrigins = (listOfNotNull(nearestStation) + savedStations).distinctBy { it.id }
 
         val stationsToSearch = when {
             originStation != null -> listOf(originStation)
-            defaultOrigin != null && targetDestinationName == null && queriedLine == null -> {
-                // If asking "when is the next train?", use nearest tube/train station if train is requested
-                val origin = if (isTrainQuery && defaultOrigin.isBusOnly) {
-                    sortedSavedStations.firstOrNull { it.modes.any { m -> TransitMode.fromModeString(m).isRail } } ?: defaultOrigin
-                } else defaultOrigin
-                listOf(origin)
-            }
-            else -> sortedSavedStations
+            nearestStation != null -> listOf(nearestStation) + savedStations.filter { it.id != nearestStation.id }
+            else -> savedStations
         }
 
-        // 4. If destination station was queried (e.g. "to Mill Hill East"):
-        // If the query asks for "train", find the tube/rail station; otherwise find matching station
-        var destinationStation: Station? = null
-        if (!targetDestinationName.isNullOrBlank()) {
-            val candidateStations = savedStations.filter { 
-                val b = it.name.lowercase().substringBefore("(").trim()
-                b.contains(targetDestinationName) || targetDestinationName.contains(b)
-            }
-            destinationStation = if (isTrainQuery) {
-                candidateStations.firstOrNull { it.modes.any { m -> m in listOf("tube", "rail", "overground", "elizabeth-line", "national-rail") } }
-                    ?: repository.searchStations("$targetDestinationName Underground").getOrNull()?.firstOrNull()
-                    ?: candidateStations.firstOrNull()
-            } else {
-                candidateStations.firstOrNull() ?: repository.searchStations(targetDestinationName).getOrNull()?.firstOrNull()
-            }
-        }
+        // If target destination is queried (e.g. "to Mill Hill East"), first check if our nearest station
+        // or candidate origins have departures heading towards that destination.
+        var matchingDepartures: List<Departure> = emptyList()
+        var departureStation: Station? = null
 
-        // If the query asks about arrivals arriving at a destination station (e.g. "train to Mill Hill East"):
-        // Fetch arrivals directly at that target station so the user gets the exact time the train arrives there!
-        if (destinationStation != null && originStation == null) {
-            val arrivalsAtDest = repository.getDepartures(destinationStation.id, destinationStation.name).getOrNull() ?: emptyList()
-            val filteredByQuery = if (queriedLine != null) {
-                arrivalsAtDest.filter { it.lineId.equals(queriedLine, ignoreCase = true) || it.lineName.equals(queriedLine, ignoreCase = true) }
-            } else if (isTrainQuery) {
-                arrivalsAtDest.filter { !it.modeName.equals("bus", ignoreCase = true) }
-            } else arrivalsAtDest
+        for (origin in stationsToSearch) {
+            val deps = repository.getDepartures(origin.id, origin.name).getOrNull() ?: emptyList()
+            val matches = deps.filter { dep ->
+                val depDest = dep.destinationName.lowercase()
+                val depTowards = dep.towards?.lowercase() ?: ""
 
-            if (filteredByQuery.isNotEmpty()) {
-                val next = filteredByQuery.first()
-                val clock = next.formattedActualClockTime ?: ""
-                val clockSuffix = if (clock.isNotBlank()) " at $clock" else ""
-                val nextMinutes = if (next.timeToStationSeconds <= 30) "due now" else "in ${next.formattedTimeToArrival}"
-                val subsequent = filteredByQuery.getOrNull(1)
-                val subsequentText = if (subsequent != null) ", followed by another in ${subsequent.formattedTimeToArrival}" else ""
-
-                val answer = "The next ${next.lineName} service arriving at ${destinationStation.displayName} (${next.platformName}) is $nextMinutes$clockSuffix$subsequentText."
-                return@withContext AiTransitResult(
-                    answer = answer,
-                    matchedStation = destinationStation,
-                    matchedDepartures = filteredByQuery.take(4)
+                val lineMatches = queriedLine != null && (
+                    dep.lineId.equals(queriedLine, ignoreCase = true) ||
+                    dep.lineName.equals(queriedLine, ignoreCase = true)
                 )
+
+                val namedLineMatches = namedLine != null && (
+                    dep.lineId.equals(namedLine.lineId, ignoreCase = true) ||
+                    namedLine.keywords.any { kw ->
+                        dep.lineName.contains(kw, ignoreCase = true) || dep.lineId.contains(kw, ignoreCase = true)
+                    }
+                )
+
+                val destMatches = if (targetDestinationName != null) {
+                    depDest.contains(targetDestinationName) || targetDestinationName.contains(depDest) ||
+                    (depTowards.isNotBlank() && (depTowards.contains(targetDestinationName) || targetDestinationName.contains(depTowards)))
+                } else {
+                    false
+                }
+
+                lineMatches || namedLineMatches || destMatches
+            }
+
+            if (matches.isNotEmpty()) {
+                matchingDepartures = matches.sortedBy { it.timeToStationSeconds }
+                departureStation = origin
+                break
             }
         }
 
-        val allDepartures = mutableListOf<Departure>()
-        for (station in stationsToSearch) {
-            val departures = repository.getDepartures(station.id, station.name).getOrNull() ?: emptyList()
-            allDepartures.addAll(departures)
-        }
-
-        val matchingDepartures = allDepartures.filter { dep ->
-            val depDest = dep.destinationName.lowercase()
-            val depTowards = dep.towards?.lowercase() ?: ""
-            val lineMatches = queriedLine != null && (
-                dep.lineId.equals(queriedLine, ignoreCase = true) ||
-                dep.lineName.equals(queriedLine, ignoreCase = true)
-            )
-
-            val destMatches = if (targetDestinationName != null) {
-                depDest.contains(targetDestinationName) || targetDestinationName.contains(depDest) ||
-                (depTowards.isNotBlank() && (depTowards.contains(targetDestinationName) || targetDestinationName.contains(depTowards)))
-            } else {
-                false
-            }
-
-            lineMatches || destMatches
-        }.sortedWith(
-            compareBy<Departure> { 
-                if (nearestStation != null && it.stationId == nearestStation.id) 0
-                else if (nearestStation?.lat != null && nearestStation.lon != null) {
-                    val st = savedStations.firstOrNull { s -> s.id == it.stationId }
-                    if (st?.lat != null && st.lon != null) {
-                        (com.androidfung.departureboard.util.LocationHelper.calculateDistanceMeters(
-                            nearestStation.lat, nearestStation.lon, st.lat, st.lon
-                        ) / 1000).toInt()
-                    } else 50
-                } else 1 
-            }.thenBy { it.timeToStationSeconds }
-        )
-
-        if (matchingDepartures.isNotEmpty()) {
+        return if (matchingDepartures.isNotEmpty()) {
             val next = matchingDepartures.first()
             val clock = next.formattedActualClockTime ?: ""
             val clockSuffix = if (clock.isNotBlank()) " at $clock" else ""
@@ -182,27 +153,127 @@ class TransitAiAssistant(
                 ", followed by another in ${subsequent.formattedTimeToArrival}"
             } else ""
 
-            val answer = "The next ${next.lineName} departure towards ${next.destinationName} leaves from ${next.stationName} (${next.platformName}) $nextMinutes$clockSuffix$subsequentText."
+            val prefix = if (departureStation != null && nearestStation != null && departureStation.id == nearestStation.id) {
+                "From ${departureStation.displayName} (your nearest station), the"
+            } else {
+                "The"
+            }
+
+            val answer = "$prefix next ${next.lineName} departure towards ${next.destinationName} leaves from ${next.stationName} (${next.platformName}) $nextMinutes$clockSuffix$subsequentText."
 
             AiTransitResult(
                 answer = answer,
-                matchedStation = stationsToSearch.firstOrNull { it.id == next.stationId } ?: defaultOrigin,
+                matchedStation = departureStation ?: defaultOrigin,
                 matchedDepartures = matchingDepartures.take(4)
             )
-        } else if (allDepartures.isNotEmpty() && stationsToSearch.isNotEmpty()) {
+        } else if (stationsToSearch.isNotEmpty()) {
             val bestStation = stationsToSearch.first()
-            val stationDepartures = allDepartures.filter { it.stationId == bestStation.id }
-            val next = stationDepartures.firstOrNull() ?: allDepartures.first()
-            val answer = "At ${bestStation.displayName}, the next upcoming service is ${next.lineName} to ${next.destinationName} (${next.formattedTimeToArrival})."
-            AiTransitResult(
-                answer = answer,
-                matchedStation = bestStation,
-                matchedDepartures = (if (stationDepartures.isNotEmpty()) stationDepartures else allDepartures).take(3)
-            )
+            val stationDepartures = repository.getDepartures(bestStation.id, bestStation.name).getOrNull() ?: emptyList()
+            if (stationDepartures.isNotEmpty()) {
+                val next = stationDepartures.first()
+                val prefix = if (nearestStation != null && bestStation.id == nearestStation.id) {
+                    "At your nearest station (${bestStation.displayName}), the"
+                } else {
+                    "At ${bestStation.displayName}, the"
+                }
+                val answer = "$prefix next upcoming service is ${next.lineName} to ${next.destinationName} (${next.formattedTimeToArrival})."
+                AiTransitResult(
+                    answer = answer,
+                    matchedStation = bestStation,
+                    matchedDepartures = stationDepartures.take(3)
+                )
+            } else {
+                AiTransitResult(
+                    answer = "I couldn't find live departures matching \"$query\". Try asking for a specific destination or saved station like \"next train to Mill Hill East\" or \"when is the 221 bus?\"."
+                )
+            }
         } else {
             AiTransitResult(
                 answer = "I couldn't find live departures matching \"$query\". Try asking for a specific destination or saved station like \"next train to Mill Hill East\" or \"when is the 221 bus?\"."
             )
         }
     }
+
+    /**
+     * Summarizes live TfL line statuses for status/disruption queries such as
+     * "Any Tube delays or disruptions?" or "Elizabeth line status".
+     */
+    private suspend fun answerStatusQuery(
+        namedLine: LineAlias?,
+        contextStation: Station?
+    ): AiTransitResult = withContext(Dispatchers.Default) {
+        val allStatuses = repository.getLineStatuses()
+
+        // Narrow to the named line if the query mentions one (e.g. "Elizabeth line status").
+        val relevant = allStatuses.filter { (lineId, item) ->
+            namedLine == null ||
+                lineId.contains(namedLine.lineId, ignoreCase = true) ||
+                namedLine.keywords.any { kw -> item.name.contains(kw, ignoreCase = true) }
+        }
+
+        val disrupted = relevant.values.mapNotNull { item ->
+            val detail = item.lineStatuses.firstOrNull() ?: return@mapNotNull null
+            if (detail.statusSeverity > 10) {
+                val reason = detail.reason?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
+                "the ${item.name}: ${detail.statusSeverityDescription.lowercase()}$reason"
+            } else {
+                null
+            }
+        }
+
+        val answer = when {
+            namedLine != null && relevant.isEmpty() ->
+                "I couldn't check the live status of that line right now — the service status feed may be unavailable."
+            namedLine != null -> {
+                val named = relevant.values.firstOrNull()
+                val detail = named?.lineStatuses?.firstOrNull()
+                if (named != null && detail != null && detail.statusSeverity > 10) {
+                    val reason = detail.reason?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""
+                    "The ${named.name} is currently ${detail.statusSeverityDescription.lowercase()}$reason."
+                } else {
+                    "The ${named?.name ?: "line"} is running with good service right now."
+                }
+            }
+            relevant.isEmpty() ->
+                "I couldn't check live line statuses right now — the service status feed may be unavailable."
+            disrupted.isEmpty() ->
+                "All monitored lines (Tube, DLR, Overground, Elizabeth line, National Rail) are running with good service right now."
+            else ->
+                "Here's the current network picture: " + disrupted.joinToString(", ") + "."
+        }
+
+        AiTransitResult(
+            answer = answer,
+            matchedStation = contextStation
+        )
+    }
+
+    /**
+     * A recognizable TfL line (or mode) with the keywords commuters typically use for it.
+     */
+    private data class LineAlias(
+        val lineId: String,
+        val keywords: List<String>
+    )
+
+    private val KNOWN_LINES = listOf(
+        LineAlias("elizabeth-line", listOf("elizabeth line", "elizabeth")),
+        LineAlias("central", listOf("central line", "central")),
+        LineAlias("victoria", listOf("victoria line", "victoria")),
+        LineAlias("piccadilly", listOf("piccadilly line", "piccadilly")),
+        LineAlias("northern", listOf("northern line", "northern")),
+        LineAlias("bakerloo", listOf("bakerloo line", "bakerloo")),
+        LineAlias("district", listOf("district line", "district")),
+        LineAlias("circle", listOf("circle line", "circle")),
+        LineAlias("jubilee", listOf("jubilee line", "jubilee")),
+        LineAlias("metropolitan", listOf("metropolitan line", "metropolitan")),
+        LineAlias("hammersmith-city", listOf("hammersmith")),
+        LineAlias("overground", listOf("overground")),
+        LineAlias("dlr", listOf("dlr")),
+        LineAlias("thameslink", listOf("thameslink"))
+    )
+
+    private val STATUS_KEYWORDS = listOf(
+        "status", "delays", "delay", "disruption", "disruptions", "running", "good service", "problems"
+    )
 }

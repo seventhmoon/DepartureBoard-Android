@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,9 +26,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.BookmarkAdd
+import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DirectionsBus
@@ -36,6 +41,7 @@ import androidx.compose.material.icons.rounded.DirectionsSubway
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Tram
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +52,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -84,13 +91,18 @@ fun StationDetailBottomSheet(
     departures: List<Departure>,
     isLoading: Boolean,
     onRefresh: () -> Unit,
-    onRemoveStation: (Station) -> Unit,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    isSaved: Boolean = false,
+    onToggleSaveStation: (Station) -> Unit = {},
+    onRemoveStation: ((Station) -> Unit)? = null,
     initialSelectedLineId: String? = null,
+    onDepartureClick: ((Departure) -> Unit)? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
-    val primaryMode = station.modes.firstOrNull() ?: "tube"
+    val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram")
+        .firstOrNull { it in station.modes }
+        ?: station.modes.firstOrNull() ?: "tube"
     val modeIcon = getTransitIconForMode(primaryMode)
 
     // Pulsing animation for live updates badge
@@ -191,7 +203,7 @@ fun StationDetailBottomSheet(
 
                         // Subtitle: Bus stop "towards ..." indicator for single-direction bus stops
                         val distinctTowards = departures.mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }.distinct()
-                    val isSingleDirectionBusStop = station.isBusOnly && distinctTowards.size == 1
+                        val isSingleDirectionBusStop = station.isBusOnly && distinctTowards.size == 1
 
                         if (isSingleDirectionBusStop) {
                             Text(
@@ -233,24 +245,53 @@ fun StationDetailBottomSheet(
                     }
                 }
 
-                IconButton(
-                    onClick = onDismissRequest,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close details",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    // Bookmark / Pin to Home icon button (Box avoids IconButton 48dp touch-target expansion overlap)
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isSaved) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceContainerHighest
+                            )
+                            .clickable { onToggleSaveStation(station) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isSaved) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                            contentDescription = if (isSaved) "Remove from Home" else "Pin to Home",
+                            tint = if (isSaved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+
+                    // Close details button
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            .clickable(onClick = onDismissRequest),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = "Close details",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
 
             // Lines badges serving this station - now interactive filter chips
-            val distinctLines = departures.map { it.lineBadge }.distinctBy { it.lineId }
+            val distinctLines = departures.map { it.lineBadge }
+                .distinctBy { it.lineId }
+                .sortedWith(com.androidfung.departureboard.data.model.LineBadgeInfo.NATURAL_COMPARATOR)
             if (distinctLines.size > 1) {
                 FlowRow(
                     modifier = Modifier
@@ -260,6 +301,9 @@ fun StationDetailBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     val hasActiveSelection = selectedLineId != null
+                    val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
+                    val isNarrow = windowWidthClass.isNarrow
+
                     distinctLines.forEach { badge ->
                         val isSelected = selectedLineId.equals(badge.lineId, ignoreCase = true)
                         val directionIndicator = when (if (isSelected) selectedDirection?.lowercase() else null) {
@@ -272,15 +316,19 @@ fun StationDetailBottomSheet(
                             else -> null
                         }
 
+                        val baseName = if (isNarrow && badge.lineCode.isNotBlank()) badge.lineCode else badge.displayName
                         val labelText = if (!directionIndicator.isNullOrBlank()) {
-                            "${badge.displayName} $directionIndicator"
+                            "$baseName $directionIndicator"
                         } else {
-                            badge.displayName
+                            baseName
                         }
 
+                        // Standardized chip dimensions: 32dp height, consistent min-width, perfectly centered text
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
+                                .height(32.dp)
+                                .defaultMinSize(minWidth = if (isNarrow) 48.dp else 56.dp)
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(
                                     if (isSelected || !hasActiveSelection) badge.backgroundColor
                                     else badge.backgroundColor.copy(alpha = 0.35f)
@@ -288,7 +336,7 @@ fun StationDetailBottomSheet(
                                 .border(
                                     width = if (isSelected) 2.dp else 0.dp,
                                     color = if (isSelected) Color.White else Color.Transparent,
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = RoundedCornerShape(10.dp)
                                 )
                                 .clickable {
                                         val lineDepartures = departures.filter { TransitIconHelper.isSameLine(it.lineId, badge.lineId) }
@@ -322,15 +370,18 @@ fun StationDetailBottomSheet(
                                         selectedDirection = null
                                     }
                                 }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = labelText,
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
+                                    fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = if (isSelected || !hasActiveSelection) badge.textColor else badge.textColor.copy(alpha = 0.6f)
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                color = if (isSelected || !hasActiveSelection) badge.textColor else badge.textColor.copy(alpha = 0.6f),
+                                maxLines = 1
                             )
                         }
                     }
@@ -468,11 +519,14 @@ fun StationDetailBottomSheet(
                     contentPadding = PaddingValues(vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(
+                    itemsIndexed(
                         items = filteredDepartures,
-                        key = { it.id + it.timeToStationSeconds } // Combine id and time to ensure uniqueness
-                    ) { departure ->
-                        DepartureDetailRow(departure = departure)
+                        key = { index, item -> "${item.id}_${item.timeToStationSeconds}_${item.platformName}_$index" }
+                    ) { _, departure ->
+                        DepartureDetailRow(
+                            departure = departure,
+                            onClick = { onDepartureClick?.invoke(departure) }
+                        )
                     }
                 }
             }
@@ -481,15 +535,17 @@ fun StationDetailBottomSheet(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Action Buttons Footer: Open in Maps, Refresh, and Remove
+            // Action Buttons Footer: Clean two-button utility row (Maps and Refresh)
+            // Pinning / Bookmarking to Home Dashboard is controlled via the header Bookmark toggle
             val context = androidx.compose.ui.platform.LocalContext.current
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Open in Google Maps Button
+                // Open in Google Maps
                 OutlinedButton(
                     onClick = {
                         val geoUri = if (station.lat != null && station.lon != null) {
@@ -501,7 +557,6 @@ fun StationDetailBottomSheet(
                         try {
                             context.startActivity(mapIntent)
                         } catch (_: Exception) {
-                            // Fallback to browser Google Maps
                             val browserUri = if (station.lat != null && station.lon != null) {
                                 android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=${station.lat},${station.lon}")
                             } else {
@@ -510,7 +565,9 @@ fun StationDetailBottomSheet(
                             context.startActivity(Intent(Intent.ACTION_VIEW, browserUri))
                         }
                     },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp),
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Icon(
@@ -518,13 +575,16 @@ fun StationDetailBottomSheet(
                         contentDescription = "Open in Maps",
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Maps", maxLines = 1)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Maps", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold))
                 }
 
+                // Refresh Button
                 OutlinedButton(
                     onClick = onRefresh,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp),
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Icon(
@@ -532,29 +592,8 @@ fun StationDetailBottomSheet(
                         contentDescription = "Refresh",
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Refresh", maxLines = 1)
-                }
-
-                FilledTonalButton(
-                    onClick = {
-                        onRemoveStation(station)
-                        onDismissRequest()
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Delete,
-                        contentDescription = "Remove station",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Remove", maxLines = 1)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Refresh", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold))
                 }
             }
         }
@@ -567,13 +606,16 @@ fun StationDetailBottomSheet(
 @Composable
 fun DepartureDetailRow(
     departure: Departure,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
         Row(
             modifier = Modifier
@@ -587,20 +629,25 @@ fun DepartureDetailRow(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Line Badge Pill
+                    // Standardized Line Badge Pill
+                    val lineCodeText = departure.lineBadge.lineCode.ifBlank { departure.lineBadge.displayName }
                     Box(
                         modifier = Modifier
+                            .height(24.dp)
+                            .defaultMinSize(minWidth = 36.dp)
                             .clip(RoundedCornerShape(6.dp))
                             .background(departure.lineBadge.backgroundColor)
-                            .padding(horizontal = 7.dp, vertical = 3.dp)
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = departure.lineBadge.displayName,
+                            text = lineCodeText,
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp
                             ),
-                            color = departure.lineBadge.textColor
+                            color = departure.lineBadge.textColor,
+                            maxLines = 1
                         )
                     }
 
@@ -623,10 +670,11 @@ fun DepartureDetailRow(
                     text = departure.destinationName,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
+                        fontSize = 15.sp,
+                        lineHeight = 18.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
 

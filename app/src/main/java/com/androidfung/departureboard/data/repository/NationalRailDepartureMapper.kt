@@ -75,16 +75,22 @@ internal object NationalRailDepartureMapper {
                 Triple("elizabeth-line", "Elizabeth line", com.androidfung.departureboard.data.model.TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
             }
             isOverground -> {
-                // Euston to Watford Junction is the Lioness line
-                val isEustonLioness = stationId.contains("EUS", ignoreCase = true) || stationName.contains("Euston", ignoreCase = true)
-                // West Hampstead / North London line is the Mildmay line
-                val isMildmay = stationId.contains("WHD", ignoreCase = true) || stationName.contains("West Hampstead", ignoreCase = true)
-                
-                when {
-                    isEustonLioness -> Triple("lioness", "Lioness", com.androidfung.departureboard.data.model.TflLineColors.getLineBadge("lioness", "Lioness", "overground"))
-                    isMildmay -> Triple("mildmay", "Mildmay", com.androidfung.departureboard.data.model.TflLineColors.getLineBadge("mildmay", "Mildmay", "overground"))
-                    else -> Triple("overground", "London Overground", com.androidfung.departureboard.data.model.TflLineColors.getLineBadge("overground", "London Overground", "overground"))
-                }
+                val destLocation = service.destination.firstOrNull()
+                val resolvedLine = OvergroundLineResolver.resolve(
+                    stationCrs = stationId,
+                    stationName = stationName,
+                    destCrs = destLocation?.crs,
+                    destName = destLocation?.locationName
+                )
+                Triple(
+                    resolvedLine.id,
+                    resolvedLine.name,
+                    com.androidfung.departureboard.data.model.TflLineColors.getLineBadge(
+                        resolvedLine.id,
+                        resolvedLine.name,
+                        "overground"
+                    )
+                )
             }
             isThameslink -> {
                 Triple("thameslink", "Thameslink", com.androidfung.departureboard.data.model.TflLineColors.getLineBadge("thameslink", "Thameslink", "national-rail"))
@@ -112,6 +118,21 @@ internal object NationalRailDepartureMapper {
             else -> etd
         }
 
+        val destCrs = service.destination.firstOrNull()?.crs
+
+        val resolvedDirection = when {
+            isElizabeth -> ElizabethLineDirectionResolver.resolve(
+                destinationCrs = destCrs,
+                platformName = platformStr,
+                destinationName = destination
+            )
+            isThameslink -> ThameslinkDirectionResolver.resolve(
+                destinationCrs = destCrs,
+                destinationName = destination
+            )
+            else -> null
+        }
+
         return Departure(
             id = service.serviceId,
             stationId = stationId,
@@ -121,12 +142,21 @@ internal object NationalRailDepartureMapper {
             platformName = platformStr,
             destinationName = destination,
             towards = service.destination.firstOrNull()?.via?.let { "via $it" },
-            direction = null,
+            direction = resolvedDirection,
             timeToStationSeconds = timeToStationSeconds,
             expectedArrivalIso = null,
             currentLocation = statusDescription,
             modeName = if (isElizabeth) TransitMode.ELIZABETH_LINE.id else if (isOverground) TransitMode.OVERGROUND.id else TransitMode.NATIONAL_RAIL.id,
-            lineBadge = badge
+            lineBadge = badge,
+            callingPoints = service.subsequentCallingPoints?.firstOrNull()?.callingPoint?.map { cp ->
+                com.androidfung.departureboard.data.model.CallingPoint(
+                    stationName = cp.locationName,
+                    scheduledTime = cp.st,
+                    estimatedTime = cp.et,
+                    isCurrentStation = false,
+                    isDestination = cp.locationName.equals(destination, ignoreCase = true)
+                )
+            } ?: emptyList()
         )
     }
 

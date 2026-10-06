@@ -61,10 +61,19 @@ class DepartureBoardWidget : GlanceAppWidget() {
 
         // Glance currentState reads the per-widget preferences directly in provideContent or provideGlance
         val prefs: Preferences = androidx.glance.appwidget.state.getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
-        val customStationId = prefs[PREF_STATION_ID]
-        val customStationName = prefs[PREF_STATION_NAME]
-        val filterLineId = prefs[PREF_FILTER_LINE_ID]
-        val filterLineName = prefs[PREF_FILTER_LINE_NAME]
+
+        // Read fast synchronous SharedPreferences fallback so newly placed widgets never flash Oxford Circus
+        val appWidgetId = (id as? androidx.glance.appwidget.AppWidgetId)?.appWidgetId
+        val sp = context.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
+        val fastStationId = if (appWidgetId != null) sp.getString("station_id_$appWidgetId", null) else null
+        val fastStationName = if (appWidgetId != null) sp.getString("station_name_$appWidgetId", null) else null
+        val fastFilterLineId = if (appWidgetId != null) sp.getString("filter_line_id_$appWidgetId", null) else null
+        val fastFilterLineName = if (appWidgetId != null) sp.getString("filter_line_name_$appWidgetId", null) else null
+
+        val customStationId = prefs[PREF_STATION_ID] ?: fastStationId
+        val customStationName = prefs[PREF_STATION_NAME] ?: fastStationName
+        val filterLineId = prefs[PREF_FILTER_LINE_ID] ?: fastFilterLineId
+        val filterLineName = prefs[PREF_FILTER_LINE_NAME] ?: fastFilterLineName
 
         val targetStation = if (!customStationId.isNullOrBlank()) {
             Station(
@@ -74,12 +83,15 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 isFavorite = true
             )
         } else {
+            // First saved station or fallback
             DefaultStations.POPULAR_STATIONS.first()
         }
 
+        var isLiveData = false
         val allDepartures = try {
             val live = repository.getDepartures(targetStation.id, targetStation.name)
             if (live.isSuccess) {
+                isLiveData = true
                 live.getOrDefault(emptyList())
             } else {
                 DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name)
@@ -103,7 +115,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 WidgetContent(
                     station = targetStation,
                     filterLabel = filterLineName,
-                    departures = filteredDepartures
+                    departures = filteredDepartures,
+                    isLiveData = isLiveData
                 )
             }
         }
@@ -113,7 +126,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
     private fun WidgetContent(
         station: Station,
         filterLabel: String?,
-        departures: List<Departure>
+        departures: List<Departure>,
+        isLiveData: Boolean = true
     ) {
         val clickIntent = Intent(androidx.glance.LocalContext.current, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
@@ -156,10 +170,11 @@ class DepartureBoardWidget : GlanceAppWidget() {
                         ),
                         maxLines = 1
                     )
+                    val liveLabel = if (isLiveData) "Live" else "Offline sample"
                     val subtitle = if (!filterLabel.isNullOrBlank()) {
-                        "Prompt Departure • $filterLabel"
+                        "Prompt Departure • $filterLabel • $liveLabel"
                     } else {
-                        "Prompt Departure • Live"
+                        "Prompt Departure • $liveLabel"
                     }
                     Text(
                         text = subtitle,

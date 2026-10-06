@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -87,7 +88,8 @@ fun StationDepartureCard(
     isNearest: Boolean = false,
     distanceMeters: Double? = null,
     onStationClick: ((Station) -> Unit)? = null,
-    onToggleExpand: (() -> Unit)? = null
+    onToggleExpand: (() -> Unit)? = null,
+    onDepartureClick: ((Departure) -> Unit)? = null
 ) {
     var selectedLineId by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
     var selectedDirection by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
@@ -182,7 +184,6 @@ fun StationDepartureCard(
             // Gradient background: subtle surface container gradient in both light and dark themes
             val topGradientColor = MaterialTheme.colorScheme.surfaceVariant
             val bottomGradientColor = MaterialTheme.colorScheme.surfaceContainer
-            val isExpanded = cardModel.isExpanded
 
             Box(
                 modifier = Modifier
@@ -202,13 +203,8 @@ fun StationDepartureCard(
                         lineBadges = cardModel.availableLineBadges,
                         selectedLineId = selectedLineId,
                         selectedDirection = selectedDirection,
-                        isExpanded = isExpanded,
                         isNearest = isNearest,
                         distanceMeters = distanceMeters,
-                        onToggleExpand = {
-                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                            onToggleExpand?.invoke()
-                        },
                         onLineBadgeClick = { badge ->
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             // Find departures & directions available for this line at this station
@@ -255,18 +251,17 @@ fun StationDepartureCard(
                         modifier = Modifier.padding(horizontal = 22.dp)
                     )
 
-                    // When collapsed/minimized, show exactly 1 departure entry (or filtered entry)
-                    // When expanded, show full list of departures
                     val showLineBadgeOnEntries = selectedLineId == null && cardModel.availableLineBadges.size > 1
 
                     Column {
                         Spacer(modifier = Modifier.height(16.dp))
 
                         StationDeparturesContainer(
-                            departures = if (isExpanded) filteredDepartures else filteredDepartures.take(1),
+                            departures = filteredDepartures,
                             showLineBadge = showLineBadgeOnEntries,
                             isLoading = cardModel.isLoading,
                             errorMessage = cardModel.errorMessage,
+                            onDepartureClick = onDepartureClick,
                             modifier = Modifier.padding(horizontal = 10.dp)
                         )
                     }
@@ -285,8 +280,6 @@ private fun StationHeaderSection(
     lineBadges: List<LineBadgeInfo>,
     selectedLineId: String?,
     selectedDirection: String?,
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit,
     onLineBadgeClick: (LineBadgeInfo) -> Unit,
     isLoading: Boolean,
     modifier: Modifier = Modifier,
@@ -311,8 +304,13 @@ private fun StationHeaderSection(
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Header Transport Mode Icon indicator
-                val primaryMode = station.modes.firstOrNull { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr", "tram", "bus") }
+                // Header Transport Mode Icon indicator:
+                // Prioritize Rail / Tube / Metro modes over Bus, or derive from active line badges if present
+                val badgeModes = lineBadges.map { it.mode.id }
+                val candidateModes = (badgeModes + station.modes).distinct()
+                val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram")
+                    .firstOrNull { it in candidateModes }
+                    ?: station.modes.firstOrNull { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr", "tram", "bus") }
                     ?: station.modes.firstOrNull() ?: "tube"
                 val modeIcon = TransitIconHelper.getTransitIconForMode(primaryMode)
 
@@ -379,32 +377,12 @@ private fun StationHeaderSection(
                 }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .padding(end = 8.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                // Expand / Collapse Unfold button
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onToggleExpand),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Rounded.UnfoldLess else Icons.Rounded.UnfoldMore,
-                        contentDescription = if (isExpanded) "Collapse departures" else "Expand departures",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
 
@@ -498,7 +476,6 @@ fun LinePillBadge(
     onClick: (() -> Unit)? = null
 ) {
     val isBusOrNumeric = badge.mode == TransitMode.BUS || badge.displayName.all { it.isDigit() }
-    val shape = if (isBusOrNumeric && badge.displayName.length <= 3) CircleShape else RoundedCornerShape(16.dp)
 
     val alpha = if (isDimmed) 0.35f else 1.0f
 
@@ -522,11 +499,19 @@ fun LinePillBadge(
         else -> null
     }
 
+    val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
+    val isNarrow = windowWidthClass.isNarrow
+    val baseName = if (isNarrow && badge.lineCode.isNotBlank()) badge.lineCode else badge.displayName
+
     Box(
         modifier = modifier
-            .clip(shape)
+            .height(32.dp)
+            .defaultMinSize(
+                minWidth = if (isNarrow) 48.dp else if (isBusOrNumeric && badge.displayName.length <= 3) 36.dp else 56.dp
+            )
+            .clip(RoundedCornerShape(10.dp))
             .then(
-                if (borderWidth > 0.dp) Modifier.border(borderWidth, borderColor, shape)
+                if (borderWidth > 0.dp) Modifier.border(borderWidth, borderColor, RoundedCornerShape(10.dp))
                 else Modifier
             )
             .background(badge.backgroundColor.copy(alpha = alpha))
@@ -534,21 +519,28 @@ fun LinePillBadge(
                 if (onClick != null) Modifier.clickable(onClick = onClick)
                 else Modifier
             )
-            .padding(horizontal = if (isBusOrNumeric && badge.displayName.length <= 3) 10.dp else 14.dp, vertical = 6.dp),
+            .padding(
+                horizontal = if (isNarrow) 8.dp else if (isBusOrNumeric && badge.displayName.length <= 3) 10.dp else 12.dp,
+                vertical = 4.dp
+            ),
         contentAlignment = Alignment.Center
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
             val labelText = if (!directionIndicator.isNullOrBlank()) {
-                "${badge.displayName} $directionIndicator"
+                "$baseName $directionIndicator"
             } else {
-                badge.displayName
+                baseName
             }
             Text(
                 text = labelText,
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                    fontSize = 13.sp
+                    fontSize = if (isNarrow) 12.sp else 13.sp
                 ),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 color = badge.textColor.copy(alpha = if (isDimmed) 0.6f else 1.0f),
                 maxLines = 1
             )
@@ -574,7 +566,8 @@ private fun StationDeparturesContainer(
     isLoading: Boolean,
     errorMessage: String?,
     modifier: Modifier = Modifier,
-    showLineBadge: Boolean = false
+    showLineBadge: Boolean = false,
+    onDepartureClick: ((Departure) -> Unit)? = null
 ) {
     Box(
         modifier = modifier
@@ -601,7 +594,8 @@ private fun StationDeparturesContainer(
                             DepartureRowItem(
                                 departure = departure,
                                 isFirst = index == 0,
-                                showLineBadge = showLineBadge
+                                showLineBadge = showLineBadge,
+                                onClick = { onDepartureClick?.invoke(departure) }
                             )
                         }
                         if (index < displayList.lastIndex) {

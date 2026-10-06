@@ -1,7 +1,12 @@
 package com.androidfung.departureboard.data.network
 
 import com.androidfung.departureboard.data.model.TflArrivalPrediction
+import com.androidfung.departureboard.data.model.TflLineRouteResponse
+import com.androidfung.departureboard.data.model.TflLineStatusItem
+import com.androidfung.departureboard.data.model.TflRouteSequenceResponse
 import com.androidfung.departureboard.data.model.TflSearchResponse
+import com.androidfung.departureboard.data.model.TflStopPointChild
+import com.androidfung.departureboard.data.model.TflStopPointDetail
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -37,7 +42,7 @@ interface TflApiService {
     @GET("StopPoint/{id}")
     suspend fun getStopPointDetail(
         @Path("id") stopPointId: String
-    ): com.androidfung.departureboard.data.model.TflStopPointDetail
+    ): TflStopPointDetail
 
     /**
      * Fetches StopPoints served by a specific line / bus route (e.g. "221", "SL1", "73").
@@ -45,7 +50,7 @@ interface TflApiService {
     @GET("Line/{id}/StopPoints")
     suspend fun getLineStopPoints(
         @Path("id") lineId: String
-    ): List<com.androidfung.departureboard.data.model.TflStopPointChild>
+    ): List<TflStopPointChild>
 
     /**
      * Fetches route sections and terminal endpoints for a specific line / route.
@@ -53,7 +58,16 @@ interface TflApiService {
     @GET("Line/{id}/Route")
     suspend fun getLineRoute(
         @Path("id") lineId: String
-    ): com.androidfung.departureboard.data.model.TflLineRouteResponse
+    ): TflLineRouteResponse
+
+    /**
+     * Fetches the complete ordered route sequence of stops for a line and direction.
+     */
+    @GET("Line/{id}/Route/Sequence/{direction}")
+    suspend fun getLineRouteSequence(
+        @Path("id") lineId: String,
+        @Path("direction") direction: String = "all"
+    ): TflRouteSequenceResponse
 
     /**
      * Fetches live line service statuses across rail, underground, and Thameslink modes.
@@ -61,5 +75,5 @@ interface TflApiService {
     @GET("Line/Mode/{modes}/Status")
     suspend fun getLineStatuses(
         @Path("modes") modes: String = "tube,dlr,overground,elizabeth-line,national-rail"
-    ): List<com.androidfung.departureboard.data.model.TflLineStatusItem>
+    ): List<TflLineStatusItem>
 }

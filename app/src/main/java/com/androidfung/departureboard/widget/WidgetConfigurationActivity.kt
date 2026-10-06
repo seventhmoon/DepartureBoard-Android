@@ -2,6 +2,7 @@ package com.androidfung.departureboard.widget
 
 import android.app.Activity
 import android.appwidget.AppWidgetManager
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -39,8 +40,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.androidfung.departureboard.billing.BillingDataSource
+import com.androidfung.departureboard.billing.BillingRepository
+import com.androidfung.departureboard.billing.SubscriptionTier
+import com.androidfung.departureboard.ui.components.PaywallBottomSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -94,13 +101,16 @@ class WidgetConfigurationActivity : ComponentActivity() {
             return
         }
 
+        val billingRepo = BillingRepository.getInstance(applicationContext)
+
         setContent {
             DepartureBoardTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    WidgetStationPickerScreen(
+                    WidgetConfigurationContent(
+                        billingRepository = billingRepo,
                         onStationAndLineSelected = { station, lineBadge ->
                             selectStationAndFinish(station, lineBadge)
                         },
@@ -114,6 +124,22 @@ class WidgetConfigurationActivity : ComponentActivity() {
     }
 
     private fun selectStationAndFinish(station: Station, lineBadge: com.androidfung.departureboard.data.model.LineBadgeInfo?) {
+        // Fast synchronous persistence so Glance widget reads the configured station with 0ms race condition
+        val sp = applicationContext.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
+        sp.edit()
+            .putString("station_id_$appWidgetId", station.id)
+            .putString("station_name_$appWidgetId", station.displayName)
+            .apply {
+                if (lineBadge != null) {
+                    putString("filter_line_id_$appWidgetId", lineBadge.lineId)
+                    putString("filter_line_name_$appWidgetId", lineBadge.displayName)
+                } else {
+                    remove("filter_line_id_$appWidgetId")
+                    remove("filter_line_name_$appWidgetId")
+                }
+            }
+            .commit()
+
         val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
         coroutineScope.launch {
             val glanceManager = GlanceAppWidgetManager(applicationContext)
@@ -138,6 +164,11 @@ class WidgetConfigurationActivity : ComponentActivity() {
 
             DepartureBoardWidget().update(applicationContext, glanceId)
 
+            // Ensure the periodic auto-refresh work is running. Placement flows through
+            // this activity (not MainActivity), so enqueue here as well — otherwise a
+            // freshly placed widget would never refresh on its own.
+            WidgetUpdateWorker.enqueuePeriodicUpdate(applicationContext)
+
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 val resultValue = Intent().apply {
                     putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
@@ -146,6 +177,85 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 finish()
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WidgetConfigurationContent(
+    billingRepository: BillingDataSource,
+    onStationAndLineSelected: (Station, com.androidfung.departureboard.data.model.LineBadgeInfo?) -> Unit,
+    onCancel: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var isCheckingLimits by remember { mutableStateOf(true) }
+    var limitReachedReason by remember { mutableStateOf<String?>(null) }
+    var showPaywall by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val glanceManager = GlanceAppWidgetManager(context)
+        val existingGlanceIds = glanceManager.getGlanceIds(DepartureBoardWidget::class.java)
+        val isPro = billingRepository.isProFlow.first()
+
+        // -1 because the host may already have assigned an ID for the currently configuring widget
+        val activeCount = existingGlanceIds.size
+
+        if (!isPro && activeCount > SubscriptionTier.FREE_MAX_WIDGETS) {
+            limitReachedReason = "Free plan includes up to ${SubscriptionTier.FREE_MAX_WIDGETS} home screen widgets. Upgrade to Pro for up to ${SubscriptionTier.PRO_MAX_WIDGETS} widgets."
+        } else if (isPro && activeCount > SubscriptionTier.PRO_MAX_WIDGETS) {
+            limitReachedReason = "Maximum limit of ${SubscriptionTier.PRO_MAX_WIDGETS} widgets reached to protect battery and API limits."
+        }
+        isCheckingLimits = false
+    }
+
+    if (isCheckingLimits) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(strokeWidth = 3.dp)
+        }
+    } else if (limitReachedReason != null) {
+        AlertDialog(
+            onDismissRequest = onCancel,
+            title = {
+                Text(
+                    text = "Widget Limit Reached",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Text(
+                    text = limitReachedReason!!,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showPaywall = true }
+                ) {
+                    Text("Upgrade to Pro")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onCancel) {
+                    Text("Cancel")
+                }
+            }
+        )
+
+        if (showPaywall) {
+            PaywallBottomSheet(
+                onDismissRequest = {
+                    showPaywall = false
+                    onCancel()
+                },
+                billingRepository = billingRepository,
+                reasonMessage = limitReachedReason
+            )
+        }
+    } else {
+        WidgetStationPickerScreen(
+            onStationAndLineSelected = onStationAndLineSelected,
+            onCancel = onCancel
+        )
     }
 }
 

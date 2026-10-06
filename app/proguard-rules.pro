@@ -12,6 +12,11 @@
 }
 -keep class com.androidfung.departureboard.data.model.** { *; }
 
+# Keep the DataStore station DTOs. These are round-tripped through Moshi codegen
+# adapters (referenced directly, so normally shrink-safe), but keeping them verbatim
+# is cheap insurance against R8 renaming if serialization ever falls back to reflection.
+-keep class com.androidfung.departureboard.data.datastore.** { *; }
+
 # Keep Glance AppWidget and receiver components
 -keep class * extends androidx.glance.appwidget.GlanceAppWidget { *; }
 -keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver { *; }

@@ -140,3 +140,32 @@ data class TflRouteSection(
     @Json(name = "destinationName") val destinationName: String? = null
 )
 
+/**
+ * TfL Route Sequence response from:
+ * https://api.tfl.gov.uk/Line/{id}/Route/Sequence/{direction}
+ */
+@JsonClass(generateAdapter = true)
+data class TflRouteSequenceResponse(
+    @Json(name = "lineId") val lineId: String,
+    @Json(name = "lineName") val lineName: String? = null,
+    @Json(name = "direction") val direction: String? = null,
+    @Json(name = "stopPointSequences") val stopPointSequences: List<TflStopPointSequence> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class TflStopPointSequence(
+    @Json(name = "branchId") val branchId: Int = 0,
+    @Json(name = "nextBranchIds") val nextBranchIds: List<Int> = emptyList(),
+    @Json(name = "prevBranchIds") val prevBranchIds: List<Int> = emptyList(),
+    @Json(name = "direction") val direction: String? = null,
+    @Json(name = "stopPoint") val stopPoint: List<TflMatchedStop> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class TflMatchedStop(
+    @Json(name = "id") val id: String,
+    @Json(name = "name") val name: String,
+    @Json(name = "stationId") val stationId: String? = null,
+    @Json(name = "lat") val lat: Double? = null,
+    @Json(name = "lon") val lon: Double? = null
+)

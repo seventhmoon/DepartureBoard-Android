@@ -52,12 +52,21 @@ class TransitRepositoryTest {
         override suspend fun getLineRoute(lineId: String): com.androidfung.departureboard.data.model.TflLineRouteResponse {
             return com.androidfung.departureboard.data.model.TflLineRouteResponse(id = lineId, name = lineId)
         }
+
+        override suspend fun getLineRouteSequence(lineId: String, direction: String): com.androidfung.departureboard.data.model.TflRouteSequenceResponse {
+            return com.androidfung.departureboard.data.model.TflRouteSequenceResponse(lineId = lineId)
+        }
     }
 
     private class FakeNrApiService(
         var boardResponse: com.androidfung.departureboard.data.model.NrBoardResponse = com.androidfung.departureboard.data.model.NrBoardResponse(),
         var shouldThrow: Boolean = false
     ) : com.androidfung.departureboard.data.network.NationalRailApiService {
+        override suspend fun getDepBoardWithDetails(crs: String, numRows: Int): com.androidfung.departureboard.data.model.NrBoardResponse {
+            if (shouldThrow) throw IOException("NR Network error")
+            return boardResponse
+        }
+
         override suspend fun getDepartureBoard(crs: String, numRows: Int): com.androidfung.departureboard.data.model.NrBoardResponse {
             if (shouldThrow) throw IOException("NR Network error")
             return boardResponse
@@ -236,6 +245,7 @@ class TransitRepositoryTest {
                 return if (stationId == "910GKNGX") listOf("KGX") else emptyList()
             }
             override suspend fun getCrsCodesForExactName(normalizedName: String): List<String> = emptyList()
+            override suspend fun getCrsCodesForStationName(name: String): List<String> = emptyList()
             override suspend fun getCrsCodesForNameKeyword(keyword: String): List<String> = emptyList()
             override suspend fun insertAll(mappings: List<com.androidfung.departureboard.data.db.StationCrsEntity>) {}
             override suspend fun getCount(): Int = 1

@@ -31,7 +31,23 @@ data class NrTrainService(
     @Json(name = "serviceType") val serviceType: String? = "train",
     @Json(name = "length") val length: Int? = null,
     @Json(name = "origin") val origin: List<NrLocation> = emptyList(),
-    @Json(name = "destination") val destination: List<NrLocation> = emptyList()
+    @Json(name = "destination") val destination: List<NrLocation> = emptyList(),
+    @Json(name = "subsequentCallingPoints") val subsequentCallingPoints: List<NrCallingPointList>? = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class NrCallingPointList(
+    @Json(name = "serviceType") val serviceType: String? = null,
+    @Json(name = "callingPoint") val callingPoint: List<NrCallingPoint> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class NrCallingPoint(
+    @Json(name = "locationName") val locationName: String,
+    @Json(name = "crs") val crs: String? = null,
+    @Json(name = "st") val st: String? = null, // Scheduled time (e.g. "13:15")
+    @Json(name = "et") val et: String? = null, // Estimated time (e.g. "On time", "13:18")
+    @Json(name = "isCancelled") val isCancelled: Boolean = false
 )
 
 @JsonClass(generateAdapter = true)

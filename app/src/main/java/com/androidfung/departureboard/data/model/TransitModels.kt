@@ -1,12 +1,10 @@
 package com.androidfung.departureboard.data.model
 
 import androidx.compose.ui.graphics.Color
-import kotlinx.serialization.Serializable
 
 /**
  * Clean domain representation of a transit station or stop.
  */
-@Serializable
 data class Station(
     val id: String,
     val name: String,
@@ -40,11 +38,21 @@ data class Station(
 /**
  * Domain representation of a transit line serving a station.
  */
-@Serializable
 data class StationLineInfo(
     val id: String,
     val name: String,
     val mode: String? = null
+)
+
+/**
+ * An individual calling point or stop on a train/bus journey.
+ */
+data class CallingPoint(
+    val stationName: String,
+    val scheduledTime: String? = null,
+    val estimatedTime: String? = null,
+    val isCurrentStation: Boolean = false,
+    val isDestination: Boolean = false
 )
 
 /**
@@ -64,7 +72,8 @@ data class Departure(
     val expectedArrivalIso: String?,
     val currentLocation: String?,
     val modeName: String,
-    val lineBadge: LineBadgeInfo
+    val lineBadge: LineBadgeInfo,
+    val callingPoints: List<CallingPoint> = emptyList()
 ) {
     /**
      * Human-friendly formatted arrival string, e.g. "Due", "1 min", "4 mins".
@@ -109,12 +118,29 @@ data class LineBadgeInfo(
     val backgroundColor: Color,
     val textColor: Color = Color.White,
     val mode: TransitMode = TransitMode.OTHER,
-    val statusSeverity: Int = 10, // 10 = Good Service
+    val statusSeverity: Int = 10, // TfL scale: 10 = Good Service, 20-70 = issues, 80 = planned work
     val statusDescription: String? = null,
     val disruptionReason: String? = null,
     val lineCode: String = ""
 ) {
-    val isDisrupted: Boolean get() = statusSeverity < 10
+    val isDisrupted: Boolean get() = statusSeverity > 10
+
+    companion object {
+        /**
+         * Natural comparator: numeric lines (e.g. bus routes 13, 102, 460) ordered numerically,
+         * followed by alphabetical order for named rail/tube lines.
+         */
+        val NATURAL_COMPARATOR: Comparator<LineBadgeInfo> = Comparator { a, b ->
+            val numA = a.displayName.toIntOrNull()
+            val numB = b.displayName.toIntOrNull()
+            when {
+                numA != null && numB != null -> numA.compareTo(numB)
+                numA != null -> -1
+                numB != null -> 1
+                else -> a.displayName.compareTo(b.displayName, ignoreCase = true)
+            }
+        }
+    }
 }
 
 /**
@@ -148,14 +174,10 @@ enum class TransitMode(val id: String, val displayName: String) {
             return entries.firstOrNull { it.id == normalized } ?: OTHER
         }
 
-        fun fromModes(modes: Collection<String>?): Set<TransitMode> {
-            if (modes.isNullOrEmpty()) return emptySet()
-            return modes.map { fromModeString(it) }.toSet()
-        }
+        fun fromModes(modes: List<String>): List<TransitMode> =
+            modes.map { fromModeString(it) }
 
-        fun isBusOnly(modes: Collection<String>?): Boolean {
-            val parsed = fromModes(modes)
-            return parsed.contains(BUS) && parsed.none { it in RAIL_MODES }
-        }
+        fun isBusOnly(modes: List<String>): Boolean =
+            modes.isNotEmpty() && modes.all { it.equals(BUS.id, ignoreCase = true) }
     }
 }

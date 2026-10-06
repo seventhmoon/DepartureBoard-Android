@@ -4,6 +4,10 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.androidfung.departureboard.billing.BillingDataSource
+import com.androidfung.departureboard.billing.BillingRepository
+import com.androidfung.departureboard.billing.SubscriptionTier
+import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
@@ -25,12 +29,14 @@ import kotlinx.coroutines.launch
 /**
  * ViewModel for the Departure Board Dashboard.
  * Manages saved stations, live TfL departure predictions, 1-second countdown ticker,
- * and 30-second background polling for live updates.
+ * 30-second background polling for live updates, and Pro subscription quotas.
  */
 class DashboardViewModel @JvmOverloads constructor(
     application: Application,
-    private val repository: TransitRepository = TransitRepositoryImpl(application),
-    enablePeriodicTasks: Boolean = true
+    // Exposed (internal) so the AI assistant sheet can reuse the same repository instance
+    // and its in-memory caches instead of constructing a second one.
+    internal val repository: TransitRepository = TransitRepositoryImpl(application),
+    internal val billingRepository: BillingDataSource = BillingRepository.getInstance(application)
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -42,9 +48,17 @@ class DashboardViewModel @JvmOverloads constructor(
 
     init {
         observeSavedStations()
-        if (enablePeriodicTasks) {
-            startCountdownTicker()
-            // startAutoRefreshPolling() will be triggered lifecycle-aware from DashboardScreen
+        observeSubscriptionStatus()
+        // startAutoRefreshPolling() and startCountdownTicker() are driven lifecycle-aware
+        // from DashboardScreen (LifecycleResumeEffect) so the 1s ticker doesn't keep
+        // updating StateFlow with the screen off.
+    }
+
+    private fun observeSubscriptionStatus() {
+        viewModelScope.launch {
+            billingRepository.isProFlow.collectLatest { isPro ->
+                _uiState.update { it.copy(isPro = isPro) }
+            }
         }
     }
 
@@ -116,7 +130,9 @@ class DashboardViewModel @JvmOverloads constructor(
                         if (result.isSuccess) {
                             val departures = result.getOrDefault(emptyList())
                             val badges = if (departures.isNotEmpty()) {
-                                departures.map { it.lineBadge }.distinctBy { it.lineId }
+                                departures.map { it.lineBadge }
+                                    .distinctBy { it.lineId }
+                                    .sortedWith(LineBadgeInfo.NATURAL_COMPARATOR)
                             } else {
                                 inferLineBadges(card.station)
                             }
@@ -148,6 +164,13 @@ class DashboardViewModel @JvmOverloads constructor(
         return repository.searchStations(query).getOrDefault(emptyList())
     }
 
+    /**
+     * Loads calling points for a departure.
+     */
+    suspend fun getCallingPoints(departure: Departure): List<com.androidfung.departureboard.data.model.CallingPoint> {
+        return repository.getCallingPoints(departure)
+    }
+
     private suspend fun refreshDeparturesForStations(stations: List<Station>) {
         val lineStatusesDeferred = viewModelScope.async { repository.getLineStatuses() }
         val batchDeparturesDeferred = viewModelScope.async { repository.getBatchDepartures(stations) }
@@ -166,7 +189,20 @@ class DashboardViewModel @JvmOverloads constructor(
                         departureBadges.filter { badge ->
                             // Guard: Filter out spurious depot movements (e.g. H&C depot run at Wembley Park)
                             val isWembleyPark = card.station.id == "940GZZLUWYP" || "wembley park" in card.station.name.lowercase()
-                            !(isWembleyPark && badge.lineId.equals("hammersmith-city", ignoreCase = true))
+                            if (isWembleyPark && badge.lineId.equals("hammersmith-city", ignoreCase = true)) return@filter false
+
+                            // Guard: Filter out Tube badges for St Pancras or King's Cross National Rail
+                            val isStPancrasOrKingsCrossNR = card.station.id == "910GSTPX" || card.station.id == "910GKNGX" ||
+                                    card.station.name.lowercase().let { it == "st pancras international" || it == "st pancras" || it == "king's cross" }
+                            if (isStPancrasOrKingsCrossNR) {
+                                if (badge.mode == com.androidfung.departureboard.data.model.TransitMode.TUBE ||
+                                    badge.lineId.lowercase() in TflLineColors.TUBE_LINE_IDS
+                                ) {
+                                    return@filter false
+                                }
+                            }
+
+                            true
                         }
                     } else {
                         inferLineBadges(card.station)
@@ -260,7 +296,16 @@ class DashboardViewModel @JvmOverloads constructor(
                             card.copy(departures = tickedDepartures)
                         }
                     }
-                    state.copy(stationCards = tickedCards)
+
+                    val tickedDetailDepartures = state.detailDepartures.map { departure ->
+                        val newSeconds = (departure.timeToStationSeconds - 1).coerceAtLeast(0)
+                        departure.copy(timeToStationSeconds = newSeconds)
+                    }.sortedBy { it.timeToStationSeconds }
+
+                    state.copy(
+                        stationCards = tickedCards,
+                        detailDepartures = tickedDetailDepartures
+                    )
                 }
             }
         }
@@ -272,9 +317,38 @@ class DashboardViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Adds a station to saved preferences.
+     * Adds a station to saved preferences, enforcing quota limits:
+     * - Free: max 2 stations
+     * - Pro: max 10 stations (capped to safeguard API rate limits & battery)
      */
     fun addStation(station: Station) {
+        val currentCount = _uiState.value.stationCards.size
+        val isPro = _uiState.value.isPro
+
+        // Already contains this station
+        if (_uiState.value.stationCards.any { it.station.id == station.id }) {
+            _uiState.update { it.copy(userMessage = "${station.name} is already saved") }
+            return
+        }
+
+        if (!isPro && currentCount >= SubscriptionTier.FREE_MAX_STATIONS) {
+            _uiState.update {
+                it.copy(
+                    paywallPromptReason = "Free plan includes up to ${SubscriptionTier.FREE_MAX_STATIONS} saved stations. Upgrade to Pro for up to ${SubscriptionTier.PRO_MAX_STATIONS} stations."
+                )
+            }
+            return
+        }
+
+        if (isPro && currentCount >= SubscriptionTier.PRO_MAX_STATIONS) {
+            _uiState.update {
+                it.copy(
+                    userMessage = "Maximum limit of ${SubscriptionTier.PRO_MAX_STATIONS} stations reached to protect live API limits."
+                )
+            }
+            return
+        }
+
         viewModelScope.launch {
             repository.saveStation(station)
             _uiState.update {
@@ -283,39 +357,101 @@ class DashboardViewModel @JvmOverloads constructor(
         }
     }
 
+    fun showPaywall(reason: String? = null) {
+        _uiState.update { it.copy(paywallPromptReason = reason ?: "Unlock Prompt Departure Pro") }
+    }
+
+    fun dismissPaywall() {
+        _uiState.update { it.copy(paywallPromptReason = null) }
+    }
+
     /**
-     * Toggles expansion state for an individual station card.
+     * Toggles Free and Pro subscription states in debug mode.
      */
-    fun toggleStationExpand(stationId: String) {
-        _uiState.update { state ->
-            val updated = state.stationCards.map { card ->
-                if (card.station.id == stationId) {
-                    card.copy(isExpanded = !card.isExpanded)
+    fun toggleDebugPro() {
+        val newStatus = !_uiState.value.isPro
+        billingRepository.setDebugPro(newStatus)
+        _uiState.update {
+            it.copy(userMessage = "Debug: Switched to ${if (newStatus) "PRO" else "FREE"} plan")
+        }
+    }
+
+    /**
+     * Updates the AI model selection (Local Nano, Cloud LLM, Logic Fallback).
+     */
+    fun setAiModelType(model: com.androidfung.departureboard.ai.AiModelType) {
+        _uiState.update {
+            it.copy(
+                aiModelType = model,
+                userMessage = "AI engine set to: ${model.title}"
+            )
+        }
+    }
+
+    /**
+     * Opens the detail bottom sheet for a station (whether from card click or widget launch),
+     * ensuring live departures are always fetched independently of saved dashboard cards.
+     */
+    fun openStationDetail(station: Station) {
+        val existingCard = _uiState.value.stationCards.firstOrNull { it.station.id == station.id }
+        val cachedDepartures = existingCard?.departures ?: emptyList()
+
+        _uiState.update {
+            it.copy(
+                selectedDetailStation = station,
+                detailDepartures = cachedDepartures,
+                isDetailLoading = cachedDepartures.isEmpty()
+            )
+        }
+
+        viewModelScope.launch {
+            val result = repository.getDepartures(station.id, station.name)
+            val freshDepartures = result.getOrDefault(cachedDepartures)
+
+            _uiState.update { state ->
+                // Update detail sheet
+                val updatedState = if (state.selectedDetailStation?.id == station.id) {
+                    state.copy(
+                        detailDepartures = freshDepartures,
+                        isDetailLoading = false
+                    )
                 } else {
-                    card
+                    state
                 }
+
+                // Also update card in dashboard if present
+                val updatedCards = updatedState.stationCards.map { card ->
+                    if (card.station.id == station.id) {
+                        card.copy(
+                            departures = freshDepartures,
+                            isLoading = false,
+                            errorMessage = null
+                        )
+                    } else card
+                }
+
+                updatedState.copy(stationCards = updatedCards)
             }
-            state.copy(stationCards = updated)
+        }
+    }
+
+    fun closeStationDetail() {
+        _uiState.update {
+            it.copy(
+                selectedDetailStation = null,
+                detailDepartures = emptyList(),
+                isDetailLoading = false
+            )
         }
     }
 
     /**
-     * Expands all station departure cards.
+     * Resets saved stations back to default popular London transit stations (for debug testing).
      */
-    fun expandAll() {
-        _uiState.update { state ->
-            val updated = state.stationCards.map { it.copy(isExpanded = true) }
-            state.copy(stationCards = updated)
-        }
-    }
-
-    /**
-     * Minimizes (collapses) all station departure cards to compact overview rows.
-     */
-    fun collapseAll() {
-        _uiState.update { state ->
-            val updated = state.stationCards.map { it.copy(isExpanded = false) }
-            state.copy(stationCards = updated)
+    fun resetSavedStationsToDefaults() {
+        viewModelScope.launch {
+            repository.reorderStations(DefaultStations.POPULAR_STATIONS)
+            _uiState.update { it.copy(userMessage = "Debug: Reset to default stations") }
         }
     }
 
@@ -365,19 +501,29 @@ class DashboardViewModel @JvmOverloads constructor(
 
     /**
      * Updates nearest station based on device GPS location.
+     * Evaluates across saved stations and all popular London transit hubs to guarantee
+     * the AI assistant and dashboard always have true local spatial context.
      */
     fun updateNearestStation(context: Context) {
         viewModelScope.launch {
             val location = com.androidfung.departureboard.util.LocationHelper.getCurrentLocation(context)
             if (location != null) {
-                val stations = _uiState.value.stationCards.map { it.station }
-                val nearest = com.androidfung.departureboard.util.LocationHelper.findNearestStation(location, stations)
+                val savedStations = _uiState.value.stationCards.map { it.station }
+                val allCandidateStations = (savedStations + DefaultStations.POPULAR_STATIONS).distinctBy { it.id }
+                val nearest = com.androidfung.departureboard.util.LocationHelper.findNearestStation(location, allCandidateStations)
+
                 if (nearest != null) {
-                    android.util.Log.d("LocationHelper", "Found nearest station: ${nearest.first.name} (${nearest.second}m away)")
+                    val (nearestSt, distance) = nearest
+                    android.util.Log.d("LocationHelper", "Found true nearest station: ${nearestSt.name} (${distance}m away)")
+
+                    // Check if this nearest station is one of the saved dashboard cards
+                    val isSavedOnDashboard = savedStations.any { it.id == nearestSt.id }
+
                     _uiState.update {
                         it.copy(
-                            nearestStationId = nearest.first.id,
-                            nearestStationDistanceMeters = nearest.second
+                            nearestStation = nearestSt,
+                            nearestStationId = if (isSavedOnDashboard) nearestSt.id else null,
+                            nearestStationDistanceMeters = distance
                         )
                     }
                 }

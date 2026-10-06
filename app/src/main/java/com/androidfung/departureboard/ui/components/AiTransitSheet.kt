@@ -26,7 +26,12 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.WorkspacePremium
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import com.androidfung.departureboard.billing.BillingDataSource
+import com.androidfung.departureboard.billing.SubscriptionTier
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import android.app.Activity
 import android.content.Intent
@@ -77,6 +83,9 @@ fun AiTransitSheet(
     modifier: Modifier = Modifier,
     nearestStation: Station? = null,
     initialTriggerSpeech: Boolean = false,
+    billingRepository: BillingDataSource? = null,
+    aiModelType: com.androidfung.departureboard.ai.AiModelType = com.androidfung.departureboard.ai.AiModelType.LOGIC_FALLBACK,
+    onUpgradeClick: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -90,19 +99,23 @@ fun AiTransitSheet(
     val quickPrompts = remember(nearestStation, savedStations) {
         val prompts = mutableListOf<String>()
 
-        // 1. Location-aware nearest tube station prompt
-        prompts.add("Next train from the nearest tube station")
+        // 1. True location-aware nearest station prompt
+        if (nearestStation != null) {
+            val nearestShortName = nearestStation.displayName.substringBefore("(").trim()
+            if (nearestStation.isBusOnly) {
+                prompts.add("Next bus from $nearestShortName")
+            } else {
+                prompts.add("Next train from $nearestShortName")
+            }
+        } else {
+            prompts.add("Next departure from nearest station")
+        }
 
         // 2. Specific saved station prompt if available
-        val primaryOrigin = nearestStation ?: savedStations.firstOrNull()
-        if (primaryOrigin != null) {
-            val originShortName = primaryOrigin.displayName.substringBefore("(").trim()
-            val isBusStop = primaryOrigin.isBusOnly
-            if (isBusStop) {
-                prompts.add("Next bus from $originShortName")
-            } else {
-                prompts.add("Next train from $originShortName")
-            }
+        val secondary = savedStations.firstOrNull { it.id != nearestStation?.id }
+        if (secondary != null) {
+            val shortName = secondary.displayName.substringBefore("(").trim()
+            prompts.add("Next train from $shortName")
         }
 
         // Popular frequent commuter London queries
@@ -112,14 +125,29 @@ fun AiTransitSheet(
         prompts.take(4)
     }
 
+    var isQuotaExceeded by remember { mutableStateOf(false) }
+
     fun submitQuery(prompt: String) {
         if (prompt.isBlank()) return
         queryText = prompt
         isThinking = true
+        isQuotaExceeded = false
+
         coroutineScope.launch {
             try {
-                android.util.Log.d("AiTransitSheet", "submitting query: '$prompt', nearestStation=${nearestStation?.name}")
-                val res = assistant.answerQuery(prompt, savedStations, nearestStation)
+                // Check daily AI quota if billingRepository is provided
+                val allowed = billingRepository?.tryConsumeAiQuery() ?: true
+                if (!allowed) {
+                    isQuotaExceeded = true
+                    aiResult = AiTransitResult(
+                        answer = "You've reached your limit of ${SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES} free AI queries today. Upgrade to Pro for unlimited AI prompts, live journey disruption checks, and full calling points."
+                    )
+                    isThinking = false
+                    return@launch
+                }
+
+                android.util.Log.d("AiTransitSheet", "submitting query: '$prompt', nearestStation=${nearestStation?.name}, model=$aiModelType")
+                val res = assistant.answerQuery(prompt, savedStations, nearestStation, aiModelType)
                 android.util.Log.d("AiTransitSheet", "got answer: ${res.answer}")
                 aiResult = res
             } catch (e: Exception) {
@@ -270,6 +298,31 @@ fun AiTransitSheet(
                             style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 22.sp),
                             color = MaterialTheme.colorScheme.onSurface
                         )
+
+                        if (isQuotaExceeded) {
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Button(
+                                onClick = onUpgradeClick,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.WorkspacePremium,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFB300),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Upgrade to Pro for Unlimited AI",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+                        }
 
                         if (aiResult!!.matchedDepartures.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(12.dp))

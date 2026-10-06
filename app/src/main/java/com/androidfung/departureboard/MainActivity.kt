@@ -15,11 +15,16 @@ import android.content.Intent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.androidfung.departureboard.billing.BillingRepository
 import com.androidfung.departureboard.data.model.Station
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
+import android.widget.Toast
 
 class MainActivity : ComponentActivity() {
 
@@ -30,12 +35,15 @@ class MainActivity : ComponentActivity() {
 
     private var initialStation by mutableStateOf<Station?>(null)
     private lateinit var appUpdateManager: AppUpdateManager
+    private var debugProReceiver: BroadcastReceiver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleIntent(intent)
         com.androidfung.departureboard.widget.WidgetUpdateWorker.enqueuePeriodicUpdate(applicationContext)
+
+        registerDebugProReceiver()
 
         // Check for Google Play In-App Updates
         appUpdateManager = AppUpdateManagerFactory.create(this)
@@ -44,11 +52,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Enable Dynamic Color / Monet theming on Android 12+ while maintaining TfL brand accents
             DepartureBoardTheme(dynamicColor = true) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    DashboardScreen(initialDetailStation = initialStation)
+                com.androidfung.departureboard.ui.theme.ProvideWindowWidthClass {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        DashboardScreen(initialDetailStation = initialStation)
+                    }
                 }
             }
         }
@@ -106,14 +116,57 @@ class MainActivity : ComponentActivity() {
             ?: uri?.getQueryParameter("name")
 
         if (!stationId.isNullOrBlank()) {
+            // Reuse full metadata (modes/zone/lines) for known popular stations so a
+            // deep-linked card shows correct branding — previously every deep link was
+            // hard-coded as a "tube" station, which was wrong for National Rail hubs.
+            val known = com.androidfung.departureboard.data.model.DefaultStations.POPULAR_STATIONS
+                .firstOrNull { it.id == stationId }
             initialStation = Station(
                 id = stationId,
-                name = stationName ?: "Station",
-                modes = listOf("tube"),
+                name = stationName ?: known?.name ?: "Station",
+                modes = known?.modes ?: listOf("tube"),
+                zone = known?.zone,
+                lat = known?.lat,
+                lon = known?.lon,
+                lines = known?.lines ?: emptyList(),
                 isFavorite = true
             )
         } else {
             initialStation = null
+        }
+    }
+
+    private fun registerDebugProReceiver() {
+        if (!BuildConfig.DEBUG) return
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val billingRepo = BillingRepository.getInstance(applicationContext)
+                val targetPro = if (intent?.hasExtra("is_pro") == true) {
+                    intent.getBooleanExtra("is_pro", true)
+                } else {
+                    true
+                }
+                billingRepo.setDebugPro(targetPro)
+                val msg = "Debug: Switched to ${if (targetPro) "PRO" else "FREE"} plan"
+                Toast.makeText(applicationContext, msg, Toast.LENGTH_SHORT).show()
+                android.util.Log.d("MainActivity", msg)
+            }
+        }
+        debugProReceiver = receiver
+        val filter = IntentFilter("com.androidfung.departureboard.TOGGLE_PRO")
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(receiver, filter)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        debugProReceiver?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (_: Exception) {}
         }
     }
 }

@@ -11,7 +11,16 @@ import retrofit2.http.Query
 interface NationalRailApiService {
 
     /**
-     * Fetches live departure board for a given 3-letter CRS station code (e.g. "KGX", "WAT", "VIC").
+     * Fetches live departure board with detailed calling points for a given 3-letter CRS station code (e.g. "KGX", "WAT", "VIC").
+     */
+    @GET("1010-live-departure-board-dep1_2/LDBWS/api/20220120/GetDepBoardWithDetails/{crs}")
+    suspend fun getDepBoardWithDetails(
+        @Path("crs") crs: String,
+        @Query("numRows") numRows: Int = 15
+    ): NrBoardResponse
+
+    /**
+     * Fetches live departure board for a given 3-letter CRS station code (fallback).
      */
     @GET("1010-live-departure-board-dep1_2/LDBWS/api/20220120/GetDepartureBoard/{crs}")
     suspend fun getDepartureBoard(

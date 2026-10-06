@@ -38,7 +38,25 @@ class StationCodeDataSource(private val stationCrsDao: StationCrsDao? = null) {
             return byExactName
         }
 
-        // Keyword lookup
+        // Try stripping common suffixes like "rail station", "station"
+        val stripped = cleanName
+            .replace("rail station", "")
+            .replace("underground station", "")
+            .replace("station", "")
+            .trim()
+
+        if (stripped.isNotBlank() && stripped != cleanName) {
+            val byStripped = dao.getCrsCodesForExactName(stripped)
+            if (byStripped.isNotEmpty()) {
+                return byStripped
+            }
+            val byName = dao.getCrsCodesForStationName(stripped)
+            if (byName.isNotEmpty()) {
+                return byName
+            }
+        }
+
+        // Keyword lookup fallback
         val keywords = listOf(
             "west hampstead", "brent cross west", "st pancras international", "st pancras",
             "king's cross", "kings cross", "finsbury park", "paddington", "waterloo east",
@@ -46,13 +64,27 @@ class StationCodeDataSource(private val stationCrsDao: StationCrsDao? = null) {
             "charing cross", "clapham junction", "stratford international", "stratford",
             "ealing broadway", "blackfriars", "cannon street", "marylebone", "moorgate",
             "old street", "highbury & islington", "vauxhall", "wimbledon", "elephant & castle",
-            "wembley central"
+            "wembley central", "watford junction", "coventry", "st albans abbey", "st albans city",
+            "st albans", "west ealing"
         )
 
         for (kw in keywords) {
             if (cleanName.contains(kw)) {
                 val byKw = dao.getCrsCodesForNameKeyword(kw)
                 if (byKw.isNotEmpty()) return byKw
+            }
+        }
+
+        // 3. Algorithmic Fallback: Check if station ID embeds a 3-letter CRS code
+        // TfL National Rail NaPTAN IDs frequently follow patterns like:
+        // "910G" + 3-character CRS (e.g. 910GCOV -> COV, 910GKGX -> KGX, 910GWAT -> WAT)
+        if (stationId.startsWith("910G", ignoreCase = true) && stationId.length >= 7) {
+            val possibleCrs = stationId.substring(4, 7).uppercase()
+            if (possibleCrs.all { it.isLetter() }) {
+                val verified = dao.getCrsCodesForStationId(possibleCrs)
+                if (verified.isNotEmpty()) {
+                    return listOf(possibleCrs)
+                }
             }
         }
 

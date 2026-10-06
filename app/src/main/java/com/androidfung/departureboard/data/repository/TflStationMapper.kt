@@ -72,7 +72,7 @@ internal object TflStationMapper {
             TflStopPointUtils.extractBusStopLetter(match.id)
         } else null
 
-        val towards = match.towards?.takeIf { it.isNotBlank() && it.trim().lowercase() != "null" }
+        val towards = match.towards?.takeIf { it.isNotBlank() && !it.trim().equals("null", ignoreCase = true) }
         val displayName = buildDisambiguatedStopName(cleaned, stopLetter, towards)
 
         return listOf(
@@ -95,7 +95,7 @@ internal object TflStationMapper {
             ?: sp.indicator?.takeIf { it.startsWith("Stop ", ignoreCase = true) }?.removePrefix("Stop ")?.trim()
             ?: TflStopPointUtils.extractBusStopLetter(sp.id)
 
-        val towards = sp.towards?.takeIf { it.isNotBlank() && it.trim().lowercase() != "null" }
+        val towards = sp.towards?.takeIf { it.isNotBlank() && !it.trim().equals("null", ignoreCase = true) }
             ?: sp.additionalProperties.firstOrNull { it.key.equals("Towards", ignoreCase = true) }?.value?.takeIf { it.isNotBlank() }
 
         val displayName = buildDisambiguatedStopName(cleaned, letter, towards)
@@ -123,11 +123,25 @@ internal object TflStationMapper {
             }
         }
 
+        val isStPancrasInternational = detail.id == "910GSTPX" || detail.commonName?.equals("St Pancras International", ignoreCase = true) == true
+        val isKingsCrossNR = detail.id == "910GKNGX" || detail.commonName?.equals("King's Cross", ignoreCase = true) == true
+
         return detail.lines
             .filter { line ->
                 // Filter out non-rail bus line numbers for train/tube stations unless bus is the primary station type
                 val id = line.id.lowercase()
-                !id.all { it.isDigit() } && !id.startsWith("n")
+                if (id.all { it.isDigit() } || id.startsWith("n")) return@filter false
+
+                val mode = line.modeName?.lowercase() ?: modeMap[id]?.lowercase()
+
+                // If this is St Pancras International or King's Cross (NR), explicitly filter out Tube lines and modes
+                if (isStPancrasInternational || isKingsCrossNR) {
+                    if (mode == "tube" || id in listOf("circle", "hammersmith-city", "metropolitan", "northern", "piccadilly", "victoria", "tube")) {
+                        return@filter false
+                    }
+                }
+
+                true
             }
             .map { line ->
                 val lineId = line.id.lowercase()

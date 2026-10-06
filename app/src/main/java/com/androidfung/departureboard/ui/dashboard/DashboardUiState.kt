@@ -26,5 +26,12 @@ data class DashboardUiState(
     val lastUpdatedTimestamp: Long = System.currentTimeMillis(),
     val userMessage: String? = null,
     val nearestStationId: String? = null,
-    val nearestStationDistanceMeters: Double? = null
+    val nearestStationDistanceMeters: Double? = null,
+    val nearestStation: Station? = null,
+    val isPro: Boolean = false,
+    val paywallPromptReason: String? = null,
+    val selectedDetailStation: Station? = null,
+    val detailDepartures: List<Departure> = emptyList(),
+    val isDetailLoading: Boolean = false,
+    val aiModelType: com.androidfung.departureboard.ai.AiModelType = com.androidfung.departureboard.ai.AiModelType.LOGIC_FALLBACK
 )

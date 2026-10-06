@@ -21,7 +21,15 @@ object StationLineInferrer {
             "nr-gr" to "LNER", "nr-gn" to "Great Northern", "nr-gc" to "Grand Central",
             "nr-ht" to "Hull Trains", "nr-ld" to "Lumo"
         ),
+        "910GKNGX" to listOf(
+            "nr-gr" to "LNER", "nr-gn" to "Great Northern", "nr-gc" to "Grand Central",
+            "nr-ht" to "Hull Trains", "nr-ld" to "Lumo"
+        ),
         "st pancras international" to listOf(
+            "thameslink" to "Thameslink", "nr-se" to "Southeastern", "nr-em" to "East Midlands Railway",
+            "nr-es" to "Eurostar"
+        ),
+        "910GSTPX" to listOf(
             "thameslink" to "Thameslink", "nr-se" to "Southeastern", "nr-em" to "East Midlands Railway",
             "nr-es" to "Eurostar"
         ),
@@ -43,22 +51,40 @@ object StationLineInferrer {
     fun infer(station: Station): List<LineBadgeInfo> {
         // 1. Dynamic: If station already has line info populated from TfL StopPoint API
         if (station.lines.isNotEmpty()) {
-            return station.lines.map { line ->
-                val mode = line.mode ?: when {
-                    line.id == "elizabeth" || line.id == "elizabeth-line" -> TransitMode.ELIZABETH_LINE.id
-                    line.id in listOf("liberty", "lioness", "mildmay", "suffragette", "weaver", "windrush", "overground") -> TransitMode.OVERGROUND.id
-                    line.id.startsWith("nr-") || line.id == "thameslink" -> TransitMode.NATIONAL_RAIL.id
-                    else -> TransitMode.TUBE.id
+            val isStPancrasOrKingsCrossNR = station.id == "910GSTPX" || station.id == "910GKNGX" ||
+                    station.name.lowercase().let { it == "st pancras international" || it == "st pancras" || it == "king's cross" }
+
+            return station.lines
+                .filter { line ->
+                    if (isStPancrasOrKingsCrossNR) {
+                        val mode = line.mode?.lowercase() ?: ""
+                        val id = line.id.lowercase()
+                        if (mode == "tube" || id in TflLineColors.TUBE_LINE_IDS) {
+                            return@filter false
+                        }
+                    }
+                    true
                 }
-                TflLineColors.getLineBadge(line.id, line.name, mode)
-            }.distinctBy { it.displayName }.sortedBy { it.displayName }
+                .map { line ->
+                    val mode = line.mode ?: when {
+                        line.id == "elizabeth" || line.id == "elizabeth-line" -> TransitMode.ELIZABETH_LINE.id
+                        line.id in listOf("liberty", "lioness", "mildmay", "suffragette", "weaver", "windrush", "overground") -> TransitMode.OVERGROUND.id
+                        line.id.startsWith("nr-") || line.id == "thameslink" -> TransitMode.NATIONAL_RAIL.id
+                        else -> TransitMode.TUBE.id
+                    }
+                    TflLineColors.getLineBadge(line.id, line.name, mode)
+                }.distinctBy { it.displayName }.sortedBy { it.displayName }
         }
 
         val stName = station.name.lowercase()
 
+        // Check station ID or name for St Pancras or King's Cross National Rail
+        val isStPancrasOrKingsCrossNR = station.id == "910GSTPX" || station.id == "910GKNGX" ||
+                stName == "st pancras international" || stName == "st pancras" || stName == "king's cross"
+
         // 2. Fallback to known multi-line transit hubs
         for ((stationKey, lines) in STATION_SPECIFIC_LINES) {
-            if (stName.contains(stationKey) || station.id.equals(stationKey, ignoreCase = true)) {
+            if (station.id.equals(stationKey, ignoreCase = true) || stName.contains(stationKey)) {
                 return lines.map { (id, name) ->
                     val mode = when {
                         id == "elizabeth-line" -> TransitMode.ELIZABETH_LINE.id
@@ -71,9 +97,15 @@ object StationLineInferrer {
             }
         }
 
-        // 2. Generic fallback from station mode declarations using TransitMode
+        // 3. Generic fallback from station mode declarations using TransitMode
         return TransitMode.fromModes(station.modes)
-            .filter { it != TransitMode.OTHER }
+            .filter { mode ->
+                if (isStPancrasOrKingsCrossNR && mode == TransitMode.TUBE) {
+                    false
+                } else {
+                    mode != TransitMode.OTHER
+                }
+            }
             .map { mode ->
                 when (mode) {
                     TransitMode.TUBE -> TflLineColors.getLineBadge("tube", "Underground", mode.id)
