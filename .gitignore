@@ -13,3 +13,15 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Temporary scratch and audit artifacts
+.scratch/
+
+# Release outputs and obfuscation mappings
+/app/release/
+*.aab
+mapping.txt
+
+# Firebase / Google Services configuration
+app/google-services.json
+
