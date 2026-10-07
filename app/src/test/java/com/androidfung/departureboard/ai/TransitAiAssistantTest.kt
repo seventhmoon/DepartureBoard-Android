@@ -40,12 +40,15 @@ class TransitAiAssistantTest {
             stations.associate { it.id to getDepartures(it.id, it.name) }
         override fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>> =
             flowOf(Result.success(departures.filter { it.stationId == stationId }))
+        override suspend fun getCachedDepartures(stationId: String): List<Departure> =
+            departures.filter { it.stationId == stationId }
         override suspend fun getLineStatuses(): Map<String, TflLineStatusItem> = lineStatuses
         override suspend fun getCallingPoints(departure: Departure): List<com.androidfung.departureboard.data.model.CallingPoint> = emptyList()
         override suspend fun saveStation(station: Station) {}
         override suspend fun reorderStations(stations: List<Station>) {}
         override suspend fun removeStation(stationId: String) {}
         override suspend fun setRecentStationId(stationId: String) {}
+        override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> = emptyList()
     }
 
     private val oxfordCircus = Station(

@@ -56,6 +56,16 @@ class TransitRepositoryTest {
         override suspend fun getLineRouteSequence(lineId: String, direction: String): com.androidfung.departureboard.data.model.TflRouteSequenceResponse {
             return com.androidfung.departureboard.data.model.TflRouteSequenceResponse(lineId = lineId)
         }
+
+        override suspend fun getNearbyStopPoints(
+            lat: Double,
+            lon: Double,
+            stopTypes: String,
+            radiusMeters: Int,
+            useHierarchy: Boolean
+        ): com.androidfung.departureboard.data.model.TflStopPointsResponse {
+            return com.androidfung.departureboard.data.model.TflStopPointsResponse()
+        }
     }
 
     private class FakeNrApiService(

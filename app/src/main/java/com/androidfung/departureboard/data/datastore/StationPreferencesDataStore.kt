@@ -67,14 +67,11 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
             } else {
                 try {
                     val dtos = stationListAdapter.fromJson(json)
-                    if (dtos == null) {
-                        // JSON is the literal "null" — treat as never-saved → popular defaults
-                        DefaultStations.POPULAR_STATIONS
-                    } else {
-                        // An explicitly empty list is preserved so the dashboard can show
+                    dtos?.// An explicitly empty list is preserved so the dashboard can show
                         // its empty state instead of silently resurrecting the defaults.
-                        dtos.map { it.toStation() }
-                    }
+                    map { it.toStation() }
+                        ?: // JSON is the literal "null" — treat as never-saved → popular defaults
+                        DefaultStations.POPULAR_STATIONS
                 } catch (_: Exception) {
                     DefaultStations.POPULAR_STATIONS
                 }

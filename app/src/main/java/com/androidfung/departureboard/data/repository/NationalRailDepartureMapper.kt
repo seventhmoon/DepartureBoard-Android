@@ -125,7 +125,7 @@ internal object NationalRailDepartureMapper {
                 destinationCrs = destCrs,
                 platformName = platformStr,
                 destinationName = destination
-            )
+            )?.displayName
             isThameslink -> ThameslinkDirectionResolver.resolve(
                 destinationCrs = destCrs,
                 destinationName = destination

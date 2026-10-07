@@ -1,8 +1,6 @@
 package com.androidfung.departureboard.ui.dashboard
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -150,13 +148,14 @@ fun DashboardScreen(
 
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    // Nearest-station detection requires a location permission, which must be requested
-    // at runtime — previously nothing ever asked for it, so the feature silently never ran.
+    // Nearest-station detection requires a location permission, which is requested
+    // contextually with a rationale (e.g. when opening search nearby or AI assistant),
+    // rather than abruptly at app launch.
     @OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
     val fineLocationPermission = rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION)
     @OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
     val coarseLocationPermission = rememberPermissionState(android.Manifest.permission.ACCESS_COARSE_LOCATION)
-    var hasPromptedForLocation by remember { mutableStateOf(false) }
+    var showLocationRationale by remember { mutableStateOf(false) }
 
     @OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
     val fineStatus = fineLocationPermission.status
@@ -167,21 +166,17 @@ fun DashboardScreen(
         fineStatus is PermissionStatus.Granted ||
         coarseStatus is PermissionStatus.Granted
 
-    // Prompt once: fine location, falling back to coarse if fine is denied.
-    @OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
-    LaunchedEffect(fineStatus, coarseStatus) {
-        if (hasPromptedForLocation) return@LaunchedEffect
-        if (locationGranted) return@LaunchedEffect
-
-        hasPromptedForLocation = true
-        fineLocationPermission.launchPermissionRequest()
+    val requestLocationWithRationale = {
+        if (!locationGranted) {
+            showLocationRationale = true
+        }
     }
 
-    // Re-run the nearest-station lookup once permission is granted (or later revoked/re-granted)
-    // or the set of saved stations changes.
-    LaunchedEffect(locationGranted, uiState.stationCards.size) {
-        if (locationGranted && uiState.stationCards.isNotEmpty()) {
-            viewModel.updateNearestStation(context)
+    // Re-run the nearest-station lookup whenever permission is granted (or re-granted).
+    // Uses local candidate stations at startup without firing extra HTTP queries.
+    LaunchedEffect(locationGranted) {
+        if (locationGranted) {
+            viewModel.updateNearestStation(context, fetchApiNearby = false)
         }
     }
 
@@ -192,6 +187,9 @@ fun DashboardScreen(
         onDismissStation = { station -> viewModel.removeStation(station) },
         onMoveStation = { fromIndex, toIndex -> viewModel.moveStation(fromIndex, toIndex) },
         onAddStationClick = {
+            if (locationGranted) {
+                viewModel.updateNearestStation(context, fetchApiNearby = true)
+            }
             showSearchSheet = true
             onNavigateToSearch()
         },
@@ -220,8 +218,11 @@ fun DashboardScreen(
                 viewModel.openStationDetail(station)
             },
             savedStationIds = remember(uiState.stationCards) {
-                uiState.stationCards.map { it.station.id }.toSet()
+                uiState.stationCards.asSequence().map { it.station.id }.toSet()
             },
+            nearbyStations = uiState.nearbyStations,
+            hasLocationPermission = locationGranted,
+            onRequestLocation = requestLocationWithRationale,
             onSearchQuery = { query -> viewModel.searchStations(query) }
         )
     }
@@ -242,10 +243,6 @@ fun DashboardScreen(
                 }
             },
             onRefresh = { viewModel.openStationDetail(station) },
-            onRemoveStation = { stationToRemove ->
-                viewModel.removeStation(stationToRemove)
-                viewModel.closeStationDetail()
-            },
             onDepartureClick = { departure ->
                 selectedDepartureForJourney = departure
             },
@@ -258,9 +255,7 @@ fun DashboardScreen(
         TrainJourneyBottomSheet(
             departure = departure,
             onDismissRequest = { selectedDepartureForJourney = null },
-            onLoadCallingPoints = { dep -> viewModel.getCallingPoints(dep) },
-            isPro = uiState.isPro,
-            onUpgradeClick = { viewModel.showPaywall("Unlock all calling points and intermediate train stops with Pro") }
+            onLoadCallingPoints = { dep -> viewModel.getCallingPoints(dep) }
         )
     }
 
@@ -277,6 +272,20 @@ fun DashboardScreen(
             billingRepository = viewModel.billingRepository,
             aiModelType = uiState.aiModelType,
             onUpgradeClick = { viewModel.showPaywall("Unlock unlimited Prompt Departure AI queries with Pro") }
+        )
+    }
+
+    // Location Permission Rationale Dialog
+    if (showLocationRationale) {
+        @OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
+        com.androidfung.departureboard.ui.components.LocationRationaleDialog(
+            onConfirm = {
+                showLocationRationale = false
+                fineLocationPermission.launchPermissionRequest()
+            },
+            onDismiss = {
+                showLocationRationale = false
+            }
         )
     }
 
@@ -303,7 +312,6 @@ fun DashboardScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardContent(
     uiState: DashboardUiState,

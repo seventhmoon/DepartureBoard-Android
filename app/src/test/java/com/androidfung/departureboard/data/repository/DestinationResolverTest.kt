@@ -7,28 +7,34 @@ class DestinationResolverTest {
 
     @Test
     fun testElizabethLineDirectionResolution() {
-        // Name-based
-        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationName = "Abbey Wood"))
-        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationName = "Shenfield"))
-        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationName = "Stratford"))
-        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationName = "London Paddington"))
-        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationName = "Reading"))
-        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationName = "Heathrow Terminal 4"))
+        // Name-based with viewing station context
+        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationName = "Abbey Wood", currentStationName = "Paddington")?.displayName)
+        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationName = "Shenfield", currentStationName = "Paddington")?.displayName)
+        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationName = "Stratford", currentStationName = "Paddington")?.displayName)
+        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationName = "London Paddington", currentStationId = "SRA")?.displayName)
+        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationName = "Reading", currentStationName = "Paddington")?.displayName)
+        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationName = "Heathrow Terminal 4", currentStationName = "Paddington")?.displayName)
 
         // O(1) CRS-based (National Rail)
-        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "ABW"))
-        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "SNF"))
-        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "PAD"))
-        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "RDG"))
-        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "HXX"))
+        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "ABW", currentStationId = "PAD")?.displayName)
+        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "SNF", currentStationId = "PAD")?.displayName)
+        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "PAD", currentStationId = "SRA")?.displayName)
+        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "RDG", currentStationId = "PAD")?.displayName)
+        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "HXX", currentStationId = "PAD")?.displayName)
 
         // O(1) NaPTAN-based (TfL API)
-        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationNaptanId = "910GABWD"))
-        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationNaptanId = "910GREADING"))
+        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationNaptanId = "910GABWD", currentStationId = "910GPADTON")?.displayName)
+        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationNaptanId = "910GREADING", currentStationId = "910GPADTON")?.displayName)
 
-        // Platform-based (Core tunnel)
-        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(platformName = "Platform A"))
-        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(platformName = "Platform B"))
+        // Platform-based (explicit hints)
+        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(platformName = "Platform 1 Eastbound")?.displayName)
+        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(platformName = "Platform 2 Westbound")?.displayName)
+
+        // Relative Route-Position Comparison from intermediate stations:
+        // When at Reading (West), a train towards Paddington is Eastbound!
+        assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "PAD", currentStationId = "RDG")?.displayName)
+        // When at Stratford (East), a train towards Paddington is Westbound!
+        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "PAD", currentStationId = "SRA")?.displayName)
     }
 
     @Test

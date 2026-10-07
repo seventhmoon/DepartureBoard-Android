@@ -24,9 +24,21 @@ interface TflApiService {
     @GET("StopPoint/Search/{query}")
     suspend fun searchStations(
         @Path("query") query: String,
-        @Query("modes") modes: String = "tube,bus,dlr,overground,elizabeth-line,national-rail",
+        @Query("modes") modes: String = "tube,bus,dlr,overground,elizabeth-line,national-rail,tram",
         @Query("maxResults") maxResults: Int = 20
     ): TflSearchResponse
+
+    /**
+     * Finds nearby StopPoints given latitude and longitude coordinates.
+     */
+    @GET("StopPoint")
+    suspend fun getNearbyStopPoints(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        @Query("stopTypes") stopTypes: String = "NaptanMetroStation,NaptanRailStation,NaptanPublicBusCoachTram",
+        @Query("radius") radiusMeters: Int = 1500,
+        @Query("useStopPointHierarchy") useHierarchy: Boolean = true
+    ): com.androidfung.departureboard.data.model.TflStopPointsResponse
 
     /**
      * Fetches live arrival countdown predictions for a specific stop or station.

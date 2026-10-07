@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
                 com.androidfung.departureboard.ui.theme.ProvideWindowWidthClass {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
+                        color = MaterialTheme.colorScheme.background,
                     ) {
                         DashboardScreen(initialDetailStation = initialStation)
                     }
@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
         try {
             val appUpdateInfoTask = appUpdateManager.appUpdateInfo
             appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
-                if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                if ((appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) &&
                     appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
                 ) {
                     // Flexible in-app update available
@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         val uri = intent?.data
         val stationId = intent?.getStringExtra(EXTRA_STATION_ID)
-            ?: if (uri != null && uri.scheme == "mindtheboard" && uri.host == "station") uri.lastPathSegment else null
+            ?: if ((uri != null) && (uri.scheme == "mindtheboard") && (uri.host == "station")) uri.lastPathSegment else null
         val stationName = intent?.getStringExtra(EXTRA_STATION_NAME)
             ?: uri?.getQueryParameter("name")
 
@@ -120,7 +120,7 @@ class MainActivity : ComponentActivity() {
             // deep-linked card shows correct branding — previously every deep link was
             // hard-coded as a "tube" station, which was wrong for National Rail hubs.
             val known = com.androidfung.departureboard.data.model.DefaultStations.POPULAR_STATIONS
-                .firstOrNull { it.id == stationId }
+                .firstOrNull { (id) -> id == stationId }
             initialStation = Station(
                 id = stationId,
                 name = stationName ?: known?.name ?: "Station",
@@ -141,11 +141,8 @@ class MainActivity : ComponentActivity() {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 val billingRepo = BillingRepository.getInstance(applicationContext)
-                val targetPro = if (intent?.hasExtra("is_pro") == true) {
-                    intent.getBooleanExtra("is_pro", true)
-                } else {
-                    true
-                }
+                val targetPro =
+                    intent?.hasExtra("is_pro") != true || intent.getBooleanExtra("is_pro", true)
                 billingRepo.setDebugPro(targetPro)
                 val msg = "Debug: Switched to ${if (targetPro) "PRO" else "FREE"} plan"
                 Toast.makeText(applicationContext, msg, Toast.LENGTH_SHORT).show()
@@ -154,11 +151,12 @@ class MainActivity : ComponentActivity() {
         }
         debugProReceiver = receiver
         val filter = IntentFilter("com.androidfung.departureboard.TOGGLE_PRO")
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
-        } else {
-            registerReceiver(receiver, filter)
-        }
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            receiver,
+            filter,
+            androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+        )
     }
 
     override fun onDestroy() {

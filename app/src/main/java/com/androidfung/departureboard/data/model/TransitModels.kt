@@ -1,10 +1,12 @@
 package com.androidfung.departureboard.data.model
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
 /**
  * Clean domain representation of a transit station or stop.
  */
+@Immutable
 data class Station(
     val id: String,
     val name: String,
@@ -16,6 +18,18 @@ data class Station(
     val lines: List<StationLineInfo> = emptyList()
 ) {
     val isBusOnly: Boolean get() = TransitMode.isBusOnly(modes)
+
+    /**
+     * Clean, valid TfL fare zone description (e.g. "1", "2/3"), or null if not applicable (e.g. bus stops or "NA").
+     */
+    val displayZone: String?
+        get() {
+            val z = zone?.trim() ?: return null
+            if (z.isBlank() || z.equals("NA", ignoreCase = true) || z.equals("N/A", ignoreCase = true) || z.equals("null", ignoreCase = true)) {
+                return null
+            }
+            return z
+        }
 
     /**
      * User-facing display name that includes bus stop letter (e.g. "Euston (Stop D)")
@@ -38,6 +52,7 @@ data class Station(
 /**
  * Domain representation of a transit line serving a station.
  */
+@Immutable
 data class StationLineInfo(
     val id: String,
     val name: String,
@@ -47,6 +62,7 @@ data class StationLineInfo(
 /**
  * An individual calling point or stop on a train/bus journey.
  */
+@Immutable
 data class CallingPoint(
     val stationName: String,
     val scheduledTime: String? = null,
@@ -58,6 +74,7 @@ data class CallingPoint(
 /**
  * Clean domain representation of a live departure prediction.
  */
+@Immutable
 data class Departure(
     val id: String,
     val stationId: String,
@@ -73,7 +90,8 @@ data class Departure(
     val currentLocation: String?,
     val modeName: String,
     val lineBadge: LineBadgeInfo,
-    val callingPoints: List<CallingPoint> = emptyList()
+    val callingPoints: List<CallingPoint> = emptyList(),
+    val status: DepartureStatus = DepartureStatus.fromString(currentLocation, timeToStationSeconds)
 ) {
     /**
      * Human-friendly formatted arrival string, e.g. "Due", "1 min", "4 mins".
@@ -82,7 +100,7 @@ data class Departure(
         get() {
             val minutes = timeToStationSeconds / 60
             return when {
-                timeToStationSeconds <= 30 -> "Due"
+                status == DepartureStatus.DUE -> "Due"
                 minutes <= 1 -> "1 min"
                 else -> "$minutes mins"
             }
@@ -112,6 +130,7 @@ data class Departure(
 /**
  * Line branding badge colors & details.
  */
+@Immutable
 data class LineBadgeInfo(
     val lineId: String,
     val displayName: String,
@@ -150,10 +169,10 @@ enum class TransitMode(val id: String, val displayName: String) {
     TUBE("tube", "Underground"),
     BUS("bus", "Bus"),
     ELIZABETH_LINE("elizabeth-line", "Elizabeth line"),
-    OVERGROUND("overground", "London Overground"),
+    OVERGROUND("overground", "Overground"),
     DLR("dlr", "DLR"),
     NATIONAL_RAIL("national-rail", "National Rail"),
-    CABLE_CAR("cable-car", "IFS Cloud Cable Car"),
+    CABLE_CAR("cable-car", "Cable Car"),
     TRAM("tram", "Tram"),
     OTHER("other", "Transit");
 

@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * ViewModel for the Departure Board Dashboard.
@@ -74,15 +75,25 @@ class DashboardViewModel @JvmOverloads constructor(
                         )
                     }
                 } else {
-                    // Retain existing departures for stations if available, or prefill from offline cache
+                    // Instantly render existing departures or fast local cache without blocking startup
                     val existingMap = _uiState.value.stationCards.associateBy { it.station.id }
                     val newCards = stations.map { station ->
-                        existingMap[station.id]?.copy(station = station)
-                            ?: StationCardUiModel(
+                        val existing = existingMap[station.id]
+                        if (existing != null && existing.departures.isNotEmpty()) {
+                            existing.copy(station = station)
+                        } else {
+                            val cachedDepartures = repository.getCachedDepartures(station.id)
+                            StationCardUiModel(
                                 station = station,
-                                availableLineBadges = inferLineBadges(station),
-                                isLoading = true
+                                departures = cachedDepartures,
+                                availableLineBadges = if (cachedDepartures.isNotEmpty()) {
+                                    cachedDepartures.map { it.lineBadge }.distinctBy { it.displayName }
+                                } else {
+                                    inferLineBadges(station)
+                                },
+                                isLoading = cachedDepartures.isEmpty()
                             )
+                        }
                     }
                     _uiState.update {
                         it.copy(
@@ -90,7 +101,7 @@ class DashboardViewModel @JvmOverloads constructor(
                             isInitialLoading = false
                         )
                     }
-                    // Fetch fresh arrivals using batched multi-station endpoint
+                    // Fetch fresh arrivals in the background using batched multi-station endpoint
                     refreshDeparturesForStations(stations)
                 }
             }
@@ -260,7 +271,7 @@ class DashboardViewModel @JvmOverloads constructor(
         autoRefreshJob?.cancel()
         autoRefreshJob = viewModelScope.launch {
             while (isActive) {
-                delay(30_000L)
+                delay(30_000L.milliseconds)
                 val stations = _uiState.value.stationCards.map { it.station }
                 if (stations.isNotEmpty()) {
                     refreshDeparturesForStations(stations)
@@ -281,7 +292,7 @@ class DashboardViewModel @JvmOverloads constructor(
         countdownTickerJob?.cancel()
         countdownTickerJob = viewModelScope.launch {
             while (isActive) {
-                delay(1000L)
+                delay(1000L.milliseconds)
                 _uiState.update { state ->
                     val tickedCards = state.stationCards.map { card ->
                         if (card.departures.isEmpty()) {
@@ -501,16 +512,34 @@ class DashboardViewModel @JvmOverloads constructor(
 
     /**
      * Updates nearest station based on device GPS location.
-     * Evaluates across saved stations and all popular London transit hubs to guarantee
-     * the AI assistant and dashboard always have true local spatial context.
+     * Evaluates across saved stations and all popular London transit hubs.
+     *
+     * @param fetchApiNearby If true, queries the TfL StopPoint radius API (used when opening Search).
+     *                        If false, computes distance quickly against local candidates without extra HTTP traffic.
      */
-    fun updateNearestStation(context: Context) {
+    fun updateNearestStation(context: Context, fetchApiNearby: Boolean = false) {
         viewModelScope.launch {
             val location = com.androidfung.departureboard.util.LocationHelper.getCurrentLocation(context)
             if (location != null) {
+                val apiNearbyStations = if (fetchApiNearby) {
+                    repository.getNearbyStationsFromApi(
+                        lat = location.latitude,
+                        lon = location.longitude,
+                        radiusMeters = 2000
+                    )
+                } else emptyList()
+
                 val savedStations = _uiState.value.stationCards.map { it.station }
-                val allCandidateStations = (savedStations + DefaultStations.POPULAR_STATIONS).distinctBy { it.id }
+                val allCandidateStations: List<Station> = (apiNearbyStations + savedStations + DefaultStations.POPULAR_STATIONS)
+                    .distinctBy { it.id }
+
                 val nearest = com.androidfung.departureboard.util.LocationHelper.findNearestStation(location, allCandidateStations)
+                val nearbyList = com.androidfung.departureboard.util.LocationHelper.findNearbyStations(
+                    userLocation = location,
+                    stations = allCandidateStations,
+                    maxDistanceMeters = 5000.0,
+                    maxCount = 10
+                )
 
                 if (nearest != null) {
                     val (nearestSt, distance) = nearest
@@ -523,8 +552,13 @@ class DashboardViewModel @JvmOverloads constructor(
                         it.copy(
                             nearestStation = nearestSt,
                             nearestStationId = if (isSavedOnDashboard) nearestSt.id else null,
-                            nearestStationDistanceMeters = distance
+                            nearestStationDistanceMeters = distance,
+                            nearbyStations = if (fetchApiNearby || it.nearbyStations.isEmpty()) nearbyList else it.nearbyStations
                         )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(nearbyStations = if (fetchApiNearby || it.nearbyStations.isEmpty()) nearbyList else it.nearbyStations)
                     }
                 }
             } else {

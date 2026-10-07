@@ -188,12 +188,12 @@ fun PaywallBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ProFeatureRow(
-                        title = "Up to 10 Saved Stations",
-                        subtitle = "Free tier is limited to 2 stations"
+                        title = "Up to ${SubscriptionTier.PRO_MAX_STATIONS} Saved Stations",
+                        subtitle = "Free tier is limited to ${SubscriptionTier.FREE_MAX_STATIONS} stations"
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                     ProFeatureRow(
-                        title = "Up to 10 Home Screen Widgets",
+                        title = "Up to ${SubscriptionTier.PRO_MAX_WIDGETS} Home Screen Widgets",
                         subtitle = "Track all your commute connections at a glance"
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))

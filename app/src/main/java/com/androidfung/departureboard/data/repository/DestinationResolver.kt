@@ -4,6 +4,8 @@ package com.androidfung.departureboard.data.repository
  * Resolves the outbound destination for terminus stations when TfL's prediction API reports
  * inbound terminating trains arriving at the station itself (e.g. Edgware, Brixton),
  * or generic placeholder messages like "Check Front of Train".
+ *
+ * Uses Station NaPTAN ID for deterministic resolution, with fallback to clean station names.
  */
 internal object DestinationResolver {
 
@@ -12,8 +14,10 @@ internal object DestinationResolver {
      */
     private data class LineEndPair(
         val lineId: String,
+        val endAIds: Set<String> = emptySet(),
         val endAKeywords: Set<String>,
         val endADestination: String,
+        val endBIds: Set<String> = emptySet(),
         val endBKeywords: Set<String>,
         val endBDestination: String
     )
@@ -22,40 +26,50 @@ internal object DestinationResolver {
         // Victoria line
         LineEndPair(
             lineId = "victoria",
+            endAIds = setOf("940GZZLUBRX"),
             endAKeywords = setOf("brixton"),
             endADestination = "Walthamstow Central",
-            endBKeywords = setOf("walthamstow"),
+            endBIds = setOf("940GZZLUWWL"),
+            endBKeywords = setOf("walthamstow", "walthamstow central"),
             endBDestination = "Brixton"
         ),
         // Bakerloo line
         LineEndPair(
             lineId = "bakerloo",
+            endAIds = setOf("940GZZLUEAC"),
             endAKeywords = setOf("elephant & castle", "elephant and castle"),
             endADestination = "Harrow & Wealdstone / Queen's Park",
+            endBIds = setOf("940GZZLUHAW"),
             endBKeywords = setOf("harrow & wealdstone", "harrow and wealdstone"),
             endBDestination = "Elephant & Castle"
         ),
         // Waterloo & City line
         LineEndPair(
             lineId = "waterloo-city",
+            endAIds = setOf("940GZZLUWLO"),
             endAKeywords = setOf("waterloo"),
             endADestination = "Bank",
+            endBIds = setOf("940GZZLUBNK"),
             endBKeywords = setOf("bank"),
             endBDestination = "Waterloo"
         ),
         // Jubilee line
         LineEndPair(
             lineId = "jubilee",
+            endAIds = setOf("940GZZLUSTM"),
             endAKeywords = setOf("stanmore"),
             endADestination = "Stratford via Central London",
+            endBIds = setOf("940GZZLUSTD"),
             endBKeywords = setOf("stratford"),
             endBDestination = "Stanmore via Central London"
         ),
         // Elizabeth line
         LineEndPair(
             lineId = "elizabeth",
+            endAIds = setOf("910GREADING", "940GZZLUHRC", "940GZZLUHR5", "940GZZLUHR4"),
             endAKeywords = setOf("reading", "heathrow"),
             endADestination = "Abbey Wood / Shenfield",
+            endBIds = setOf("910GABWD", "910GSHENFLD"),
             endBKeywords = setOf("abbey wood", "shenfield"),
             endBDestination = "Reading / Heathrow Terminal 5"
         )
@@ -66,10 +80,14 @@ internal object DestinationResolver {
         itemDestination: String?,
         itemTowards: String?,
         lineId: String?,
-        platformName: String?
+        platformName: String?,
+        stationId: String? = null,
+        destinationNaptanId: String? = null
     ): String {
         val cleanStation = StationNameFormatter.clean(stationName)
         val stationLower = cleanStation.lowercase()
+        val stIdUpper = stationId?.uppercase().orEmpty()
+        val destIdUpper = destinationNaptanId?.uppercase().orEmpty()
 
         val rawInput = itemDestination?.takeIf { it.isNotBlank() }
             ?: itemTowards?.takeIf { it.isNotBlank() }
@@ -77,12 +95,16 @@ internal object DestinationResolver {
         val rawDest = StationNameFormatter.clean(rawInput)
 
         val isGenericCheckFront = rawDest.contains("check front of train", ignoreCase = true)
-        val isTerminatingAtThisStation = rawDest.isNotBlank() && (
+
+        // 1. Check if terminating here by exact NaPTAN ID match or station name match
+        val isTerminatingById = stIdUpper.isNotBlank() && destIdUpper.isNotBlank() && stIdUpper == destIdUpper
+        val isTerminatingByName = rawDest.isNotBlank() && (
             rawDest.equals(cleanStation, ignoreCase = true) ||
             rawDest.startsWith("$cleanStation ", ignoreCase = true)
         )
+        val isTerminatingAtThisStation = isTerminatingById || isTerminatingByName
 
-        // 1. Fast-Path: if train is already heading somewhere else, keep it
+        // Fast-Path: if train is already heading somewhere else, keep it
         if (!isTerminatingAtThisStation && !isGenericCheckFront) {
             return rawDest
         }
@@ -95,7 +117,6 @@ internal object DestinationResolver {
             val isCurrentStation = towardsLower == stationLower || towardsLower.startsWith("$stationLower ")
 
             if (!isRoutingOnly && !isCurrentStation && !towardsLower.contains("check front of train")) {
-                // If it includes a branch via qualifier like "Morden via Bank", return as-is
                 return towardsClean
             }
         }
@@ -104,16 +125,16 @@ internal object DestinationResolver {
         val lineLower = lineId?.lowercase().orEmpty()
         val platLower = platformName?.lowercase().orEmpty()
 
-        // 3. Symmetrical Line Endpoints Lookup (Victoria, Bakerloo, Jubilee, Waterloo & City, Elizabeth)
-        for ((lineKeyword, endAKeywords, endADestination, endBKeywords, endBDestination) in SIMPLE_LINE_TERMINI) {
+        // 3. Symmetrical Line Endpoints Lookup (using Station ID first, then keyword fallback)
+        for ((lineKeyword, endAIds, endAKeywords, endADestination, endBIds, endBKeywords, endBDestination) in SIMPLE_LINE_TERMINI) {
             if (lineLower.contains(lineKeyword)) {
-                if (endAKeywords.any { stationLower.contains(it) }) return endADestination
-                if (endBKeywords.any { stationLower.contains(it) }) return endBDestination
+                if (endAIds.contains(stIdUpper) || endAKeywords.any { stationLower.contains(it) }) return endADestination
+                if (endBIds.contains(stIdUpper) || endBKeywords.any { stationLower.contains(it) }) return endBDestination
             }
         }
 
         // 4. Multi-branch line routing
-        resolveBranchLines(stationLower, lineLower, towardsLower)?.let {
+        resolveBranchLines(stationLower, lineLower, towardsLower, stIdUpper)?.let {
             return it
         }
 
@@ -133,7 +154,8 @@ internal object DestinationResolver {
     private fun resolveBranchLines(
         station: String,
         line: String,
-        towards: String
+        towards: String,
+        stationId: String = ""
     ): String? {
         val isNorthern = "northern" in line
         val isCentral = "central" in line
@@ -144,63 +166,65 @@ internal object DestinationResolver {
         return when {
             // Northern Line
             isNorthern -> when {
-                "morden" in station -> when {
+                stationId == "940GZZLUMDN" || "morden" in station -> when {
                     "via cx" in towards || "charing cross" in towards -> "Edgware via Charing Cross"
                     "via bank" in towards || "bank" in towards -> "High Barnet via Bank"
                     else -> "Edgware / High Barnet"
                 }
-                "battersea" in station -> "High Barnet / Edgware via Charing Cross"
+                stationId == "940GZZBPSUST" || "battersea" in station -> "High Barnet / Edgware via Charing Cross"
+                stationId in setOf("940GZZLUEGW", "940GZZLUHBT", "940GZZLUMHE") ||
                 "edgware" in station || "high barnet" in station || "mill hill east" in station -> when {
                     "battersea" in towards -> "Battersea Power Station"
                     "via cx" in towards || "charing cross" in towards -> "Morden via Charing Cross"
                     "via bank" in towards || "bank" in towards -> "Morden via Bank"
-                    else -> if ("mill hill east" in station) "Finchley Central" else "Morden / Battersea"
+                    else -> if (stationId == "940GZZLUMHE" || "mill hill east" in station) "Finchley Central" else "Morden / Battersea"
                 }
                 else -> null
             }
 
             // Central Line
             isCentral -> when {
-                "west ruislip" in station || "ealing broadway" in station -> "Epping / Hainault"
-                "epping" in station -> "West Ruislip / Ealing Broadway"
-                "hainault" in station -> "Central London via Newbury Park"
-                "woodford" in station -> "Central London via Hainault"
+                stationId in setOf("940GZZLUWRP", "940GZZLUEBY") || "west ruislip" in station || "ealing broadway" in station -> "Epping / Hainault"
+                stationId == "940GZZLUEPG" || "epping" in station -> "West Ruislip / Ealing Broadway"
+                stationId == "940GZZLUHHL" || "hainault" in station -> "Central London via Newbury Park"
+                stationId == "940GZZLUWFD" || "woodford" in station -> "Central London via Hainault"
                 else -> null
             }
 
             // District & Circle Line
             isDistrict || "circle" in line -> when {
-                "wimbledon" in station -> when {
+                stationId == "940GZZLUWBR" || "wimbledon" in station -> when {
                     "edgware road" in towards -> "Edgware Road via High Street Kensington"
                     else -> "Upminster via Tower Hill"
                 }
-                "upminster" in station -> "Richmond / Ealing Broadway / Wimbledon"
-                "edgware road" in station && "circle" in line -> "Hammersmith via Tower Hill"
-                "hammersmith" in station -> "Barking via King's Cross"
+                stationId == "940GZZLUUPM" || "upminster" in station -> "Richmond / Ealing Broadway / Wimbledon"
+                (stationId in setOf("940GZZLUERB", "940GZZLUERC") || "edgware road" in station) && "circle" in line -> "Hammersmith via Tower Hill"
+                stationId in setOf("940GZZLUHSD", "940GZZLUHSC") || "hammersmith" in station -> "Barking via King's Cross"
                 else -> null
             }
 
             // Piccadilly Line
             isPiccadilly -> when {
-                "cockfosters" in station -> "Heathrow / Uxbridge"
-                "heathrow" in station -> "Cockfosters via Central London"
-                "uxbridge" in station -> "Cockfosters"
+                stationId == "940GZZLUCKF" || "cockfosters" in station -> "Heathrow / Uxbridge"
+                stationId in setOf("940GZZLUHRC", "940GZZLUHR4", "940GZZLUHR5") || "heathrow" in station -> "Cockfosters via Central London"
+                stationId == "940GZZLUUXB" || "uxbridge" in station -> "Cockfosters"
                 else -> null
             }
 
             // Metropolitan Line
             isMetropolitan -> when {
-                "aldgate" in station -> "Uxbridge / Watford / Amersham"
+                stationId == "940GZZLUALD" || "aldgate" in station -> "Uxbridge / Watford / Amersham"
+                stationId in setOf("940GZZLUAMS", "940GZZLUCSM", "940GZZLUWFD") ||
                 "amersham" in station || "chesham" in station || "watford" in station -> "Aldgate / Baker Street"
                 else -> null
             }
 
             // DLR
             "dlr" in line -> when {
-                "tower gateway" in station -> "Beckton via Canary Wharf"
-                "beckton" in station -> "Tower Gateway / Bank"
-                "lewisham" in station -> "Bank / Stratford"
-                "woolwich arsenal" in station -> "Bank / Stratford International"
+                stationId == "940GZZDLTWR" || "tower gateway" in station -> "Beckton via Canary Wharf"
+                stationId == "940GZZDLBCK" || "beckton" in station -> "Tower Gateway / Bank"
+                stationId == "940GZZDLLEW" || "lewisham" in station -> "Bank / Stratford"
+                stationId == "940GZZDLWLA" || "woolwich arsenal" in station -> "Bank / Stratford International"
                 else -> null
             }
 

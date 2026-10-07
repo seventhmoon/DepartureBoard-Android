@@ -4,9 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,14 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.DirectionsBus
-import androidx.compose.material.icons.rounded.DirectionsRailway
-import androidx.compose.material.icons.rounded.DirectionsSubway
-import androidx.compose.material.icons.rounded.Flight
 import androidx.compose.material.icons.rounded.NightsStay
-import androidx.compose.material.icons.rounded.Tram
-import androidx.compose.material.icons.rounded.UnfoldLess
-import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -56,10 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -71,6 +57,7 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TflLineColors
+import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.ui.dashboard.StationCardUiModel
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
@@ -88,24 +75,13 @@ fun StationDepartureCard(
     isNearest: Boolean = false,
     distanceMeters: Double? = null,
     onStationClick: ((Station) -> Unit)? = null,
-    onToggleExpand: (() -> Unit)? = null,
     onDepartureClick: ((Departure) -> Unit)? = null
 ) {
     var selectedLineId by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
     var selectedDirection by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
 
     val filteredDepartures = remember(cardModel.departures, selectedLineId, selectedDirection) {
-        if (selectedLineId == null) {
-            cardModel.departures
-        } else {
-            cardModel.departures.filter { departure ->
-                val lineMatches = TransitIconHelper.isSameLine(departure.lineId, selectedLineId)
-                if (!lineMatches) return@filter false
-                if (selectedDirection == null) true
-                else departure.direction.equals(selectedDirection, ignoreCase = true) ||
-                     departure.platformName.contains(selectedDirection!!, ignoreCase = true)
-            }
-        }
+        cardModel.getFilteredDepartures(selectedLineId, selectedDirection)
     }
 
     // Require deliberate swipe gesture (EndToStart only, with 50% positional threshold)
@@ -207,17 +183,7 @@ fun StationDepartureCard(
                         distanceMeters = distanceMeters,
                         onLineBadgeClick = { badge ->
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                            // Find departures & directions available for this line at this station
-                            val lineDepartures = cardModel.departures.filter { TransitIconHelper.isSameLine(it.lineId, badge.lineId) }
-                            val availableDirections = lineDepartures
-                                .mapNotNull { it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound", "Inbound", "Outbound").firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) } }
-                                .distinct()
-                                .map {
-                                    if (it.equals("Inbound", ignoreCase = true) && badge.lineId.contains("northern", ignoreCase = true)) "Northbound"
-                                    else if (it.equals("Outbound", ignoreCase = true) && badge.lineId.contains("northern", ignoreCase = true)) "Southbound"
-                                    else it
-                                }
-                                .distinct()
+                            val availableDirections = cardModel.getAvailableDirectionsForLine(badge.lineId)
 
                             if (!TransitIconHelper.isSameLine(selectedLineId, badge.lineId)) {
                                 // 1st click: Filter by line (all departures for this line)
@@ -226,16 +192,20 @@ fun StationDepartureCard(
                             } else if (availableDirections.size > 1) {
                                 // Multi-direction line (e.g. through stations): cycle through available directions
                                 val currentIndex = if (selectedDirection == null) -1 else availableDirections.indexOf(selectedDirection)
-                                if (currentIndex == -1) {
-                                    // 2nd click: First direction
-                                    selectedDirection = availableDirections[0]
-                                } else if (currentIndex in 0 until availableDirections.lastIndex) {
-                                    // 3rd+ click: Next direction
-                                    selectedDirection = availableDirections[currentIndex + 1]
-                                } else {
-                                    // Loop completes: deselect line & direction
-                                    selectedLineId = null
-                                    selectedDirection = null
+                                when (currentIndex) {
+                                    -1 -> {
+                                        // 2nd click: First direction
+                                        selectedDirection = availableDirections[0]
+                                    }
+                                    in 0 until availableDirections.lastIndex -> {
+                                        // 3rd+ click: Next direction
+                                        selectedDirection = availableDirections[currentIndex + 1]
+                                    }
+                                    else -> {
+                                        // Loop completes: deselect line & direction
+                                        selectedLineId = null
+                                        selectedDirection = null
+                                    }
                                 }
                             } else {
                                 // Terminus or single-direction line (e.g. Ealing Broadway for Central & District):
@@ -404,7 +374,7 @@ private fun StationHeaderSection(
                         isSelected = isSelected,
                         selectedDirection = if (isSelected) selectedDirection else null,
                         isDimmed = isDimmed,
-                        onClick = { onLineBadgeClick(badge) }
+                        onClick = onLineBadgeClick.let { { it(badge) } }
                     )
                 }
             }
@@ -489,15 +459,7 @@ fun LinePillBadge(
     val borderWidth = if (isSelected) 2.dp else if (badge.isDisrupted) 1.5.dp else defaultBorderWidth
     val borderColor = if (isSelected) MaterialTheme.colorScheme.onSurface else if (badge.isDisrupted) Color(0xFFFFC107) else defaultBorderColor
 
-    val directionIndicator = when (selectedDirection?.lowercase()) {
-        "eastbound" -> "→ EB"
-        "westbound" -> "← WB"
-        "northbound" -> "↑ NB"
-        "southbound" -> "↓ SB"
-        "inbound" -> "IN"
-        "outbound" -> "OUT"
-        else -> null
-    }
+    val directionIndicator = TransitDirection.fromString(selectedDirection)?.indicatorArrow
 
     val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
     val isNarrow = windowWidthClass.isNarrow
@@ -540,7 +502,7 @@ fun LinePillBadge(
                     fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
                     fontSize = if (isNarrow) 12.sp else 13.sp
                 ),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
                 color = badge.textColor.copy(alpha = if (isDimmed) 0.6f else 1.0f),
                 maxLines = 1
             )
@@ -588,8 +550,8 @@ private fun StationDeparturesContainer(
                     displayList.forEachIndexed { index, departure ->
                         androidx.compose.animation.AnimatedVisibility(
                             visible = true,
-                            enter = androidx.compose.animation.fadeIn(),
-                            exit = androidx.compose.animation.fadeOut()
+                            enter = fadeIn(),
+                            exit = fadeOut()
                         ) {
                             DepartureRowItem(
                                 departure = departure,
@@ -685,51 +647,7 @@ private fun StationDeparturesContainer(
     }
 }
 
-/**
- * TfL Roundel drawn with exact geometry and official line color.
- * The classic TfL roundel consists of an outer colored circular ring and a horizontal bar.
- * Designed with fixed size (38.dp wide x 28.dp high) so that all rows align perfectly.
- * For dark colors (such as Northern line black, Piccadilly dark blue, or Liberty line grey) in dark mode,
- * a crisp subtle outline/border is rendered so the shape remains sharp, distinct, and legible.
- */
-@Composable
-fun TflRoundel(
-    ringColor: Color,
-    modifier: Modifier = Modifier,
-    barColor: Color = ringColor
-) {
-    androidx.compose.foundation.Canvas(
-        modifier = modifier
-            .size(width = 38.dp, height = 28.dp)
-            .semantics { contentDescription = "Line roundel" }
-    ) {
-        val centerX = size.width / 2f
-        val centerY = size.height / 2f
-        val ringRadius = size.height * 0.44f // ~12.3dp
-        val strokeWidth = ringRadius * 0.36f // clean TfL annular thickness
 
-        val barWidth = size.width * 0.82f
-        val barHeight = ringRadius * 0.58f
-        val barLeft = centerX - (barWidth / 2f)
-        val barTop = centerY - (barHeight / 2f)
-
-        // 1. Draw outer colored ring
-        drawCircle(
-            color = ringColor,
-            radius = ringRadius,
-            center = androidx.compose.ui.geometry.Offset(centerX, centerY),
-            style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
-        )
-
-        // 2. Draw horizontal bar through the center
-        drawRoundRect(
-            color = barColor,
-            topLeft = androidx.compose.ui.geometry.Offset(barLeft, barTop),
-            size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(x = 2.dp.toPx(), y = 2.dp.toPx())
-        )
-    }
-}
 
 // =================== PREVIEWS ===================
 

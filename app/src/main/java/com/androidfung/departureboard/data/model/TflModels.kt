@@ -15,6 +15,15 @@ data class TflSearchResponse(
 )
 
 /**
+ * TfL StopPoint by radius/location response wrapper.
+ * https://api.tfl.gov.uk/StopPoint?lat={lat}&lon={lon}&stopTypes={types}&radius={meters}
+ */
+@JsonClass(generateAdapter = true)
+data class TflStopPointsResponse(
+    @Json(name = "stopPoints") val stopPoints: List<TflStopPointChild> = emptyList()
+)
+
+/**
  * Individual matched stop/station from TfL StopPoint search.
  */
 @JsonClass(generateAdapter = true)

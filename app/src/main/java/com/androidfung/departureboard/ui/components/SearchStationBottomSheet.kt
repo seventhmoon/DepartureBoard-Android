@@ -1,7 +1,6 @@
 package com.androidfung.departureboard.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +28,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsBus
 import androidx.compose.material.icons.rounded.DirectionsRailway
 import androidx.compose.material.icons.rounded.DirectionsSubway
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tram
 import androidx.compose.material3.ButtonDefaults
@@ -72,6 +72,7 @@ import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Expressive ModalBottomSheet for searching and adding transit stations to the Departure Board.
@@ -86,6 +87,9 @@ fun SearchStationBottomSheet(
     savedStationIds: Set<String>,
     onSearchQuery: suspend (String) -> List<Station>,
     modifier: Modifier = Modifier,
+    nearbyStations: List<Pair<Station, Double>> = emptyList(),
+    hasLocationPermission: Boolean = false,
+    onRequestLocation: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -102,7 +106,7 @@ fun SearchStationBottomSheet(
             isSearching = false
         } else {
             isSearching = true
-            delay(300L) // Debounce user typing
+            delay(300L.milliseconds) // Debounce user typing
             val results = onSearchQuery(searchQuery)
             searchResults = results
             isSearching = false
@@ -118,8 +122,9 @@ fun SearchStationBottomSheet(
             searchResults.filter { station ->
                 station.modes.any { mode ->
                     mode.equals(filterNormalized, ignoreCase = true) ||
-                            (filterNormalized == "tube" && mode.equals("underground", ignoreCase = true)) ||
-                            (filterNormalized == "elizabeth-line" && mode.contains("elizabeth", ignoreCase = true))
+                            (filterNormalized == "tube" && (mode.equals("underground", ignoreCase = true) || mode.equals("tube", ignoreCase = true))) ||
+                            (filterNormalized == "elizabeth-line" && mode.contains("elizabeth", ignoreCase = true)) ||
+                            (filterNormalized == "tram" && (mode.contains("tram", ignoreCase = true) || mode.equals("tram", ignoreCase = true)))
                 }
             }
         }
@@ -223,7 +228,7 @@ fun SearchStationBottomSheet(
             )
 
             // Mode Filter Chips Row
-            val modeFilters = listOf("All", "Tube", "Elizabeth line", "Overground", "DLR", "Bus")
+            val modeFilters = listOf("All", "Tube", "Elizabeth line", "Overground", "DLR", "National Rail", "Tram", "Bus")
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -305,11 +310,133 @@ fun SearchStationBottomSheet(
                     }
                 }
             } else {
+                // Filter nearby stations by selected mode if mode filter is applied
+                val filteredNearby = remember(nearbyStations, selectedModeFilter) {
+                    if (selectedModeFilter == "All") {
+                        nearbyStations
+                    } else {
+                        val filterNormalized = selectedModeFilter.lowercase().replace(" ", "-")
+                        nearbyStations.filter { (station, _) ->
+                            station.modes.any { mode ->
+                                mode.equals(filterNormalized, ignoreCase = true) ||
+                                        (filterNormalized == "tube" && mode.equals("underground", ignoreCase = true)) ||
+                                        (filterNormalized == "elizabeth-line" && mode.contains("elizabeth", ignoreCase = true))
+                            }
+                        }
+                    }
+                }
+
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // When search query is blank:
+                    // 1. If location is granted & nearby stations found, show "Nearby Stations" section
+                    // 2. If location is not granted, show "Find stations near me" affordance
+                    if (searchQuery.isBlank()) {
+                        if (hasLocationPermission && filteredNearby.isNotEmpty()) {
+                            item(key = "header_nearby") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp, bottom = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.LocationOn,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Nearby Stations",
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            items(
+                                items = filteredNearby,
+                                key = { "nearby_" + it.first.id + it.first.name }
+                            ) { (station, distMeters) ->
+                                val isAlreadySaved = savedStationIds.contains(station.id)
+                                val distFormatted = if (distMeters < 1000) {
+                                    "${distMeters.toInt()}m away"
+                                } else {
+                                    String.format(java.util.Locale.UK, "%.1f km away", distMeters / 1000.0)
+                                }
+                                StationSearchResultRow(
+                                    station = station,
+                                    isSaved = isAlreadySaved,
+                                    distanceText = distFormatted,
+                                    onAddClick = {
+                                        coroutineScope.launch {
+                                            onStationSelected(station)
+                                        }
+                                    }
+                                )
+                            }
+
+                            item(key = "header_popular") {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Popular Stations",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                            }
+                        } else if (!hasLocationPermission) {
+                            item(key = "prompt_location") {
+                                Surface(
+                                    onClick = onRequestLocation,
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.LocationOn,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Find stations near me",
+                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                    fontWeight = FontWeight.Bold
+                                                ),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = "Show stops and stations within walking distance",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        }
+                    }
+
                     items(
                         items = filteredResults,
                         key = { it.id + it.name } // Combined id and name for uniqueness
@@ -339,7 +466,8 @@ fun StationSearchResultRow(
     station: Station,
     isSaved: Boolean,
     onAddClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    distanceText: String? = null
 ) {
     val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram")
         .firstOrNull { it in station.modes }
@@ -400,9 +528,17 @@ fun StationSearchResultRow(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        if (station.zone != null) {
+                        if (distanceText != null) {
                             Text(
-                                text = "Zone ${station.zone}",
+                                text = distanceText,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else if (station.displayZone != null) {
+                            Text(
+                                text = "Zone ${station.displayZone}",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Medium
                                 ),
@@ -410,9 +546,14 @@ fun StationSearchResultRow(
                             )
                         }
 
-                        // Mode badges
-                        station.modes.take(3).forEach { mode ->
-                            val badge = TflLineColors.getLineBadge(mode, mode.replaceFirstChar { it.uppercase() }, mode)
+                        // Mode badges with standardized official terminology and branding
+                        station.modes.take(3).forEach { modeStr ->
+                            val transitMode = com.androidfung.departureboard.data.model.TransitMode.fromModeString(modeStr)
+                            val badge = TflLineColors.getLineBadge(
+                                lineId = transitMode.id,
+                                lineName = transitMode.displayName,
+                                modeName = transitMode.id
+                            )
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
@@ -420,7 +561,7 @@ fun StationSearchResultRow(
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = badge.displayName,
+                                    text = transitMode.displayName,
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.SemiBold

@@ -38,12 +38,14 @@ interface TransitRepository {
     suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>>
     suspend fun getBatchDepartures(stations: List<Station>): Map<String, Result<List<Departure>>>
     fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>>
+    suspend fun getCachedDepartures(stationId: String): List<Departure>
     suspend fun getLineStatuses(): Map<String, TflLineStatusItem>
     suspend fun getCallingPoints(departure: Departure): List<com.androidfung.departureboard.data.model.CallingPoint>
     suspend fun saveStation(station: Station)
     suspend fun reorderStations(stations: List<Station>)
     suspend fun removeStation(stationId: String)
     suspend fun setRecentStationId(stationId: String)
+    suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int = 1500): List<Station>
 }
 
 /**
@@ -204,7 +206,7 @@ class TransitRepositoryImpl(
                         Result.success(combinedDepartures)
                     }
                     tflError != null && (crsCodes.isEmpty() || nrError != null) -> {
-                        fallbackDepartures(stationId, tflError ?: Exception("Network error"))
+                        fallbackDepartures(stationId, tflError)
                     }
                     else -> {
                         Result.success(emptyList())
@@ -230,9 +232,13 @@ class TransitRepositoryImpl(
             }
         }
 
+    override suspend fun getCachedDepartures(stationId: String): List<Departure> = withContext(Dispatchers.IO) {
+        departureDao?.getDeparturesForStation(stationId)?.map { it.toDeparture() } ?: emptyList()
+    }
+
     override fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>> = flow {
-        val cached = departureDao?.getDeparturesForStation(stationId)?.map { it.toDeparture() }
-        if (!cached.isNullOrEmpty()) {
+        val cached = getCachedDepartures(stationId)
+        if (cached.isNotEmpty()) {
             emit(Result.success(cached))
         }
         emit(getDepartures(stationId, stationName))
@@ -298,12 +304,12 @@ class TransitRepositoryImpl(
             // 1. Try finding a branch sequence that directly contains both current station and destination
             var resolvedStops: List<com.androidfung.departureboard.data.model.TflMatchedStop>? = null
 
-            for (seq in sequenceResponse.stopPointSequences) {
-                val names = seq.stopPoint.map { StationNameFormatter.clean(it.name).lowercase() }
+            for ((_, _, _, _, stopPoint) in sequenceResponse.stopPointSequences) {
+                val names = stopPoint.map { StationNameFormatter.clean(it.name).lowercase() }
                 val curIndex = names.indexOfFirst { it.contains(currentStationClean) || currentStationClean.contains(it) }
                 val destIndex = names.indexOfFirst { it.contains(destClean) || destClean.contains(it) }
                 if (curIndex != -1 && destIndex != -1 && destIndex >= curIndex) {
-                    resolvedStops = seq.stopPoint.subList(curIndex, destIndex + 1)
+                    resolvedStops = stopPoint.subList(curIndex, destIndex + 1)
                     break
                 }
             }
@@ -338,8 +344,8 @@ class TransitRepositoryImpl(
                     return null
                 }
 
-                for (startBranch in startBranches) {
-                    val branchPath = findBranchPath(startBranch.branchId, destClean, emptySet())
+                for ((branchId) in startBranches) {
+                    val branchPath = findBranchPath(branchId, destClean, emptySet())
                     if (branchPath != null) {
                         val combined = mutableListOf<com.androidfung.departureboard.data.model.TflMatchedStop>()
                         for (bId in branchPath) {
@@ -400,6 +406,25 @@ class TransitRepositoryImpl(
     override suspend fun removeStation(stationId: String) = dataStore.removeStation(stationId)
     override suspend fun setRecentStationId(stationId: String) = dataStore.setRecentStationId(stationId)
 
+    /**
+     * Fetches nearby stations directly from TfL API by latitude and longitude.
+     */
+    override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> {
+        return try {
+            val response = apiService.getNearbyStopPoints(
+                lat = lat,
+                lon = lon,
+                radiusMeters = radiusMeters
+            )
+            response.stopPoints
+                .filter { it.modes.isNotEmpty() }
+                .map { sp -> TflStationMapper.fromStopPointChild(sp) }
+                .distinctBy { it.id }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
     // =========================================================================
     // Private Helpers: Search & Route Stops
     // =========================================================================
@@ -442,35 +467,69 @@ class TransitRepositoryImpl(
             val childArrivals = mutableListOf<TflArrivalPrediction>()
             val visited = mutableSetOf(stationId)
 
-            for (childId in candidateIds) {
-                if (visited.add(childId)) {
-                    try {
-                        val childResult = apiService.getArrivals(childId)
-                        if (childResult.isNotEmpty()) {
-                            childArrivals.addAll(childResult)
+            // Query candidate children concurrently instead of sequential loops
+            val unvisitedChildren = candidateIds.filter { visited.add(it) }.take(6)
+            if (unvisitedChildren.isNotEmpty()) {
+                val results = coroutineScope {
+                    unvisitedChildren.map { childId ->
+                        async {
+                            try {
+                                apiService.getArrivals(childId)
+                            } catch (_: Exception) {
+                                emptyList()
+                            }
                         }
-                    } catch (_: Exception) {}
+                    }.awaitAll()
                 }
+                results.forEach { childArrivals.addAll(it) }
             }
 
-            // If still empty and stationId starts with HUB or 910G, check specialized rail/DC variants
-            if (childArrivals.isEmpty()) {
-                val fallbackCandidates = when {
-                    stationId == "HUBWFJ" || stationId == "910GWATFDJ" -> listOf("910GWATFJDC")
-                    else -> emptyList()
+            // Check known inter-modal siblings for unified stations with split modal NaPTAN IDs:
+            // - Watford Junction: National Rail + London Overground (Lioness line) DC lines
+            // - Wimbledon: District line (Tube) + Croydon Tramlink + South Western Railway
+            // - Stratford: Tube (Central, Jubilee) + DLR + National Rail / Overground / Elizabeth line
+            // - West Ham: Tube (District, H&C, Jubilee) + DLR + c2c Rail
+            // - Canary Wharf: Jubilee line (Tube) + DLR + Elizabeth line
+            // - West Hampstead: Jubilee line (Tube) + Overground (Mildmay) + Thameslink
+            val idUpper = stationId.uppercase()
+            val interchangeSiblings = when {
+                idUpper == "HUBWFJ" || idUpper == "910GWATFDJ" -> listOf("910GWATFJDC")
+                idUpper == "HUBWMB" || idUpper == "940GZZLUWIM" || idUpper == "910GWIMBLDN" -> listOf("940GZZCRWMB", "940GZZLUWIM", "910GWIMBLDN")
+                idUpper == "940GZZCRWMB" -> listOf("940GZZLUWIM", "910GWIMBLDN")
+
+                idUpper == "HUBSRA" || idUpper == "940GZZLUSTD" || idUpper == "940GZZDLSTR" || idUpper == "910GSTFD" ->
+                    listOf("940GZZLUSTD", "940GZZDLSTR", "910GSTFD")
+
+                idUpper == "HUBWEH" || idUpper == "940GZZLUWHM" || idUpper == "940GZZDLWHM" || idUpper == "910GWHAMHL" ->
+                    listOf("940GZZLUWHM", "940GZZDLWHM", "910GWHAMHL")
+
+                idUpper == "HUBCAW" || idUpper == "940GZZLUCYF" || idUpper == "940GZZDLCAN" || idUpper == "910GCANWHRF" || idUpper == "910GCW" ->
+                    listOf("940GZZLUCYF", "940GZZDLCAN", "910GCANWHRF")
+
+                idUpper == "HUBWHD" || idUpper == "940GZZLUWHP" || idUpper == "910GWHMDSTD" || idUpper == "910GWSTHMPD" || idUpper == "910GWSTHMPT" ->
+                    listOf("940GZZLUWHP", "910GWHMDSTD", "910GWSTHMPT")
+
+                else -> emptyList()
+            }
+
+            val unvisitedSiblings = interchangeSiblings.filter { visited.add(it) }
+            if (unvisitedSiblings.isNotEmpty()) {
+                val siblingResults = coroutineScope {
+                    unvisitedSiblings.map { siblingId ->
+                        async {
+                            try {
+                                apiService.getArrivals(siblingId)
+                            } catch (_: Exception) {
+                                emptyList()
+                            }
+                        }
+                    }.awaitAll()
                 }
-                for (fallbackId in fallbackCandidates) {
-                    if (visited.add(fallbackId)) {
-                        try {
-                            val res = apiService.getArrivals(fallbackId)
-                            if (res.isNotEmpty()) childArrivals.addAll(res)
-                        } catch (_: Exception) {}
-                    }
-                }
+                siblingResults.forEach { childArrivals.addAll(it) }
             }
 
             if (childArrivals.isNotEmpty()) {
-                arrivals = childArrivals
+                arrivals = (arrivals + childArrivals).distinctBy { it.id }
             }
         } catch (_: Exception) {}
 

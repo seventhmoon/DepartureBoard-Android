@@ -125,12 +125,8 @@ class TransitAiAssistant(
                     }
                 )
 
-                val destMatches = if (targetDestinationName != null) {
-                    depDest.contains(targetDestinationName) || targetDestinationName.contains(depDest) ||
-                    (depTowards.isNotBlank() && (depTowards.contains(targetDestinationName) || targetDestinationName.contains(depTowards)))
-                } else {
-                    false
-                }
+                val destMatches = targetDestinationName != null && (depDest.contains(targetDestinationName) || targetDestinationName.contains(depDest) ||
+                        (depTowards.isNotBlank() && (depTowards.contains(targetDestinationName) || targetDestinationName.contains(depTowards))))
 
                 lineMatches || namedLineMatches || destMatches
             }

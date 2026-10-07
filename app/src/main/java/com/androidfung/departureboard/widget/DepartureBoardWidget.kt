@@ -54,6 +54,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val PREF_STATION_NAME = stringPreferencesKey("widget_station_name")
         val PREF_FILTER_LINE_ID = stringPreferencesKey("widget_filter_line_id")
         val PREF_FILTER_LINE_NAME = stringPreferencesKey("widget_filter_line_name")
+        val PREF_LAST_REFRESH_TIMESTAMP = androidx.datastore.preferences.core.longPreferencesKey("widget_last_refresh")
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -63,12 +64,16 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val prefs: Preferences = androidx.glance.appwidget.state.getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
 
         // Read fast synchronous SharedPreferences fallback so newly placed widgets never flash Oxford Circus
-        val appWidgetId = (id as? androidx.glance.appwidget.AppWidgetId)?.appWidgetId
+        val appWidgetId = try {
+            androidx.glance.appwidget.GlanceAppWidgetManager(context).getAppWidgetId(id)
+        } catch (_: Exception) {
+            -1
+        }
         val sp = context.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
-        val fastStationId = if (appWidgetId != null) sp.getString("station_id_$appWidgetId", null) else null
-        val fastStationName = if (appWidgetId != null) sp.getString("station_name_$appWidgetId", null) else null
-        val fastFilterLineId = if (appWidgetId != null) sp.getString("filter_line_id_$appWidgetId", null) else null
-        val fastFilterLineName = if (appWidgetId != null) sp.getString("filter_line_name_$appWidgetId", null) else null
+        val fastStationId = if (appWidgetId != -1) sp.getString("station_id_$appWidgetId", null) else null
+        val fastStationName = if (appWidgetId != -1) sp.getString("station_name_$appWidgetId", null) else null
+        val fastFilterLineId = if (appWidgetId != -1) sp.getString("filter_line_id_$appWidgetId", null) else null
+        val fastFilterLineName = if (appWidgetId != -1) sp.getString("filter_line_name_$appWidgetId", null) else null
 
         val customStationId = prefs[PREF_STATION_ID] ?: fastStationId
         val customStationName = prefs[PREF_STATION_NAME] ?: fastStationName
@@ -358,8 +363,13 @@ class RefreshWidgetAction : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
-        // Enqueue immediate background update worker as well to ensure WorkManager schedule stays alive
-        WidgetUpdateWorker.enqueuePeriodicUpdate(context.applicationContext)
+        // Mutate widget state to force Glance to invalidate cache and execute provideGlance fresh
+        androidx.glance.appwidget.state.updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+            prefs.toMutablePreferences().apply {
+                this[DepartureBoardWidget.PREF_LAST_REFRESH_TIMESTAMP] = System.currentTimeMillis()
+            }
+        }
         DepartureBoardWidget().update(context, glanceId)
+        WidgetUpdateWorker.enqueuePeriodicUpdate(context.applicationContext)
     }
 }

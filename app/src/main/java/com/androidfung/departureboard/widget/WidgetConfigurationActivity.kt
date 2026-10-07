@@ -73,6 +73,7 @@ import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class WidgetConfigurationActivity : ComponentActivity() {
 
@@ -125,7 +126,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
 
     private fun selectStationAndFinish(station: Station, lineBadge: com.androidfung.departureboard.data.model.LineBadgeInfo?) {
         // Fast synchronous persistence so Glance widget reads the configured station with 0ms race condition
-        val sp = applicationContext.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
+        val sp = applicationContext.getSharedPreferences("widget_config", MODE_PRIVATE)
         sp.edit()
             .putString("station_id_$appWidgetId", station.id)
             .putString("station_name_$appWidgetId", station.displayName)
@@ -138,7 +139,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
                     remove("filter_line_name_$appWidgetId")
                 }
             }
-            .commit()
+            .apply()
 
         val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
         coroutineScope.launch {
@@ -160,7 +161,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
             }
 
             // Small delay to ensure DataStore file write is committed before triggering Glance render pass
-            delay(100L)
+            delay(100L.milliseconds)
 
             DepartureBoardWidget().update(applicationContext, glanceId)
 
@@ -302,7 +303,7 @@ fun WidgetStationPickerScreen(
     LaunchedEffect(searchQuery) {
         if (searchQuery.isNotBlank()) {
             isLoading = true
-            delay(300L)
+            delay(300L.milliseconds)
             val result = repository.searchStations(searchQuery)
             stations = result.getOrDefault(emptyList())
             isLoading = false
@@ -440,7 +441,7 @@ fun WidgetStationPickerScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = if (station.zone != null) "Zone ${station.zone}" else "TfL Network",
+                                    text = if (station.displayZone != null) "Zone ${station.displayZone}" else "TfL Network",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

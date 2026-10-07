@@ -7,14 +7,14 @@ package com.androidfung.departureboard.billing
  */
 object SubscriptionTier {
 
-    // Free Tier Quota Limits
-    const val FREE_MAX_STATIONS = 2
+    // Free Tier Quota Limits (Option A: Balanced / Growth)
+    const val FREE_MAX_STATIONS = 3
     const val FREE_MAX_WIDGETS = 2
     const val FREE_MAX_DAILY_AI_QUERIES = 3
 
-    // Pro Tier Quota Limits (Capped to 10 to protect API rate limits & battery)
-    const val PRO_MAX_STATIONS = 10
-    const val PRO_MAX_WIDGETS = 10
+    // Pro Tier Quota Limits (Option A: Capped to protect API rate limits & battery)
+    const val PRO_MAX_STATIONS = 15
+    const val PRO_MAX_WIDGETS = 5
     const val PRO_MAX_DAILY_AI_QUERIES = 100
 
     // Google Play Billing Product & Base Plan IDs

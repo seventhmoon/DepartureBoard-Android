@@ -44,12 +44,39 @@ internal object TflDepartureMapper {
             itemDestination = item.destinationName,
             itemTowards = item.towards,
             lineId = item.lineId,
-            platformName = item.platformName
+            platformName = item.platformName,
+            stationId = item.naptanId ?: stationId,
+            destinationNaptanId = item.destinationNaptanId
         )
         val isBus = item.modeName.equals(TransitMode.BUS.id, ignoreCase = true) || item.lineId?.toIntOrNull() != null
         val platformDisplay = PlatformFormatter.format(item.platformName, item.towards, isBus)
         val cleanTowards = item.towards?.takeIf { !it.trim().equals("null", ignoreCase = true) }?.let { StationNameFormatter.clean(it) }
         val resolvedDirection = resolveCardinalDirection(item, resolvedDest, stationName)
+
+        // Check if this was an inbound train terminating at this station
+        val rawInput = item.destinationName ?: item.towards ?: ""
+        val cleanDest = StationNameFormatter.clean(rawInput)
+        val cleanStation = StationNameFormatter.clean(stationName)
+        val isTerminatingHere = cleanDest.isNotBlank() && (
+            cleanDest.equals(cleanStation, ignoreCase = true) ||
+            cleanDest.startsWith("$cleanStation ", ignoreCase = true)
+        )
+
+        val finalTimeToStationSeconds = if (isTerminatingHere && !isBus) {
+            val buffer = TurnaroundTimeTracker.getEstimatedTurnaroundSeconds(stationName, item.lineId ?: "")
+            item.timeToStation + buffer
+        } else {
+            item.timeToStation
+        }
+
+        // Record vehicle for empirical turnaround tracking
+        if (!item.vehicleId.isNullOrBlank()) {
+            if (isTerminatingHere) {
+                TurnaroundTimeTracker.recordVehicleArrival(stationId, item.vehicleId)
+            } else {
+                TurnaroundTimeTracker.recordVehicleDeparture(stationId, item.lineId ?: "", item.vehicleId)
+            }
+        }
 
         return Departure(
             id = item.id,
@@ -61,7 +88,7 @@ internal object TflDepartureMapper {
             destinationName = resolvedDest.ifBlank { "Destination" },
             towards = cleanTowards,
             direction = resolvedDirection,
-            timeToStationSeconds = item.timeToStation,
+            timeToStationSeconds = finalTimeToStationSeconds,
             expectedArrivalIso = item.expectedArrival,
             currentLocation = item.currentLocation?.takeIf { !it.trim().equals("null", ignoreCase = true) },
             modeName = item.modeName ?: if (isBus) TransitMode.BUS.id else TransitMode.TUBE.id,
@@ -77,12 +104,17 @@ internal object TflDepartureMapper {
         val rawPlatform = item.platformName?.trim() ?: ""
         val isElizabeth = item.lineId?.contains("elizabeth", ignoreCase = true) == true ||
                 item.lineName?.contains("elizabeth", ignoreCase = true) == true
+        val isThameslink = item.lineId?.contains("thameslink", ignoreCase = true) == true ||
+                item.lineName?.contains("thameslink", ignoreCase = true) == true
 
         return when {
             rawPlatform.contains("Eastbound", ignoreCase = true) -> "Eastbound"
             rawPlatform.contains("Westbound", ignoreCase = true) -> "Westbound"
             rawPlatform.contains("Northbound", ignoreCase = true) -> "Northbound"
             rawPlatform.contains("Southbound", ignoreCase = true) -> "Southbound"
+            isThameslink -> ThameslinkDirectionResolver.resolve(
+                destinationName = resolvedDest
+            )
             isElizabeth -> resolveElizabethLineDirection(item, resolvedDest, currentStationName)
             item.direction?.equals("inbound", ignoreCase = true) == true -> "Inbound"
             item.direction?.equals("outbound", ignoreCase = true) == true -> "Outbound"
@@ -101,7 +133,7 @@ internal object TflDepartureMapper {
             platformName = item.platformName,
             destinationName = resolvedDest,
             apiDirection = item.direction
-        )
+        )?.displayName
         if (resolved != null) return resolved
 
         // Fallback to relative longitude calculation

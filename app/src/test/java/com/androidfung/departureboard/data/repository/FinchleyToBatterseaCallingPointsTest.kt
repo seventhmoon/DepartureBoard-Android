@@ -72,6 +72,7 @@ class FinchleyToBatterseaCallingPointsTest {
             override suspend fun getLineRoute(lineId: String) = throw NotImplementedError()
             override suspend fun getLineRouteSequence(lineId: String, direction: String) = mockSequence
             override suspend fun getLineStatuses(modes: String) = throw NotImplementedError()
+            override suspend fun getNearbyStopPoints(lat: Double, lon: Double, stopTypes: String, radiusMeters: Int, useHierarchy: Boolean) = throw NotImplementedError()
         }
 
         val fakeNrApi = object : NationalRailApiService {

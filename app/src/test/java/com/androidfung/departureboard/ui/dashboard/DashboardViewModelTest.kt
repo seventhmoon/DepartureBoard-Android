@@ -60,6 +60,8 @@ class DashboardViewModelTest {
             return flowOf(Result.success(DefaultStations.getFallbackDepartures(stationId, stationName)))
         }
 
+        override suspend fun getCachedDepartures(stationId: String): List<Departure> = emptyList()
+
         override suspend fun getLineStatuses(): Map<String, com.androidfung.departureboard.data.model.TflLineStatusItem> {
             return emptyMap()
         }
@@ -70,7 +72,7 @@ class DashboardViewModelTest {
 
         override suspend fun saveStation(station: Station) {
             savedStations.add(station)
-            stationsFlow.value = stationsFlow.value + station
+            stationsFlow.value += station
         }
 
         override suspend fun reorderStations(stations: List<Station>) {
@@ -83,6 +85,10 @@ class DashboardViewModelTest {
         }
 
         override suspend fun setRecentStationId(stationId: String) {}
+
+        override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> {
+            return emptyList()
+        }
     }
 
     private class FakeBillingRepository(
@@ -133,27 +139,29 @@ class DashboardViewModelTest {
 
     @Test
     fun testAddStation_freeTierLimitTriggersPaywall() = runTest {
-        // Initial has 2 stations (Free tier max)
-        val fakeRepo = FakeTransitRepository(DefaultStations.POPULAR_STATIONS.take(2))
+        // Initial has FREE_MAX_STATIONS (Free tier max)
+        val initialStations = DefaultStations.POPULAR_STATIONS.take(SubscriptionTier.FREE_MAX_STATIONS)
+        val fakeRepo = FakeTransitRepository(initialStations)
         val fakeBilling = FakeBillingRepository(isProInitial = false)
         val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 
-        val newStation = DefaultStations.POPULAR_STATIONS[2] // 3rd station
+        val newStation = DefaultStations.POPULAR_STATIONS[SubscriptionTier.FREE_MAX_STATIONS]
         viewModel.addStation(newStation)
         advanceUntilIdle()
 
         // Should NOT be added to saved stations, and paywall prompt must be set
-        assertEquals(2, viewModel.uiState.value.stationCards.size)
+        assertEquals(SubscriptionTier.FREE_MAX_STATIONS, viewModel.uiState.value.stationCards.size)
         assertNotNull(viewModel.uiState.value.paywallPromptReason)
-        assertTrue(viewModel.uiState.value.paywallPromptReason!!.contains("Free plan includes up to 2"))
+        assertTrue(viewModel.uiState.value.paywallPromptReason!!.contains("Free plan includes up to ${SubscriptionTier.FREE_MAX_STATIONS}"))
     }
 
     @Test
-    fun testAddStation_proTierAllowsUpTo10Stations() = runTest {
-        // Initial has 2 stations, but user is PRO
-        val fakeRepo = FakeTransitRepository(DefaultStations.POPULAR_STATIONS.take(2))
+    fun testAddStation_proTierAllowsUpToProMaxStations() = runTest {
+        // Initial has 2 stations, and user is PRO
+        val initialStations = DefaultStations.POPULAR_STATIONS.take(2)
+        val fakeRepo = FakeTransitRepository(initialStations)
         val fakeBilling = FakeBillingRepository(isProInitial = true)
         val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
 
@@ -171,24 +179,26 @@ class DashboardViewModelTest {
     }
 
     @Test
-    fun testAddStation_proTierCapsAt10Stations() = runTest {
-        // Pro user with 10 stations
-        val tenStations = DefaultStations.POPULAR_STATIONS.take(10)
-        val fakeRepo = FakeTransitRepository(tenStations)
+    fun testAddStation_proTierCapsAtProMaxStations() = runTest {
+        // Generate list of stations up to PRO_MAX_STATIONS
+        val maxStations = (1..SubscriptionTier.PRO_MAX_STATIONS).map { i ->
+            Station(id = "ST_$i", name = "Station $i")
+        }
+        val fakeRepo = FakeTransitRepository(maxStations)
         val fakeBilling = FakeBillingRepository(isProInitial = true)
         val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
 
         advanceUntilIdle()
-        assertEquals(10, viewModel.uiState.value.stationCards.size)
+        assertEquals(SubscriptionTier.PRO_MAX_STATIONS, viewModel.uiState.value.stationCards.size)
 
-        // 11th station attempt
-        val eleventhStation = Station(id = "ST_11", name = "Station 11")
-        viewModel.addStation(eleventhStation)
+        // Attempt to add one more over the limit
+        val extraStation = Station(id = "ST_EXTRA", name = "Station Extra")
+        viewModel.addStation(extraStation)
         advanceUntilIdle()
 
-        // Capped at 10 to protect API rate limits and battery
-        assertEquals(10, viewModel.uiState.value.stationCards.size)
-        assertTrue(viewModel.uiState.value.userMessage?.contains("Maximum limit of 10") == true)
+        // Capped at PRO_MAX_STATIONS to protect API rate limits and battery
+        assertEquals(SubscriptionTier.PRO_MAX_STATIONS, viewModel.uiState.value.stationCards.size)
+        assertTrue(viewModel.uiState.value.userMessage?.contains("Maximum limit of ${SubscriptionTier.PRO_MAX_STATIONS}") == true)
     }
 
     @Test

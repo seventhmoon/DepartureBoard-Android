@@ -3,6 +3,7 @@ package com.androidfung.departureboard.data.db
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.TflLineColors
 
 /**
@@ -41,7 +42,8 @@ data class CachedDepartureEntity(
             expectedArrivalIso = expectedArrivalIso,
             currentLocation = currentLocation,
             modeName = modeName,
-            lineBadge = TflLineColors.getLineBadge(lineId, lineName, modeName)
+            lineBadge = TflLineColors.getLineBadge(lineId, lineName, modeName),
+            status = DepartureStatus.fromString(currentLocation, timeToStationSeconds)
         )
     }
 

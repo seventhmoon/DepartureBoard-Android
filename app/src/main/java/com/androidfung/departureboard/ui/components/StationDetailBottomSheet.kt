@@ -12,7 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -84,7 +83,7 @@ import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
  * Expressive ModalBottomSheet displaying detailed transit information and full departure predictions
  * for a selected station.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StationDetailBottomSheet(
     station: Station,
@@ -95,7 +94,6 @@ fun StationDetailBottomSheet(
     modifier: Modifier = Modifier,
     isSaved: Boolean = false,
     onToggleSaveStation: (Station) -> Unit = {},
-    onRemoveStation: ((Station) -> Unit)? = null,
     initialSelectedLineId: String? = null,
     onDepartureClick: ((Departure) -> Unit)? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -124,9 +122,11 @@ fun StationDetailBottomSheet(
     // Distinct sub-stops (bays/platforms) present in departures (e.g. Stop A, Stop P, Stop Z4, Platform 1, etc.)
     val distinctStops = remember(departures) {
         departures
-            .filter { it.platformName.isNotBlank() && it.platformName != "Platform" && it.platformName != "Bus Stand" }
+            .asSequence()
+            .filter { it.platformName.isNotBlank() && (it.platformName != "Platform") && (it.platformName != "Bus Stand") }
             .distinctBy { it.platformName }
             .sortedBy { it.platformName }
+            .toList()
     }
 
     val filteredDepartures = remember(departures, selectedLineId, selectedDirection, selectedStopId) {
@@ -202,7 +202,11 @@ fun StationDetailBottomSheet(
                         )
 
                         // Subtitle: Bus stop "towards ..." indicator for single-direction bus stops
-                        val distinctTowards = departures.mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }.distinct()
+                        val distinctTowards = departures
+                            .asSequence()
+                            .mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }
+                            .distinct()
+                            .toList()
                         val isSingleDirectionBusStop = station.isBusOnly && distinctTowards.size == 1
 
                         if (isSingleDirectionBusStop) {
@@ -222,9 +226,9 @@ fun StationDetailBottomSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            if (station.zone != null) {
+                            if (station.displayZone != null) {
                                 Text(
-                                    text = "Zone ${station.zone}",
+                                    text = "Zone ${station.displayZone}",
                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -292,7 +296,9 @@ fun StationDetailBottomSheet(
             val distinctLines = departures.map { it.lineBadge }
                 .distinctBy { it.lineId }
                 .sortedWith(com.androidfung.departureboard.data.model.LineBadgeInfo.NATURAL_COMPARATOR)
-            if (distinctLines.size > 1) {
+            // Show line badges if multiple lines exist, OR if single line has multiple directions to filter
+            val singleLineHasDirections = distinctLines.size == 1 && departures.mapNotNull { it.direction }.distinct().size > 1
+            if (distinctLines.size > 1 || singleLineHasDirections) {
                 FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -306,15 +312,9 @@ fun StationDetailBottomSheet(
 
                     distinctLines.forEach { badge ->
                         val isSelected = selectedLineId.equals(badge.lineId, ignoreCase = true)
-                        val directionIndicator = when (if (isSelected) selectedDirection?.lowercase() else null) {
-                            "eastbound" -> "→ EB"
-                            "westbound" -> "← WB"
-                            "northbound" -> "↑ NB"
-                            "southbound" -> "↓ SB"
-                            "inbound" -> "IN"
-                            "outbound" -> "OUT"
-                            else -> null
-                        }
+                        val directionIndicator = com.androidfung.departureboard.data.model.TransitDirection.fromString(
+                            if (isSelected) selectedDirection else null
+                        )?.indicatorArrow
 
                         val baseName = if (isNarrow && badge.lineCode.isNotBlank()) badge.lineCode else badge.displayName
                         val labelText = if (!directionIndicator.isNullOrBlank()) {
@@ -339,9 +339,13 @@ fun StationDetailBottomSheet(
                                     shape = RoundedCornerShape(10.dp)
                                 )
                                 .clickable {
-                                        val lineDepartures = departures.filter { TransitIconHelper.isSameLine(it.lineId, badge.lineId) }
+                                    val lineDepartures = departures.filter { TransitIconHelper.isSameLine(it.lineId, badge.lineId) }
                                     val availableDirections = lineDepartures
-                                        .mapNotNull { it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound", "Inbound", "Outbound").firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) } }
+                                        .asSequence()
+                                        .mapNotNull {
+                                            it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound", "Inbound", "Outbound")
+                                                .firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) }
+                                        }
                                         .distinct()
                                         .map {
                                             if (it.equals("Inbound", ignoreCase = true) && badge.lineId.contains("northern", ignoreCase = true)) "Northbound"
@@ -349,6 +353,7 @@ fun StationDetailBottomSheet(
                                             else it
                                         }
                                         .distinct()
+                                        .toList()
 
                                     if (!TransitIconHelper.isSameLine(selectedLineId, badge.lineId)) {
                                         selectedLineId = badge.lineId
@@ -356,13 +361,17 @@ fun StationDetailBottomSheet(
                                     } else if (availableDirections.size > 1) {
                                         // Multi-direction line: cycle through available directions
                                         val currentIndex = if (selectedDirection == null) -1 else availableDirections.indexOf(selectedDirection)
-                                        if (currentIndex == -1) {
-                                            selectedDirection = availableDirections[0]
-                                        } else if (currentIndex in 0 until availableDirections.lastIndex) {
-                                            selectedDirection = availableDirections[currentIndex + 1]
-                                        } else {
-                                            selectedLineId = null
-                                            selectedDirection = null
+                                        when (currentIndex) {
+                                            -1 -> {
+                                                selectedDirection = availableDirections[0]
+                                            }
+                                            in 0 until availableDirections.lastIndex -> {
+                                                selectedDirection = availableDirections[currentIndex + 1]
+                                            }
+                                            else -> {
+                                                selectedLineId = null
+                                                selectedDirection = null
+                                            }
                                         }
                                     } else {
                                         // Terminus or single-direction line: deselect directly
@@ -525,7 +534,7 @@ fun StationDetailBottomSheet(
                     ) { _, departure ->
                         DepartureDetailRow(
                             departure = departure,
-                            onClick = { onDepartureClick?.invoke(departure) }
+                            onClick = onDepartureClick?.let { { it(departure) } } ?: {}
                         )
                     }
                 }
@@ -548,21 +557,33 @@ fun StationDetailBottomSheet(
                 // Open in Google Maps
                 OutlinedButton(
                     onClick = {
+                        val querySuffix = if (station.isBusOnly) "Bus Stop" else "Station"
+                        val queryText = "${station.displayName} $querySuffix London"
+                        val encodedQuery = java.net.URLEncoder.encode(queryText, "UTF-8")
+
                         val geoUri = if (station.lat != null && station.lon != null) {
-                            android.net.Uri.parse("geo:${station.lat},${station.lon}?q=${station.lat},${station.lon}(${java.net.URLEncoder.encode(station.name, "UTF-8")})")
+                            android.net.Uri.parse("geo:${station.lat},${station.lon}?q=$encodedQuery")
                         } else {
-                            android.net.Uri.parse("geo:0,0?q=${java.net.URLEncoder.encode("${station.name} London", "UTF-8")}")
+                            android.net.Uri.parse("geo:0,0?q=$encodedQuery")
                         }
-                        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri)
+                        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri).apply {
+                            setPackage("com.google.android.apps.maps")
+                        }
                         try {
                             context.startActivity(mapIntent)
                         } catch (_: Exception) {
-                            val browserUri = if (station.lat != null && station.lon != null) {
-                                android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=${station.lat},${station.lon}")
-                            } else {
-                                android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=${java.net.URLEncoder.encode("${station.name} London", "UTF-8")}")
+                            // Fallback to any maps handler or browser
+                            val fallbackIntent = Intent(Intent.ACTION_VIEW, geoUri)
+                            try {
+                                context.startActivity(fallbackIntent)
+                            } catch (_: Exception) {
+                                val browserUri = if (station.lat != null && station.lon != null) {
+                                    android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=$encodedQuery")
+                                } else {
+                                    android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=$encodedQuery")
+                                }
+                                context.startActivity(Intent(Intent.ACTION_VIEW, browserUri))
                             }
-                            context.startActivity(Intent(Intent.ACTION_VIEW, browserUri))
                         }
                     },
                     modifier = Modifier
@@ -691,37 +712,103 @@ fun DepartureDetailRow(
                 }
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            // Countdown Pill
-            val isDue = departure.timeToStationSeconds <= 30
-            val pillBg = if (isDue) {
-                MaterialTheme.colorScheme.errorContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerHighest
-            }
-            val pillText = if (isDue) {
-                MaterialTheme.colorScheme.onErrorContainer
-            } else {
-                MaterialTheme.colorScheme.onSurface
+            // Track Action Button + Countdown Column
+            val context = androidx.compose.ui.platform.LocalContext.current
+            var isTracked by remember(departure.id) {
+                mutableStateOf(com.androidfung.departureboard.service.TrainTrackingService.currentlyTrackedDepartureId == departure.id)
             }
 
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(pillBg)
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center
+            val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+            ) { isGranted ->
+                if (isGranted) {
+                    com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
+                    isTracked = true
+                }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = departure.formattedTimeToArrival,
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 13.sp
-                    ),
-                    color = pillText
-                )
+                // Countdown Pill
+                val isDue = departure.timeToStationSeconds <= 30
+                val pillBg = if (isDue) {
+                    MaterialTheme.colorScheme.errorContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHighest
+                }
+                val pillText = if (isDue) {
+                    MaterialTheme.colorScheme.onErrorContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(pillBg)
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = departure.formattedTimeToArrival,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 12.sp
+                        ),
+                        color = pillText
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Inline Track Icon/Pill Button
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(
+                            if (isTracked) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                            else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        )
+                        .clickable {
+                            if (isTracked) {
+                                com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
+                                isTracked = false
+                            } else {
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                                        context,
+                                        android.Manifest.permission.POST_NOTIFICATIONS
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                                    if (hasPermission) {
+                                        com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
+                                        isTracked = true
+                                    } else {
+                                        notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                } else {
+                                    com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
+                                    isTracked = true
+                                }
+                            }
+                        }
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isTracked) "● Tracking" else "Track",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = if (isTracked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
@@ -752,7 +839,6 @@ fun StationDetailBottomSheetPreview() {
             departures = departures,
             isLoading = false,
             onRefresh = {},
-            onRemoveStation = {},
             onDismissRequest = {}
         )
     }

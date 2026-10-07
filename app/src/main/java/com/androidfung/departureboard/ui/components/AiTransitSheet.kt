@@ -3,7 +3,6 @@ package com.androidfung.departureboard.ui.components
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -74,7 +73,7 @@ import kotlinx.coroutines.launch
 /**
  * Intelligent Transit Assistant bottom sheet powered by Gemini / Natural Language Queries.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiTransitSheet(
     onDismissRequest: () -> Unit,
@@ -108,7 +107,7 @@ fun AiTransitSheet(
                 prompts.add("Next train from $nearestShortName")
             }
         } else {
-            prompts.add("Next departure from nearest station")
+            prompts.add("Next departure near me")
         }
 
         // 2. Specific saved station prompt if available
@@ -359,7 +358,7 @@ fun AiTransitSheet(
                         val orig = aiResult?.originQuery
                         val dest = aiResult?.destinationQuery
                         if (!orig.isNullOrBlank() && !dest.isNullOrBlank()) {
-                            val context = androidx.compose.ui.platform.LocalContext.current
+                            val context = LocalContext.current
                             Spacer(modifier = Modifier.height(14.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -370,13 +369,13 @@ fun AiTransitSheet(
                                         val mapsUri = android.net.Uri.parse(
                                             "https://www.google.com/maps/dir/?api=1&origin=${java.net.URLEncoder.encode("$orig London", "UTF-8")}&destination=${java.net.URLEncoder.encode("$dest London", "UTF-8")}&travelmode=transit"
                                         )
-                                        val mapsIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, mapsUri).apply {
+                                        val mapsIntent = Intent(Intent.ACTION_VIEW, mapsUri).apply {
                                             setPackage("com.google.android.apps.maps")
                                         }
                                         try {
                                             context.startActivity(mapsIntent)
                                         } catch (_: Exception) {
-                                            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, mapsUri))
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, mapsUri))
                                         }
                                     },
                                     modifier = Modifier.weight(1f),
@@ -390,7 +389,7 @@ fun AiTransitSheet(
                                         val tflUri = android.net.Uri.parse(
                                             "https://tfl.gov.uk/plan-a-journey/results?InputFrom=${java.net.URLEncoder.encode(orig, "UTF-8")}&InputTo=${java.net.URLEncoder.encode(dest, "UTF-8")}"
                                         )
-                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, tflUri))
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, tflUri))
                                     },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp)

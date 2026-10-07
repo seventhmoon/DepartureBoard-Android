@@ -36,7 +36,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.ui.theme.dimensions
 
 /**
  * Line or bus route indicator badge shown on the left of each departure row.
@@ -60,13 +62,13 @@ fun DepartureLineRouteIndicator(
 
     val badgeLuminance = 0.299f * badge.backgroundColor.red + 0.587f * badge.backgroundColor.green + 0.114f * badge.backgroundColor.blue
     val isVeryDark = badgeLuminance < 0.2f
-    val shape = RoundedCornerShape(8.dp)
-    val borderWidth = if (isVeryDark) 0.8.dp else 0.dp
+    val shape = RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall)
+    val borderWidth = if (isVeryDark) MaterialTheme.dimensions.borderThin else 0.dp
     val borderColor = if (isVeryDark) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f) else Color.Transparent
 
     Box(
         modifier = modifier
-            .size(width = 38.dp, height = 28.dp)
+            .size(width = MaterialTheme.dimensions.badgeWidth, height = MaterialTheme.dimensions.badgeHeight)
             .clip(shape)
             .then(
                 if (borderWidth > 0.dp) Modifier.border(borderWidth, borderColor, shape)
@@ -102,9 +104,9 @@ fun DepartureRowItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusLarge))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = 10.dp, horizontal = 4.dp)
+            .padding(vertical = 10.dp, horizontal = MaterialTheme.dimensions.paddingSmall)
             .semantics {
                 contentDescription = "${departure.destinationName}, arriving in ${departure.formattedTimeToArrival}"
             },
@@ -112,7 +114,7 @@ fun DepartureRowItem(
     ) {
         DepartureLineRouteIndicator(departure = departure)
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(MaterialTheme.dimensions.paddingLarge))
 
         // Destination & Direction details
         Column(modifier = Modifier.weight(1f)) {
@@ -177,21 +179,21 @@ fun DepartureRowItem(
             }
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(MaterialTheme.dimensions.paddingLarge))
 
         // Countdown & Actual Clock Time
         Column(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.Center
         ) {
-            val isCancelled = departure.currentLocation?.equals("Cancelled", ignoreCase = true) == true
-            val isDelayed = departure.currentLocation?.contains("Delayed", ignoreCase = true) == true
+            val isCancelled = departure.status == DepartureStatus.CANCELLED
+            val isDelayed = departure.status == DepartureStatus.DELAYED
 
             CountdownBadge(
                 timeToStationSeconds = departure.timeToStationSeconds,
                 isFirst = isFirst,
                 lineColor = departure.lineBadge.backgroundColor,
-                statusText = departure.currentLocation
+                status = departure.status
             )
 
             val clockTime = departure.formattedActualClockTime
@@ -208,7 +210,7 @@ fun DepartureRowItem(
             } else if (isDelayed) {
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = departure.currentLocation,
+                    text = departure.currentLocation ?: "Delayed",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
@@ -297,11 +299,11 @@ fun CountdownBadge(
     isFirst: Boolean,
     lineColor: Color,
     modifier: Modifier = Modifier,
-    statusText: String? = null
+    status: DepartureStatus
 ) {
-    val isCancelled = statusText?.equals("Cancelled", ignoreCase = true) == true
+    val isCancelled = status == DepartureStatus.CANCELLED
+    val isDue = status == DepartureStatus.DUE
     val minutes = timeToStationSeconds / 60
-    val isDue = timeToStationSeconds <= 30
 
     Row(
         modifier = modifier,
@@ -311,10 +313,10 @@ fun CountdownBadge(
         if (isCancelled) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
                     .background(Color(0xFFE32017).copy(alpha = 0.15f))
-                    .border(1.dp, Color(0xFFE32017).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .border(MaterialTheme.dimensions.borderStandard, Color(0xFFE32017).copy(alpha = 0.6f), RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
+                    .padding(horizontal = MaterialTheme.dimensions.paddingMedium, vertical = MaterialTheme.dimensions.paddingSmall),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -331,9 +333,9 @@ fun CountdownBadge(
         } else if (isDue) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
                     .background(Color(0xFFE32017).copy(alpha = 0.15f))
-                    .border(1.dp, Color(0xFFE32017).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .border(MaterialTheme.dimensions.borderStandard, Color(0xFFE32017).copy(alpha = 0.5f), RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
                     .padding(horizontal = 9.dp, vertical = 5.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -352,10 +354,10 @@ fun CountdownBadge(
             // London Platform Dot-Matrix LED / Flip Card Display
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
                     .background(Color(0xFF161A22))
-                    .border(1.dp, Color(0xFF282E3E), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .border(MaterialTheme.dimensions.borderStandard, Color(0xFF282E3E), RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
+                    .padding(horizontal = MaterialTheme.dimensions.paddingMedium, vertical = MaterialTheme.dimensions.paddingSmall),
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.Bottom) {

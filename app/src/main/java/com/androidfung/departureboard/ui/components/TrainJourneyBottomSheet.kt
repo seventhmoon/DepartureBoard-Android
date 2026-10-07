@@ -68,8 +68,6 @@ fun TrainJourneyBottomSheet(
     onDismissRequest: () -> Unit,
     onLoadCallingPoints: suspend (Departure) -> List<CallingPoint>,
     modifier: Modifier = Modifier,
-    isPro: Boolean = false,
-    onUpgradeClick: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
 ) {
     var callingPoints by remember(departure.id) { mutableStateOf(departure.callingPoints) }
@@ -170,6 +168,67 @@ fun TrainJourneyBottomSheet(
                 ),
                 color = MaterialTheme.colorScheme.onSurface
             )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Track / Stop Tracking Live Update Notification Button
+            val context = androidx.compose.ui.platform.LocalContext.current
+            var isTracked by remember(departure.id) {
+                mutableStateOf(com.androidfung.departureboard.service.TrainTrackingService.currentlyTrackedDepartureId == departure.id)
+            }
+
+            // Notification permission request for Android 13+ (API 33+)
+            val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+            ) { isGranted ->
+                if (isGranted) {
+                    com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
+                    isTracked = true
+                }
+            }
+
+            androidx.compose.material3.Button(
+                onClick = {
+                    if (isTracked) {
+                        com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
+                        isTracked = false
+                    } else {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.POST_NOTIFICATIONS
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                            if (hasPermission) {
+                                com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
+                                isTracked = true
+                            } else {
+                                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        } else {
+                            com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
+                            isTracked = true
+                        }
+                    }
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = if (isTracked) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = if (isTracked) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = if (isTracked) Icons.Rounded.Close else Icons.Rounded.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isTracked) "Stop Live Tracking Notification" else "Track with Live Update Notification",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 

@@ -71,4 +71,29 @@ object LocationHelper {
 
         return nearest?.let { it to minDistance }
     }
+
+    /**
+     * Finds stations sorted by distance to user's location within an optional max distance threshold.
+     */
+    fun findNearbyStations(
+        userLocation: Location,
+        stations: List<Station>,
+        maxDistanceMeters: Double = 3000.0,
+        maxCount: Int = 5
+    ): List<Pair<Station, Double>> {
+        val validStations = stations.filter { it.lat != null && it.lon != null }
+        return validStations.mapNotNull { st ->
+            val dist = calculateDistanceMeters(
+                userLat = userLocation.latitude,
+                userLon = userLocation.longitude,
+                stationLat = st.lat!!,
+                stationLon = st.lon!!
+            )
+            if (dist <= maxDistanceMeters) {
+                st to dist
+            } else null
+        }
+            .sortedBy { it.second }
+            .take(maxCount)
+    }
 }

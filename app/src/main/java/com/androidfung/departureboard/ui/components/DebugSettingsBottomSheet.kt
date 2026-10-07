@@ -75,9 +75,9 @@ fun DebugSettingsBottomSheet(
     isPro: Boolean,
     onTogglePro: () -> Unit,
     onResetStations: () -> Unit,
+    modifier: Modifier = Modifier,
     selectedAiModel: AiModelType = AiModelType.LOGIC_FALLBACK,
     onSelectAiModel: (AiModelType) -> Unit = {},
-    modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val context = LocalContext.current
@@ -187,8 +187,11 @@ fun DebugSettingsBottomSheet(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = if (isPro) "Max 10 stations, 10 widgets, unlimited AI"
-                                else "Max 2 stations, 2 widgets, 3 AI queries/day",
+                                text = if (isPro) {
+                                    "Max ${SubscriptionTier.PRO_MAX_STATIONS} stations, ${SubscriptionTier.PRO_MAX_WIDGETS} widgets, unlimited AI"
+                                } else {
+                                    "Max ${SubscriptionTier.FREE_MAX_STATIONS} stations, ${SubscriptionTier.FREE_MAX_WIDGETS} widgets, ${SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES} AI queries/day"
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

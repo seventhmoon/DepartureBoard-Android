@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+  <!-- Filled contrasting background badge circle (London Bus Red) -->
+  <path
+      android:fillColor="#FFE32017"
+      android:pathData="M14,14m-13,0a13,13 0,1 1,26 0a13,13 0,1 1,-26 0"/>
+  <!-- White border stroke for crisp contrast on progress tracks -->
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="1.5"
+      android:fillColor="#00000000"
+      android:pathData="M14,14m-12.25,0a12.25,12.25 0,1 1,24.5 0a12.25,12.25 0,1 1,-24.5 0"/>
+  <!-- Front bus silhouette centered inside circle (scaled ~0.65) -->
+  <group
+      android:scaleX="0.65"
+      android:scaleY="0.65"
+      android:translateX="6.2"
+      android:translateY="6.2">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M4,16c0,0.88 0.39,1.67 1,2.22V20c0,0.55 0.45,1 1,1h1c0.55,0 1,-0.45 1,-1v-1h8v1c0,0.55 0.45,1 1,1h1c0.55,0 1,-0.45 1,-1v-1.78c0.61,-0.55 1,-1.34 1,-2.22V6c0,-3.5 -3.58,-4 -8,-4s-8,0.5 -8,4v10zM6.5,17c-0.83,0 -1.5,-0.67 -1.5,-1.5S5.67,14 6.5,14s1.5,0.67 1.5,1.5S7.33,17 6.5,17zM17.5,17c-0.83,0 -1.5,-0.67 -1.5,-1.5s0.67,-1.5 1.5,-1.5 1.5,0.67 1.5,1.5 -0.67,1.5 -1.5,1.5zM5,11V6h14v5H5z"/>
+  </group>
+</vector>

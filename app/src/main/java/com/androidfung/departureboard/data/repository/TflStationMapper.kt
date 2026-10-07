@@ -116,9 +116,9 @@ internal object TflStationMapper {
      */
     fun extractLines(detail: com.androidfung.departureboard.data.model.TflStopPointDetail): List<com.androidfung.departureboard.data.model.StationLineInfo> {
         val modeMap = mutableMapOf<String, String>()
-        for (group in detail.lineModeGroups) {
-            val modeName = group.modeName ?: continue
-            for (lineId in group.lineIdentifier) {
+        for ((modeName1, lineIdentifier) in detail.lineModeGroups) {
+            val modeName = modeName1 ?: continue
+            for (lineId in lineIdentifier) {
                 modeMap[lineId.lowercase()] = modeName
             }
         }

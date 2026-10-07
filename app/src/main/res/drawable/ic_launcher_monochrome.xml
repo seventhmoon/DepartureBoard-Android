@@ -5,57 +5,107 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Card outline container inside safe 66dp circular mask zone -->
+    <!-- Monochrome themed icon for Android 13+ (Material You)
+         All graphics scaled within [32..76] to guarantee safe fitting inside circle mask.
+    -->
+
+    <!-- Station Header: TfL Underground Roundel Icon centered at (36, 36.5) -->
+    <!-- Roundel ring -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2"
-        android:pathData="M 39,31
-            H 69
-            A 9,9 0 0,1 78,40
-            V 68
-            A 9,9 0 0,1 69,77
-            H 39
-            A 9,9 0 0,1 30,68
-            V 40
-            A 9,9 0 0,1 39,31
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M 36,32.7
+            A 3.8,3.8 0 1,1 35.99,32.7
+            Z
+            M 36,34.2
+            A 2.3,2.3 0 1,0 36.01,34.2
+            Z" />
+    <!-- Horizontal bar across roundel -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 31.5,35.6 H 40.5 V 37.4 H 31.5 Z" />
+
+    <!-- Station name line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 43,35 H 67 A 1,1 0 0,1 67,37 H 43 A 1,1 0 0,1 43,35 Z" />
+
+    <!-- Subtitle (Departures) line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 43,39 H 58 A 0.8,0.8 0 0,1 58,40.6 H 43 A 0.8,0.8 0 0,1 43,39 Z" />
+
+    <!-- Refresh icon circle badge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 73.5,35 A 2.2,2.2 0 1,1 73.49,35 Z" />
+
+    <!-- Divider line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 33,44 H 75 V 45.2 H 33 Z" />
+
+    <!-- Row 1: Destination, Platform, DUE badge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 33,48.5 H 63 A 1,1 0 0,1 63,50.7 H 33 A 1,1 0 0,1 33,48.5 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 33,52.2 H 48 A 0.8,0.8 0 0,1 48,53.8 H 33 A 0.8,0.8 0 0,1 33,52.2 Z" />
+    <!-- DUE badge (pill) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 66.5,48.5
+            H 73.5
+            A 1.8,1.8 0 0,1 75.3,50.3
+            V 50.3
+            A 1.8,1.8 0 0,1 73.5,52.1
+            H 66.5
+            A 1.8,1.8 0 0,1 64.7,50.3
+            V 50.3
+            A 1.8,1.8 0 0,1 66.5,48.5
             Z" />
 
-    <!-- Row 1 -->
+    <!-- Row 2: Destination, Platform, 2m badge -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 35,41 A 2.2,2.2 0 1,1 34.99,41 Z" />
+        android:pathData="M 33,57 H 60 A 1,1 0 0,1 60,59.2 H 33 A 1,1 0 0,1 33,57 Z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 40,39.8 H 58 A 1.2,1.2 0 0,1 58,42.2 H 40 A 1.2,1.2 0 0,1 40,39.8 Z" />
+        android:pathData="M 33,60.7 H 46 A 0.8,0.8 0 0,1 46,62.3 H 33 A 0.8,0.8 0 0,1 33,60.7 Z" />
+    <!-- 2m badge (pill) -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 64,39 H 70 A 2.2,2.2 0 0,1 72.2,41.2 A 2.2,2.2 0 0,1 70,43.4 H 64 A 2.2,2.2 0 0,1 61.8,41.2 A 2.2,2.2 0 0,1 64,39 Z" />
+        android:pathData="M 67.5,57
+            H 73.5
+            A 1.8,1.8 0 0,1 75.3,58.8
+            V 58.8
+            A 1.8,1.8 0 0,1 73.5,60.6
+            H 67.5
+            A 1.8,1.8 0 0,1 65.7,58.8
+            V 58.8
+            A 1.8,1.8 0 0,1 67.5,57
+            Z" />
 
-    <!-- Row 2 -->
+    <!-- Row 3: Destination, Platform, 5m badge -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 35,54 A 2.2,2.2 0 1,1 34.99,54 Z" />
+        android:pathData="M 33,65.5 H 60 A 1,1 0 0,1 60,67.7 H 33 A 1,1 0 0,1 33,65.5 Z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 40,52.8 H 60 A 1.2,1.2 0 0,1 60,55.2 H 40 A 1.2,1.2 0 0,1 40,52.8 Z" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.2"
-        android:pathData="M 65,52 H 70 A 2.2,2.2 0 0,1 72.2,54.2 A 2.2,2.2 0 0,1 70,56.4 H 65 A 2.2,2.2 0 0,1 62.8,54.2 A 2.2,2.2 0 0,1 65,52 Z" />
-
-    <!-- Row 3 -->
+        android:pathData="M 33,69.2 H 49 A 0.8,0.8 0 0,1 49,70.8 H 33 A 0.8,0.8 0 0,1 33,69.2 Z" />
+    <!-- 5m badge (pill) -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 35,67 A 2.2,2.2 0 1,1 34.99,67 Z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M 40,65.8 H 54 A 1.2,1.2 0 0,1 54,68.2 H 40 A 1.2,1.2 0 0,1 40,65.8 Z" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.2"
-        android:pathData="M 65,65 H 70 A 2.2,2.2 0 0,1 72.2,67.2 A 2.2,2.2 0 0,1 70,69.4 H 65 A 2.2,2.2 0 0,1 62.8,67.2 A 2.2,2.2 0 0,1 65,65 Z" />
+        android:pathData="M 67.5,65.5
+            H 73.5
+            A 1.8,1.8 0 0,1 75.3,67.3
+            V 67.3
+            A 1.8,1.8 0 0,1 73.5,69.1
+            H 67.5
+            A 1.8,1.8 0 0,1 65.7,67.3
+            V 67.3
+            A 1.8,1.8 0 0,1 67.5,65.5
+            Z" />
 
 </vector>

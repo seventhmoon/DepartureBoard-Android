@@ -72,10 +72,10 @@ class TransitModelsTest {
         )
         assertEquals("Due", dueDeparture.formattedTimeToArrival)
 
-        val oneMinDeparture = dueDeparture.copy(timeToStationSeconds = 50)
+        val oneMinDeparture = dueDeparture.copy(timeToStationSeconds = 50, status = com.androidfung.departureboard.data.model.DepartureStatus.ON_TIME)
         assertEquals("1 min", oneMinDeparture.formattedTimeToArrival)
 
-        val fiveMinsDeparture = dueDeparture.copy(timeToStationSeconds = 300)
+        val fiveMinsDeparture = dueDeparture.copy(timeToStationSeconds = 300, status = com.androidfung.departureboard.data.model.DepartureStatus.ON_TIME)
         assertEquals("5 mins", fiveMinsDeparture.formattedTimeToArrival)
     }
 
