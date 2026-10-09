@@ -1,0 +1,11 @@
+<AppFunctionAppMetadata xmlns:appfn="http://schemas.android.com/apk/androidx.appfunctions"
+    appfn:description="Prompt Departure (also known as Departure Board or Departure) provides live public transport departure boards, train and bus countdowns, and live journey tracking for UK/London transit.
+    Operational Patterns:
+    - Use 'getLiveDepartures' when the user asks for upcoming trains, buses, departures, or timetables at a station.
+    - Use 'trackDeparture' when the user asks to track a journey or train countdown to a destination.
+    - Use 'pinStation' when the user asks to save, bookmark, or pin a station to their dashboard.
+    - Use 'requestWidgetPin' when the user asks to add a station widget to their home screen.
+    Constraints:
+    - stationName must be provided for all queries.
+    - Destination is required for trackDeparture."
+    appfn:displayDescription="@string/app_name" />

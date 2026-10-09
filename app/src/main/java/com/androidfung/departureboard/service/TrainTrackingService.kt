@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.androidfung.departureboard.MainActivity
@@ -18,6 +19,7 @@ import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -29,12 +31,18 @@ import kotlinx.coroutines.launch
  */
 class TrainTrackingService : Service() {
 
-    private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var trackingJob: Job? = null
 
     companion object {
+        private const val TAG = "TrainTrackingService"
         const val CHANNEL_ID = "live_train_tracking_channel"
         const val NOTIFICATION_ID = 2001
+
+        // Polling intervals in seconds
+        private const val POLL_INTERVAL_LONG = 45L
+        private const val POLL_INTERVAL_MEDIUM = 30L
+        private const val POLL_INTERVAL_SHORT = 15L
 
         const val ACTION_START_TRACKING = "com.androidfung.departureboard.action.START_TRACKING"
         const val ACTION_STOP_TRACKING = "com.androidfung.departureboard.action.STOP_TRACKING"
@@ -94,6 +102,13 @@ class TrainTrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Basic permission check - just to ensure we can log if something is wrong
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                Log.w(TAG, "POST_NOTIFICATIONS permission not granted, service might not function properly")
+            }
+        }
+
         when (intent?.action) {
             ACTION_STOP_TRACKING -> {
                 stopTrackingInternal()
@@ -128,15 +143,20 @@ class TrainTrackingService : Service() {
                     baselineSeconds = baselineSeconds
                 )
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    ServiceCompat.startForeground(
-                        this,
-                        NOTIFICATION_ID,
-                        notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                    )
-                } else {
-                    startForeground(NOTIFICATION_ID, notification)
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        ServiceCompat.startForeground(
+                            this,
+                            NOTIFICATION_ID,
+                            notification,
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                        )
+                    } else {
+                        startForeground(NOTIFICATION_ID, notification)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to start foreground service", e)
+                    // Continue with service operation even if foreground setup fails
                 }
 
                 startTrackingLoop(
@@ -191,7 +211,9 @@ class TrainTrackingService : Service() {
                             remainingSeconds = (remainingSeconds - elapsedSeconds).coerceAtLeast(0)
                         }
                     }
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    Log.w(TAG, "API call failed for departure tracking", e)
+                    // Fallback to using last known time and gradually decrement
                     val elapsedSeconds = if (remainingSeconds > 300) 45 else if (remainingSeconds > 120) 30 else 15
                     remainingSeconds = (remainingSeconds - elapsedSeconds).coerceAtLeast(0)
                 }
@@ -233,7 +255,8 @@ class TrainTrackingService : Service() {
                             computedStops
                         } else null
                     } else null
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to calculate stops away", e)
                     null
                 }
 
@@ -249,8 +272,12 @@ class TrainTrackingService : Service() {
                     baselineSeconds = baselineSeconds
                 )
 
-                val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                nm.notify(NOTIFICATION_ID, updatedNotification)
+                try {
+                    val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    nm.notify(NOTIFICATION_ID, updatedNotification)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to update notification", e)
+                }
 
                 if (remainingSeconds <= 0) {
                     break
@@ -261,9 +288,9 @@ class TrainTrackingService : Service() {
                 // - 2-5 mins (intermediate approach): 30s (matches TfL's 30-second edge cache window)
                 // - < 2 mins (final approach / platform arrival): 15s (high responsiveness when arriving)
                 val pollIntervalSeconds = when {
-                    remainingSeconds > 300 -> 45
-                    remainingSeconds > 120 -> 30
-                    else -> 15
+                    remainingSeconds > 300 -> POLL_INTERVAL_LONG
+                    remainingSeconds > 120 -> POLL_INTERVAL_MEDIUM
+                    else -> POLL_INTERVAL_SHORT
                 }
 
                 delay(pollIntervalSeconds * 1000L)
@@ -275,9 +302,13 @@ class TrainTrackingService : Service() {
     }
 
     private fun stopTrackingInternal() {
-        trackingJob?.cancel()
-        trackingJob = null
-        currentlyTrackedDepartureId = null
+        try {
+            trackingJob?.cancel()
+            trackingJob = null
+            currentlyTrackedDepartureId = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping tracking", e)
+        }
     }
 
     private fun buildLiveNotification(
@@ -412,22 +443,30 @@ class TrainTrackingService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Live Train Tracking",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Shows live ongoing countdowns for tracked departures"
-                setShowBadge(true)
+            try {
+                val channel = NotificationChannel(
+                    CHANNEL_ID,
+                    "Live Train Tracking",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Shows live ongoing countdowns for tracked departures"
+                    setShowBadge(true)
+                }
+                val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                nm.createNotificationChannel(channel)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to create notification channel", e)
             }
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        serviceScope.cancel()
-        stopTrackingInternal()
+        try {
+            serviceScope.cancel()
+            stopTrackingInternal()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onDestroy", e)
+        }
     }
 }

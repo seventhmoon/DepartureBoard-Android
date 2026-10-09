@@ -81,18 +81,23 @@ class TransitRepositoryImpl(
             }
 
             // Hydrate station lines from StopPoint API for non-bus stations that don't have lines yet
-            val hydratedStations = matchedStations.map { station ->
-                if (!station.isBusOnly && station.lines.isEmpty()) {
-                    try {
-                        val detail = apiService.getStopPointDetail(station.id)
-                        val lines = TflStationMapper.extractLines(detail)
-                        if (lines.isNotEmpty()) station.copy(lines = lines) else station
-                    } catch (_: Exception) {
-                        station
+            // Use coroutineScope and async to parallelize network requests (Fix N+1 query issue)
+            val hydratedStations = coroutineScope {
+                matchedStations.map { station ->
+                    async {
+                        if (!station.isBusOnly && station.lines.isEmpty()) {
+                            try {
+                                val detail = apiService.getStopPointDetail(station.id)
+                                val lines = TflStationMapper.extractLines(detail)
+                                if (lines.isNotEmpty()) station.copy(lines = lines) else station
+                            } catch (_: Exception) {
+                                station
+                            }
+                        } else {
+                            station
+                        }
                     }
-                } else {
-                    station
-                }
+                }.awaitAll()
             }
 
             val routeStopStations = findRouteStopsIfApplicable(trimmed)

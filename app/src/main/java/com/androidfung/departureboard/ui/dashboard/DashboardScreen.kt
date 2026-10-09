@@ -371,9 +371,8 @@ fun DashboardContent(
         val windowWidthClass = LocalWindowWidthClass.current
         val gridColumns = when (windowWidthClass) {
             WindowWidthClass.NARROW, WindowWidthClass.REGULAR -> StaggeredGridCells.Fixed(1)
-            WindowWidthClass.EXPANDED -> StaggeredGridCells.Fixed(2)
-            WindowWidthClass.LARGE -> StaggeredGridCells.Fixed(3)
-            WindowWidthClass.EXTRA_LARGE -> StaggeredGridCells.Fixed(4)
+            WindowWidthClass.EXPANDED, WindowWidthClass.LARGE -> StaggeredGridCells.Fixed(2)
+            WindowWidthClass.EXTRA_LARGE -> StaggeredGridCells.Fixed(3)
         }
 
         PullToRefreshBox(

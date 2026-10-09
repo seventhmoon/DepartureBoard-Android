@@ -75,8 +75,13 @@ class DashboardViewModel @JvmOverloads constructor(
                         )
                     }
                 } else {
-                    // Instantly render existing departures or fast local cache without blocking startup
-                    val existingMap = _uiState.value.stationCards.associateBy { it.station.id }
+                    val existingCards = _uiState.value.stationCards
+                    val existingMap = existingCards.associateBy { it.station.id }
+                    
+                    // Check if this is just a reorder operation or if we have new stations
+                    val isJustReorder = existingCards.size == stations.size && 
+                                        existingCards.map { it.station.id }.containsAll(stations.map { it.id })
+                    
                     val newCards = stations.map { station ->
                         val existing = existingMap[station.id]
                         if (existing != null && existing.departures.isNotEmpty()) {
@@ -95,14 +100,18 @@ class DashboardViewModel @JvmOverloads constructor(
                             )
                         }
                     }
+                    
                     _uiState.update {
                         it.copy(
                             stationCards = newCards,
                             isInitialLoading = false
                         )
                     }
-                    // Fetch fresh arrivals in the background using batched multi-station endpoint
-                    refreshDeparturesForStations(stations)
+                    
+                    // Only fetch fresh arrivals if it's NOT just a simple reorder, or if we have new stations without departures
+                    if (!isJustReorder || newCards.any { it.departures.isEmpty() }) {
+                        refreshDeparturesForStations(stations)
+                    }
                 }
             }
         }
@@ -270,12 +279,15 @@ class DashboardViewModel @JvmOverloads constructor(
     internal fun startAutoRefreshPolling() {
         autoRefreshJob?.cancel()
         autoRefreshJob = viewModelScope.launch {
+            // Adaptive polling backed off from 30s to save battery and network:
+            // Fetch immediately on screen entry, then back off to a more reasonable 60s
+            // for dashboard-level macro polling.
             while (isActive) {
-                delay(30_000L.milliseconds)
                 val stations = _uiState.value.stationCards.map { it.station }
                 if (stations.isNotEmpty()) {
                     refreshDeparturesForStations(stations)
                 }
+                delay(60_000L.milliseconds)
             }
         }
     }
