@@ -38,6 +38,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -173,9 +175,9 @@ fun TrainJourneyBottomSheet(
 
             // Track / Stop Tracking Live Update Notification Button
             val context = androidx.compose.ui.platform.LocalContext.current
-            var isTracked by remember(departure.id) {
-                mutableStateOf(com.androidfung.departureboard.service.TrainTrackingService.currentlyTrackedDepartureId == departure.id)
-            }
+            val trackedDepartureId by com.androidfung.departureboard.service.TrainTrackingService.currentlyTrackedDepartureIdFlow
+                .collectAsStateWithLifecycle()
+            val isTracked = trackedDepartureId == departure.id
 
             // Notification permission request for Android 13+ (API 33+)
             val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -183,7 +185,6 @@ fun TrainJourneyBottomSheet(
             ) { isGranted ->
                 if (isGranted) {
                     com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
-                    isTracked = true
                 }
             }
 
@@ -191,7 +192,6 @@ fun TrainJourneyBottomSheet(
                 onClick = {
                     if (isTracked) {
                         com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
-                        isTracked = false
                     } else {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                             val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
@@ -201,13 +201,11 @@ fun TrainJourneyBottomSheet(
 
                             if (hasPermission) {
                                 com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
-                                isTracked = true
                             } else {
                                 notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                             }
                         } else {
                             com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
-                            isTracked = true
                         }
                     }
                 },

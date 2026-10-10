@@ -58,8 +58,14 @@ class TrainTrackingService : Service() {
         const val EXTRA_IS_BUS = "extra_is_bus"
         const val EXTRA_INITIAL_LOCATION = "extra_initial_location"
 
-        var currentlyTrackedDepartureId: String? = null
-            private set
+        private val _currentlyTrackedDepartureIdFlow = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+        val currentlyTrackedDepartureIdFlow: kotlinx.coroutines.flow.StateFlow<String?> = _currentlyTrackedDepartureIdFlow
+
+        var currentlyTrackedDepartureId: String?
+            get() = _currentlyTrackedDepartureIdFlow.value
+            private set(value) {
+                _currentlyTrackedDepartureIdFlow.value = value
+            }
 
         fun startTracking(
             context: Context,

@@ -61,6 +61,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -716,16 +717,15 @@ fun DepartureDetailRow(
 
             // Track Action Button + Countdown Column
             val context = androidx.compose.ui.platform.LocalContext.current
-            var isTracked by remember(departure.id) {
-                mutableStateOf(com.androidfung.departureboard.service.TrainTrackingService.currentlyTrackedDepartureId == departure.id)
-            }
+            val trackedDepartureId by com.androidfung.departureboard.service.TrainTrackingService.currentlyTrackedDepartureIdFlow
+                .collectAsStateWithLifecycle()
+            val isTracked = trackedDepartureId == departure.id
 
             val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
                 contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
             ) { isGranted ->
                 if (isGranted) {
                     com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
-                    isTracked = true
                 }
             }
 
@@ -777,7 +777,6 @@ fun DepartureDetailRow(
                         .clickable {
                             if (isTracked) {
                                 com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
-                                isTracked = false
                             } else {
                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                                     val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
@@ -787,13 +786,11 @@ fun DepartureDetailRow(
 
                                     if (hasPermission) {
                                         com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
-                                        isTracked = true
                                     } else {
                                         notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                                     }
                                 } else {
                                     com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
-                                    isTracked = true
                                 }
                             }
                         }
