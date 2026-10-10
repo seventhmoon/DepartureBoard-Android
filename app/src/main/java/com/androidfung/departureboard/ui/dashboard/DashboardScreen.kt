@@ -25,12 +25,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Surface
 import com.androidfung.departureboard.BuildConfig
 import com.androidfung.departureboard.ui.components.DebugSettingsBottomSheet
 import com.androidfung.departureboard.ui.components.PaywallBottomSheet
@@ -400,27 +402,32 @@ fun DashboardContent(
             ) {
                 // Header section: "Prompt Departure" title spanning full width
                 item(key = "header", span = StaggeredGridItemSpan.FullLine) {
-                    DashboardHeader(
-                        isPro = uiState.isPro,
-                        onAddStationClick = onAddStationClick,
-                        onUpgradeClick = onUpgradeClick,
-                        onOpenDebugSettings = onOpenDebugSettings
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        DashboardHeader(
+                            isPro = uiState.isPro,
+                            onUpgradeClick = onUpgradeClick,
+                            onOpenDebugSettings = onOpenDebugSettings
+                        )
+
+                        // Material 3 Search Anchor Pill directly below the Header
+                        DashboardSearchBar(
+                            onClick = onAddStationClick,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
 
                 if (uiState.isInitialLoading && uiState.stationCards.isEmpty()) {
-                    item(key = "loading", span = StaggeredGridItemSpan.FullLine) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(260.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                strokeWidth = 3.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                    // Shimmer skeleton cards matching adaptive grid columns during initial load
+                    items(
+                        count = 4,
+                        key = { "skeleton_$it" },
+                        span = { StaggeredGridItemSpan.SingleLane }
+                    ) {
+                        com.androidfung.departureboard.ui.components.StationCardSkeleton()
                     }
                 } else if (uiState.stationCards.isEmpty()) {
                     // Empty state when all stations removed spanning full width
@@ -464,7 +471,6 @@ fun DashboardContent(
 fun DashboardHeader(
     modifier: Modifier = Modifier,
     isPro: Boolean = false,
-    onAddStationClick: () -> Unit = {},
     onUpgradeClick: () -> Unit = {},
     onOpenDebugSettings: () -> Unit = {}
 ) {
@@ -548,21 +554,6 @@ fun DashboardHeader(
                 }
             }
 
-            // Search Station Action Button (opens search sheet to check live departures without auto-adding)
-            IconButton(
-                onClick = onAddStationClick,
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Search,
-                    contentDescription = "Search Stations",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
             // 3-dot Overflow Menu Button (Only rendered if there are menu options)
             val showOverflowMenu = BuildConfig.DEBUG || !isPro
             if (showOverflowMenu) {
@@ -615,6 +606,66 @@ fun DashboardHeader(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Material 3 Search Bar Pill Anchor displayed directly below the Dashboard AppBar.
+ * Tapping it smoothly launches the station search and discovery experience.
+ */
+@Composable
+fun DashboardSearchBar(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(52.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        ),
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Search,
+                    contentDescription = "Search",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Text(
+                    text = "Search station, line, or bus stop…",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 15.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Quick nearby indicator icon
+            Icon(
+                imageVector = Icons.Rounded.LocationOn,
+                contentDescription = "Nearby stations",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }

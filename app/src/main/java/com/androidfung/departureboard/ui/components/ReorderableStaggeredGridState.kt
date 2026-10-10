@@ -43,7 +43,7 @@ class ReorderableStaggeredGridState(
         } ?: return
 
         // Skip non-station items like header, quick_jump_pills, loading, or empty_state
-        if (hitItem.key == "header" || hitItem.key == "quick_jump_pills" || hitItem.key == "loading" || hitItem.key == "empty_state") {
+        if (hitItem.key == "header" || hitItem.key == "quick_jump_pills" || hitItem.key == "loading" || hitItem.key == "empty_state" || (hitItem.key as? String)?.startsWith("skeleton_") == true) {
             return
         }
 
@@ -69,6 +69,7 @@ class ReorderableStaggeredGridState(
                         item.key != "quick_jump_pills" &&
                         item.key != "loading" &&
                         item.key != "empty_state" &&
+                        (item.key as? String)?.startsWith("skeleton_") != true &&
                         targetCenterX.toInt() in item.offset.x..(item.offset.x + item.size.width) &&
                         targetCenterY.toInt() in item.offset.y..(item.offset.y + item.size.height)
             }
@@ -122,17 +123,30 @@ fun rememberReorderableStaggeredGridState(
 /**
  * Modifier applied to the LazyVerticalStaggeredGrid to detect long-press drag gestures.
  */
-fun Modifier.reorderableStaggeredGrid(state: ReorderableStaggeredGridState): Modifier = this.pointerInput(state) {
-    detectDragGesturesAfterLongPress(
-        onDragStart = { offset -> state.onDragStart(offset) },
-        onDrag = { _, dragAmount -> state.onDrag(dragAmount) },
-        onDragEnd = { state.onDragEnd() },
-        onDragCancel = { state.onDragCancel() }
-    )
+/**
+ * Modifier applied to the LazyVerticalStaggeredGrid to detect long-press drag gestures.
+ */
+@Composable
+fun Modifier.reorderableStaggeredGrid(state: ReorderableStaggeredGridState): Modifier {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    return this.pointerInput(state) {
+        detectDragGesturesAfterLongPress(
+            onDragStart = { offset ->
+                state.onDragStart(offset)
+                if (state.draggingKey != null) {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                }
+            },
+            onDrag = { _, dragAmount -> state.onDrag(dragAmount) },
+            onDragEnd = { state.onDragEnd() },
+            onDragCancel = { state.onDragCancel() }
+        )
+    }
 }
 
 /**
  * Modifier applied to each reorderable station card item in the staggered grid.
+ * Includes smooth scale and elevation animations with spring physics.
  */
 fun Modifier.reorderableStaggeredItem(state: ReorderableStaggeredGridState, key: Any): Modifier {
     val isDragging = state.draggingKey == key
@@ -142,9 +156,10 @@ fun Modifier.reorderableStaggeredItem(state: ReorderableStaggeredGridState, key:
             if (isDragging) {
                 translationX = state.dragOffset.value.x
                 translationY = state.dragOffset.value.y
-                scaleX = 1.04f
-                scaleY = 1.04f
-                shadowElevation = 24f
+                scaleX = 1.05f
+                scaleY = 1.05f
+                shadowElevation = 28f
+                alpha = 0.96f
             }
         }
 }

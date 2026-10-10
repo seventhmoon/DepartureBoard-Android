@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -109,6 +110,17 @@ fun StationDepartureCard(
         }
     }
 
+    val dismissProgress = dismissState.progress
+    val isPastThreshold = dismissProgress >= 0.5f && dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
+
+    // Trigger haptic when crossing the threshold
+    val hapticFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
+    androidx.compose.runtime.LaunchedEffect(isPastThreshold) {
+        if (isPastThreshold) {
+            hapticFeedback.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+        }
+    }
+
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false, // Disable right-swipe dismissal to prevent conflicts
@@ -130,6 +142,14 @@ fun StationDepartureCard(
                 else -> Alignment.Center
             }
 
+            val iconScale by androidx.compose.animation.core.animateFloatAsState(
+                targetValue = if (isPastThreshold) 1.25f else 1.0f,
+                animationSpec = androidx.compose.animation.core.spring(
+                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy
+                ),
+                label = "DeleteIconScale"
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -142,7 +162,9 @@ fun StationDepartureCard(
                     imageVector = Icons.Rounded.Delete,
                     contentDescription = "Delete station",
                     tint = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier
+                        .size(28.dp)
+                        .scale(iconScale)
                 )
             }
         }
@@ -379,11 +401,22 @@ private fun StationHeaderSection(
                 }
             }
 
-            // If selected line has disruptions, show a disruption banner right under the badges
-            val activeBadge = lineBadges.firstOrNull { TransitIconHelper.isSameLine(it.lineId, selectedLineId) }
-            if (activeBadge != null && activeBadge.isDisrupted) {
-                Spacer(modifier = Modifier.height(8.dp))
-                LineDisruptionBanner(badge = activeBadge)
+            // Disruption Banners:
+            // If a specific line is selected and disrupted, show its banner.
+            // If no line is selected, show banners for all disrupted lines on this station.
+            val disruptedBadgesToShow = if (selectedLineId != null) {
+                lineBadges.filter { TransitIconHelper.isSameLine(it.lineId, selectedLineId) && it.isDisrupted }
+            } else {
+                lineBadges.filter { it.isDisrupted }
+            }
+
+            if (disruptedBadgesToShow.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    disruptedBadgesToShow.forEach { disruptedBadge ->
+                        LineDisruptionBanner(badge = disruptedBadge)
+                    }
+                }
             }
         }
     }
