@@ -139,8 +139,16 @@ class WidgetConfigurationActivity : ComponentActivity() {
                     remove("filter_line_name_$appWidgetId")
                 }
             }
-            .apply()
+            .commit() // Commit synchronously so it's instantly available
 
+        // Instantly tell the launcher configuration is complete so the UI feels perfectly responsive
+        val resultValue = Intent().apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+        }
+        setResult(RESULT_OK, resultValue)
+        finish()
+
+        // Kick off the Glance DataStore update and widget refresh asynchronously
         val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
         coroutineScope.launch {
             try {
@@ -167,19 +175,8 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 android.util.Log.e("WidgetConfig", "Failed to update widget state for appWidgetId $appWidgetId", e)
             }
 
-            // Small delay to ensure the system launcher captures the update broadcast
-            delay(150L.milliseconds)
-
             // Ensure the periodic auto-refresh work is running
             WidgetUpdateWorker.enqueuePeriodicUpdate(applicationContext)
-
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                val resultValue = Intent().apply {
-                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                }
-                setResult(RESULT_OK, resultValue)
-                finish()
-            }
         }
     }
 }
