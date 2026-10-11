@@ -127,12 +127,19 @@ class DepartureBoardWidget : GlanceAppWidget() {
 
             provideContent {
                 GlanceTheme {
-                    WidgetContent(
-                        station = targetStation,
-                        filterLabel = filterLineName,
-                        departures = filteredDepartures,
-                        isLiveData = isLiveData
-                    )
+                    if (filteredDepartures.isEmpty() && !isLiveData) {
+                        WidgetPreparingPlaceholder(
+                            station = targetStation,
+                            filterLabel = filterLineName
+                        )
+                    } else {
+                        WidgetContent(
+                            station = targetStation,
+                            filterLabel = filterLineName,
+                            departures = filteredDepartures,
+                            isLiveData = isLiveData
+                        )
+                    }
                 }
             }
         }
@@ -368,8 +375,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
     }
 
     /**
-     * Placeholder shown when a widget is first dropped onto the home screen before configuration
-     * completes, or if configuration was deferred. Tapping it directly opens station selection.
+     * State 1: Unconfigured State shown when a widget is first dropped onto the home screen
+     * and has no station assigned yet. Tapping it directly opens station selection.
      */
     @Composable
     private fun WidgetUnconfiguredPlaceholder(
@@ -416,27 +423,27 @@ class DepartureBoardWidget : GlanceAppWidget() {
             Spacer(modifier = GlanceModifier.height(4.dp))
 
             Text(
-                text = "Setting up your board…",
+                text = "No station selected yet",
                 style = TextStyle(
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Normal,
                     color = GlanceTheme.colors.onSurfaceVariant
                 ),
                 maxLines = 1
             )
 
-            Spacer(modifier = GlanceModifier.height(6.dp))
+            Spacer(modifier = GlanceModifier.height(8.dp))
 
             // Interactive prompt chip
             Box(
                 modifier = GlanceModifier
-                    .cornerRadius(8.dp)
+                    .cornerRadius(10.dp)
                     .background(GlanceTheme.colors.primaryContainer)
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Tap to choose station & line",
+                    text = "Choose Station & Line ➔",
                     style = TextStyle(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -444,6 +451,74 @@ class DepartureBoardWidget : GlanceAppWidget() {
                     )
                 )
             }
+        }
+    }
+
+    /**
+     * State 2: Configuring / Preparing State shown immediately when a station has just been
+     * selected, while initial live arrivals or schedule data are being retrieved.
+     */
+    @Composable
+    private fun WidgetPreparingPlaceholder(
+        station: Station,
+        filterLabel: String?
+    ) {
+        Column(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .background(GlanceTheme.colors.surface)
+                .cornerRadius(22.dp)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = GlanceModifier
+                    .size(width = 16.dp, height = 8.dp)
+                    .cornerRadius(4.dp)
+                    .background(GlanceTheme.colors.primary)
+            ) {}
+
+            Spacer(modifier = GlanceModifier.height(10.dp))
+
+            Text(
+                text = station.displayName,
+                style = TextStyle(
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GlanceTheme.colors.onSurface
+                ),
+                maxLines = 1
+            )
+
+            val subtitle = if (!filterLabel.isNullOrBlank()) {
+                "$filterLabel • Setting up live board…"
+            } else {
+                "Setting up live board…"
+            }
+
+            Spacer(modifier = GlanceModifier.height(4.dp))
+
+            Text(
+                text = subtitle,
+                style = TextStyle(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = GlanceTheme.colors.onSurfaceVariant
+                ),
+                maxLines = 1
+            )
+
+            Spacer(modifier = GlanceModifier.height(8.dp))
+
+            Text(
+                text = "Fetching live arrivals…",
+                style = TextStyle(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = GlanceTheme.colors.primary
+                )
+            )
         }
     }
 }
