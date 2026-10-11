@@ -2,6 +2,10 @@
 
 A modern, high-performance London transit departure board app built for Android with **Jetpack Compose**, **Material 3 Expressive**, and **Glance AppWidgets**. Powered by the **Transport for London (TfL) Unified API**.
 
+[![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.androidfung.departureboard)
+
+*Download on the [Google Play Store](https://play.google.com/store/apps/details?id=com.androidfung.departureboard).*
+
 ---
 
 ## ✨ Features
