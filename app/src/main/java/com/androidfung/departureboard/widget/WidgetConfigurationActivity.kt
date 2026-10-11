@@ -125,24 +125,18 @@ class WidgetConfigurationActivity : ComponentActivity() {
     }
 
     private fun selectStationAndFinish(station: Station, lineBadge: com.androidfung.departureboard.data.model.LineBadgeInfo?) {
-        // Fast synchronous persistence so Glance widget reads the configured station with 0ms race condition
+        // Fast synchronous persistence keyed ONLY to this appWidgetId
         val sp = applicationContext.getSharedPreferences("widget_config", MODE_PRIVATE)
         sp.edit()
             .putString("station_id_$appWidgetId", station.id)
             .putString("station_name_$appWidgetId", station.displayName)
-            .putString("last_configured_station_id", station.id)
-            .putString("last_configured_station_name", station.displayName)
             .apply {
                 if (lineBadge != null) {
                     putString("filter_line_id_$appWidgetId", lineBadge.lineId)
                     putString("filter_line_name_$appWidgetId", lineBadge.displayName)
-                    putString("last_configured_filter_line_id", lineBadge.lineId)
-                    putString("last_configured_filter_line_name", lineBadge.displayName)
                 } else {
                     remove("filter_line_id_$appWidgetId")
                     remove("filter_line_name_$appWidgetId")
-                    remove("last_configured_filter_line_id")
-                    remove("last_configured_filter_line_name")
                 }
             }
             .apply()
@@ -152,6 +146,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
             try {
                 val glanceManager = GlanceAppWidgetManager(applicationContext)
                 val glanceId = glanceManager.getGlanceIdBy(appWidgetId)
+                android.util.Log.d("WidgetConfig", "Updating glanceId $glanceId for appWidgetId $appWidgetId with station ${station.displayName}")
 
                 updateAppWidgetState(applicationContext, PreferencesGlanceStateDefinition, glanceId) { prefs ->
                     prefs.toMutablePreferences().apply {
@@ -172,18 +167,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 android.util.Log.e("WidgetConfig", "Failed to update widget state for appWidgetId $appWidgetId", e)
             }
 
-            // Also update all instances to be safe
-            try {
-                val glanceManager = GlanceAppWidgetManager(applicationContext)
-                val glanceIds = glanceManager.getGlanceIds(DepartureBoardWidget::class.java)
-                glanceIds.forEach { gid ->
-                    DepartureBoardWidget().update(applicationContext, gid)
-                }
-            } catch (_: Exception) {}
-
-            // Ensure the periodic auto-refresh work is running. Placement flows through
-            // this activity (not MainActivity), so enqueue here as well — otherwise a
-            // freshly placed widget would never refresh on its own.
+            // Ensure the periodic auto-refresh work is running
             WidgetUpdateWorker.enqueuePeriodicUpdate(applicationContext)
 
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {

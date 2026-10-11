@@ -75,16 +75,17 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val fastFilterLineId = if (appWidgetId != -1) sp.getString("filter_line_id_$appWidgetId", null) else null
         val fastFilterLineName = if (appWidgetId != -1) sp.getString("filter_line_name_$appWidgetId", null) else null
 
-        // Also check if any recent widget config exists in SharedPreferences as fallback for when appWidgetId lookup is temporarily pending
-        val lastConfiguredStationId = sp.getString("last_configured_station_id", null)
-        val lastConfiguredStationName = sp.getString("last_configured_station_name", null)
-        val lastConfiguredFilterLineId = sp.getString("last_configured_filter_line_id", null)
-        val lastConfiguredFilterLineName = sp.getString("last_configured_filter_line_name", null)
+        // ONLY read configuration assigned explicitly to this widget instance (appWidgetId or Glance state).
+        // Never fall back to global "last_configured" or other widgets' stations!
+        val customStationId = prefs[PREF_STATION_ID] ?: fastStationId
+        val customStationName = prefs[PREF_STATION_NAME] ?: fastStationName
+        val filterLineId = prefs[PREF_FILTER_LINE_ID] ?: fastFilterLineId
+        val filterLineName = prefs[PREF_FILTER_LINE_NAME] ?: fastFilterLineName
 
-        val customStationId = prefs[PREF_STATION_ID] ?: fastStationId ?: lastConfiguredStationId
-        val customStationName = prefs[PREF_STATION_NAME] ?: fastStationName ?: lastConfiguredStationName
-        val filterLineId = prefs[PREF_FILTER_LINE_ID] ?: fastFilterLineId ?: lastConfiguredFilterLineId
-        val filterLineName = prefs[PREF_FILTER_LINE_NAME] ?: fastFilterLineName ?: lastConfiguredFilterLineName
+        android.util.Log.d(
+            "DepartureBoardWidget",
+            "provideGlance: id=$id, appWidgetId=$appWidgetId, customStationId=$customStationId, customStationName=$customStationName"
+        )
 
         if (customStationId.isNullOrBlank()) {
             provideContent {
@@ -103,14 +104,15 @@ class DepartureBoardWidget : GlanceAppWidget() {
             var isLiveData = false
             val allDepartures = try {
                 val live = repository.getDepartures(targetStation.id, targetStation.name)
-                if (live.isSuccess) {
+                if (live.isSuccess && live.getOrNull()?.isNotEmpty() == true) {
                     isLiveData = true
-                    live.getOrDefault(emptyList())
+                    live.getOrNull()!!
                 } else {
-                    emptyList()
+                    DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name)
                 }
-            } catch (_: Exception) {
-                emptyList()
+            } catch (e: Exception) {
+                android.util.Log.w("DepartureBoardWidget", "Failed to fetch live departures for widget", e)
+                DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name)
             }
 
             val filteredDepartures = if (!filterLineId.isNullOrBlank()) {
