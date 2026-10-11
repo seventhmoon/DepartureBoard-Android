@@ -202,14 +202,14 @@ fun WidgetConfigurationContent(
         // Glance returns ALL registered instance IDs. For a new placement, the new appWidgetId
         // is already included in existingGlanceIds.size by the time this Activity starts.
         // E.g., if you have 1 widget on screen, and are adding a 2nd, the count is already 2.
-        // Therefore, we check if activeCount > FREE_MAX_WIDGETS (e.g. > 2 means placing the 3rd widget).
-        // Note: Sometimes the Android launcher leaves "ghost" or orphaned widget IDs in the Glance database
-        // when users remove widgets improperly. We apply a +1 buffer to the limit check so users aren't unfairly blocked.
-        val activeCount = existingGlanceIds.size
+        // If we are currently configuring a widget, its ID is already registered in existingGlanceIds.
+        // Since we can't reliably map GlanceId to appWidgetId synchronously without exceptions, 
+        // we just subtract 1 to account for the current widget being added.
+        val activeCount = (existingGlanceIds.size - 1).coerceAtLeast(0)
 
-        if (!isPro && activeCount > SubscriptionTier.FREE_MAX_WIDGETS + 1) {
+        if (!isPro && activeCount >= SubscriptionTier.FREE_MAX_WIDGETS) {
             limitReachedReason = "Free plan includes up to ${SubscriptionTier.FREE_MAX_WIDGETS} home screen widgets. Upgrade to Pro for up to ${SubscriptionTier.PRO_MAX_WIDGETS} widgets."
-        } else if (isPro && activeCount > SubscriptionTier.PRO_MAX_WIDGETS + 1) {
+        } else if (isPro && activeCount >= SubscriptionTier.PRO_MAX_WIDGETS) {
             limitReachedReason = "Maximum limit of ${SubscriptionTier.PRO_MAX_WIDGETS} widgets reached to protect battery and API limits."
         }
         isCheckingLimits = false

@@ -104,17 +104,57 @@ class DepartureBoardWidget : GlanceAppWidget() {
             )
 
             var isLiveData = false
+            var isOfflineFallback = false
             val allDepartures = try {
                 val live = repository.getDepartures(targetStation.id, targetStation.name)
                 if (live.isSuccess && live.getOrNull()?.isNotEmpty() == true) {
                     isLiveData = true
                     live.getOrNull()!!
                 } else {
-                    DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name)
+                    isOfflineFallback = true
+                    DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name).ifEmpty {
+                        // Generate a dummy offline departure if the specific station has no fallback data
+                        listOf(
+                            Departure(
+                                id = "fb_dynamic",
+                                stationId = targetStation.id,
+                                stationName = targetStation.name,
+                                lineId = "tube",
+                                lineName = "Underground",
+                                platformName = "Platform 1",
+                                destinationName = "Outbound",
+                                towards = "Destination",
+                                timeToStationSeconds = 120,
+                                expectedArrivalIso = null,
+                                currentLocation = "Offline sample",
+                                modeName = "tube",
+                                lineBadge = com.androidfung.departureboard.data.model.TflLineColors.getLineBadge("tube", "Underground", "tube")
+                            )
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 android.util.Log.w("DepartureBoardWidget", "Failed to fetch live departures for widget", e)
-                DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name)
+                isOfflineFallback = true
+                DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name).ifEmpty {
+                    listOf(
+                        Departure(
+                            id = "fb_dynamic_err",
+                            stationId = targetStation.id,
+                            stationName = targetStation.name,
+                            lineId = "tube",
+                            lineName = "Underground",
+                            platformName = "Platform 1",
+                            destinationName = "Outbound",
+                            towards = "Destination",
+                            timeToStationSeconds = 120,
+                            expectedArrivalIso = null,
+                            currentLocation = "Offline sample",
+                            modeName = "tube",
+                            lineBadge = com.androidfung.departureboard.data.model.TflLineColors.getLineBadge("tube", "Underground", "tube")
+                        )
+                    )
+                }
             }
 
             val filteredDepartures = if (!filterLineId.isNullOrBlank()) {
@@ -129,7 +169,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
 
             provideContent {
                 GlanceTheme {
-                    if (filteredDepartures.isEmpty() && !isLiveData) {
+                    if (filteredDepartures.isEmpty() && !isLiveData && !isOfflineFallback) {
                         WidgetPreparingPlaceholder(
                             station = targetStation,
                             filterLabel = filterLineName
