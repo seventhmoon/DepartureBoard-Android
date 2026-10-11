@@ -167,6 +167,9 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 android.util.Log.e("WidgetConfig", "Failed to update widget state for appWidgetId $appWidgetId", e)
             }
 
+            // Small delay to ensure the system launcher captures the update broadcast
+            delay(150L.milliseconds)
+
             // Ensure the periodic auto-refresh work is running
             WidgetUpdateWorker.enqueuePeriodicUpdate(applicationContext)
 

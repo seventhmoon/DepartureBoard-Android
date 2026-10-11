@@ -368,8 +368,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
     }
 
     /**
-     * Placeholder shown when a widget is placed on the home screen but has not yet been configured
-     * with a selected transit station. Tapping it opens the configuration dialog directly.
+     * Placeholder shown when a widget is first dropped onto the home screen before configuration
+     * completes, or if configuration was deferred. Tapping it directly opens station selection.
      */
     @Composable
     private fun WidgetUnconfiguredPlaceholder(
@@ -393,14 +393,15 @@ class DepartureBoardWidget : GlanceAppWidget() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Tonal station indicator pill
             Box(
                 modifier = GlanceModifier
-                    .size(12.dp)
-                    .cornerRadius(6.dp)
+                    .size(width = 24.dp, height = 8.dp)
+                    .cornerRadius(4.dp)
                     .background(GlanceTheme.colors.primary)
             ) {}
 
-            Spacer(modifier = GlanceModifier.height(10.dp))
+            Spacer(modifier = GlanceModifier.height(12.dp))
 
             Text(
                 text = "Prompt Departure",
@@ -412,17 +413,37 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 maxLines = 1
             )
 
-            Spacer(modifier = GlanceModifier.height(6.dp))
+            Spacer(modifier = GlanceModifier.height(4.dp))
 
             Text(
-                text = "Tap to choose station & lines",
+                text = "Setting up your board…",
                 style = TextStyle(
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = GlanceTheme.colors.primary
+                    fontWeight = FontWeight.Medium,
+                    color = GlanceTheme.colors.onSurfaceVariant
                 ),
                 maxLines = 1
             )
+
+            Spacer(modifier = GlanceModifier.height(6.dp))
+
+            // Interactive prompt chip
+            Box(
+                modifier = GlanceModifier
+                    .cornerRadius(8.dp)
+                    .background(GlanceTheme.colors.primaryContainer)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Tap to choose station & line",
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GlanceTheme.colors.onPrimaryContainer
+                    )
+                )
+            }
         }
     }
 }
