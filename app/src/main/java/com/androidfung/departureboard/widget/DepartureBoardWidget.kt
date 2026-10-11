@@ -81,54 +81,52 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val filterLineId = prefs[PREF_FILTER_LINE_ID] ?: fastFilterLineId
         val filterLineName = prefs[PREF_FILTER_LINE_NAME] ?: fastFilterLineName
 
-        val targetStation = if (!customStationId.isNullOrBlank()) {
-            Station(
+        if (customStationId.isNullOrBlank()) {
+            provideContent {
+                GlanceTheme {
+                    WidgetUnconfiguredPlaceholder(appWidgetId = appWidgetId)
+                }
+            }
+        } else {
+            val targetStation = Station(
                 id = customStationId,
                 name = customStationName ?: "Departure Board",
                 modes = listOf("tube"),
                 isFavorite = true
             )
-        } else {
-            // Priority: The user's first saved station from their dashboard; fallback to POPULAR_STATIONS if none saved yet
-            try {
-                val savedStations = repository.savedStationsFlow.first()
-                savedStations.firstOrNull() ?: DefaultStations.POPULAR_STATIONS.first()
+
+            var isLiveData = false
+            val allDepartures = try {
+                val live = repository.getDepartures(targetStation.id, targetStation.name)
+                if (live.isSuccess) {
+                    isLiveData = true
+                    live.getOrDefault(emptyList())
+                } else {
+                    emptyList()
+                }
             } catch (_: Exception) {
-                DefaultStations.POPULAR_STATIONS.first()
+                emptyList()
             }
-        }
 
-        var isLiveData = false
-        val allDepartures = try {
-            val live = repository.getDepartures(targetStation.id, targetStation.name)
-            if (live.isSuccess) {
-                isLiveData = true
-                live.getOrDefault(emptyList())
+            val filteredDepartures = if (!filterLineId.isNullOrBlank()) {
+                allDepartures.filter {
+                    it.lineId.equals(filterLineId, ignoreCase = true) ||
+                    it.lineName.equals(filterLineId, ignoreCase = true) ||
+                    (!filterLineName.isNullOrBlank() && it.lineBadge.displayName.equals(filterLineName, ignoreCase = true))
+                }
             } else {
-                DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name)
+                allDepartures
             }
-        } catch (_: Exception) {
-            DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name)
-        }
 
-        val filteredDepartures = if (!filterLineId.isNullOrBlank()) {
-            allDepartures.filter {
-                it.lineId.equals(filterLineId, ignoreCase = true) ||
-                it.lineName.equals(filterLineId, ignoreCase = true) ||
-                (!filterLineName.isNullOrBlank() && it.lineBadge.displayName.equals(filterLineName, ignoreCase = true))
-            }
-        } else {
-            allDepartures
-        }
-
-        provideContent {
-            GlanceTheme {
-                WidgetContent(
-                    station = targetStation,
-                    filterLabel = filterLineName,
-                    departures = filteredDepartures,
-                    isLiveData = isLiveData
-                )
+            provideContent {
+                GlanceTheme {
+                    WidgetContent(
+                        station = targetStation,
+                        filterLabel = filterLineName,
+                        departures = filteredDepartures,
+                        isLiveData = isLiveData
+                    )
+                }
             }
         }
     }
@@ -359,6 +357,65 @@ class DepartureBoardWidget : GlanceAppWidget() {
                     )
                 )
             }
+        }
+    }
+
+    /**
+     * Placeholder shown when a widget is placed on the home screen but has not yet been configured
+     * with a selected transit station. Tapping it opens the configuration dialog directly.
+     */
+    @Composable
+    private fun WidgetUnconfiguredPlaceholder(
+        appWidgetId: Int
+    ) {
+        val context = androidx.glance.LocalContext.current
+        val configIntent = Intent(context, WidgetConfigurationActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (appWidgetId != -1) {
+                putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            }
+        }
+
+        Column(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .background(GlanceTheme.colors.surface)
+                .cornerRadius(22.dp)
+                .padding(16.dp)
+                .clickable(actionStartActivity(configIntent)),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = GlanceModifier
+                    .size(12.dp)
+                    .cornerRadius(6.dp)
+                    .background(GlanceTheme.colors.primary)
+            ) {}
+
+            Spacer(modifier = GlanceModifier.height(10.dp))
+
+            Text(
+                text = "Prompt Departure",
+                style = TextStyle(
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GlanceTheme.colors.onSurface
+                ),
+                maxLines = 1
+            )
+
+            Spacer(modifier = GlanceModifier.height(6.dp))
+
+            Text(
+                text = "Tap to choose station & lines",
+                style = TextStyle(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = GlanceTheme.colors.primary
+                ),
+                maxLines = 1
+            )
         }
     }
 }
