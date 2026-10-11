@@ -130,40 +130,56 @@ class WidgetConfigurationActivity : ComponentActivity() {
         sp.edit()
             .putString("station_id_$appWidgetId", station.id)
             .putString("station_name_$appWidgetId", station.displayName)
+            .putString("last_configured_station_id", station.id)
+            .putString("last_configured_station_name", station.displayName)
             .apply {
                 if (lineBadge != null) {
                     putString("filter_line_id_$appWidgetId", lineBadge.lineId)
                     putString("filter_line_name_$appWidgetId", lineBadge.displayName)
+                    putString("last_configured_filter_line_id", lineBadge.lineId)
+                    putString("last_configured_filter_line_name", lineBadge.displayName)
                 } else {
                     remove("filter_line_id_$appWidgetId")
                     remove("filter_line_name_$appWidgetId")
+                    remove("last_configured_filter_line_id")
+                    remove("last_configured_filter_line_name")
                 }
             }
             .apply()
 
         val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
         coroutineScope.launch {
-            val glanceManager = GlanceAppWidgetManager(applicationContext)
-            val glanceId = glanceManager.getGlanceIdBy(appWidgetId)
+            try {
+                val glanceManager = GlanceAppWidgetManager(applicationContext)
+                val glanceId = glanceManager.getGlanceIdBy(appWidgetId)
 
-            updateAppWidgetState(applicationContext, PreferencesGlanceStateDefinition, glanceId) { prefs ->
-                prefs.toMutablePreferences().apply {
-                    this[DepartureBoardWidget.PREF_STATION_ID] = station.id
-                    this[DepartureBoardWidget.PREF_STATION_NAME] = station.displayName
-                    if (lineBadge != null) {
-                        this[DepartureBoardWidget.PREF_FILTER_LINE_ID] = lineBadge.lineId
-                        this[DepartureBoardWidget.PREF_FILTER_LINE_NAME] = lineBadge.displayName
-                    } else {
-                        remove(DepartureBoardWidget.PREF_FILTER_LINE_ID)
-                        remove(DepartureBoardWidget.PREF_FILTER_LINE_NAME)
+                updateAppWidgetState(applicationContext, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+                    prefs.toMutablePreferences().apply {
+                        this[DepartureBoardWidget.PREF_STATION_ID] = station.id
+                        this[DepartureBoardWidget.PREF_STATION_NAME] = station.displayName
+                        if (lineBadge != null) {
+                            this[DepartureBoardWidget.PREF_FILTER_LINE_ID] = lineBadge.lineId
+                            this[DepartureBoardWidget.PREF_FILTER_LINE_NAME] = lineBadge.displayName
+                        } else {
+                            remove(DepartureBoardWidget.PREF_FILTER_LINE_ID)
+                            remove(DepartureBoardWidget.PREF_FILTER_LINE_NAME)
+                        }
                     }
                 }
+
+                DepartureBoardWidget().update(applicationContext, glanceId)
+            } catch (e: Exception) {
+                android.util.Log.e("WidgetConfig", "Failed to update widget state for appWidgetId $appWidgetId", e)
             }
 
-            // Small delay to ensure DataStore file write is committed before triggering Glance render pass
-            delay(100L.milliseconds)
-
-            DepartureBoardWidget().update(applicationContext, glanceId)
+            // Also update all instances to be safe
+            try {
+                val glanceManager = GlanceAppWidgetManager(applicationContext)
+                val glanceIds = glanceManager.getGlanceIds(DepartureBoardWidget::class.java)
+                glanceIds.forEach { gid ->
+                    DepartureBoardWidget().update(applicationContext, gid)
+                }
+            } catch (_: Exception) {}
 
             // Ensure the periodic auto-refresh work is running. Placement flows through
             // this activity (not MainActivity), so enqueue here as well — otherwise a

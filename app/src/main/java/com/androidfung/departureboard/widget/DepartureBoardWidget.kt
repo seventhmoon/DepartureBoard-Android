@@ -64,7 +64,6 @@ class DepartureBoardWidget : GlanceAppWidget() {
         // Glance currentState reads the per-widget preferences directly in provideContent or provideGlance
         val prefs: Preferences = androidx.glance.appwidget.state.getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
 
-        // Read fast synchronous SharedPreferences fallback so newly placed widgets never flash Oxford Circus
         val appWidgetId = try {
             androidx.glance.appwidget.GlanceAppWidgetManager(context).getAppWidgetId(id)
         } catch (_: Exception) {
@@ -76,10 +75,16 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val fastFilterLineId = if (appWidgetId != -1) sp.getString("filter_line_id_$appWidgetId", null) else null
         val fastFilterLineName = if (appWidgetId != -1) sp.getString("filter_line_name_$appWidgetId", null) else null
 
-        val customStationId = prefs[PREF_STATION_ID] ?: fastStationId
-        val customStationName = prefs[PREF_STATION_NAME] ?: fastStationName
-        val filterLineId = prefs[PREF_FILTER_LINE_ID] ?: fastFilterLineId
-        val filterLineName = prefs[PREF_FILTER_LINE_NAME] ?: fastFilterLineName
+        // Also check if any recent widget config exists in SharedPreferences as fallback for when appWidgetId lookup is temporarily pending
+        val lastConfiguredStationId = sp.getString("last_configured_station_id", null)
+        val lastConfiguredStationName = sp.getString("last_configured_station_name", null)
+        val lastConfiguredFilterLineId = sp.getString("last_configured_filter_line_id", null)
+        val lastConfiguredFilterLineName = sp.getString("last_configured_filter_line_name", null)
+
+        val customStationId = prefs[PREF_STATION_ID] ?: fastStationId ?: lastConfiguredStationId
+        val customStationName = prefs[PREF_STATION_NAME] ?: fastStationName ?: lastConfiguredStationName
+        val filterLineId = prefs[PREF_FILTER_LINE_ID] ?: fastFilterLineId ?: lastConfiguredFilterLineId
+        val filterLineName = prefs[PREF_FILTER_LINE_NAME] ?: fastFilterLineName ?: lastConfiguredFilterLineName
 
         if (customStationId.isNullOrBlank()) {
             provideContent {
