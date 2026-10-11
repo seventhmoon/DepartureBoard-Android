@@ -22,6 +22,7 @@ import com.androidfung.departureboard.ui.components.rememberReorderableStaggered
 import com.androidfung.departureboard.ui.components.reorderableStaggeredGrid
 import com.androidfung.departureboard.ui.components.reorderableStaggeredItem
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BugReport
@@ -113,6 +114,7 @@ fun DashboardScreen(
     var showSearchSheet by rememberSaveable { mutableStateOf(false) }
     var showAiSheet by rememberSaveable { mutableStateOf(false) }
     var showDebugSheet by rememberSaveable { mutableStateOf(false) }
+    var showHelpSheet by rememberSaveable { mutableStateOf(false) }
     var selectedDepartureForJourney by remember { mutableStateOf<Departure?>(null) }
 
     LaunchedEffect(initialDetailStation) {
@@ -208,6 +210,7 @@ fun DashboardScreen(
             android.util.Log.d("DashboardScreen", "onOpenDebugSettings clicked!")
             showDebugSheet = true
         },
+        onOpenHelpFaq = { showHelpSheet = true },
         modifier = modifier
     )
 
@@ -312,6 +315,13 @@ fun DashboardScreen(
             onSelectAiModel = { model -> viewModel.setAiModelType(model) }
         )
     }
+
+    // Help, App Info & FAQ Bottom Sheet
+    if (showHelpSheet) {
+        com.androidfung.departureboard.ui.components.HelpFaqBottomSheet(
+            onDismissRequest = { showHelpSheet = false }
+        )
+    }
 }
 
 @Composable
@@ -327,7 +337,8 @@ fun DashboardContent(
     onDepartureClick: ((Departure) -> Unit)? = null,
     onAiAssistantClick: () -> Unit = {},
     onUpgradeClick: () -> Unit = {},
-    onOpenDebugSettings: () -> Unit = {}
+    onOpenDebugSettings: () -> Unit = {},
+    onOpenHelpFaq: () -> Unit = {}
 ) {
     val pullToRefreshState = rememberPullToRefreshState()
     val staggeredGridState = rememberLazyStaggeredGridState()
@@ -409,7 +420,8 @@ fun DashboardContent(
                         DashboardHeader(
                             isPro = uiState.isPro,
                             onUpgradeClick = onUpgradeClick,
-                            onOpenDebugSettings = onOpenDebugSettings
+                            onOpenDebugSettings = onOpenDebugSettings,
+                            onOpenHelpFaq = onOpenHelpFaq
                         )
 
                         // Material 3 Search Anchor Pill directly below the Header
@@ -472,7 +484,8 @@ fun DashboardHeader(
     modifier: Modifier = Modifier,
     isPro: Boolean = false,
     onUpgradeClick: () -> Unit = {},
-    onOpenDebugSettings: () -> Unit = {}
+    onOpenDebugSettings: () -> Unit = {},
+    onOpenHelpFaq: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -554,55 +567,67 @@ fun DashboardHeader(
                 }
             }
 
-            // 3-dot Overflow Menu Button (Only rendered if there are menu options)
-            val showOverflowMenu = BuildConfig.DEBUG || !isPro
-            if (showOverflowMenu) {
-                Box {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(
-                            imageVector = Icons.Rounded.MoreVert,
-                            contentDescription = "More options",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            // 3-dot Overflow Menu Button
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Rounded.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Help & FAQ") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        onClick = {
+                            showMenu = false
+                            onOpenHelpFaq()
+                        }
+                    )
+
+                    if (BuildConfig.DEBUG) {
+                        DropdownMenuItem(
+                            text = { Text("Debug Settings") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.BugReport,
+                                    contentDescription = null,
+                                    tint = Color(0xFFE91E63)
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                onOpenDebugSettings()
+                            }
                         )
                     }
 
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        if (BuildConfig.DEBUG) {
-                            DropdownMenuItem(
-                                text = { Text("Debug Settings") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Rounded.BugReport,
-                                        contentDescription = null,
-                                        tint = Color(0xFFE91E63)
-                                    )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onOpenDebugSettings()
-                                }
-                            )
-                        }
-
-                        if (!isPro) {
-                            DropdownMenuItem(
-                                text = { Text("Upgrade to Pro") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Rounded.WorkspacePremium,
-                                        contentDescription = null,
-                                        tint = Color(0xFFFFB300)
-                                    )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onUpgradeClick()
-                                }
-                            )
-                        }
+                    if (!isPro) {
+                        DropdownMenuItem(
+                            text = { Text("Upgrade to Pro") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.WorkspacePremium,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFB300)
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                onUpgradeClick()
+                            }
+                        )
                     }
                 }
             }
