@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -139,16 +140,8 @@ class WidgetConfigurationActivity : ComponentActivity() {
                     remove("filter_line_name_$appWidgetId")
                 }
             }
-            .commit() // Commit synchronously so it's instantly available
+            .commit() // Commit synchronously
 
-        // Instantly tell the launcher configuration is complete so the UI feels perfectly responsive
-        val resultValue = Intent().apply {
-            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-        }
-        setResult(RESULT_OK, resultValue)
-        finish()
-
-        // Kick off the Glance DataStore update and widget refresh asynchronously
         val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
         coroutineScope.launch {
             try {
@@ -177,6 +170,14 @@ class WidgetConfigurationActivity : ComponentActivity() {
 
             // Ensure the periodic auto-refresh work is running
             WidgetUpdateWorker.enqueuePeriodicUpdate(applicationContext)
+
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                val resultValue = Intent().apply {
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                }
+                setResult(RESULT_OK, resultValue)
+                finish()
+            }
         }
     }
 }
@@ -201,12 +202,14 @@ fun WidgetConfigurationContent(
         // Glance returns ALL registered instance IDs. For a new placement, the new appWidgetId
         // is already included in existingGlanceIds.size by the time this Activity starts.
         // E.g., if you have 1 widget on screen, and are adding a 2nd, the count is already 2.
-        // Therefore, we check if activeCount > FREE_MAX_WIDGETS (e.g. > 2 means placing the 3rd widget)
+        // Therefore, we check if activeCount > FREE_MAX_WIDGETS (e.g. > 2 means placing the 3rd widget).
+        // Note: Sometimes the Android launcher leaves "ghost" or orphaned widget IDs in the Glance database
+        // when users remove widgets improperly. We apply a +1 buffer to the limit check so users aren't unfairly blocked.
         val activeCount = existingGlanceIds.size
 
-        if (!isPro && activeCount > SubscriptionTier.FREE_MAX_WIDGETS) {
+        if (!isPro && activeCount > SubscriptionTier.FREE_MAX_WIDGETS + 1) {
             limitReachedReason = "Free plan includes up to ${SubscriptionTier.FREE_MAX_WIDGETS} home screen widgets. Upgrade to Pro for up to ${SubscriptionTier.PRO_MAX_WIDGETS} widgets."
-        } else if (isPro && activeCount > SubscriptionTier.PRO_MAX_WIDGETS) {
+        } else if (isPro && activeCount > SubscriptionTier.PRO_MAX_WIDGETS + 1) {
             limitReachedReason = "Maximum limit of ${SubscriptionTier.PRO_MAX_WIDGETS} widgets reached to protect battery and API limits."
         }
         isCheckingLimits = false
@@ -520,48 +523,35 @@ fun WidgetStationPickerScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth().height(200.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        // Use a FlowRow to display chips exactly like the station details view
+                        androidx.compose.foundation.layout.FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            items(availableLines, key = { it.lineId + it.displayName }) { badge -> // Adding displayName for uniqueness
-                                Card(
+                            availableLines.forEach { badge ->
+                                Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
+                                        .height(32.dp)
+                                        .defaultMinSize(minWidth = 56.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(badge.backgroundColor)
                                         .clickable {
                                             onStationAndLineSelected(activeStation, badge)
-                                        },
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(containerColor = badge.backgroundColor.copy(alpha = 0.15f))
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "Show only",
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f, fill = false)
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(badge.backgroundColor)
-                                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                                        ) {
-                                            Text(
-                                                text = badge.displayName,
-                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                color = badge.textColor,
-                                                maxLines = 1,
-                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                            )
                                         }
-                                    }
+                                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = badge.displayName,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = badge.textColor,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
                                 }
                             }
                         }

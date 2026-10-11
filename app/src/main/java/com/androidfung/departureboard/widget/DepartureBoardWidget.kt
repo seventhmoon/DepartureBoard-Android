@@ -69,14 +69,16 @@ class DepartureBoardWidget : GlanceAppWidget() {
         } catch (_: Exception) {
             -1
         }
+        // Check local SharedPreferences strictly keyed to this specific appWidgetId.
+        // This is necessary because Glance Preferences update asynchronously and might not be available
+        // yet in the very first render pass right after the configuration activity finishes.
         val sp = context.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
         val fastStationId = if (appWidgetId != -1) sp.getString("station_id_$appWidgetId", null) else null
         val fastStationName = if (appWidgetId != -1) sp.getString("station_name_$appWidgetId", null) else null
         val fastFilterLineId = if (appWidgetId != -1) sp.getString("filter_line_id_$appWidgetId", null) else null
         val fastFilterLineName = if (appWidgetId != -1) sp.getString("filter_line_name_$appWidgetId", null) else null
 
-        // ONLY read configuration assigned explicitly to this widget instance (appWidgetId or Glance state).
-        // Never fall back to global "last_configured" or other widgets' stations!
+        // Give priority to the explicit Glance Preferences state, but fall back instantly to SharedPreferences
         val customStationId = prefs[PREF_STATION_ID] ?: fastStationId
         val customStationName = prefs[PREF_STATION_NAME] ?: fastStationName
         val filterLineId = prefs[PREF_FILTER_LINE_ID] ?: fastFilterLineId
@@ -84,7 +86,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
 
         android.util.Log.d(
             "DepartureBoardWidget",
-            "provideGlance: id=$id, appWidgetId=$appWidgetId, customStationId=$customStationId, customStationName=$customStationName"
+            "provideGlance: id=$id, appWidgetId=$appWidgetId, customStationId=$customStationId"
         )
 
         if (customStationId.isNullOrBlank()) {
