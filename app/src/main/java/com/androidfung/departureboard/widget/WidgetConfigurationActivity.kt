@@ -198,7 +198,10 @@ fun WidgetConfigurationContent(
         val existingGlanceIds = glanceManager.getGlanceIds(DepartureBoardWidget::class.java)
         val isPro = billingRepository.isProFlow.first()
 
-        // -1 because the host may already have assigned an ID for the currently configuring widget
+        // Glance returns ALL registered instance IDs. For a new placement, the new appWidgetId
+        // is already included in existingGlanceIds.size by the time this Activity starts.
+        // E.g., if you have 1 widget on screen, and are adding a 2nd, the count is already 2.
+        // Therefore, we check if activeCount > FREE_MAX_WIDGETS (e.g. > 2 means placing the 3rd widget)
         val activeCount = existingGlanceIds.size
 
         if (!isPro && activeCount > SubscriptionTier.FREE_MAX_WIDGETS) {
@@ -537,8 +540,15 @@ fun WidgetStationPickerScreen(
                                             .padding(12.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
+                                        Text(
+                                            text = "Show only",
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
                                         Box(
                                             modifier = Modifier
+                                                .weight(1f, fill = false)
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .background(badge.backgroundColor)
                                                 .padding(horizontal = 8.dp, vertical = 3.dp)
@@ -546,15 +556,11 @@ fun WidgetStationPickerScreen(
                                             Text(
                                                 text = badge.displayName,
                                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                color = badge.textColor
+                                                color = badge.textColor,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                             )
                                         }
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Text(
-                                            text = "Show only ${badge.displayName}",
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
                                     }
                                 }
                             }
