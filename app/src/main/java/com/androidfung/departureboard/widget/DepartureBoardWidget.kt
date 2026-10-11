@@ -38,6 +38,7 @@ import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
+import kotlinx.coroutines.flow.first
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.currentState
@@ -88,8 +89,13 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 isFavorite = true
             )
         } else {
-            // First saved station or fallback
-            DefaultStations.POPULAR_STATIONS.first()
+            // Priority: The user's first saved station from their dashboard; fallback to POPULAR_STATIONS if none saved yet
+            try {
+                val savedStations = repository.savedStationsFlow.first()
+                savedStations.firstOrNull() ?: DefaultStations.POPULAR_STATIONS.first()
+            } catch (_: Exception) {
+                DefaultStations.POPULAR_STATIONS.first()
+            }
         }
 
         var isLiveData = false
