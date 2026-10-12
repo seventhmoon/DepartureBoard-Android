@@ -10,16 +10,18 @@
     @com.squareup.moshi.* <fields>;
     @com.squareup.moshi.* <methods>;
 }
--keep class com.androidfung.departureboard.data.model.** { *; }
 
-# Keep the DataStore station DTOs. These are round-tripped through Moshi codegen
-# adapters (referenced directly, so normally shrink-safe), but keeping them verbatim
-# is cheap insurance against R8 renaming if serialization ever falls back to reflection.
--keep class com.androidfung.departureboard.data.datastore.** { *; }
+# Keep only Moshi model classes and generated adapters
+-keep @com.squareup.moshi.JsonClass class * { *; }
+-keep class * extends com.squareup.moshi.JsonAdapter { *; }
 
-# Keep Glance AppWidget and receiver components
--keep class * extends androidx.glance.appwidget.GlanceAppWidget { *; }
--keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver { *; }
+# Keep Glance AppWidget and receiver components (constructors needed for reflection instantiation)
+-keep class * extends androidx.glance.appwidget.GlanceAppWidget {
+    <init>(...);
+}
+-keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver {
+    <init>(...);
+}
 
 # Suppress warnings for OkHttp internals
 -dontwarn okhttp3.internal.Util

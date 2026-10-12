@@ -3,6 +3,8 @@ package com.androidfung.departureboard.widget
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -34,7 +36,6 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.androidfung.departureboard.MainActivity
-import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
@@ -61,126 +62,74 @@ class DepartureBoardWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repository = TransitRepositoryImpl(context)
 
-        // Glance currentState reads the per-widget preferences directly in provideContent or provideGlance
-        val prefs: Preferences = androidx.glance.appwidget.state.getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
-
         val appWidgetId = try {
             androidx.glance.appwidget.GlanceAppWidgetManager(context).getAppWidgetId(id)
         } catch (_: Exception) {
             -1
         }
-        // Check local SharedPreferences strictly keyed to this specific appWidgetId.
-        // This is necessary because Glance Preferences update asynchronously and might not be available
-        // yet in the very first render pass right after the configuration activity finishes.
-        val sp = context.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
-        val fastStationId = if (appWidgetId != -1) sp.getString("station_id_$appWidgetId", null) else null
-        val fastStationName = if (appWidgetId != -1) sp.getString("station_name_$appWidgetId", null) else null
-        val fastFilterLineId = if (appWidgetId != -1) sp.getString("filter_line_id_$appWidgetId", null) else null
-        val fastFilterLineName = if (appWidgetId != -1) sp.getString("filter_line_name_$appWidgetId", null) else null
 
-        // Give priority to the explicit Glance Preferences state, but fall back instantly to SharedPreferences
-        val customStationId = prefs[PREF_STATION_ID] ?: fastStationId
-        val customStationName = prefs[PREF_STATION_NAME] ?: fastStationName
-        val filterLineId = prefs[PREF_FILTER_LINE_ID] ?: fastFilterLineId
-        val filterLineName = prefs[PREF_FILTER_LINE_NAME] ?: fastFilterLineName
+        provideContent {
+            GlanceTheme {
+                val prefs = currentState<Preferences>()
 
-        android.util.Log.d(
-            "DepartureBoardWidget",
-            "provideGlance: id=$id, appWidgetId=$appWidgetId, customStationId=$customStationId"
-        )
+                // Check local SharedPreferences fallback strictly keyed to this specific appWidgetId
+                val sp = context.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
+                val fastStationId = if (appWidgetId != -1) sp.getString("station_id_$appWidgetId", null) else null
+                val fastStationName = if (appWidgetId != -1) sp.getString("station_name_$appWidgetId", null) else null
+                val fastFilterLineId = if (appWidgetId != -1) sp.getString("filter_line_id_$appWidgetId", null) else null
+                val fastFilterLineName = if (appWidgetId != -1) sp.getString("filter_line_name_$appWidgetId", null) else null
 
-        if (customStationId.isNullOrBlank()) {
-            provideContent {
-                GlanceTheme {
+                val stationId = prefs[PREF_STATION_ID] ?: fastStationId
+                val stationName = prefs[PREF_STATION_NAME] ?: fastStationName
+                val filterLineId = prefs[PREF_FILTER_LINE_ID] ?: fastFilterLineId
+                val filterLineName = prefs[PREF_FILTER_LINE_NAME] ?: fastFilterLineName
+                val refreshTimestamp = prefs[PREF_LAST_REFRESH_TIMESTAMP] ?: 0L
+
+                if (stationId.isNullOrBlank()) {
                     WidgetUnconfiguredPlaceholder(appWidgetId = appWidgetId)
-                }
-            }
-        } else {
-            val targetStation = Station(
-                id = customStationId,
-                name = customStationName ?: "Departure Board",
-                modes = listOf("tube"),
-                isFavorite = true
-            )
-
-            var isLiveData = false
-            var isOfflineFallback = false
-            val allDepartures = try {
-                val live = repository.getDepartures(targetStation.id, targetStation.name)
-                if (live.isSuccess && live.getOrNull()?.isNotEmpty() == true) {
-                    isLiveData = true
-                    live.getOrNull()!!
                 } else {
-                    isOfflineFallback = true
-                    DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name).ifEmpty {
-                        // Generate a dummy offline departure if the specific station has no fallback data
-                        listOf(
-                            Departure(
-                                id = "fb_dynamic",
-                                stationId = targetStation.id,
-                                stationName = targetStation.name,
-                                lineId = "tube",
-                                lineName = "Underground",
-                                platformName = "Platform 1",
-                                destinationName = "Outbound",
-                                towards = "Destination",
-                                timeToStationSeconds = 120,
-                                expectedArrivalIso = null,
-                                currentLocation = "Offline sample",
-                                modeName = "tube",
-                                lineBadge = com.androidfung.departureboard.data.model.TflLineColors.getLineBadge("tube", "Underground", "tube")
-                            )
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                android.util.Log.w("DepartureBoardWidget", "Failed to fetch live departures for widget", e)
-                isOfflineFallback = true
-                DefaultStations.getFallbackDepartures(targetStation.id, targetStation.name).ifEmpty {
-                    listOf(
-                        Departure(
-                            id = "fb_dynamic_err",
-                            stationId = targetStation.id,
-                            stationName = targetStation.name,
-                            lineId = "tube",
-                            lineName = "Underground",
-                            platformName = "Platform 1",
-                            destinationName = "Outbound",
-                            towards = "Destination",
-                            timeToStationSeconds = 120,
-                            expectedArrivalIso = null,
-                            currentLocation = "Offline sample",
-                            modeName = "tube",
-                            lineBadge = com.androidfung.departureboard.data.model.TflLineColors.getLineBadge("tube", "Underground", "tube")
-                        )
+                    val targetStation = Station(
+                        id = stationId,
+                        name = stationName ?: "Departure Board",
+                        modes = listOf("tube"),
+                        isFavorite = true
                     )
-                }
-            }
 
-            val filteredDepartures = if (!filterLineId.isNullOrBlank()) {
-                allDepartures.filter {
-                    it.lineId.equals(filterLineId, ignoreCase = true) ||
-                    it.lineName.equals(filterLineId, ignoreCase = true) ||
-                    (!filterLineName.isNullOrBlank() && it.lineBadge.displayName.equals(filterLineName, ignoreCase = true))
-                }
-            } else {
-                allDepartures
-            }
+                    // Collect departures reactively when stationId or refreshTimestamp changes
+                    val departuresResult by androidx.compose.runtime.remember(stationId, refreshTimestamp) {
+                        repository.getDeparturesFlow(stationId, targetStation.name)
+                    }.collectAsState(initial = null)
 
-            provideContent {
-                GlanceTheme {
-                    if (filteredDepartures.isEmpty() && !isLiveData && !isOfflineFallback) {
-                        WidgetPreparingPlaceholder(
-                            station = targetStation,
-                            filterLabel = filterLineName
-                        )
-                    } else {
-                        WidgetContent(
-                            station = targetStation,
-                            filterLabel = filterLineName,
-                            departures = filteredDepartures,
-                            isLiveData = isLiveData
-                        )
+                    when (val result = departuresResult) {
+                        null -> {
+                            // Loading state
+                            WidgetPreparingPlaceholder(
+                                station = targetStation,
+                                filterLabel = filterLineName
+                            )
+                        }
+                        else -> {
+                            val allDepartures = result.getOrNull() ?: emptyList()
+                            val filteredDepartures = if (!filterLineId.isNullOrBlank()) {
+                                allDepartures.filter {
+                                    it.lineId.equals(filterLineId, ignoreCase = true) ||
+                                    it.lineName.equals(filterLineId, ignoreCase = true) ||
+                                    (!filterLineName.isNullOrBlank() && it.lineBadge.displayName.equals(filterLineName, ignoreCase = true))
+                                }
+                            } else {
+                                allDepartures
+                            }
+
+                            val isSuccess = result.isSuccess && allDepartures.isNotEmpty()
+
+                            WidgetContent(
+                                station = targetStation,
+                                filterLabel = filterLineName,
+                                departures = filteredDepartures,
+                                isLiveData = isSuccess,
+                                isError = result.isFailure
+                            )
+                        }
                     }
                 }
             }
@@ -192,7 +141,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
         station: Station,
         filterLabel: String?,
         departures: List<Departure>,
-        isLiveData: Boolean = true
+        isLiveData: Boolean = true,
+        isError: Boolean = false
     ) {
         val clickIntent = Intent(androidx.glance.LocalContext.current, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
@@ -235,7 +185,11 @@ class DepartureBoardWidget : GlanceAppWidget() {
                         ),
                         maxLines = 1
                     )
-                    val liveLabel = if (isLiveData) "Live" else "Offline sample"
+                    val liveLabel = when {
+                        isLiveData -> "Live"
+                        isError -> "Offline"
+                        else -> "No departures"
+                    }
                     val subtitle = if (!filterLabel.isNullOrBlank()) {
                         "Prompt Departure • $filterLabel • $liveLabel"
                     } else {
@@ -279,7 +233,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No live departures",
+                        text = if (isError) "No departure information available" else "No departures scheduled",
                         style = TextStyle(
                             fontSize = 13.sp,
                             color = GlanceTheme.colors.onSurfaceVariant

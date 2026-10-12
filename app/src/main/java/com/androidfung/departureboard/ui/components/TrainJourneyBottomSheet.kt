@@ -188,7 +188,7 @@ fun TrainJourneyBottomSheet(
                 }
             }
 
-            androidx.compose.material3.Button(
+            Button(
                 onClick = {
                     if (isTracked) {
                         com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
@@ -210,7 +210,7 @@ fun TrainJourneyBottomSheet(
                     }
                 },
                 shape = RoundedCornerShape(12.dp),
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                colors = ButtonDefaults.buttonColors(
                     containerColor = if (isTracked) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
                     contentColor = if (isTracked) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
                 ),

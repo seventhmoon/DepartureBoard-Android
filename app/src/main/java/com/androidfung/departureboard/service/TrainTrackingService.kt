@@ -279,7 +279,7 @@ class TrainTrackingService : Service() {
                 )
 
                 try {
-                    val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                     nm.notify(NOTIFICATION_ID, updatedNotification)
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to update notification", e)
@@ -458,7 +458,7 @@ class TrainTrackingService : Service() {
                     description = "Shows live ongoing countdowns for tracked departures"
                     setShowBadge(true)
                 }
-                val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                 nm.createNotificationChannel(channel)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to create notification channel", e)

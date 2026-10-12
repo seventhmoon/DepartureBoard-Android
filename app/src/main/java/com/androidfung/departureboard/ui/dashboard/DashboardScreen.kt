@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -469,6 +470,15 @@ fun DashboardContent(
                                 .reorderableStaggeredItem(reorderState, cardModel.station.id)
                                 .animateItem()
                         )
+                    }
+
+                    // Medium Rectangle ad card in the feed for free users
+                    if (!uiState.isPro) {
+                        item(key = "ad_card", span = StaggeredGridItemSpan.SingleLane) {
+                            com.androidfung.departureboard.ui.components.AdCard(
+                                modifier = Modifier.animateItem()
+                            )
+                        }
                     }
                 }
             }

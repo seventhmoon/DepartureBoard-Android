@@ -9,5 +9,7 @@ class DepartureBoardApp : Application() {
         super.onCreate()
         TflNetworkClient.initialize(this)
         NationalRailStationCodes.initialize(this)
+        // Initialize Google Mobile Ads SDK on a background thread to prevent blocking main thread
+        com.google.android.gms.ads.MobileAds.initialize(this) {}
     }
 }

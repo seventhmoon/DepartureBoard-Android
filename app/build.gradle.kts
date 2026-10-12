@@ -19,8 +19,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 14
-        versionName = "1.1.1-261009"
+        versionCode = 15
+        versionName = "1.1.1-261012"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -44,6 +44,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
         }
     }
     compileOptions {
@@ -58,6 +61,14 @@ android {
         warningsAsErrors = false
         abortOnError = false
         disable += setOf("UnusedAttribute", "GradleDependency", "NewerVersionAvailable", "UseKtx")
+    }
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/*.version",
+                "**/*.proto"
+            )
+        }
     }
 }
 
@@ -121,6 +132,7 @@ dependencies {
     implementation(libs.play.app.update.ktx)
     implementation(libs.play.billing)
     implementation(libs.play.billing.ktx)
+    implementation(libs.play.services.ads)
     implementation(libs.play.services.location)
     
     // Networking & Serialization

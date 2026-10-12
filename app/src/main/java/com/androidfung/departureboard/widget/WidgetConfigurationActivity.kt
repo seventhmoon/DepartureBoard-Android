@@ -111,19 +111,40 @@ class WidgetConfigurationActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    WidgetConfigurationContent(
-                        billingRepository = billingRepo,
-                        onStationAndLineSelected = { station, lineBadge ->
-                            selectStationAndFinish(station, lineBadge)
-                        },
-                        onCancel = {
-                            finish()
+                    if (isFinalizing) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                CircularProgressIndicator(strokeWidth = 3.dp)
+                                Text(
+                                    text = "Setting up your board…",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                    )
+                    } else {
+                        WidgetConfigurationContent(
+                            billingRepository = billingRepo,
+                            onStationAndLineSelected = { station, lineBadge ->
+                                selectStationAndFinish(station, lineBadge)
+                            },
+                            onCancel = {
+                                finish()
+                            }
+                        )
+                    }
                 }
             }
         }
     }
+
+    private var isFinalizing by mutableStateOf(false)
 
     private fun selectStationAndFinish(station: Station, lineBadge: com.androidfung.departureboard.data.model.LineBadgeInfo?) {
         // Fast synchronous persistence keyed ONLY to this appWidgetId
@@ -141,6 +162,8 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 }
             }
             .commit() // Commit synchronously
+
+        isFinalizing = true
 
         val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
         coroutineScope.launch {
@@ -170,6 +193,9 @@ class WidgetConfigurationActivity : ComponentActivity() {
 
             // Ensure the periodic auto-refresh work is running
             WidgetUpdateWorker.enqueuePeriodicUpdate(applicationContext)
+
+            // Allow Glance session to cleanly commit before returning result to launcher host
+            delay(300L.milliseconds)
 
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 val resultValue = Intent().apply {
