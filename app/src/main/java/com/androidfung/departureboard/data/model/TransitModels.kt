@@ -91,7 +91,8 @@ data class Departure(
     val modeName: String,
     val lineBadge: LineBadgeInfo,
     val callingPoints: List<CallingPoint> = emptyList(),
-    val status: DepartureStatus = DepartureStatus.fromString(currentLocation, timeToStationSeconds)
+    val status: DepartureStatus = DepartureStatus.fromString(currentLocation, timeToStationSeconds),
+    val vehicleId: String? = null
 ) {
     /**
      * Human-friendly formatted arrival string, e.g. "Due", "1 min", "4 mins".

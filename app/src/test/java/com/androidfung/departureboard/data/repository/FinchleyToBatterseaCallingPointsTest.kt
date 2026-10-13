@@ -67,6 +67,7 @@ class FinchleyToBatterseaCallingPointsTest {
         val fakeTflApi = object : TflApiService {
             override suspend fun searchStations(query: String, modes: String, maxResults: Int) = throw NotImplementedError()
             override suspend fun getArrivals(stationId: String) = throw NotImplementedError()
+            override suspend fun getLineArrivals(lineId: String) = emptyList<com.androidfung.departureboard.data.model.TflArrivalPrediction>()
             override suspend fun getStopPointDetail(stopPointId: String) = throw NotImplementedError()
             override suspend fun getLineStopPoints(lineId: String) = throw NotImplementedError()
             override suspend fun getLineRoute(lineId: String) = throw NotImplementedError()

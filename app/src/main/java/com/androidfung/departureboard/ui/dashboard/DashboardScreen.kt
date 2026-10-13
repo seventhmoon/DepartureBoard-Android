@@ -310,6 +310,8 @@ fun DashboardScreen(
             onDismissRequest = { showDebugSheet = false },
             billingRepository = viewModel.billingRepository,
             isPro = uiState.isPro,
+            userPlan = uiState.userPlan,
+            onSelectPlan = { plan -> viewModel.setDebugPlan(plan) },
             onTogglePro = { viewModel.toggleDebugPro() },
             onResetStations = { viewModel.resetSavedStationsToDefaults() },
             selectedAiModel = uiState.aiModelType,

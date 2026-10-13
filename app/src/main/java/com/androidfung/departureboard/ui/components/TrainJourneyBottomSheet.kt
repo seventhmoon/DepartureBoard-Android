@@ -22,6 +22,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.NotificationsNone
+import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -217,13 +220,13 @@ fun TrainJourneyBottomSheet(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    imageVector = if (isTracked) Icons.Rounded.Close else Icons.Rounded.LocationOn,
+                    imageVector = if (isTracked) Icons.Rounded.NotificationsOff else Icons.Rounded.NotificationsActive,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (isTracked) "Stop Live Tracking Notification" else "Track with Live Update Notification",
+                    text = if (isTracked) "Stop Live Notification" else "Notify with Live Updates",
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                 )
             }
@@ -463,16 +466,44 @@ private fun CallingPointTimelineItem(
                 }
             }
 
-            val timeDisplay = callingPoint.scheduledTime ?: callingPoint.estimatedTime
-            if (!timeDisplay.isNullOrBlank()) {
-                Text(
-                    text = timeDisplay,
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // If there's an estimated countdown badge (e.g. "3 mins" or "Due") separate from clock time
+                if (!callingPoint.estimatedTime.isNullOrBlank() && callingPoint.scheduledTime != null && callingPoint.estimatedTime != callingPoint.scheduledTime) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                if (callingPoint.estimatedTime.equals("Due", ignoreCase = true)) MaterialTheme.colorScheme.errorContainer
+                                else MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = callingPoint.estimatedTime,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = if (callingPoint.estimatedTime.equals("Due", ignoreCase = true)) MaterialTheme.colorScheme.onErrorContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                val timeDisplay = callingPoint.scheduledTime ?: callingPoint.estimatedTime
+                if (!timeDisplay.isNullOrBlank()) {
+                    Text(
+                        text = timeDisplay,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

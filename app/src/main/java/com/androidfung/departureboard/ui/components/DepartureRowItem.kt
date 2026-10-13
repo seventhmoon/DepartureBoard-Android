@@ -1,11 +1,5 @@
 package com.androidfung.departureboard.ui.components
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +15,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DirectionsBus
+import androidx.compose.material.icons.rounded.DirectionsRailway
+import androidx.compose.material.icons.rounded.DirectionsSubway
+import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.NotificationsNone
+import androidx.compose.material.icons.rounded.Tram
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -41,90 +44,55 @@ import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.ui.theme.dimensions
 
 /**
- * Line or bus route indicator badge shown on the left of each departure row.
- * Uniform 38dp x 28dp size so departure labels align uniformly:
- * - Bus: Route number badge (e.g. "73", "390", "N5").
- * - Tube / Overground / Elizabeth Line / DLR: Line badge pill.
+ * Display size variant for DepartureRowItem.
  */
-@Composable
-fun DepartureLineRouteIndicator(
-    departure: Departure,
-    modifier: Modifier = Modifier
-) {
-    val badge = departure.lineBadge
-    val isBus = badge.mode == TransitMode.BUS || departure.modeName.equals("bus", ignoreCase = true)
-
-    val routeText = if (isBus) {
-        badge.displayName
-    } else {
-        badge.lineCode.ifBlank { badge.displayName.take(3).uppercase() }
-    }
-
-    val badgeLuminance = 0.299f * badge.backgroundColor.red + 0.587f * badge.backgroundColor.green + 0.114f * badge.backgroundColor.blue
-    val isVeryDark = badgeLuminance < 0.2f
-    val shape = RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall)
-    val borderWidth = if (isVeryDark) MaterialTheme.dimensions.borderThin else 0.dp
-    val borderColor = if (isVeryDark) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f) else Color.Transparent
-
-    Box(
-        modifier = modifier
-            .size(width = MaterialTheme.dimensions.badgeWidth, height = MaterialTheme.dimensions.badgeHeight)
-            .clip(shape)
-            .then(
-                if (borderWidth > 0.dp) Modifier.border(borderWidth, borderColor, shape)
-                else Modifier
-            )
-            .background(badge.backgroundColor),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = routeText,
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = if (routeText.length > 3) 11.sp else 12.sp
-            ),
-            color = badge.textColor,
-            maxLines = 1
-        )
-    }
+enum class DepartureRowVariant {
+    COMPACT, // For station departure cards in dashboard
+    DETAILED // For station detail bottom sheet
 }
 
 /**
- * Individual departure row styled with line/route indicator, destination, platform/direction,
- * and high-contrast Pixel Clock countdown display.
+ * Reusable departure row component styled with line/route indicator, destination, platform,
+ * clean Material 3 countdown badge, and optional trailing notification action.
  */
 @Composable
 fun DepartureRowItem(
     departure: Departure,
     isFirst: Boolean,
     modifier: Modifier = Modifier,
-    @Suppress("UNUSED_PARAMETER") showLineBadge: Boolean = false,
-    onClick: (() -> Unit)? = null
+    variant: DepartureRowVariant = DepartureRowVariant.COMPACT,
+    showLineBadge: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    trailingAction: (@Composable () -> Unit)? = null
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusLarge))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = 10.dp, horizontal = MaterialTheme.dimensions.paddingSmall)
+            .padding(
+                vertical = if (variant == DepartureRowVariant.DETAILED) 10.dp else 9.dp,
+                horizontal = MaterialTheme.dimensions.paddingSmall
+            )
             .semantics {
                 contentDescription = "${departure.destinationName}, arriving in ${departure.formattedTimeToArrival}"
             },
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Line / Mode Indicator
         DepartureLineRouteIndicator(departure = departure)
 
         Spacer(modifier = Modifier.width(MaterialTheme.dimensions.paddingLarge))
 
-        // Destination & Direction details
+        // Destination & Platform details
         Column(modifier = Modifier.weight(1f)) {
             val destinationText = departure.destinationName.ifBlank { departure.lineName }
 
             Text(
                 text = destinationText,
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = if (isFirst) FontWeight.Bold else FontWeight.Medium,
-                    fontSize = if (isFirst) 15.sp else 14.5.sp,
+                    fontWeight = if (isFirst || variant == DepartureRowVariant.DETAILED) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = if (isFirst || variant == DepartureRowVariant.DETAILED) 15.sp else 14.5.sp,
                     lineHeight = 18.sp
                 ),
                 color = MaterialTheme.colorScheme.onSurface,
@@ -132,12 +100,12 @@ fun DepartureRowItem(
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Subtitle row: [Platform Pill Tag / Towards] (with compact cardinal abbreviations like NB, SB, EB, WB)
+            // Subtitle row: [Platform Pill Tag / Towards]
             if (departure.platformName.isNotBlank()) {
                 val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
                 val isNarrow = windowWidthClass.isNarrow
 
-                val platformLabel = if (isNarrow) {
+                val platformLabel = if (isNarrow && variant == DepartureRowVariant.COMPACT) {
                     departure.platformName
                         .replace("Northbound", "NB", ignoreCase = true)
                         .replace("Southbound", "SB", ignoreCase = true)
@@ -148,28 +116,33 @@ fun DepartureRowItem(
                 }
 
                 Spacer(modifier = Modifier.height(3.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = platformLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Text(
+                    text = platformLabel,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
-            // Live Progress Track for upcoming departures (due or arriving within 3 minutes)
-            if (departure.timeToStationSeconds <= 180) {
+            // Current location subtitle if available (especially in detailed view)
+            if (variant == DepartureRowVariant.DETAILED && !departure.currentLocation.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = departure.currentLocation,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Live Progress Track for upcoming departures on cards
+            if (variant == DepartureRowVariant.COMPACT && departure.timeToStationSeconds <= 180) {
                 Spacer(modifier = Modifier.height(4.dp))
                 val isBus = departure.modeName.equals("bus", ignoreCase = true)
                 LiveTrainTrackIndicator(
@@ -181,53 +154,161 @@ fun DepartureRowItem(
 
         Spacer(modifier = Modifier.width(MaterialTheme.dimensions.paddingLarge))
 
-        // Countdown & Actual Clock Time
+        // Trailing Section: Unified Countdown & Clock Time Pill + Optional notification action
         Column(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.Center
         ) {
-            val isCancelled = departure.status == DepartureStatus.CANCELLED
-            val isDelayed = departure.status == DepartureStatus.DELAYED
-
-            CountdownBadge(
-                timeToStationSeconds = departure.timeToStationSeconds,
-                isFirst = isFirst,
-                lineColor = departure.lineBadge.backgroundColor,
-                status = departure.status
+            UnifiedDepartureTimeBadge(
+                departure = departure,
+                isFirst = isFirst
             )
 
-            val clockTime = departure.formattedActualClockTime
-            if (isCancelled) {
-                Spacer(modifier = Modifier.height(3.dp))
+            // Optional trailing action (e.g., Live Notification Bell button)
+            if (trailingAction != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                trailingAction()
+            }
+        }
+    }
+}
+
+/**
+ * Clean unified departure badge combining real-time countdown and scheduled clock departure time
+ * into a single cohesive Material 3 pill container.
+ */
+@Composable
+fun UnifiedDepartureTimeBadge(
+    departure: Departure,
+    isFirst: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val status = departure.status
+    val isCancelled = status == DepartureStatus.CANCELLED
+    val isDelayed = status == DepartureStatus.DELAYED
+    val isDue = status == DepartureStatus.DUE
+    val minutes = departure.timeToStationSeconds / 60
+    val clockTime = departure.formattedActualClockTime
+
+    when {
+        isCancelled -> {
+            Box(
+                modifier = modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFE32017).copy(alpha = 0.15f))
+                    .border(1.dp, Color(0xFFE32017).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 9.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = "No service",
+                    text = "CANCELLED",
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold,
+                        fontFamily = FontFamily.Monospace,
+                        letterSpacing = 0.5.sp,
+                        fontSize = 11.sp
                     ),
                     color = Color(0xFFE32017)
                 )
-            } else if (isDelayed) {
-                Spacer(modifier = Modifier.height(3.dp))
-                Text(
-                    text = departure.currentLocation ?: "Delayed",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color(0xFFFF9800)
-                )
-            } else if (!clockTime.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(3.dp))
-                Text(
-                    text = clockTime,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
-                )
+            }
+        }
+        isDue -> {
+            Box(
+                modifier = modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .padding(horizontal = 9.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "DUE",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontFamily = FontFamily.Monospace,
+                            letterSpacing = 0.8.sp,
+                            fontSize = 12.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    if (!clockTime.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(1.dp))
+                        Text(
+                            text = clockTime,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
+                        )
+                    }
+                }
+            }
+        }
+        else -> {
+            // Standard countdown & scheduled clock time container
+            Box(
+                modifier = modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                    .padding(horizontal = 9.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = if (minutes < 1) "<1" else minutes.toString(),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = if (isFirst) 14.sp else 13.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = "min",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 11.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (isDelayed) {
+                        Spacer(modifier = Modifier.height(1.dp))
+                        Text(
+                            text = "Delayed",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Color(0xFFFF9800)
+                        )
+                    } else if (!clockTime.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(1.dp))
+                        Text(
+                            text = clockTime,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.5.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                        )
+                    }
+                }
             }
         }
     }
@@ -261,17 +342,16 @@ fun LiveTrainTrackIndicator(
                     .clip(CircleShape)
                     .background(
                         if (isActive) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        else MaterialTheme.colorScheme.surfaceVariant
                     )
             )
             if (step < 2) {
                 Box(
                     modifier = Modifier
-                        .width(10.dp)
-                        .height(1.5.dp)
+                        .size(width = 10.dp, height = 2.dp)
                         .background(
                             if (step < stage) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                            else MaterialTheme.colorScheme.surfaceVariant
                         )
                 )
             }
@@ -284,117 +364,48 @@ fun LiveTrainTrackIndicator(
                 else -> "In transit"
             },
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-            color = if (stage == 2) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
 /**
- * London platform LED / Flip-style countdown badge with animated number transitions.
- * Also prominently displays Cancelled and Delayed badges.
+ * Line / Route Indicator matching TfL identity (e.g. Bus red rounded badge vs vertical colored line bar).
  */
 @Composable
-fun CountdownBadge(
-    timeToStationSeconds: Int,
-    isFirst: Boolean,
-    lineColor: Color,
-    modifier: Modifier = Modifier,
-    status: DepartureStatus
+fun DepartureLineRouteIndicator(
+    departure: Departure,
+    modifier: Modifier = Modifier
 ) {
-    val isCancelled = status == DepartureStatus.CANCELLED
-    val isDue = status == DepartureStatus.DUE
-    val minutes = timeToStationSeconds / 60
+    val isBus = departure.modeName.equals(TransitMode.BUS.id, ignoreCase = true)
+    val badge = departure.lineBadge
 
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.End
-    ) {
-        if (isCancelled) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
-                    .background(Color(0xFFE32017).copy(alpha = 0.15f))
-                    .border(MaterialTheme.dimensions.borderStandard, Color(0xFFE32017).copy(alpha = 0.6f), RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
-                    .padding(horizontal = MaterialTheme.dimensions.paddingMedium, vertical = MaterialTheme.dimensions.paddingSmall),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "CANCELLED",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontFamily = FontFamily.Monospace,
-                        letterSpacing = 0.5.sp,
-                        fontSize = 11.sp
-                    ),
-                    color = Color(0xFFE32017)
-                )
-            }
-        } else if (isDue) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
-                    .background(Color(0xFFE32017).copy(alpha = 0.15f))
-                    .border(MaterialTheme.dimensions.borderStandard, Color(0xFFE32017).copy(alpha = 0.5f), RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
-                    .padding(horizontal = 9.dp, vertical = 5.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "DUE",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontFamily = FontFamily.Monospace,
-                        letterSpacing = 1.sp,
-                        fontSize = 14.sp
-                    ),
-                    color = Color(0xFFE32017)
-                )
-            }
-        } else {
-            // London Platform Dot-Matrix LED / Flip Card Display
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
-                    .background(Color(0xFF161A22))
-                    .border(MaterialTheme.dimensions.borderStandard, Color(0xFF282E3E), RoundedCornerShape(MaterialTheme.dimensions.cornerRadiusSmall))
-                    .padding(horizontal = MaterialTheme.dimensions.paddingMedium, vertical = MaterialTheme.dimensions.paddingSmall),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    AnimatedContent(
-                        targetState = minutes,
-                        transitionSpec = {
-                            if (targetState > initialState) {
-                                slideInVertically { height -> height } + fadeIn() togetherWith
-                                        slideOutVertically { height -> -height } + fadeOut()
-                            } else {
-                                slideInVertically { height -> -height } + fadeIn() togetherWith
-                                        slideOutVertically { height -> height } + fadeOut()
-                            }
-                        },
-                        label = "MinutesFlipAnimation"
-                    ) { targetMinutes ->
-                        Text(
-                            text = targetMinutes.toString(),
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = if (isFirst) 17.sp else 15.sp
-                            ),
-                            color = Color(0xFFFFB800)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = "m",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 11.sp
-                        ),
-                        color = Color(0xFFFFB800).copy(alpha = 0.75f)
-                    )
-                }
-            }
+    if (isBus) {
+        Box(
+            modifier = modifier
+                .size(width = 40.dp, height = 26.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(badge.backgroundColor),
+            contentAlignment = Alignment.Center
+        ) {
+            val routeText = badge.lineCode.ifBlank { departure.lineName }
+            Text(
+                text = routeText,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 12.sp,
+                    letterSpacing = 0.sp
+                ),
+                color = badge.textColor,
+                maxLines = 1
+            )
         }
+    } else {
+        Box(
+            modifier = modifier
+                .size(width = 4.5.dp, height = 34.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(badge.backgroundColor)
+        )
     }
 }

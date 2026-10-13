@@ -37,6 +37,11 @@ class TransitRepositoryTest {
             return arrivalsResult
         }
 
+        override suspend fun getLineArrivals(lineId: String): List<TflArrivalPrediction> {
+            if (shouldThrow) throw IOException("Network error")
+            return emptyList()
+        }
+
         override suspend fun getLineStatuses(modes: String): List<com.androidfung.departureboard.data.model.TflLineStatusItem> {
             return emptyList()
         }

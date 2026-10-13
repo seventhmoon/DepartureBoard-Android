@@ -92,7 +92,8 @@ internal object TflDepartureMapper {
             expectedArrivalIso = item.expectedArrival,
             currentLocation = item.currentLocation?.takeIf { !it.trim().equals("null", ignoreCase = true) },
             modeName = item.modeName ?: if (isBus) TransitMode.BUS.id else TransitMode.TUBE.id,
-            lineBadge = badge
+            lineBadge = badge,
+            vehicleId = item.vehicleId
         )
     }
 

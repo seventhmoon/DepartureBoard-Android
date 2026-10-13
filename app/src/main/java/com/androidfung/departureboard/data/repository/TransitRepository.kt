@@ -374,12 +374,65 @@ class TransitRepositoryImpl(
             }
 
             if (!resolvedStops.isNullOrEmpty()) {
+                // If we have a vehicleId, query live Line Arrivals across the route to get exact prediction times
+                val vehicleArrivalsByStation = mutableMapOf<String, com.androidfung.departureboard.data.model.TflArrivalPrediction>()
+                val vehicleId = departure.vehicleId
+                if (!vehicleId.isNullOrBlank()) {
+                    try {
+                        val lineArrivals = apiService.getLineArrivals(lineId)
+                        lineArrivals.filter { it.vehicleId == vehicleId }.forEach { pred ->
+                            val naptan = pred.naptanId?.lowercase()
+                            val stName = pred.stationName?.let { StationNameFormatter.clean(it).lowercase() }
+                            if (!naptan.isNullOrBlank()) vehicleArrivalsByStation[naptan] = pred
+                            if (!stName.isNullOrBlank()) vehicleArrivalsByStation[stName] = pred
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                val baseSeconds = departure.timeToStationSeconds
+                val nowMillis = System.currentTimeMillis()
+                val isBus = departure.modeName.equals("bus", ignoreCase = true)
+                val interStationSeconds = if (isBus) 90 else 120 // 1.5 min per bus stop, 2 min per tube stop
+                val timeFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.UK).apply {
+                    timeZone = java.util.TimeZone.getTimeZone("Europe/London")
+                }
+
                 return@withContext resolvedStops.mapIndexed { idx, stop ->
                     val cleanName = StationNameFormatter.clean(stop.name)
+                    val stopKey = cleanName.lowercase()
+                    val naptanKey = stop.id.lowercase()
+
+                    // Check if there is a live prediction for this exact vehicle at this calling point
+                    val livePrediction = vehicleArrivalsByStation[naptanKey] ?: vehicleArrivalsByStation[stopKey]
+
+                    val formattedTime: String? = when {
+                        idx == 0 -> departure.formattedActualClockTime
+                        livePrediction != null && livePrediction.timeToStation > 0 -> {
+                            val arrivalMillis = nowMillis + (livePrediction.timeToStation * 1000L)
+                            timeFormat.format(java.util.Date(arrivalMillis))
+                        }
+                        departure.expectedArrivalIso != null || baseSeconds > 0 -> {
+                            // Extrapolate forward from current station arrival
+                            val cumulativeSeconds = baseSeconds + (idx * interStationSeconds)
+                            val arrivalMillis = nowMillis + (cumulativeSeconds * 1000L)
+                            timeFormat.format(java.util.Date(arrivalMillis))
+                        }
+                        else -> null
+                    }
+
+                    val estimatedBadge: String? = when {
+                        idx == 0 -> departure.formattedTimeToArrival
+                        livePrediction != null && livePrediction.timeToStation > 0 -> {
+                            val mins = (livePrediction.timeToStation / 60).coerceAtLeast(1)
+                            "$mins min${if (mins > 1) "s" else ""}"
+                        }
+                        else -> null
+                    }
+
                     com.androidfung.departureboard.data.model.CallingPoint(
                         stationName = cleanName,
-                        scheduledTime = if (idx == 0) departure.formattedActualClockTime else null,
-                        estimatedTime = if (idx == 0) departure.formattedTimeToArrival else null,
+                        scheduledTime = formattedTime,
+                        estimatedTime = estimatedBadge,
                         isCurrentStation = idx == 0,
                         isDestination = idx == resolvedStops.lastIndex
                     )

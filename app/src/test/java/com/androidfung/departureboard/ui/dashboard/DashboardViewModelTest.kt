@@ -12,6 +12,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -94,8 +95,9 @@ class DashboardViewModelTest {
     private class FakeBillingRepository(
         isProInitial: Boolean = false
     ) : BillingDataSource {
-        val proFlow = MutableStateFlow(isProInitial)
-        override val isProFlow: Flow<Boolean> = proFlow
+        val planFlow = MutableStateFlow(if (isProInitial) com.androidfung.departureboard.billing.UserPlan.PRO else com.androidfung.departureboard.billing.UserPlan.FREE)
+        override val userPlanFlow: Flow<com.androidfung.departureboard.billing.UserPlan> = planFlow
+        override val isProFlow: Flow<Boolean> = planFlow.map { it.isPaidOrAbove }
         override val availableProducts: kotlinx.coroutines.flow.StateFlow<List<com.android.billingclient.api.ProductDetails>> =
             MutableStateFlow(emptyList())
         override val billingError: kotlinx.coroutines.flow.StateFlow<String?> = MutableStateFlow(null)
@@ -106,7 +108,10 @@ class DashboardViewModelTest {
         override suspend fun tryConsumeAiQuery(): Boolean = true
         override suspend fun getRemainingAiQueries(): Int = 100
         override fun setDebugPro(enabled: Boolean) {
-            proFlow.value = enabled
+            planFlow.value = if (enabled) com.androidfung.departureboard.billing.UserPlan.PRO else com.androidfung.departureboard.billing.UserPlan.FREE
+        }
+        override fun setDebugPlan(plan: com.androidfung.departureboard.billing.UserPlan) {
+            planFlow.value = plan
         }
     }
 

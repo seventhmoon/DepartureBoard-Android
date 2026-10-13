@@ -65,6 +65,15 @@ interface TflApiService {
     ): List<TflStopPointChild>
 
     /**
+     * Fetches live arrival countdown predictions for a specific line / route.
+     * Useful for tracking vehicle arrivals across downstream calling points.
+     */
+    @GET("Line/{id}/Arrivals")
+    suspend fun getLineArrivals(
+        @Path("id") lineId: String
+    ): List<TflArrivalPrediction>
+
+    /**
      * Fetches route sections and terminal endpoints for a specific line / route.
      */
     @GET("Line/{id}/Route")

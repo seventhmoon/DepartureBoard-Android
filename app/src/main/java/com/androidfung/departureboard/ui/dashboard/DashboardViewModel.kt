@@ -57,8 +57,8 @@ class DashboardViewModel @JvmOverloads constructor(
 
     private fun observeSubscriptionStatus() {
         viewModelScope.launch {
-            billingRepository.isProFlow.collectLatest { isPro ->
-                _uiState.update { it.copy(isPro = isPro) }
+            billingRepository.userPlanFlow.collectLatest { plan ->
+                _uiState.update { it.copy(isPro = plan.isPaidOrAbove, userPlan = plan) }
             }
         }
     }
@@ -346,7 +346,6 @@ class DashboardViewModel @JvmOverloads constructor(
      */
     fun addStation(station: Station) {
         val currentCount = _uiState.value.stationCards.size
-        val isPro = _uiState.value.isPro
 
         // Already contains this station
         if (_uiState.value.stationCards.any { it.station.id == station.id }) {
@@ -354,19 +353,20 @@ class DashboardViewModel @JvmOverloads constructor(
             return
         }
 
-        if (!isPro && currentCount >= SubscriptionTier.FREE_MAX_STATIONS) {
+        val currentPlan = _uiState.value.userPlan
+        if (!currentPlan.isPaidOrAbove && currentCount >= currentPlan.maxStations) {
             _uiState.update {
                 it.copy(
-                    paywallPromptReason = "Free plan includes up to ${SubscriptionTier.FREE_MAX_STATIONS} saved stations. Upgrade to Pro for up to ${SubscriptionTier.PRO_MAX_STATIONS} stations."
+                    paywallPromptReason = "Free plan includes up to ${currentPlan.maxStations} saved stations. Upgrade to Pro for up to ${SubscriptionTier.PRO_MAX_STATIONS} stations."
                 )
             }
             return
         }
 
-        if (isPro && currentCount >= SubscriptionTier.PRO_MAX_STATIONS) {
+        if (currentPlan.isPaidOrAbove && currentCount >= currentPlan.maxStations) {
             _uiState.update {
                 it.copy(
-                    userMessage = "Maximum limit of ${SubscriptionTier.PRO_MAX_STATIONS} stations reached to protect live API limits."
+                    userMessage = "Maximum limit of ${currentPlan.maxStations} stations reached to protect live API limits."
                 )
             }
             return
@@ -389,13 +389,32 @@ class DashboardViewModel @JvmOverloads constructor(
     }
 
     /**
+     * Cycles between FREE -> PRO -> MAX plans in debug mode.
+     */
+    fun cycleDebugPlan() {
+        val current = _uiState.value.userPlan
+        val next = when (current) {
+            com.androidfung.departureboard.billing.UserPlan.FREE -> com.androidfung.departureboard.billing.UserPlan.PRO
+            com.androidfung.departureboard.billing.UserPlan.PRO -> com.androidfung.departureboard.billing.UserPlan.MAX
+            com.androidfung.departureboard.billing.UserPlan.MAX -> com.androidfung.departureboard.billing.UserPlan.FREE
+        }
+        billingRepository.setDebugPlan(next)
+        _uiState.update {
+            it.copy(userMessage = "Debug: Switched to ${next.name} plan")
+        }
+    }
+
+    /**
      * Toggles Free and Pro subscription states in debug mode.
      */
     fun toggleDebugPro() {
-        val newStatus = !_uiState.value.isPro
-        billingRepository.setDebugPro(newStatus)
+        cycleDebugPlan()
+    }
+
+    fun setDebugPlan(plan: com.androidfung.departureboard.billing.UserPlan) {
+        billingRepository.setDebugPlan(plan)
         _uiState.update {
-            it.copy(userMessage = "Debug: Switched to ${if (newStatus) "PRO" else "FREE"} plan")
+            it.copy(userMessage = "Debug: Switched to ${plan.name} plan")
         }
     }
 

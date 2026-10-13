@@ -72,6 +72,7 @@ data class DashboardUiState(
     val nearestStation: Station? = null,
     val nearbyStations: List<Pair<Station, Double>> = emptyList(),
     val isPro: Boolean = false,
+    val userPlan: com.androidfung.departureboard.billing.UserPlan = com.androidfung.departureboard.billing.UserPlan.FREE,
     val paywallPromptReason: String? = null,
     val selectedDetailStation: Station? = null,
     val detailDepartures: List<Departure> = emptyList(),

@@ -312,6 +312,10 @@ class TrainTrackingService : Service() {
             trackingJob?.cancel()
             trackingJob = null
             currentlyTrackedDepartureId = null
+            // Remove foreground status and dismiss the ongoing notification
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+            val nm = getSystemService(NOTIFICATION_SERVICE) as? NotificationManager
+            nm?.cancel(NOTIFICATION_ID)
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping tracking", e)
         }
@@ -347,7 +351,6 @@ class TrainTrackingService : Service() {
         )
 
         val targetTimestamp = System.currentTimeMillis() + (timeToStationSeconds * 1000L)
-        val isDue = timeToStationSeconds <= 30
 
         // Continuous journey track from Base Point (B) to Destination Station (S)
         // 0 = Base Point (when user hit Track), 100 = Arrived at station / Platform
@@ -417,6 +420,14 @@ class TrainTrackingService : Service() {
             .setProgressTrackerIcon(trackerIcon)
             .setProgress(progressVal)
 
+        // Compute clear transit countdown representation for Android 16 status chip
+        val minutesAway = (timeToStationSeconds / 60).coerceAtLeast(0)
+        val shortChipText = when {
+            timeToStationSeconds <= 30 -> "Due"
+            timeToStationSeconds <= 60 -> "1 min"
+            else -> "$minutesAway min"
+        }
+
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setSubText(headerSubText)                     // A. Header Subtext: Line and destination (e.g. "221 to Edgware")
@@ -429,20 +440,14 @@ class TrainTrackingService : Service() {
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop Tracking", stopPendingIntent) // F. Action Button
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setWhen(targetTimestamp)                      // B. Header Time: Drives status bar chip countdown
-            .setShowWhen(false)                            // Keeps notification card header clean
-            .setUsesChronometer(!isDue)
-            .setChronometerCountDown(!isDue)
+            .setWhen(targetTimestamp)                      // B. Expected arrival timestamp for the notification header
+            .setShowWhen(true)                             // Shows clock arrival time (e.g. 20:53) in notification card header
+            .setUsesChronometer(false)                     // Avoid confusing MM:SS stopwatch timer (e.g. "08:45")
+            .setChronometerCountDown(false)
 
         // Android 16 Live Update Notification Promoted Ongoing request
         builder.setRequestPromotedOngoing(true)
-
-        // Per DAC guidelines:
-        // - When in transit (> 30s): setWhen drives the active status chip countdown automatically.
-        // - When due / boarding (<= 30s): setShortCriticalText("Due") conveys the critical milestone state.
-        if (isDue) {
-            builder.setShortCriticalText("Due")
-        }
+        builder.setShortCriticalText(shortChipText)        // Glanceable status bar chip: "Due", "1 min", "8 min"
 
         return builder.build()
     }

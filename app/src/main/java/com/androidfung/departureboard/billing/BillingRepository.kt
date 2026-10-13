@@ -37,6 +37,7 @@ import java.util.Locale
  */
 interface BillingDataSource {
     val isProFlow: Flow<Boolean>
+    val userPlanFlow: Flow<UserPlan>
     val availableProducts: StateFlow<List<ProductDetails>>
     val billingError: StateFlow<String?>
     fun queryAvailableProducts()
@@ -45,6 +46,7 @@ interface BillingDataSource {
     suspend fun tryConsumeAiQuery(): Boolean
     suspend fun getRemainingAiQueries(): Int
     fun setDebugPro(enabled: Boolean)
+    fun setDebugPlan(plan: UserPlan)
 }
 
 /**
@@ -57,6 +59,7 @@ class BillingRepository(
 
     companion object {
         private val KEY_IS_PRO = booleanPreferencesKey("user_is_pro")
+        private val KEY_USER_PLAN = stringPreferencesKey("user_plan")
         private val KEY_AI_QUERY_DATE = stringPreferencesKey("ai_query_date")
         private val KEY_AI_QUERY_COUNT = intPreferencesKey("ai_query_count")
 
@@ -75,10 +78,22 @@ class BillingRepository(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // Flow of Pro subscription status persisted in DataStore
-    override val isProFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[KEY_IS_PRO] ?: false
+    // Flow of UserPlan (FREE, PRO, MAX)
+    override val userPlanFlow: Flow<UserPlan> = context.dataStore.data.map { preferences ->
+        val storedPlan = preferences[KEY_USER_PLAN]
+        if (!storedPlan.isNullOrBlank()) {
+            try {
+                UserPlan.valueOf(storedPlan.uppercase())
+            } catch (_: Exception) {
+                if (preferences[KEY_IS_PRO] == true) UserPlan.PRO else UserPlan.FREE
+            }
+        } else {
+            if (preferences[KEY_IS_PRO] == true) UserPlan.PRO else UserPlan.FREE
+        }
     }
+
+    // Flow of Pro (or above) subscription status persisted in DataStore
+    override val isProFlow: Flow<Boolean> = userPlanFlow.map { it.isPaidOrAbove }
 
     private val _availableProducts = MutableStateFlow<List<ProductDetails>>(emptyList())
     override val availableProducts: StateFlow<List<ProductDetails>> = _availableProducts.asStateFlow()
@@ -191,9 +206,15 @@ class BillingRepository(
     }
 
     private fun updateProStatusLocally(isPro: Boolean) {
+        val targetPlan = if (isPro) UserPlan.PRO else UserPlan.FREE
+        updatePlanLocally(targetPlan)
+    }
+
+    private fun updatePlanLocally(plan: UserPlan) {
         scope.launch {
             context.dataStore.edit { preferences ->
-                preferences[KEY_IS_PRO] = isPro
+                preferences[KEY_IS_PRO] = plan.isPaidOrAbove
+                preferences[KEY_USER_PLAN] = plan.name
             }
         }
     }
@@ -286,5 +307,9 @@ class BillingRepository(
      */
     override fun setDebugPro(enabled: Boolean) {
         updateProStatusLocally(enabled)
+    }
+
+    override fun setDebugPlan(plan: UserPlan) {
+        updatePlanLocally(plan)
     }
 }

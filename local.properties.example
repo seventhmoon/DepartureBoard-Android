@@ -1,5 +1,8 @@
-## Sample local.properties file for open-source contributors
-## Copy this to local.properties and fill in your details
+## Location of the Android SDK
+sdk.dir=/Users/username/Library/Android/sdk
 
-sdk.dir=/path/to/your/Android/sdk
+## TfL Open Data API Key (https://api-portal.tfl.gov.uk/)
 TFL_API_KEY=your_tfl_api_key_here
+
+## National Rail Darwin API Key (https://opendata.nationalrail.co.uk/)
+NATIONAL_RAIL_API_KEY=your_national_rail_api_key_here

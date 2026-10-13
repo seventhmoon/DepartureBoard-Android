@@ -17,6 +17,11 @@ object SubscriptionTier {
     const val PRO_MAX_WIDGETS = 5
     const val PRO_MAX_DAILY_AI_QUERIES = 100
 
+    // Max Tier Quota Limits (Debug / Internal testing only - virtually unlimited)
+    const val MAX_MAX_STATIONS = 50
+    const val MAX_MAX_WIDGETS = 20
+    const val MAX_MAX_DAILY_AI_QUERIES = 9999
+
     // Google Play Billing Product & Base Plan IDs
     const val PRODUCT_SUBSCRIPTION_ID = "pro_annual"
     const val BASE_PLAN_ANNUAL = "annual-auto-renewing"
@@ -29,14 +34,30 @@ object SubscriptionTier {
 
 enum class UserPlan {
     FREE,
-    PRO;
+    PRO,
+    MAX;
+
+    val isPaidOrAbove: Boolean
+        get() = this == PRO || this == MAX
 
     val maxStations: Int
-        get() = if (this == PRO) SubscriptionTier.PRO_MAX_STATIONS else SubscriptionTier.FREE_MAX_STATIONS
+        get() = when (this) {
+            MAX -> SubscriptionTier.MAX_MAX_STATIONS
+            PRO -> SubscriptionTier.PRO_MAX_STATIONS
+            FREE -> SubscriptionTier.FREE_MAX_STATIONS
+        }
 
     val maxWidgets: Int
-        get() = if (this == PRO) SubscriptionTier.PRO_MAX_WIDGETS else SubscriptionTier.FREE_MAX_WIDGETS
+        get() = when (this) {
+            MAX -> SubscriptionTier.MAX_MAX_WIDGETS
+            PRO -> SubscriptionTier.PRO_MAX_WIDGETS
+            FREE -> SubscriptionTier.FREE_MAX_WIDGETS
+        }
 
     val maxDailyAiQueries: Int
-        get() = if (this == PRO) SubscriptionTier.PRO_MAX_DAILY_AI_QUERIES else SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES
+        get() = when (this) {
+            MAX -> SubscriptionTier.MAX_MAX_DAILY_AI_QUERIES
+            PRO -> SubscriptionTier.PRO_MAX_DAILY_AI_QUERIES
+            FREE -> SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES
+        }
 }

@@ -38,6 +38,10 @@ import androidx.compose.material.icons.rounded.DirectionsBus
 import androidx.compose.material.icons.rounded.DirectionsRailway
 import androidx.compose.material.icons.rounded.DirectionsSubway
 import androidx.compose.material.icons.rounded.Map
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.NotificationsNone
+import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Tram
 import androidx.compose.material3.Button
@@ -623,7 +627,7 @@ fun StationDetailBottomSheet(
 }
 
 /**
- * Detailed departure row item showing line, destination, direction, current location, and countdown.
+ * Detailed departure row item utilizing the unified DepartureRowItem component.
  */
 @Composable
 fun DepartureDetailRow(
@@ -631,148 +635,41 @@ fun DepartureDetailRow(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val trackedDepartureId by com.androidfung.departureboard.service.TrainTrackingService.currentlyTrackedDepartureIdFlow
+        .collectAsStateWithLifecycle()
+    val isTracked = trackedDepartureId == departure.id
+
+    val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
+        }
+    }
+
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
         modifier = modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Standardized Line Badge Pill
-                    val lineCodeText = departure.lineBadge.lineCode.ifBlank { departure.lineBadge.displayName }
-                    Box(
-                        modifier = Modifier
-                            .height(24.dp)
-                            .defaultMinSize(minWidth = 36.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(departure.lineBadge.backgroundColor)
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = lineCodeText,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp
-                            ),
-                            color = departure.lineBadge.textColor,
-                            maxLines = 1
-                        )
-                    }
-
-                    // Platform or direction
-                    Text(
-                        text = departure.platformName,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Destination
-                Text(
-                    text = departure.destinationName,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        lineHeight = 18.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                // Current location if available
-                if (!departure.currentLocation.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = departure.currentLocation,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Track Action Button + Countdown Column
-            val context = androidx.compose.ui.platform.LocalContext.current
-            val trackedDepartureId by com.androidfung.departureboard.service.TrainTrackingService.currentlyTrackedDepartureIdFlow
-                .collectAsStateWithLifecycle()
-            val isTracked = trackedDepartureId == departure.id
-
-            val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-                contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-            ) { isGranted ->
-                if (isGranted) {
-                    com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
-                }
-            }
-
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.Center
-            ) {
-                // Countdown Pill
-                val isDue = departure.timeToStationSeconds <= 30
-                val pillBg = if (isDue) {
-                    MaterialTheme.colorScheme.errorContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerHighest
-                }
-                val pillText = if (isDue) {
-                    MaterialTheme.colorScheme.onErrorContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
-
+        DepartureRowItem(
+            departure = departure,
+            isFirst = false,
+            variant = DepartureRowVariant.DETAILED,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            trailingAction = {
+                // Inline Notification Bell Action
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(pillBg)
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = departure.formattedTimeToArrival,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp
-                        ),
-                        color = pillText
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Inline Track Icon/Pill Button
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
+                        .size(26.dp)
+                        .clip(CircleShape)
                         .background(
-                            if (isTracked) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-                            else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            if (isTracked) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                         )
                         .clickable {
                             if (isTracked) {
@@ -793,21 +690,18 @@ fun DepartureDetailRow(
                                     com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
                                 }
                             }
-                        }
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (isTracked) "● Tracking" else "Track",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = if (isTracked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    Icon(
+                        imageVector = if (isTracked) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsNone,
+                        contentDescription = if (isTracked) "Stop Live Notification" else "Notify with Live Update",
+                        modifier = Modifier.size(15.dp),
+                        tint = if (isTracked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-        }
+        )
     }
 }
 

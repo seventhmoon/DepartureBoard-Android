@@ -73,9 +73,11 @@ fun DebugSettingsBottomSheet(
     onDismissRequest: () -> Unit,
     billingRepository: BillingDataSource,
     isPro: Boolean,
-    onTogglePro: () -> Unit,
+    onTogglePro: () -> Unit = {},
     onResetStations: () -> Unit,
     modifier: Modifier = Modifier,
+    userPlan: com.androidfung.departureboard.billing.UserPlan = if (isPro) com.androidfung.departureboard.billing.UserPlan.PRO else com.androidfung.departureboard.billing.UserPlan.FREE,
+    onSelectPlan: (com.androidfung.departureboard.billing.UserPlan) -> Unit = { onTogglePro() },
     selectedAiModel: AiModelType = AiModelType.LOGIC_FALLBACK,
     onSelectAiModel: (AiModelType) -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -162,46 +164,89 @@ fun DebugSettingsBottomSheet(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.WorkspacePremium,
-                            contentDescription = null,
-                            tint = if (isPro) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = if (isPro) "PRO Plan Active" else "FREE Plan Active",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    com.androidfung.departureboard.billing.UserPlan.entries.forEachIndexed { index, plan ->
+                        val isSelected = userPlan == plan
+                        val planColor = when (plan) {
+                            com.androidfung.departureboard.billing.UserPlan.FREE -> MaterialTheme.colorScheme.onSurfaceVariant
+                            com.androidfung.departureboard.billing.UserPlan.PRO -> Color(0xFFFFB300)
+                            com.androidfung.departureboard.billing.UserPlan.MAX -> Color(0xFF9C27B0)
+                        }
+                        val desc = when (plan) {
+                            com.androidfung.departureboard.billing.UserPlan.FREE ->
+                                "Max ${SubscriptionTier.FREE_MAX_STATIONS} stations, ${SubscriptionTier.FREE_MAX_WIDGETS} widgets, ${SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES} AI/day"
+                            com.androidfung.departureboard.billing.UserPlan.PRO ->
+                                "Max ${SubscriptionTier.PRO_MAX_STATIONS} stations, ${SubscriptionTier.PRO_MAX_WIDGETS} widgets, ${SubscriptionTier.PRO_MAX_DAILY_AI_QUERIES} AI/day"
+                            com.androidfung.departureboard.billing.UserPlan.MAX ->
+                                "Max ${SubscriptionTier.MAX_MAX_STATIONS} stations, ${SubscriptionTier.MAX_MAX_WIDGETS} widgets, Unlimited AI (Debug only)"
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelectPlan(plan) }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.WorkspacePremium,
+                                    contentDescription = null,
+                                    tint = if (isSelected) planColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "${plan.name} Plan",
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        if (plan == com.androidfung.departureboard.billing.UserPlan.MAX) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(Color(0xFF9C27B0).copy(alpha = 0.2f))
+                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "DEBUG ONLY",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    ),
+                                                    color = Color(0xFF9C27B0)
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Text(
+                                        text = desc,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = { onSelectPlan(plan) }
                             )
-                            Text(
-                                text = if (isPro) {
-                                    "Max ${SubscriptionTier.PRO_MAX_STATIONS} stations, ${SubscriptionTier.PRO_MAX_WIDGETS} widgets, unlimited AI"
-                                } else {
-                                    "Max ${SubscriptionTier.FREE_MAX_STATIONS} stations, ${SubscriptionTier.FREE_MAX_WIDGETS} widgets, ${SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES} AI queries/day"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+
+                        if (index < com.androidfung.departureboard.billing.UserPlan.entries.size - 1) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
                     }
-
-                    Switch(
-                        checked = isPro,
-                        onCheckedChange = { onTogglePro() }
-                    )
                 }
             }
 
