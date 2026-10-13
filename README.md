@@ -2,6 +2,7 @@
 
 A modern, high-performance London transit departure board app built for Android with **Jetpack Compose**, **Material 3 Expressive**, and **Glance AppWidgets**. Powered by the **Transport for London (TfL) Unified API** and **National Rail Darwin Live Feeds**.
 
+[![Android CI](https://github.com/seventhmoon/DepartureBoard-Android/actions/workflows/ci.yml/badge.svg)](https://github.com/seventhmoon/DepartureBoard-Android/actions/workflows/ci.yml)
 [![Target SDK](https://img.shields.io/badge/Target%20SDK-37-blue.svg)](https://developer.android.com)
 [![Jetpack Compose](https://img.shields.io/badge/Compose-Material%203%20Expressive-green.svg)](https://developer.android.com/jetpack/compose)
 [![License](https://img.shields.io/badge/License-GPL%20v3-orange.svg)](LICENSE.md)
