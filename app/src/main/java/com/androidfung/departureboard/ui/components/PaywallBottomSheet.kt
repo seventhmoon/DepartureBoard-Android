@@ -273,19 +273,39 @@ fun PaywallBottomSheet(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            val context = androidx.compose.ui.platform.LocalContext.current
+            var isRestoring by remember { mutableStateOf(false) }
+
             // Restore Purchases
             TextButton(
+                enabled = !isRestoring,
                 onClick = {
-                    billingRepository.refreshPurchases()
+                    isRestoring = true
+                    billingRepository.refreshPurchases { restored, message ->
+                        isRestoring = false
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+                            if (restored) {
+                                onDismissRequest()
+                            }
+                        }
+                    }
                 }
             ) {
+                if (isRestoring) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
                 Text(
-                    text = "Restore Purchases",
+                    text = if (isRestoring) "Checking Google Play..." else "Restore Purchases",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-
             Spacer(modifier = Modifier.height(12.dp))
         }
     }

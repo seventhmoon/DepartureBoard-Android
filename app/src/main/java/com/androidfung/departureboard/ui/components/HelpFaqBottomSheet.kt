@@ -342,6 +342,7 @@ private fun AppInfoCard(
     onOpenPlayStore: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -379,6 +380,40 @@ private fun AppInfoCard(
                 style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                thickness = 0.8.dp,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+
+            // Manage Subscriptions
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://play.google.com/store/account/subscriptions?package=com.androidfung.departureboard")
+                        )
+                        context.startActivity(intent)
+                    }
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Manage / Cancel Subscription",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
 
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),

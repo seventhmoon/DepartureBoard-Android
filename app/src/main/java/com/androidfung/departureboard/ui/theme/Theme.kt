@@ -93,3 +93,23 @@ fun DepartureBoardTheme(
         )
     }
 }
+
+@Composable
+fun DepartureBoardTheme(
+    themeMode: AppThemeMode,
+    dynamicColor: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val isSystemDark = isSystemInDarkTheme()
+    val darkTheme = when (themeMode) {
+        AppThemeMode.SYSTEM -> isSystemDark
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.DARK -> true
+    }
+
+    DepartureBoardTheme(
+        darkTheme = darkTheme,
+        dynamicColor = dynamicColor,
+        content = content
+    )
+}

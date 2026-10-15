@@ -138,12 +138,12 @@ data class LineBadgeInfo(
     val backgroundColor: Color,
     val textColor: Color = Color.White,
     val mode: TransitMode = TransitMode.OTHER,
-    val statusSeverity: Int = 10, // TfL scale: 10 = Good Service, 20-70 = issues, 80 = planned work
+    val statusSeverity: Int = 10, // TfL scale: 10 = Good Service, < 10 or != 10 = delays / disruptions / closures
     val statusDescription: String? = null,
     val disruptionReason: String? = null,
     val lineCode: String = ""
 ) {
-    val isDisrupted: Boolean get() = statusSeverity > 10
+    val isDisrupted: Boolean get() = statusSeverity != 10
 
     companion object {
         /**

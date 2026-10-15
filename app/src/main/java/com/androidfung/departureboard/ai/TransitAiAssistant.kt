@@ -37,13 +37,14 @@ class TransitAiAssistant(
         query: String,
         savedStations: List<Station>,
         nearestStation: Station? = null,
-        modelType: AiModelType = AiModelType.LOGIC_FALLBACK
+        modelType: AiModelType = AiModelType.DEFAULT
     ): AiTransitResult = withContext(Dispatchers.Default) {
         val result = executeQueryInternal(query, savedStations, nearestStation)
         val prefix = when (modelType) {
+            AiModelType.DEFAULT -> ""
             AiModelType.LOCAL -> "🤖 [Local AI] "
             AiModelType.CLOUD -> "☁️ [Cloud LLM] "
-            AiModelType.LOGIC_FALLBACK -> ""
+            AiModelType.LOGIC_FALLBACK -> "⚡ [Rules] "
         }
         result.copy(answer = "$prefix${result.answer}")
     }
@@ -209,9 +210,16 @@ class TransitAiAssistant(
 
         val disrupted = relevant.values.mapNotNull { item ->
             val detail = item.lineStatuses.firstOrNull() ?: return@mapNotNull null
-            if (detail.statusSeverity > 10) {
-                val reason = detail.reason?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
-                "the ${item.name}: ${detail.statusSeverityDescription.lowercase()}$reason"
+            // In TfL Unified API: 10 = Good Service. Lower values (0-9) represent delays, closures, or suspensions.
+            if (detail.statusSeverity != 10) {
+                // If a specific line was queried, keep the full reason; for general network status, keep it concise
+                val statusText = detail.statusSeverityDescription
+                if (namedLine != null) {
+                    val reason = detail.reason?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""
+                    "${item.name}: $statusText$reason"
+                } else {
+                    "${item.name} ($statusText)"
+                }
             } else {
                 null
             }
@@ -223,19 +231,24 @@ class TransitAiAssistant(
             namedLine != null -> {
                 val named = relevant.values.firstOrNull()
                 val detail = named?.lineStatuses?.firstOrNull()
-                if (named != null && detail != null && detail.statusSeverity > 10) {
+                if (named != null && detail != null && detail.statusSeverity != 10) {
                     val reason = detail.reason?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""
-                    "The ${named.name} is currently ${detail.statusSeverityDescription.lowercase()}$reason."
+                    "${named.name} is currently experiencing ${detail.statusSeverityDescription.lowercase()}$reason"
                 } else {
-                    "The ${named?.name ?: "line"} is running with good service right now."
+                    "${named?.name ?: "The line"} is running with good service right now."
                 }
             }
             relevant.isEmpty() ->
                 "I couldn't check live line statuses right now — the service status feed may be unavailable."
             disrupted.isEmpty() ->
-                "All monitored lines (Tube, DLR, Overground, Elizabeth line, National Rail) are running with good service right now."
-            else ->
-                "Here's the current network picture: " + disrupted.joinToString(", ") + "."
+                "Good service is currently reported across all monitored lines."
+            disrupted.size <= 4 ->
+                "Delays currently reported on: " + disrupted.joinToString("; ") + "."
+            else -> {
+                val topIssues = disrupted.take(4).joinToString("; ")
+                val remainingCount = disrupted.size - 4
+                "Delays currently reported on: $topIssues, and $remainingCount other lines."
+            }
         }
 
         AiTransitResult(

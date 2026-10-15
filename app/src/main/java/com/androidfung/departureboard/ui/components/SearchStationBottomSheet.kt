@@ -472,7 +472,7 @@ fun StationSearchResultRow(
     val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram")
         .firstOrNull { it in station.modes }
         ?: station.modes.firstOrNull() ?: "tube"
-    val modeIcon = getTransitIconForMode(primaryMode)
+    val modeIcon = TransitIconHelper.getTransitIconForMode(primaryMode)
 
     Surface(
         onClick = onAddClick,
@@ -608,19 +608,6 @@ fun StationSearchResultRow(
                 )
             }
         }
-    }
-}
-
-/**
- * Helper to get appropriate icon vector for a transit mode.
- */
-private fun getTransitIconForMode(mode: String): ImageVector {
-    return when (mode.lowercase()) {
-        "tube", "underground" -> Icons.Rounded.DirectionsSubway
-        "bus" -> Icons.Rounded.DirectionsBus
-        "national-rail", "overground", "elizabeth-line" -> Icons.Rounded.DirectionsRailway
-        "dlr", "tram" -> Icons.Rounded.Tram
-        else -> Icons.Rounded.DirectionsSubway
     }
 }
 

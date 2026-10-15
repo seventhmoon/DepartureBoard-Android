@@ -16,6 +16,7 @@ import com.androidfung.departureboard.data.network.NationalRailApiService
 import com.androidfung.departureboard.data.network.NationalRailNetworkClient
 import com.androidfung.departureboard.data.network.TflApiService
 import com.androidfung.departureboard.data.network.TflNetworkClient
+import com.androidfung.departureboard.ui.theme.AppThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -33,18 +34,26 @@ import kotlinx.coroutines.withContext
 interface TransitRepository {
     val savedStationsFlow: Flow<List<Station>>
     val recentStationIdFlow: Flow<String?>
+    val departureRowsCountFlow: Flow<Int>
+    val themeModeFlow: Flow<AppThemeMode>
+    val dynamicColorFlow: Flow<Boolean>
 
     suspend fun searchStations(query: String): Result<List<Station>>
+    suspend fun getStationById(stationId: String): Station?
     suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>>
     suspend fun getBatchDepartures(stations: List<Station>): Map<String, Result<List<Departure>>>
     fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>>
     suspend fun getCachedDepartures(stationId: String): List<Departure>
     suspend fun getLineStatuses(): Map<String, TflLineStatusItem>
     suspend fun getCallingPoints(departure: Departure): List<com.androidfung.departureboard.data.model.CallingPoint>
+    suspend fun checkStationServiceHours(stationId: String, lineId: String? = null): com.androidfung.departureboard.data.model.StationServiceHoursInfo?
     suspend fun saveStation(station: Station)
     suspend fun reorderStations(stations: List<Station>)
     suspend fun removeStation(stationId: String)
     suspend fun setRecentStationId(stationId: String)
+    suspend fun setDepartureRowsCount(count: Int)
+    suspend fun setThemeMode(mode: AppThemeMode)
+    suspend fun setDynamicColor(enabled: Boolean)
     suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int = 1500): List<Station>
 }
 
@@ -55,7 +64,8 @@ class TransitRepositoryImpl(
     private val apiService: TflApiService = TflNetworkClient.apiService,
     private val nrApiService: NationalRailApiService = NationalRailNetworkClient.apiService,
     private val dataStore: StationPreferencesDataSource,
-    private val departureDao: DepartureDao? = null
+    private val departureDao: DepartureDao? = null,
+    private val timetableScheduleResolver: TimetableScheduleResolver = TimetableScheduleResolver(apiService)
 ) : TransitRepository {
 
     constructor(context: Context) : this(
@@ -67,6 +77,12 @@ class TransitRepositoryImpl(
 
     override val savedStationsFlow: Flow<List<Station>> = dataStore.savedStationsFlow
     override val recentStationIdFlow: Flow<String?> = dataStore.recentStationIdFlow
+    override val departureRowsCountFlow: Flow<Int> = dataStore.departureRowsCountFlow
+    override val themeModeFlow: Flow<AppThemeMode> = dataStore.themeModeFlow
+    override val dynamicColorFlow: Flow<Boolean> = dataStore.dynamicColorFlow
+
+    override suspend fun setThemeMode(mode: AppThemeMode) = dataStore.setThemeMode(mode)
+    override suspend fun setDynamicColor(enabled: Boolean) = dataStore.setDynamicColor(enabled)
 
     override suspend fun searchStations(query: String): Result<List<Station>> = withContext(Dispatchers.IO) {
         val trimmed = query.trim()
@@ -129,6 +145,38 @@ class TransitRepositoryImpl(
         }
     }
 
+    override suspend fun getStationById(stationId: String): Station? = withContext(Dispatchers.IO) {
+        // 1. Check local popular stations first
+        DefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(stationId, ignoreCase = true) }?.let {
+            return@withContext it
+        }
+
+        // 2. Fetch live StopPointDetail from TfL API
+        try {
+            val detail = apiService.getStopPointDetail(stationId)
+            val lines = TflStationMapper.extractLines(detail)
+            val cleaned = StationNameFormatter.clean(detail.commonName ?: stationId)
+            val extractedModes = lines.mapNotNull { it.mode }.distinct()
+            val modes = extractedModes.ifEmpty { listOf("tube") }
+            val firstChild = detail.children.firstOrNull()
+            val lat = firstChild?.lat
+            val lon = firstChild?.lon
+
+            Station(
+                id = detail.id,
+                name = cleaned,
+                modes = modes,
+                zone = null,
+                lat = lat,
+                lon = lon,
+                lines = lines,
+                isFavorite = false
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> =
         withContext(Dispatchers.IO) {
             try {
@@ -145,8 +193,9 @@ class TransitRepositoryImpl(
                     }
                 }
 
-                // 2. Fetch National Rail departures if station has known CRS code(s)
-                val crsCodes = NationalRailStationCodes.findCrsCodes(stationId, stationName)
+                // 2. Fetch National Rail departures if station has known CRS code(s) (skip for bus stops)
+                val isBusStopId = stationId.startsWith("490")
+                val crsCodes = if (isBusStopId) emptyList() else NationalRailStationCodes.findCrsCodes(stationId, stationName)
                 val nrServicesDeferred = async {
                     if (crsCodes.isNotEmpty()) {
                         val collectedServices = mutableListOf<com.androidfung.departureboard.data.model.NrTrainService>()
@@ -193,8 +242,16 @@ class TransitRepositoryImpl(
                     NationalRailDepartureMapper.mapToDeparture(service, stationId, stationName)
                 }
 
+                // If this is a bus stop, only show bus departures (filter out any tube/rail services)
+                val effectiveNrDepartures = if (isBusStopId) emptyList() else nrDepartures
+                val effectiveTflDepartures = if (isBusStopId) {
+                    tflDepartures.filter { it.lineBadge.mode == TransitMode.BUS || it.modeName.equals("bus", ignoreCase = true) }
+                } else {
+                    tflDepartures
+                }
+
                 // Deduplicate cross-feed overlaps (e.g. Elizabeth line or Lioness line reported by both TfL and National Rail)
-                val merged = mergeAndDeduplicateFeeds(tflDepartures, nrDepartures)
+                val merged = FeedMergeEngine.mergeAndDeduplicate(effectiveTflDepartures, effectiveNrDepartures)
                 val combinedDepartures = (if (isStPancrasOrKingsCrossNR) {
                     merged.filter { dep ->
                         val badge = dep.lineBadge
@@ -375,7 +432,7 @@ class TransitRepositoryImpl(
 
             if (!resolvedStops.isNullOrEmpty()) {
                 // If we have a vehicleId, query live Line Arrivals across the route to get exact prediction times
-                val vehicleArrivalsByStation = mutableMapOf<String, com.androidfung.departureboard.data.model.TflArrivalPrediction>()
+                val vehicleArrivalsByStation = mutableMapOf<String, TflArrivalPrediction>()
                 val vehicleId = departure.vehicleId
                 if (!vehicleId.isNullOrBlank()) {
                     try {
@@ -463,6 +520,14 @@ class TransitRepositoryImpl(
     override suspend fun reorderStations(stations: List<Station>) = dataStore.saveStations(stations)
     override suspend fun removeStation(stationId: String) = dataStore.removeStation(stationId)
     override suspend fun setRecentStationId(stationId: String) = dataStore.setRecentStationId(stationId)
+    override suspend fun setDepartureRowsCount(count: Int) = dataStore.setDepartureRowsCount(count)
+
+    /**
+     * Checks scheduled timetables for a station to detect if service has concluded for the night
+     * and when the first morning train departs.
+     */
+    override suspend fun checkStationServiceHours(stationId: String, lineId: String?): com.androidfung.departureboard.data.model.StationServiceHoursInfo? =
+        timetableScheduleResolver.checkStationServiceHours(stationId, lineId)
 
     /**
      * Fetches nearby stations directly from TfL API by latitude and longitude.
@@ -605,41 +670,7 @@ class TransitRepositoryImpl(
         }
     }
 
-    /**
-     * Merges TfL predictions and National Rail services, avoiding duplicate entries for lines
-     * reported by both sources (such as Elizabeth line and Overground/Lioness).
-     */
-    private fun mergeAndDeduplicateFeeds(
-        tflDepartures: List<Departure>,
-        nrDepartures: List<Departure>
-    ): List<Departure> {
-        if (tflDepartures.isEmpty()) return nrDepartures
-        if (nrDepartures.isEmpty()) return tflDepartures
 
-        val result = tflDepartures.toMutableList()
-
-        for (nr in nrDepartures) {
-            // Check if TfL already has an equivalent prediction for the same line and destination within a 180s window
-            val isDuplicate = result.any { tfl ->
-                val linesMatch = tfl.lineId == nr.lineId ||
-                        tfl.lineName.equals(nr.lineName, ignoreCase = true) ||
-                        // Check Overground alias match (Lioness vs London Overground)
-                        (tfl.lineId in listOf("lioness", "mildmay", "weaver", "suffragette", "liberty", "windrush") && nr.lineId == "overground") ||
-                        (nr.lineId in listOf("lioness", "mildmay", "weaver", "suffragette", "liberty", "windrush") && tfl.lineId == "overground")
-
-                val destsMatch = tfl.destinationName.contains(nr.destinationName, ignoreCase = true) ||
-                        nr.destinationName.contains(tfl.destinationName, ignoreCase = true) ||
-                        // Matches Euston / London Euston
-                        (tfl.destinationName.contains("Euston", ignoreCase = true) && nr.destinationName.contains("Euston", ignoreCase = true))
-
-                linesMatch && destsMatch && kotlin.math.abs(tfl.timeToStationSeconds - nr.timeToStationSeconds) < 180
-            }
-            if (!isDuplicate) {
-                result.add(nr)
-            }
-        }
-        return result
-    }
 
     private suspend fun fallbackDepartures(
         stationId: String,

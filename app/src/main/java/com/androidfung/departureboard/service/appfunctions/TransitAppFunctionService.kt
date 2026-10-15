@@ -23,7 +23,8 @@ import kotlinx.coroutines.withContext
 abstract class BaseTransitAppFunctionService : AppFunctionService() {
 
     private val transitRepository by lazy {
-        TransitRepositoryImpl(applicationContext)
+        (applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.repository
+            ?: TransitRepositoryImpl(applicationContext)
     }
 
     /**

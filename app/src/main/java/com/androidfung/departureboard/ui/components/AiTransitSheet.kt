@@ -83,7 +83,7 @@ fun AiTransitSheet(
     nearestStation: Station? = null,
     initialTriggerSpeech: Boolean = false,
     billingRepository: BillingDataSource? = null,
-    aiModelType: com.androidfung.departureboard.ai.AiModelType = com.androidfung.departureboard.ai.AiModelType.LOGIC_FALLBACK,
+    aiModelType: com.androidfung.departureboard.ai.AiModelType = com.androidfung.departureboard.ai.AiModelType.DEFAULT,
     onUpgradeClick: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {

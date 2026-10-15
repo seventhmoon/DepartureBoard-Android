@@ -97,4 +97,13 @@ interface TflApiService {
     suspend fun getLineStatuses(
         @Path("modes") modes: String = "tube,dlr,overground,elizabeth-line,national-rail"
     ): List<TflLineStatusItem>
+
+    /**
+     * Fetches timetable for a line at a stop point.
+     */
+    @GET("Line/{id}/Timetable/{fromStopPointId}")
+    suspend fun getLineTimetable(
+        @Path("id") lineId: String,
+        @Path("fromStopPointId") fromStopPointId: String
+    ): com.androidfung.departureboard.data.model.TflTimetableResponse
 }

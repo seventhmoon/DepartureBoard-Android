@@ -152,23 +152,21 @@ fun DepartureRowItem(
             }
         }
 
-        Spacer(modifier = Modifier.width(MaterialTheme.dimensions.paddingLarge))
+        Spacer(modifier = Modifier.width(MaterialTheme.dimensions.paddingSmall))
 
-        // Trailing Section: Unified Countdown & Clock Time Pill + Optional notification action
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.Center
+        // Trailing Section: Notification bell on left + Unified Countdown & Clock Time Pill on right
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            if (trailingAction != null) {
+                trailingAction()
+            }
+
             UnifiedDepartureTimeBadge(
                 departure = departure,
                 isFirst = isFirst
             )
-
-            // Optional trailing action (e.g., Live Notification Bell button)
-            if (trailingAction != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                trailingAction()
-            }
         }
     }
 }

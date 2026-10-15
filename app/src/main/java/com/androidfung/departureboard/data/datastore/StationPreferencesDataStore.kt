@@ -12,6 +12,7 @@ import com.androidfung.departureboard.data.model.Station
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
+import com.androidfung.departureboard.ui.theme.AppThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -25,10 +26,17 @@ internal val Context.dataStore: DataStore<Preferences> by preferencesDataStore(n
 interface StationPreferencesDataSource {
     val savedStationsFlow: Flow<List<Station>>
     val recentStationIdFlow: Flow<String?>
+    val departureRowsCountFlow: Flow<Int>
+    val themeModeFlow: Flow<AppThemeMode>
+    val dynamicColorFlow: Flow<Boolean>
+
     suspend fun saveStation(station: Station)
     suspend fun saveStations(stations: List<Station>)
     suspend fun removeStation(stationId: String)
     suspend fun setRecentStationId(stationId: String)
+    suspend fun setDepartureRowsCount(count: Int)
+    suspend fun setThemeMode(mode: AppThemeMode)
+    suspend fun setDynamicColor(enabled: Boolean)
 }
 
 /**
@@ -47,6 +55,74 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
     companion object {
         private val KEY_SAVED_STATIONS = stringPreferencesKey("saved_stations_json")
         private val KEY_RECENT_STATION_ID = stringPreferencesKey("recent_station_id")
+        private val KEY_DEPARTURE_ROWS_COUNT = androidx.datastore.preferences.core.intPreferencesKey("departure_rows_count")
+        private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        private val KEY_DYNAMIC_COLOR = androidx.datastore.preferences.core.booleanPreferencesKey("dynamic_color")
+        const val DEFAULT_DEPARTURE_ROWS = 5
+        const val DEFAULT_DYNAMIC_COLOR = true
+    }
+
+    override val themeModeFlow: Flow<AppThemeMode> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            val modeName = preferences[KEY_THEME_MODE]
+            if (modeName != null) {
+                try {
+                    AppThemeMode.valueOf(modeName)
+                } catch (_: IllegalArgumentException) {
+                    AppThemeMode.SYSTEM
+                }
+            } else {
+                AppThemeMode.SYSTEM
+            }
+        }
+
+    override val dynamicColorFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_DYNAMIC_COLOR] ?: DEFAULT_DYNAMIC_COLOR
+        }
+
+    override suspend fun setThemeMode(mode: AppThemeMode) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_THEME_MODE] = mode.name
+        }
+    }
+
+    override suspend fun setDynamicColor(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_DYNAMIC_COLOR] = enabled
+        }
+    }
+
+    override val departureRowsCountFlow: Flow<Int> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_DEPARTURE_ROWS_COUNT] ?: DEFAULT_DEPARTURE_ROWS
+        }
+
+    override suspend fun setDepartureRowsCount(count: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_DEPARTURE_ROWS_COUNT] = count
+        }
     }
 
     /**

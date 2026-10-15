@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -41,8 +42,11 @@ import com.androidfung.departureboard.ui.components.PaywallBottomSheet
 import com.androidfung.departureboard.ui.theme.LocalWindowWidthClass
 import com.androidfung.departureboard.ui.theme.WindowWidthClass
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -53,6 +57,10 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -62,8 +70,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import com.google.accompanist.permissions.PermissionStatus
-import com.google.accompanist.permissions.rememberPermissionState
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
@@ -85,8 +91,6 @@ import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.ui.components.EmptyDashboardState
 import com.androidfung.departureboard.ui.components.SearchStationBottomSheet
 import com.androidfung.departureboard.ui.components.StationDepartureCard
-import com.androidfung.departureboard.ui.components.StationDetailBottomSheet
-import com.androidfung.departureboard.ui.components.TrainJourneyBottomSheet
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 
 /**
@@ -156,31 +160,38 @@ fun DashboardScreen(
     // Nearest-station detection requires a location permission, which is requested
     // contextually with a rationale (e.g. when opening search nearby or AI assistant),
     // rather than abruptly at app launch.
-    @OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
-    val fineLocationPermission = rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION)
-    @OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
-    val coarseLocationPermission = rememberPermissionState(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+    var hasLocationPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        hasLocationPermission = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+    }
+
     var showLocationRationale by remember { mutableStateOf(false) }
 
-    @OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
-    val fineStatus = fineLocationPermission.status
-    @OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
-    val coarseStatus = coarseLocationPermission.status
-    @OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
-    val locationGranted =
-        fineStatus is PermissionStatus.Granted ||
-        coarseStatus is PermissionStatus.Granted
-
     val requestLocationWithRationale = {
-        if (!locationGranted) {
+        if (!hasLocationPermission) {
             showLocationRationale = true
         }
     }
 
     // Re-run the nearest-station lookup whenever permission is granted (or re-granted).
     // Uses local candidate stations at startup without firing extra HTTP queries.
-    LaunchedEffect(locationGranted) {
-        if (locationGranted) {
+    LaunchedEffect(hasLocationPermission) {
+        if (hasLocationPermission) {
             viewModel.updateNearestStation(context, fetchApiNearby = false)
         }
     }
@@ -192,7 +203,7 @@ fun DashboardScreen(
         onDismissStation = { station -> viewModel.removeStation(station) },
         onMoveStation = { fromIndex, toIndex -> viewModel.moveStation(fromIndex, toIndex) },
         onAddStationClick = {
-            if (locationGranted) {
+            if (hasLocationPermission) {
                 viewModel.updateNearestStation(context, fetchApiNearby = true)
             }
             showSearchSheet = true
@@ -207,6 +218,9 @@ fun DashboardScreen(
         },
         onAiAssistantClick = { showAiSheet = true },
         onUpgradeClick = { viewModel.showPaywall("Unlock Prompt Departure Pro") },
+        onOpenSettings = {
+            // Note: If using standalone DashboardScreen, Settings is launched via onOpenSettings
+        },
         onOpenDebugSettings = {
             android.util.Log.d("DashboardScreen", "onOpenDebugSettings clicked!")
             showDebugSheet = true
@@ -227,43 +241,13 @@ fun DashboardScreen(
                 uiState.stationCards.asSequence().map { it.station.id }.toSet()
             },
             nearbyStations = uiState.nearbyStations,
-            hasLocationPermission = locationGranted,
+            hasLocationPermission = hasLocationPermission,
             onRequestLocation = requestLocationWithRationale,
             onSearchQuery = { query -> viewModel.searchStations(query) }
         )
     }
 
-    // Station Departure Details Sheet
-    uiState.selectedDetailStation?.let { station ->
-        val isSaved = uiState.stationCards.any { it.station.id == station.id }
-        StationDetailBottomSheet(
-            station = station,
-            departures = uiState.detailDepartures,
-            isLoading = uiState.isDetailLoading,
-            isSaved = isSaved,
-            onToggleSaveStation = { st ->
-                if (isSaved) {
-                    viewModel.removeStation(st)
-                } else {
-                    viewModel.addStation(st)
-                }
-            },
-            onRefresh = { viewModel.openStationDetail(station) },
-            onDepartureClick = { departure ->
-                selectedDepartureForJourney = departure
-            },
-            onDismissRequest = { viewModel.closeStationDetail() }
-        )
-    }
-
-    // Train Journey & Calling Points Details Sheet
-    selectedDepartureForJourney?.let { departure ->
-        TrainJourneyBottomSheet(
-            departure = departure,
-            onDismissRequest = { selectedDepartureForJourney = null },
-            onLoadCallingPoints = { dep -> viewModel.getCallingPoints(dep) }
-        )
-    }
+    // Station Departure Details and Train Journey screens are now handled via Navigation 3 in MainActivity.kt
 
     // Natural Language Transit Assistant Sheet
     if (showAiSheet) {
@@ -283,11 +267,15 @@ fun DashboardScreen(
 
     // Location Permission Rationale Dialog
     if (showLocationRationale) {
-        @OptIn(com.google.accompanist.permissions.ExperimentalPermissionsApi::class)
         com.androidfung.departureboard.ui.components.LocationRationaleDialog(
             onConfirm = {
                 showLocationRationale = false
-                fineLocationPermission.launchPermissionRequest()
+                locationPermissionLauncher.launch(
+                    arrayOf(
+                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
             },
             onDismiss = {
                 showLocationRationale = false
@@ -327,6 +315,7 @@ fun DashboardScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardContent(
     uiState: DashboardUiState,
@@ -340,11 +329,13 @@ fun DashboardContent(
     onDepartureClick: ((Departure) -> Unit)? = null,
     onAiAssistantClick: () -> Unit = {},
     onUpgradeClick: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     onOpenDebugSettings: () -> Unit = {},
-    onOpenHelpFaq: () -> Unit = {}
+    onOpenHelpFaq: () -> Unit = {},
+    staggeredGridState: androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState = rememberLazyStaggeredGridState()
 ) {
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val pullToRefreshState = rememberPullToRefreshState()
-    val staggeredGridState = rememberLazyStaggeredGridState()
     val reorderState = rememberReorderableStaggeredGridState(
         staggeredGridState = staggeredGridState,
         onMove = onMoveStation
@@ -361,285 +352,320 @@ fun DashboardContent(
     Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .background(backgroundBrush),
+            .background(backgroundBrush)
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    val windowWidthClass = LocalWindowWidthClass.current
+                    val isTwoPane = com.androidfung.departureboard.ui.components.LocalIsTwoPaneMode.current
+                    val (titleFontSize, titleLineHeight) = when {
+                        isTwoPane -> 20.sp to 24.sp
+                        windowWidthClass == WindowWidthClass.NARROW -> 20.sp to 24.sp
+                        windowWidthClass == WindowWidthClass.REGULAR -> 24.sp to 28.sp
+                        windowWidthClass == WindowWidthClass.EXPANDED -> 28.sp to 32.sp
+                        else -> 32.sp to 36.sp
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Prompt Departure",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = titleFontSize,
+                                lineHeight = titleLineHeight
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+
+                        if (uiState.isPro) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(
+                                                Color(0xFFFFD700),
+                                                Color(0xFFFF9800)
+                                            )
+                                        )
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "PRO",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
+                                    color = Color.Black,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+                },
+                actions = {
+                    var showMenu by remember { mutableStateOf(false) }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (!uiState.isPro) {
+                            IconButton(
+                                onClick = onUpgradeClick,
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.WorkspacePremium,
+                                    contentDescription = "Upgrade to Pro",
+                                    tint = Color(0xFFFFB300),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.Rounded.MoreVert,
+                                    contentDescription = "More options",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Settings") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Settings,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onOpenSettings()
+                                    }
+                                )
+
+                                DropdownMenuItem(
+                                    text = { Text("Help & FAQ") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onOpenHelpFaq()
+                                    }
+                                )
+
+                                if (BuildConfig.DEBUG) {
+                                    DropdownMenuItem(
+                                        text = { Text("Debug Settings") },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Rounded.BugReport,
+                                                contentDescription = null,
+                                                tint = Color(0xFFE91E63)
+                                            )
+                                        },
+                                        onClick = {
+                                            showMenu = false
+                                            onOpenDebugSettings()
+                                        }
+                                    )
+                                }
+
+                                if (!uiState.isPro) {
+                                    DropdownMenuItem(
+                                        text = { Text("Upgrade to Pro") },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Rounded.WorkspacePremium,
+                                                contentDescription = null,
+                                                tint = Color(0xFFFFB300)
+                                            )
+                                        },
+                                        onClick = {
+                                            showMenu = false
+                                            onUpgradeClick()
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
+                scrollBehavior = scrollBehavior
+            )
+        },
         floatingActionButton = {
-            // Expressive FAB for Prompt Departure Transit AI Assistant
-            FloatingActionButton(
+            // Expressive Extended FAB for Prompt Departure Transit AI Assistant
+            ExtendedFloatingActionButton(
+                text = { Text("Ask AI") },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Rounded.AutoAwesome,
+                        contentDescription = "Ask Prompt Departure AI",
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                expanded = !staggeredGridState.isScrollInProgress,
                 onClick = onAiAssistantClick,
-                shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
-                modifier = Modifier
-                    .padding(end = 4.dp, bottom = 4.dp)
-                    .size(62.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.AutoAwesome,
-                    contentDescription = "Ask Prompt Departure AI",
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+                modifier = Modifier.padding(end = 4.dp, bottom = 4.dp)
+            )
         }
     ) { innerPadding ->
         val windowWidthClass = LocalWindowWidthClass.current
-        val gridColumns = when (windowWidthClass) {
-            WindowWidthClass.NARROW, WindowWidthClass.REGULAR -> StaggeredGridCells.Fixed(1)
-            WindowWidthClass.EXPANDED, WindowWidthClass.LARGE -> StaggeredGridCells.Fixed(2)
-            WindowWidthClass.EXTRA_LARGE -> StaggeredGridCells.Fixed(3)
+        val isTwoPane = com.androidfung.departureboard.ui.components.LocalIsTwoPaneMode.current
+        val gridColumns = when {
+            isTwoPane && windowWidthClass == WindowWidthClass.EXTRA_LARGE -> StaggeredGridCells.Fixed(2)
+            isTwoPane -> StaggeredGridCells.Fixed(1)
+            windowWidthClass == WindowWidthClass.NARROW || windowWidthClass == WindowWidthClass.REGULAR -> StaggeredGridCells.Fixed(1)
+            windowWidthClass == WindowWidthClass.EXPANDED || windowWidthClass == WindowWidthClass.LARGE -> StaggeredGridCells.Fixed(2)
+            else -> StaggeredGridCells.Fixed(3)
         }
 
-        PullToRefreshBox(
-            isRefreshing = uiState.isRefreshing,
-            onRefresh = onRefresh,
-            state = pullToRefreshState,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            LazyVerticalStaggeredGrid(
-                state = staggeredGridState,
-                columns = gridColumns,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .reorderableStaggeredGrid(reorderState),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 12.dp,
-                    bottom = 96.dp // Extra clearance for the expressive FAB
-                ),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalItemSpacing = 20.dp
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = onRefresh,
+                state = pullToRefreshState,
+                modifier = Modifier.fillMaxSize()
             ) {
-                // Header section: "Prompt Departure" title spanning full width
-                item(key = "header", span = StaggeredGridItemSpan.FullLine) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        DashboardHeader(
-                            isPro = uiState.isPro,
-                            onUpgradeClick = onUpgradeClick,
-                            onOpenDebugSettings = onOpenDebugSettings,
-                            onOpenHelpFaq = onOpenHelpFaq
-                        )
-
-                        // Material 3 Search Anchor Pill directly below the Header
+                LazyVerticalStaggeredGrid(
+                    state = staggeredGridState,
+                    columns = gridColumns,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .reorderableStaggeredGrid(reorderState),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 10.dp,
+                        bottom = 96.dp // Extra clearance for the expressive FAB
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalItemSpacing = 20.dp
+                ) {
+                    // Search bar as the first item spanning full line
+                    item(key = "search_bar", span = StaggeredGridItemSpan.FullLine) {
                         DashboardSearchBar(
                             onClick = onAddStationClick,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-                }
 
-                if (uiState.isInitialLoading && uiState.stationCards.isEmpty()) {
-                    // Shimmer skeleton cards matching adaptive grid columns during initial load
-                    items(
-                        count = 4,
-                        key = { "skeleton_$it" },
-                        span = { StaggeredGridItemSpan.SingleLane }
-                    ) {
-                        com.androidfung.departureboard.ui.components.StationCardSkeleton()
-                    }
-                } else if (uiState.stationCards.isEmpty()) {
-                    // Empty state when all stations removed spanning full width
-                    item(key = "empty_state", span = StaggeredGridItemSpan.FullLine) {
-                        EmptyDashboardState(
-                            onAddStationClick = onAddStationClick,
-                            modifier = Modifier.padding(top = 16.dp)
-                        )
-                    }
-                } else {
-                    // Station Departure Cards in adaptive staggered grid
-                    // All cards uniformly occupy 1 column for consistent grid layout
-                    items(
-                        items = uiState.stationCards,
-                        key = { it.station.id + it.station.name },
-                        span = { StaggeredGridItemSpan.SingleLane }
-                    ) { cardModel ->
-                        val isNearest = uiState.nearestStationId == cardModel.station.id
-                        StationDepartureCard(
-                            cardModel = cardModel,
-                            onDismissStation = onDismissStation,
-                            onStationClick = onStationClick,
-                            onDepartureClick = onDepartureClick,
-                            isNearest = isNearest,
-                            distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
-                            modifier = Modifier
-                                .reorderableStaggeredItem(reorderState, cardModel.station.id)
-                                .animateItem()
-                        )
-                    }
-
-                    // Medium Rectangle ad card in the feed for free users
-                    if (!uiState.isPro) {
-                        item(key = "ad_card", span = StaggeredGridItemSpan.SingleLane) {
-                            com.androidfung.departureboard.ui.components.AdCard(
-                                modifier = Modifier.animateItem()
-                            )
+                    if (!uiState.isOnline) {
+                        item(key = "offline_banner", span = StaggeredGridItemSpan.FullLine) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.LocationOn,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    Text(
+                                        text = "Offline • Showing cached departures",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
-                }
-            }
-        }
-    }
-}
 
-/**
- * Expressive header component with clean title typography, Pro badge, Add button, and Overflow Menu.
- */
-@Composable
-fun DashboardHeader(
-    modifier: Modifier = Modifier,
-    isPro: Boolean = false,
-    onUpgradeClick: () -> Unit = {},
-    onOpenDebugSettings: () -> Unit = {},
-    onOpenHelpFaq: () -> Unit = {}
-) {
-    var showMenu by remember { mutableStateOf(false) }
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        val windowWidthClass = LocalWindowWidthClass.current
-        val (titleFontSize, titleLineHeight) = when (windowWidthClass) {
-            WindowWidthClass.NARROW -> 20.sp to 24.sp
-            WindowWidthClass.REGULAR -> 24.sp to 28.sp
-            WindowWidthClass.EXPANDED -> 28.sp to 32.sp
-            else -> 32.sp to 36.sp
-        }
-
-        Row(
-            modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Prompt Departure",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = titleFontSize,
-                    lineHeight = titleLineHeight
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-            )
-
-            if (isPro) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    Color(0xFFFFD700),
-                                    Color(0xFFFF9800)
-                                )
-                            )
-                        )
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = "PRO",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
-                        color = Color.Black,
-                        fontSize = 11.sp
-                    )
-                }
-            }
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            if (!isPro) {
-                // Upgrade to Pro Action Button
-                IconButton(
-                    onClick = onUpgradeClick,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.WorkspacePremium,
-                        contentDescription = "Upgrade to Pro",
-                        tint = Color(0xFFFFB300),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            // 3-dot Overflow Menu Button
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(
-                        imageVector = Icons.Rounded.MoreVert,
-                        contentDescription = "More options",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Help & FAQ") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        onClick = {
-                            showMenu = false
-                            onOpenHelpFaq()
+                    if (uiState.isInitialLoading && uiState.stationCards.isEmpty()) {
+                        // Shimmer skeleton cards matching adaptive grid columns during initial load
+                        items(
+                            count = 4,
+                            key = { "skeleton_$it" },
+                            span = { StaggeredGridItemSpan.SingleLane }
+                        ) {
+                            com.androidfung.departureboard.ui.components.StationCardSkeleton()
                         }
-                    )
+                    } else if (uiState.stationCards.isEmpty()) {
+                        // Empty state when all stations removed spanning full width
+                        item(key = "empty_state", span = StaggeredGridItemSpan.FullLine) {
+                            EmptyDashboardState(
+                                onAddStationClick = onAddStationClick,
+                                modifier = Modifier.padding(top = 16.dp)
+                            )
+                        }
+                    } else {
+                        // Station Departure Cards in adaptive staggered grid
+                        // All cards uniformly occupy 1 column for consistent grid layout
+                        items(
+                            items = uiState.stationCards,
+                            key = { it.station.id + it.station.name },
+                            span = { StaggeredGridItemSpan.SingleLane }
+                        ) { cardModel ->
+                            val isNearest = uiState.nearestStationId == cardModel.station.id
+                            StationDepartureCard(
+                                cardModel = cardModel,
+                                onDismissStation = onDismissStation,
+                                onStationClick = onStationClick,
+                                onDepartureClick = onDepartureClick,
+                                isNearest = isNearest,
+                                distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
+                                maxDepartureRows = uiState.departureRowsCount,
+                                modifier = Modifier
+                                    .reorderableStaggeredItem(reorderState, cardModel.station.id)
+                                    .animateItem()
+                            )
+                        }
 
-                    if (BuildConfig.DEBUG) {
-                        DropdownMenuItem(
-                            text = { Text("Debug Settings") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.BugReport,
-                                    contentDescription = null,
-                                    tint = Color(0xFFE91E63)
+                        // Medium Rectangle ad card in the feed for free users
+                        if (!uiState.isPro) {
+                            item(key = "ad_card", span = StaggeredGridItemSpan.SingleLane) {
+                                com.androidfung.departureboard.ui.components.AdCard(
+                                    modifier = Modifier.animateItem()
                                 )
-                            },
-                            onClick = {
-                                showMenu = false
-                                onOpenDebugSettings()
                             }
-                        )
-                    }
-
-                    if (!isPro) {
-                        DropdownMenuItem(
-                            text = { Text("Upgrade to Pro") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.WorkspacePremium,
-                                    contentDescription = null,
-                                    tint = Color(0xFFFFB300)
-                                )
-                            },
-                            onClick = {
-                                showMenu = false
-                                onUpgradeClick()
-                            }
-                        )
+                        }
                     }
                 }
             }

@@ -8,6 +8,11 @@ enum class AiModelType(
     val title: String,
     val description: String
 ) {
+    DEFAULT(
+        id = "default",
+        title = "Default",
+        description = "Standard balanced routing engine (auto fallback)"
+    ),
     LOCAL(
         id = "local",
         title = "On-Device Local AI",
@@ -25,6 +30,6 @@ enum class AiModelType(
     );
 
     companion object {
-        fun fromId(id: String?): AiModelType = entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: LOGIC_FALLBACK
+        fun fromId(id: String?): AiModelType = entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: DEFAULT
     }
 }

@@ -5,7 +5,7 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TflLineStatusItem
-import com.androidfung.departureboard.data.repository.TransitRepository
+import com.androidfung.departureboard.test.FakeTransitRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -25,31 +25,6 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class TransitAiAssistantTest {
-
-    private class FakeRepository(
-        private val departures: List<Departure>,
-        private val lineStatuses: Map<String, TflLineStatusItem> = emptyMap()
-    ) : TransitRepository {
-        override val savedStationsFlow: Flow<List<Station>> = flowOf(emptyList())
-        override val recentStationIdFlow: Flow<String?> = flowOf(null)
-
-        override suspend fun searchStations(query: String): Result<List<Station>> = Result.success(emptyList())
-        override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> =
-            Result.success(departures.filter { it.stationId == stationId })
-        override suspend fun getBatchDepartures(stations: List<Station>): Map<String, Result<List<Departure>>> =
-            stations.associate { it.id to getDepartures(it.id, it.name) }
-        override fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>> =
-            flowOf(Result.success(departures.filter { it.stationId == stationId }))
-        override suspend fun getCachedDepartures(stationId: String): List<Departure> =
-            departures.filter { it.stationId == stationId }
-        override suspend fun getLineStatuses(): Map<String, TflLineStatusItem> = lineStatuses
-        override suspend fun getCallingPoints(departure: Departure): List<com.androidfung.departureboard.data.model.CallingPoint> = emptyList()
-        override suspend fun saveStation(station: Station) {}
-        override suspend fun reorderStations(stations: List<Station>) {}
-        override suspend fun removeStation(stationId: String) {}
-        override suspend fun setRecentStationId(stationId: String) {}
-        override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> = emptyList()
-    }
 
     private val oxfordCircus = Station(
         id = "940GZZLUOXC",
@@ -98,8 +73,8 @@ class TransitAiAssistantTest {
 
     @Test
     fun `status query with all lines healthy reports good service`() = runTest {
-        val repo = FakeRepository(
-            departures = emptyList(),
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(emptyList()) },
             lineStatuses = mapOf(
                 "central" to TflLineStatusItem(
                     id = "central",
@@ -127,8 +102,8 @@ class TransitAiAssistantTest {
 
     @Test
     fun `status query reports disrupted line with reason`() = runTest {
-        val repo = FakeRepository(
-            departures = emptyList(),
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(emptyList()) },
             lineStatuses = mapOf(
                 "elizabeth-line" to TflLineStatusItem(
                     id = "elizabeth-line",
@@ -136,8 +111,8 @@ class TransitAiAssistantTest {
                     modeName = "elizabeth-line",
                     lineStatuses = listOf(
                         com.androidfung.departureboard.data.model.TflLineStatusDetail(
-                            // TfL real-world scale: 10 = good service, 60 = part suspended
-                            statusSeverity = 60,
+                            // TfL real-world scale: 10 = good service, 3 = part suspended, 6 = severe delays, 9 = minor delays
+                            statusSeverity = 3,
                             statusSeverityDescription = "Part Suspended",
                             reason = "Signal failure"
                         )
@@ -156,7 +131,10 @@ class TransitAiAssistantTest {
 
     @Test
     fun `status query against unavailable feed says it could not check`() = runTest {
-        val repo = FakeRepository(departures = emptyList(), lineStatuses = emptyMap())
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(emptyList()) },
+            lineStatuses = emptyMap()
+        )
         val assistant = TransitAiAssistant(repo)
         val result = assistant.answerQuery("Any delays?", savedStations = listOf(oxfordCircus))
         assertTrue(
@@ -167,12 +145,13 @@ class TransitAiAssistantTest {
 
     @Test
     fun `named line query filters departures to that line`() = runTest {
-        val repo = FakeRepository(
-            departures = listOf(
-                departure("bakerloo", "Bakerloo", "Harrow & Wealdstone", seconds = 600),
-                departure("central", "Central", "Epping", seconds = 120),
-                departure("victoria", "Victoria", "Walthamstow Central", seconds = 90)
-            )
+        val testDepartures = listOf(
+            departure("bakerloo", "Bakerloo", "Harrow & Wealdstone", seconds = 600),
+            departure("central", "Central", "Epping", seconds = 120),
+            departure("victoria", "Victoria", "Walthamstow Central", seconds = 90)
+        )
+        val repo = FakeTransitRepository(
+            departuresResult = { stationId, _ -> Result.success(testDepartures.filter { it.stationId == stationId }) }
         )
         val assistant = TransitAiAssistant(repo)
         val result = assistant.answerQuery("Next Central line train", savedStations = listOf(oxfordCircus))
@@ -189,11 +168,12 @@ class TransitAiAssistantTest {
 
     @Test
     fun `bus route query still works`() = runTest {
-        val repo = FakeRepository(
-            departures = listOf(
-                departure("221", "221", "Clapham Junction", seconds = 120, mode = "bus"),
-                departure("73", "73", "King's Cross", seconds = 300, mode = "bus")
-            )
+        val testDepartures = listOf(
+            departure("221", "221", "Clapham Junction", seconds = 120, mode = "bus"),
+            departure("73", "73", "King's Cross", seconds = 300, mode = "bus")
+        )
+        val repo = FakeTransitRepository(
+            departuresResult = { stationId, _ -> Result.success(testDepartures.filter { it.stationId == stationId }) }
         )
         val assistant = TransitAiAssistant(repo)
         val result = assistant.answerQuery("When is the 221 bus?", savedStations = listOf(oxfordCircus))
@@ -205,7 +185,9 @@ class TransitAiAssistantTest {
 
     @Test
     fun `unanswerable query falls back to friendly suggestion`() = runTest {
-        val repo = FakeRepository(departures = emptyList())
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(emptyList()) }
+        )
         val assistant = TransitAiAssistant(repo)
         val result = assistant.answerQuery("what is the weather", savedStations = listOf(oxfordCircus))
         assertTrue(

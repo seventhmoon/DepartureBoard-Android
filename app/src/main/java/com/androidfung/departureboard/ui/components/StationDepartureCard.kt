@@ -76,7 +76,8 @@ fun StationDepartureCard(
     isNearest: Boolean = false,
     distanceMeters: Double? = null,
     onStationClick: ((Station) -> Unit)? = null,
-    onDepartureClick: ((Departure) -> Unit)? = null
+    onDepartureClick: ((Departure) -> Unit)? = null,
+    maxDepartureRows: Int = 5
 ) {
     var selectedLineId by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
     var selectedDirection by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
@@ -179,8 +180,8 @@ fun StationDepartureCard(
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            // Gradient background: subtle surface container gradient in both light and dark themes
-            val topGradientColor = MaterialTheme.colorScheme.surfaceVariant
+            // M3 Tonal elevation: standard surfaceContainerLow to surfaceContainer subtle gradient
+            val topGradientColor = MaterialTheme.colorScheme.surfaceContainerLow
             val bottomGradientColor = MaterialTheme.colorScheme.surfaceContainer
 
             Box(
@@ -254,6 +255,7 @@ fun StationDepartureCard(
                             isLoading = cardModel.isLoading,
                             errorMessage = cardModel.errorMessage,
                             onDepartureClick = onDepartureClick,
+                            maxRows = maxDepartureRows,
                             modifier = Modifier.padding(horizontal = 10.dp)
                         )
                     }
@@ -383,7 +385,7 @@ private fun StationHeaderSection(
         val shouldShowBadges = lineBadges.isNotEmpty() && (hasDepartures || isLoading || lineBadges.any { it.isDisrupted })
 
         if (shouldShowBadges) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -511,7 +513,10 @@ fun LinePillBadge(
             )
             .background(badge.backgroundColor.copy(alpha = alpha))
             .then(
-                if (onClick != null) Modifier.clickable(onClick = onClick)
+                if (onClick != null) Modifier.clickable(
+                    role = androidx.compose.ui.semantics.Role.Checkbox,
+                    onClick = onClick
+                )
                 else Modifier
             )
             .padding(
@@ -562,7 +567,8 @@ private fun StationDeparturesContainer(
     errorMessage: String?,
     modifier: Modifier = Modifier,
     showLineBadge: Boolean = false,
-    onDepartureClick: ((Departure) -> Unit)? = null
+    onDepartureClick: ((Departure) -> Unit)? = null,
+    maxRows: Int = 5
 ) {
     Box(
         modifier = modifier
@@ -579,7 +585,7 @@ private fun StationDeparturesContainer(
         when {
             departures.isNotEmpty() -> {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    val displayList = departures.take(5)
+                    val displayList = departures.take(maxRows)
                     displayList.forEachIndexed { index, departure ->
                         androidx.compose.animation.AnimatedVisibility(
                             visible = true,

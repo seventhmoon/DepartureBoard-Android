@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Close
@@ -78,7 +79,7 @@ fun DebugSettingsBottomSheet(
     modifier: Modifier = Modifier,
     userPlan: com.androidfung.departureboard.billing.UserPlan = if (isPro) com.androidfung.departureboard.billing.UserPlan.PRO else com.androidfung.departureboard.billing.UserPlan.FREE,
     onSelectPlan: (com.androidfung.departureboard.billing.UserPlan) -> Unit = { onTogglePro() },
-    selectedAiModel: AiModelType = AiModelType.LOGIC_FALLBACK,
+    selectedAiModel: AiModelType = AiModelType.DEFAULT,
     onSelectAiModel: (AiModelType) -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
@@ -269,6 +270,7 @@ fun DebugSettingsBottomSheet(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     AiModelType.entries.forEachIndexed { index, model ->
                         val modelIcon = when (model) {
+                            AiModelType.DEFAULT -> Icons.Rounded.AutoAwesome
                             AiModelType.LOCAL -> Icons.Rounded.SmartToy
                             AiModelType.CLOUD -> Icons.Rounded.Cloud
                             AiModelType.LOGIC_FALLBACK -> Icons.Rounded.Bolt

@@ -37,7 +37,9 @@ class TrainTrackingService : Service() {
     companion object {
         private const val TAG = "TrainTrackingService"
         const val CHANNEL_ID = "live_train_tracking_channel"
+        const val ALERT_CHANNEL_ID = "train_tracking_alert_channel"
         const val NOTIFICATION_ID = 2001
+        const val ALERT_NOTIFICATION_ID = 2002
 
         // Polling intervals in seconds
         private const val POLL_INTERVAL_LONG = 45L
@@ -196,25 +198,70 @@ class TrainTrackingService : Service() {
     ) {
         trackingJob?.cancel()
         trackingJob = serviceScope.launch {
-            val repository = TransitRepositoryImpl(applicationContext)
+            val repository = (applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.repository
+                ?: TransitRepositoryImpl(applicationContext)
             var remainingSeconds = initialSeconds
+            var currentDestination = destination
+            var currentPlatform = platform
             var baselineStops: Int? = null
+            var missingCount = 0
 
             while (isActive && remainingSeconds > 0) {
                 // Poll live API periodically
                 var liveLocation: String? = null
+                var isCancelled = false
+
                 try {
                     val res = repository.getDepartures(stationId, stationName)
                     if (res.isSuccess) {
                         val matches = res.getOrDefault(emptyList())
                         val target = matches.firstOrNull { it.id == departureId }
                         if (target != null) {
+                            missingCount = 0
                             remainingSeconds = target.timeToStationSeconds
                             liveLocation = target.currentLocation
+
+                            // 1. Check for cancellation
+                            if (target.status == com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED ||
+                                target.currentLocation.equals("Cancelled", ignoreCase = true)
+                            ) {
+                                isCancelled = true
+                            }
+
+                            // 2. Check for destination change
+                            if (target.destinationName.isNotBlank() &&
+                                !target.destinationName.equals(currentDestination, ignoreCase = true)
+                            ) {
+                                val oldDest = currentDestination
+                                currentDestination = target.destinationName
+                                postDisruptionAlert(
+                                    title = "Destination Changed",
+                                    message = "$lineName to $oldDest is now terminating at $currentDestination"
+                                )
+                            }
+
+                            // 3. Check for platform change
+                            if (target.platformName.isNotBlank() &&
+                                currentPlatform.isNotBlank() &&
+                                !target.platformName.equals(currentPlatform, ignoreCase = true)
+                            ) {
+                                val oldPlatform = currentPlatform
+                                currentPlatform = target.platformName
+                                postDisruptionAlert(
+                                    title = "Platform Changed",
+                                    message = "$lineName to $currentDestination moved from $oldPlatform to $currentPlatform"
+                                )
+                            }
                         } else {
-                            // If train no longer listed in arrivals, decrement by the elapsed interval
-                            val elapsedSeconds = if (remainingSeconds > 300) 45 else if (remainingSeconds > 120) 30 else 15
-                            remainingSeconds = (remainingSeconds - elapsedSeconds).coerceAtLeast(0)
+                            missingCount++
+                            // If train dropped off the prediction board prematurely (missing for 2 consecutive polls with >120s remaining)
+                            if (missingCount >= 2 && remainingSeconds > 120) {
+                                isCancelled = true
+                            } else {
+                                // If train no longer listed in arrivals, decrement by the elapsed interval
+                                val elapsedSeconds = if (remainingSeconds > 300) 45 else if (remainingSeconds > 120) 30 else 15
+                                remainingSeconds = (remainingSeconds - elapsedSeconds).coerceAtLeast(0)
+                            }
                         }
                     }
                 } catch (e: Exception) {
@@ -222,6 +269,33 @@ class TrainTrackingService : Service() {
                     // Fallback to using last known time and gradually decrement
                     val elapsedSeconds = if (remainingSeconds > 300) 45 else if (remainingSeconds > 120) 30 else 15
                     remainingSeconds = (remainingSeconds - elapsedSeconds).coerceAtLeast(0)
+                }
+
+                if (isCancelled) {
+                    postDisruptionAlert(
+                        title = "Service Cancelled",
+                        message = "Your $lineName to $currentDestination has been cancelled."
+                    )
+                    val cancelledNotification = buildLiveNotification(
+                        destination = currentDestination,
+                        lineName = lineName,
+                        platform = currentPlatform,
+                        timeToStationSeconds = remainingSeconds,
+                        currentLocation = "Cancelled",
+                        isBus = isBus,
+                        currentStopsAway = null,
+                        baselineStops = null,
+                        baselineSeconds = baselineSeconds,
+                        isCancelled = true
+                    )
+                    try {
+                        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                        nm.notify(NOTIFICATION_ID, cancelledNotification)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to update notification for cancellation", e)
+                    }
+                    // Stop active polling once service is confirmed cancelled
+                    break
                 }
 
                 // Calculate stops away if line route sequence is available
@@ -233,8 +307,8 @@ class TrainTrackingService : Service() {
                             stationName = stationName,
                             lineId = lineId,
                             lineName = lineName,
-                            platformName = platform,
-                            destinationName = destination,
+                            platformName = currentPlatform,
+                            destinationName = currentDestination,
                             towards = null,
                             timeToStationSeconds = remainingSeconds,
                             expectedArrivalIso = null,
@@ -267,9 +341,9 @@ class TrainTrackingService : Service() {
                 }
 
                 val updatedNotification = buildLiveNotification(
-                    destination = destination,
+                    destination = currentDestination,
                     lineName = lineName,
-                    platform = platform,
+                    platform = currentPlatform,
                     timeToStationSeconds = remainingSeconds,
                     currentLocation = liveLocation,
                     isBus = isBus,
@@ -302,8 +376,42 @@ class TrainTrackingService : Service() {
                 delay(pollIntervalSeconds * 1000L)
             }
 
-            stopTrackingInternal()
-            stopSelf()
+            // If cancelled, keep the notification readable so the user sees the cancellation status until they dismiss
+            if (isActive) {
+                currentlyTrackedDepartureId = null
+            } else {
+                stopTrackingInternal()
+                stopSelf()
+            }
+        }
+    }
+
+    private fun postDisruptionAlert(title: String, message: String) {
+        try {
+            val openAppIntent = Intent(this, MainActivity::class.java)
+            val openAppPendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                openAppIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val alertNotification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setAutoCancel(true)
+                .setContentIntent(openAppPendingIntent)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .build()
+
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(ALERT_NOTIFICATION_ID, alertNotification)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to post disruption alert", e)
         }
     }
 
@@ -330,7 +438,9 @@ class TrainTrackingService : Service() {
         isBus: Boolean = false,
         currentStopsAway: Int? = null,
         baselineStops: Int? = null,
-        baselineSeconds: Int = 180
+        baselineSeconds: Int = 180,
+        isCancelled: Boolean = false,
+        statusChipOverride: String? = null
     ): android.app.Notification {
         val openAppIntent = Intent(this, MainActivity::class.java)
         val openAppPendingIntent = PendingIntent.getActivity(
@@ -354,7 +464,9 @@ class TrainTrackingService : Service() {
 
         // Continuous journey track from Base Point (B) to Destination Station (S)
         // 0 = Base Point (when user hit Track), 100 = Arrived at station / Platform
-        val progressVal: Int = if (timeToStationSeconds <= 30) {
+        val progressVal: Int = if (isCancelled) {
+            0
+        } else if (timeToStationSeconds <= 30) {
             100
         } else if (currentStopsAway != null && baselineStops != null && baselineStops > 0) {
             // High-precision station ratio: progress = (stops completed) / (total stops B->S)
@@ -370,7 +482,7 @@ class TrainTrackingService : Service() {
 
         // Milestone points simply mark the start (Base Point B) and end (Station S)
         val milestonePoints = listOf(
-            NotificationCompat.ProgressStyle.Point(0),
+            NotificationCompat.ProgressStyle.Point(1),
             NotificationCompat.ProgressStyle.Point(100)
         )
 
@@ -398,8 +510,9 @@ class TrainTrackingService : Service() {
         // A. Header Subtext: Line + destination together (e.g. "221 to Edgware", "Victoria line to Walthamstow Central")
         val headerSubText = "$lineName to $destination"
 
-        // C. Content Title: Primary status / milestone (e.g. "2 stops away", "Approaching", "At platform • Boarding")
+        // C. Content Title: Primary status / milestone (e.g. "Cancelled", "2 stops away", "Approaching", "At platform • Boarding")
         val contentTitle = when {
+            isCancelled -> "Service Cancelled"
             timeToStationSeconds <= 30 -> "At platform • Boarding"
             timeToStationSeconds <= 90 -> "Approaching"
             stopsCount == 1 -> "1 stop away"
@@ -409,20 +522,21 @@ class TrainTrackingService : Service() {
         }
 
         // D. Content Text: Platform number or stop name
-        val contentText = shortPlatform
+        val contentText = if (isCancelled) "This departure has been cancelled" else shortPlatform
 
         val trackerIconRes = if (isBus) R.drawable.ic_tracker_bus else R.drawable.ic_tracker_train
         val trackerIcon = androidx.core.graphics.drawable.IconCompat.createWithResource(this, trackerIconRes)
 
         val progressStyle = NotificationCompat.ProgressStyle()
-            .setStyledByProgress(true)
+            .setStyledByProgress(!isCancelled)
             .setProgressPoints(milestonePoints)
             .setProgressTrackerIcon(trackerIcon)
             .setProgress(progressVal)
 
         // Compute clear transit countdown representation for Android 16 status chip
         val minutesAway = (timeToStationSeconds / 60).coerceAtLeast(0)
-        val shortChipText = when {
+        val shortChipText = statusChipOverride ?: when {
+            isCancelled -> "Cancelled"
             timeToStationSeconds <= 30 -> "Due"
             timeToStationSeconds <= 60 -> "1 min"
             else -> "$minutesAway min"
@@ -434,18 +548,20 @@ class TrainTrackingService : Service() {
             .setContentTitle(contentTitle)                 // C. Content Title: e.g. "2 stops away", "Approaching"
             .setContentText(contentText)                   // D. Content Text: Platform number or stop name
             .setStyle(progressStyle)                       // E. Progress Bar: Continuous track with train/bus icon
-            .setOngoing(true)
+            .setOngoing(!isCancelled)
             .setOnlyAlertOnce(true)
             .setContentIntent(openAppPendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop Tracking", stopPendingIntent) // F. Action Button
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, if (isCancelled) "Dismiss" else "Stop Tracking", stopPendingIntent) // F. Action Button
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setWhen(targetTimestamp)                      // B. Expected arrival timestamp for the notification header
-            .setShowWhen(true)                             // Shows clock arrival time (e.g. 20:53) in notification card header
+            .setShowWhen(!isCancelled)                     // Shows clock arrival time (e.g. 20:53) in notification card header
             .setUsesChronometer(false)                     // Avoid confusing MM:SS stopwatch timer (e.g. "08:45")
             .setChronometerCountDown(false)
 
         // Android 16 Live Update Notification Promoted Ongoing request
+        builder.setRequestPromotedOngoing(!isCancelled)
+        builder.setShortCriticalText(shortChipText)        // Glanceable status bar chip: "Due", "1 min", "8 min"
         builder.setRequestPromotedOngoing(true)
         builder.setShortCriticalText(shortChipText)        // Glanceable status bar chip: "Due", "1 min", "8 min"
 
@@ -455,7 +571,7 @@ class TrainTrackingService : Service() {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
-                val channel = NotificationChannel(
+                val liveChannel = NotificationChannel(
                     CHANNEL_ID,
                     "Live Train Tracking",
                     NotificationManager.IMPORTANCE_HIGH
@@ -463,10 +579,22 @@ class TrainTrackingService : Service() {
                     description = "Shows live ongoing countdowns for tracked departures"
                     setShowBadge(true)
                 }
+
+                val alertChannel = NotificationChannel(
+                    ALERT_CHANNEL_ID,
+                    "Train Tracking Alerts",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Alerts for cancelled or altered journeys"
+                    enableVibration(true)
+                    setShowBadge(true)
+                }
+
                 val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                nm.createNotificationChannel(channel)
+                nm.createNotificationChannel(liveChannel)
+                nm.createNotificationChannel(alertChannel)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to create notification channel", e)
+                Log.e(TAG, "Failed to create notification channels", e)
             }
         }
     }

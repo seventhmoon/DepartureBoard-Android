@@ -41,7 +41,7 @@ interface BillingDataSource {
     val availableProducts: StateFlow<List<ProductDetails>>
     val billingError: StateFlow<String?>
     fun queryAvailableProducts()
-    fun refreshPurchases()
+    fun refreshPurchases(onResult: ((Boolean, String) -> Unit)? = null)
     fun launchPurchaseFlow(activity: Activity, productDetails: ProductDetails, basePlanId: String? = null): Boolean
     suspend fun tryConsumeAiQuery(): Boolean
     suspend fun getRemainingAiQueries(): Int
@@ -156,8 +156,12 @@ class BillingRepository(
     /**
      * Refreshes active subscription purchases from Google Play.
      */
-    override fun refreshPurchases() {
-        if (!billingClient.isReady) return
+    override fun refreshPurchases(onResult: ((Boolean, String) -> Unit)?) {
+        if (!billingClient.isReady) {
+            startBillingConnection()
+            onResult?.invoke(false, "Connecting to Google Play Store... Please try again in a moment.")
+            return
+        }
 
         val subsParams = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.SUBS)
@@ -172,8 +176,15 @@ class BillingRepository(
                         acknowledgePurchaseIfNeeded(p)
                     }
                 }
+                updateProStatusLocally(hasActivePro)
+                if (hasActivePro) {
+                    onResult?.invoke(true, "Pro subscription restored successfully!")
+                } else {
+                    onResult?.invoke(false, "No active subscription found for this Google Play account.")
+                }
+            } else {
+                onResult?.invoke(false, "Failed to restore: ${result.debugMessage.ifBlank { "Error code ${result.responseCode}" }}")
             }
-            updateProStatusLocally(hasActivePro)
         }
     }
 

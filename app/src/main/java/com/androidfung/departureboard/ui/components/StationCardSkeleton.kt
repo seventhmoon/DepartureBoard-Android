@@ -80,7 +80,7 @@ fun StationCardSkeleton(
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        val topGradientColor = MaterialTheme.colorScheme.surfaceVariant
+        val topGradientColor = MaterialTheme.colorScheme.surfaceContainerLow
         val bottomGradientColor = MaterialTheme.colorScheme.surfaceContainer
 
         Box(

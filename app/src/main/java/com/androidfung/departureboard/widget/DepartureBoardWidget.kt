@@ -56,11 +56,13 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val PREF_STATION_NAME = stringPreferencesKey("widget_station_name")
         val PREF_FILTER_LINE_ID = stringPreferencesKey("widget_filter_line_id")
         val PREF_FILTER_LINE_NAME = stringPreferencesKey("widget_filter_line_name")
+        val PREF_FILTER_DIRECTION = stringPreferencesKey("widget_filter_direction")
         val PREF_LAST_REFRESH_TIMESTAMP = androidx.datastore.preferences.core.longPreferencesKey("widget_last_refresh")
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val repository = TransitRepositoryImpl(context)
+        val repository = (context.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.repository
+            ?: TransitRepositoryImpl(context)
 
         val appWidgetId = try {
             androidx.glance.appwidget.GlanceAppWidgetManager(context).getAppWidgetId(id)
@@ -78,12 +80,19 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 val fastStationName = if (appWidgetId != -1) sp.getString("station_name_$appWidgetId", null) else null
                 val fastFilterLineId = if (appWidgetId != -1) sp.getString("filter_line_id_$appWidgetId", null) else null
                 val fastFilterLineName = if (appWidgetId != -1) sp.getString("filter_line_name_$appWidgetId", null) else null
+                val fastFilterDirection = if (appWidgetId != -1) sp.getString("filter_direction_$appWidgetId", null) else null
 
                 val stationId = prefs[PREF_STATION_ID] ?: fastStationId
                 val stationName = prefs[PREF_STATION_NAME] ?: fastStationName
                 val filterLineId = prefs[PREF_FILTER_LINE_ID] ?: fastFilterLineId
                 val filterLineName = prefs[PREF_FILTER_LINE_NAME] ?: fastFilterLineName
+                val filterDirection = prefs[PREF_FILTER_DIRECTION] ?: fastFilterDirection
                 val refreshTimestamp = prefs[PREF_LAST_REFRESH_TIMESTAMP] ?: 0L
+
+                val combinedFilterLabel = listOfNotNull(
+                    filterLineName?.takeIf { it.isNotBlank() },
+                    filterDirection?.takeIf { it.isNotBlank() }
+                ).joinToString(" • ").ifBlank { null }
 
                 if (stationId.isNullOrBlank()) {
                     WidgetUnconfiguredPlaceholder(appWidgetId = appWidgetId)
@@ -105,26 +114,22 @@ class DepartureBoardWidget : GlanceAppWidget() {
                             // Loading state
                             WidgetPreparingPlaceholder(
                                 station = targetStation,
-                                filterLabel = filterLineName
+                                filterLabel = combinedFilterLabel
                             )
                         }
                         else -> {
                             val allDepartures = result.getOrNull() ?: emptyList()
-                            val filteredDepartures = if (!filterLineId.isNullOrBlank()) {
-                                allDepartures.filter {
-                                    it.lineId.equals(filterLineId, ignoreCase = true) ||
-                                    it.lineName.equals(filterLineId, ignoreCase = true) ||
-                                    (!filterLineName.isNullOrBlank() && it.lineBadge.displayName.equals(filterLineName, ignoreCase = true))
-                                }
-                            } else {
-                                allDepartures
-                            }
+                            val filteredDepartures = com.androidfung.departureboard.util.DepartureFilterHelper.filterDepartures(
+                                departures = allDepartures,
+                                lineId = filterLineId,
+                                direction = filterDirection
+                            )
 
                             val isSuccess = result.isSuccess && allDepartures.isNotEmpty()
 
                             WidgetContent(
                                 station = targetStation,
-                                filterLabel = filterLineName,
+                                filterLabel = combinedFilterLabel,
                                 departures = filteredDepartures,
                                 isLiveData = isSuccess,
                                 isError = result.isFailure

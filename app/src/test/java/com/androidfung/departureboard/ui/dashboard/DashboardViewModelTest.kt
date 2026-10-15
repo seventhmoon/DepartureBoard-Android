@@ -7,6 +7,7 @@ import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.repository.TransitRepository
+import com.androidfung.departureboard.test.FakeTransitRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -32,66 +33,6 @@ class DashboardViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    private class FakeTransitRepository(
-        initialStations: List<Station> = DefaultStations.POPULAR_STATIONS.take(2)
-    ) : TransitRepository {
-        val stationsFlow = MutableStateFlow(initialStations)
-        val removedStationIds = mutableListOf<String>()
-        val savedStations = mutableListOf<Station>()
-
-        override val savedStationsFlow: Flow<List<Station>> = stationsFlow
-        override val recentStationIdFlow: Flow<String?> = flowOf("940GZZLUOXC")
-
-        override suspend fun searchStations(query: String): Result<List<Station>> {
-            val matches = DefaultStations.POPULAR_STATIONS.filter {
-                it.name.contains(query, ignoreCase = true)
-            }
-            return Result.success(matches)
-        }
-
-        override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> {
-            return Result.success(DefaultStations.getFallbackDepartures(stationId, stationName))
-        }
-
-        override suspend fun getBatchDepartures(stations: List<Station>): Map<String, Result<List<Departure>>> {
-            return stations.associate { it.id to getDepartures(it.id, it.name) }
-        }
-
-        override fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>> {
-            return flowOf(Result.success(DefaultStations.getFallbackDepartures(stationId, stationName)))
-        }
-
-        override suspend fun getCachedDepartures(stationId: String): List<Departure> = emptyList()
-
-        override suspend fun getLineStatuses(): Map<String, com.androidfung.departureboard.data.model.TflLineStatusItem> {
-            return emptyMap()
-        }
-
-        override suspend fun getCallingPoints(departure: Departure): List<com.androidfung.departureboard.data.model.CallingPoint> {
-            return emptyList()
-        }
-
-        override suspend fun saveStation(station: Station) {
-            savedStations.add(station)
-            stationsFlow.value += station
-        }
-
-        override suspend fun reorderStations(stations: List<Station>) {
-            stationsFlow.value = stations
-        }
-
-        override suspend fun removeStation(stationId: String) {
-            removedStationIds.add(stationId)
-            stationsFlow.value = stationsFlow.value.filterNot { it.id == stationId }
-        }
-
-        override suspend fun setRecentStationId(stationId: String) {}
-
-        override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> {
-            return emptyList()
-        }
-    }
-
     private class FakeBillingRepository(
         isProInitial: Boolean = false
     ) : BillingDataSource {
@@ -103,7 +44,9 @@ class DashboardViewModelTest {
         override val billingError: kotlinx.coroutines.flow.StateFlow<String?> = MutableStateFlow(null)
 
         override fun queryAvailableProducts() {}
-        override fun refreshPurchases() {}
+        override fun refreshPurchases(onResult: ((Boolean, String) -> Unit)?) {
+            onResult?.invoke(false, "No purchases")
+        }
         override fun launchPurchaseFlow(activity: android.app.Activity, productDetails: com.android.billingclient.api.ProductDetails, basePlanId: String?): Boolean = true
         override suspend fun tryConsumeAiQuery(): Boolean = true
         override suspend fun getRemainingAiQueries(): Int = 100
@@ -336,5 +279,62 @@ class DashboardViewModelTest {
         viewModel.closeStationDetail()
         assertEquals(null, viewModel.uiState.value.selectedDetailStation)
         assertTrue(viewModel.uiState.value.detailDepartures.isEmpty())
+    }
+
+    @Test
+    fun testThemeModeAndDynamicColorPreferences() = runTest {
+        val themeModeFlow = MutableStateFlow(com.androidfung.departureboard.ui.theme.AppThemeMode.SYSTEM)
+        val dynamicColorFlow = MutableStateFlow(true)
+        val repo = object : FakeTransitRepository() {
+            override val themeModeFlow: Flow<com.androidfung.departureboard.ui.theme.AppThemeMode> = themeModeFlow
+            override val dynamicColorFlow: Flow<Boolean> = dynamicColorFlow
+
+            override suspend fun setThemeMode(mode: com.androidfung.departureboard.ui.theme.AppThemeMode) {
+                themeModeFlow.value = mode
+            }
+
+            override suspend fun setDynamicColor(enabled: Boolean) {
+                dynamicColorFlow.value = enabled
+            }
+        }
+        val viewModel = DashboardViewModel(FakeApplication(), repo, FakeBillingRepository())
+        advanceUntilIdle()
+
+        assertEquals(com.androidfung.departureboard.ui.theme.AppThemeMode.SYSTEM, viewModel.uiState.value.themeMode)
+        assertTrue(viewModel.uiState.value.isDynamicColor)
+
+        viewModel.setThemeMode(com.androidfung.departureboard.ui.theme.AppThemeMode.DARK)
+        viewModel.setDynamicColor(false)
+        advanceUntilIdle()
+
+        assertEquals(com.androidfung.departureboard.ui.theme.AppThemeMode.DARK, viewModel.uiState.value.themeMode)
+        assertFalse(viewModel.uiState.value.isDynamicColor)
+    }
+
+    @Test
+    fun testNetworkConnectivityPausesAndResumesPolling() = runTest {
+        val fakeRepo = FakeTransitRepository()
+        val onlineFlow = MutableStateFlow(true)
+        val fakeObserver = object : com.androidfung.departureboard.util.NetworkConnectivityObserver {
+            override val isOnline: Flow<Boolean> = onlineFlow
+        }
+        val viewModel = DashboardViewModel(
+            application = FakeApplication(),
+            repository = fakeRepo,
+            billingRepository = FakeBillingRepository(),
+            networkConnectivityObserver = fakeObserver
+        )
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isOnline)
+
+        // Go offline
+        onlineFlow.value = false
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.isOnline)
+
+        // Go back online
+        onlineFlow.value = true
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isOnline)
     }
 }

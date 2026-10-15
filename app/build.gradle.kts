@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.jetbrains.kotlin.plugin.serialization)
     alias(libs.plugins.google.devtools.ksp)
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
@@ -19,8 +20,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 16
-        versionName = "1.1.1-261013"
+        versionCode = 19
+        versionName = "1.1.2-261015"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -146,7 +147,6 @@ dependencies {
     implementation(libs.androidx.appfunctions)
     "ksp"(libs.androidx.appfunctions.compiler)
     implementation(libs.coil.compose)
-    implementation(libs.accompanist.permissions)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.play.services)

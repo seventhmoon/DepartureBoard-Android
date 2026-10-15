@@ -36,8 +36,10 @@ class DashboardViewModel @JvmOverloads constructor(
     application: Application,
     // Exposed (internal) so the AI assistant sheet can reuse the same repository instance
     // and its in-memory caches instead of constructing a second one.
-    internal val repository: TransitRepository = TransitRepositoryImpl(application),
-    internal val billingRepository: BillingDataSource = BillingRepository.getInstance(application)
+    internal val repository: TransitRepository = (application as? com.androidfung.departureboard.DepartureBoardApp)?.repository ?: TransitRepositoryImpl(application),
+    internal val billingRepository: BillingDataSource = BillingRepository.getInstance(application),
+    internal val networkConnectivityObserver: com.androidfung.departureboard.util.NetworkConnectivityObserver =
+        com.androidfung.departureboard.util.NetworkConnectivityObserverImpl(application)
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -46,13 +48,79 @@ class DashboardViewModel @JvmOverloads constructor(
     private var autoRefreshJob: Job? = null
     private var countdownTickerJob: Job? = null
     private var recentlyDeletedStation: Station? = null
+    private var isCurrentlyOnline = true
 
     init {
         observeSavedStations()
         observeSubscriptionStatus()
+        observeDepartureRowsCount()
+        observeThemePreferences()
+        observeNetworkConnectivity()
         // startAutoRefreshPolling() and startCountdownTicker() are driven lifecycle-aware
         // from DashboardScreen (LifecycleResumeEffect) so the 1s ticker doesn't keep
         // updating StateFlow with the screen off.
+    }
+
+    private fun observeNetworkConnectivity() {
+        viewModelScope.launch {
+            networkConnectivityObserver.isOnline.collectLatest { online ->
+                val wasOffline = !isCurrentlyOnline
+                isCurrentlyOnline = online
+                _uiState.update { it.copy(isOnline = online) }
+
+                if (online) {
+                    // Transitioned from offline to online: trigger refresh and restart auto-polling
+                    if (wasOffline) {
+                        val stations = _uiState.value.stationCards.map { it.station }
+                        if (stations.isNotEmpty()) {
+                            refreshDeparturesForStations(stations)
+                        }
+                    }
+                } else {
+                    // Paused when offline to preserve battery while in tube tunnels
+                    stopAutoRefreshPolling()
+                }
+            }
+        }
+    }
+
+    private fun observeThemePreferences() {
+        viewModelScope.launch {
+            repository.themeModeFlow.collectLatest { mode ->
+                _uiState.update { it.copy(themeMode = mode) }
+            }
+        }
+        viewModelScope.launch {
+            repository.dynamicColorFlow.collectLatest { dynamicColor ->
+                _uiState.update { it.copy(isDynamicColor = dynamicColor) }
+            }
+        }
+    }
+
+    fun setThemeMode(mode: com.androidfung.departureboard.ui.theme.AppThemeMode) {
+        viewModelScope.launch {
+            repository.setThemeMode(mode)
+        }
+    }
+
+    fun setDynamicColor(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setDynamicColor(enabled)
+        }
+    }
+
+    private fun observeDepartureRowsCount() {
+        viewModelScope.launch {
+            repository.departureRowsCountFlow.collectLatest { count ->
+                _uiState.update { it.copy(departureRowsCount = count) }
+            }
+        }
+    }
+
+    fun setDepartureRowsCount(count: Int) {
+        viewModelScope.launch {
+            repository.setDepartureRowsCount(count)
+        }
     }
 
     private fun observeSubscriptionStatus() {
@@ -277,15 +345,18 @@ class DashboardViewModel @JvmOverloads constructor(
      * Auto-refreshes live departures every 30 seconds.
      */
     internal fun startAutoRefreshPolling() {
+        if (!isCurrentlyOnline) return
         autoRefreshJob?.cancel()
         autoRefreshJob = viewModelScope.launch {
             // Adaptive polling backed off from 30s to save battery and network:
             // Fetch immediately on screen entry, then back off to a more reasonable 60s
             // for dashboard-level macro polling.
             while (isActive) {
-                val stations = _uiState.value.stationCards.map { it.station }
-                if (stations.isNotEmpty()) {
-                    refreshDeparturesForStations(stations)
+                if (isCurrentlyOnline) {
+                    val stations = _uiState.value.stationCards.map { it.station }
+                    if (stations.isNotEmpty()) {
+                        refreshDeparturesForStations(stations)
+                    }
                 }
                 delay(60_000L.milliseconds)
             }
@@ -450,12 +521,20 @@ class DashboardViewModel @JvmOverloads constructor(
             val result = repository.getDepartures(station.id, station.name)
             val freshDepartures = result.getOrDefault(cachedDepartures)
 
+            // If no departures returned, check whether the station is closed for the night
+            val serviceHours = if (freshDepartures.isEmpty()) {
+                repository.checkStationServiceHours(station.id)
+            } else {
+                null
+            }
+
             _uiState.update { state ->
                 // Update detail sheet
                 val updatedState = if (state.selectedDetailStation?.id == station.id) {
                     state.copy(
                         detailDepartures = freshDepartures,
-                        isDetailLoading = false
+                        isDetailLoading = false,
+                        serviceHoursInfo = serviceHours
                     )
                 } else {
                     state
@@ -482,7 +561,8 @@ class DashboardViewModel @JvmOverloads constructor(
             it.copy(
                 selectedDetailStation = null,
                 detailDepartures = emptyList(),
-                isDetailLoading = false
+                isDetailLoading = false,
+                serviceHoursInfo = null
             )
         }
     }

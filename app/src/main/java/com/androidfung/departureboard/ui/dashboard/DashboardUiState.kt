@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.ui.components.TransitIconHelper
+import com.androidfung.departureboard.util.DepartureFilterHelper
 
 /**
  * UI model representing a station departure card on the dashboard.
@@ -20,40 +20,20 @@ data class StationCardUiModel(
 ) {
     /**
      * Identifies available directions for a specific transit line serving this station.
-     * This moves logic (such as inferring "Northbound" from "Inbound" on the Northern Line
-     * or extracting direction from platform names) out of the Compose View layer.
      */
     fun getAvailableDirectionsForLine(lineId: String): List<String> {
-        val lineDepartures = departures.filter { TransitIconHelper.isSameLine(it.lineId, lineId) }
-        return lineDepartures
-            .asSequence()
-            .mapNotNull {
-                it.direction ?: listOf("Eastbound", "Westbound", "Northbound", "Southbound", "Inbound", "Outbound")
-                    .firstOrNull { d -> it.platformName.contains(d, ignoreCase = true) }
-            }
-            .distinct()
-            .map {
-                if (it.equals("Inbound", ignoreCase = true) && lineId.contains("northern", ignoreCase = true)) "Northbound"
-                else if (it.equals("Outbound", ignoreCase = true) && lineId.contains("northern", ignoreCase = true)) "Southbound"
-                else it
-            }
-            .distinct()
-            .toList()
+        return DepartureFilterHelper.getAvailableDirections(departures, lineId)
     }
 
     /**
      * Filters departures for a specific line and direction.
      */
     fun getFilteredDepartures(selectedLineId: String?, selectedDirection: String?): List<Departure> {
-        if (selectedLineId == null) {
-            return departures
-        }
-        return departures.filter { departure ->
-            val lineMatches = TransitIconHelper.isSameLine(departure.lineId, selectedLineId)
-            if (!lineMatches) return@filter false
-            selectedDirection == null || departure.direction.equals(selectedDirection, ignoreCase = true) ||
-                    departure.platformName.contains(selectedDirection, ignoreCase = true)
-        }
+        return DepartureFilterHelper.filterDepartures(
+            departures = departures,
+            lineId = selectedLineId,
+            direction = selectedDirection
+        )
     }
 }
 
@@ -77,5 +57,10 @@ data class DashboardUiState(
     val selectedDetailStation: Station? = null,
     val detailDepartures: List<Departure> = emptyList(),
     val isDetailLoading: Boolean = false,
-    val aiModelType: com.androidfung.departureboard.ai.AiModelType = com.androidfung.departureboard.ai.AiModelType.LOGIC_FALLBACK
+    val aiModelType: com.androidfung.departureboard.ai.AiModelType = com.androidfung.departureboard.ai.AiModelType.DEFAULT,
+    val departureRowsCount: Int = 5,
+    val themeMode: com.androidfung.departureboard.ui.theme.AppThemeMode = com.androidfung.departureboard.ui.theme.AppThemeMode.SYSTEM,
+    val isDynamicColor: Boolean = true,
+    val serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo? = null,
+    val isOnline: Boolean = true
 )

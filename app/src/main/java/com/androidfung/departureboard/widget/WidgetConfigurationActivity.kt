@@ -131,8 +131,8 @@ class WidgetConfigurationActivity : ComponentActivity() {
                     } else {
                         WidgetConfigurationContent(
                             billingRepository = billingRepo,
-                            onStationAndLineSelected = { station, lineBadge ->
-                                selectStationAndFinish(station, lineBadge)
+                            onStationAndLineSelected = { station, lineBadge, direction ->
+                                selectStationAndFinish(station, lineBadge, direction)
                             },
                             onCancel = {
                                 finish()
@@ -146,7 +146,11 @@ class WidgetConfigurationActivity : ComponentActivity() {
 
     private var isFinalizing by mutableStateOf(false)
 
-    private fun selectStationAndFinish(station: Station, lineBadge: com.androidfung.departureboard.data.model.LineBadgeInfo?) {
+    private fun selectStationAndFinish(
+        station: Station,
+        lineBadge: com.androidfung.departureboard.data.model.LineBadgeInfo?,
+        direction: String?
+    ) {
         // Fast synchronous persistence keyed ONLY to this appWidgetId
         val sp = applicationContext.getSharedPreferences("widget_config", MODE_PRIVATE)
         sp.edit()
@@ -159,6 +163,11 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 } else {
                     remove("filter_line_id_$appWidgetId")
                     remove("filter_line_name_$appWidgetId")
+                }
+                if (!direction.isNullOrBlank()) {
+                    putString("filter_direction_$appWidgetId", direction)
+                } else {
+                    remove("filter_direction_$appWidgetId")
                 }
             }
             .commit() // Commit synchronously
@@ -182,6 +191,11 @@ class WidgetConfigurationActivity : ComponentActivity() {
                         } else {
                             remove(DepartureBoardWidget.PREF_FILTER_LINE_ID)
                             remove(DepartureBoardWidget.PREF_FILTER_LINE_NAME)
+                        }
+                        if (!direction.isNullOrBlank()) {
+                            this[DepartureBoardWidget.PREF_FILTER_DIRECTION] = direction
+                        } else {
+                            remove(DepartureBoardWidget.PREF_FILTER_DIRECTION)
                         }
                     }
                 }
@@ -212,7 +226,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
 @Composable
 fun WidgetConfigurationContent(
     billingRepository: BillingDataSource,
-    onStationAndLineSelected: (Station, com.androidfung.departureboard.data.model.LineBadgeInfo?) -> Unit,
+    onStationAndLineSelected: (Station, com.androidfung.departureboard.data.model.LineBadgeInfo?, String?) -> Unit,
     onCancel: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -294,11 +308,14 @@ fun WidgetConfigurationContent(
 
 @Composable
 fun WidgetStationPickerScreen(
-    onStationAndLineSelected: (Station, com.androidfung.departureboard.data.model.LineBadgeInfo?) -> Unit,
+    onStationAndLineSelected: (Station, com.androidfung.departureboard.data.model.LineBadgeInfo?, String?) -> Unit,
     onCancel: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val repository = remember(context) { TransitRepositoryImpl(context) }
+    val repository = remember(context) {
+        (context.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.repository
+            ?: TransitRepositoryImpl(context)
+    }
     var searchQuery by remember { mutableStateOf("") }
     var stations by remember { mutableStateOf<List<Station>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -485,11 +502,20 @@ fun WidgetStationPickerScreen(
         }
     }
 
-    // Modal Sheet or Dialog to pick specific line/route
+    // Modal Sheet or Dialog to pick specific line/route and direction
     val activeStation = selectedStationForLines
     if (activeStation != null) {
+        var selectedLineForFilter by remember { mutableStateOf<com.androidfung.departureboard.data.model.LineBadgeInfo?>(null) }
+
         val availableLines = remember(stationDepartures) {
             stationDepartures.map { it.lineBadge }.distinctBy { it.lineId }
+        }
+
+        val availableDirections = remember(stationDepartures, selectedLineForFilter) {
+            com.androidfung.departureboard.util.DepartureFilterHelper.getAvailableDirections(
+                departures = stationDepartures,
+                lineId = selectedLineForFilter?.lineId
+            )
         }
 
         AlertDialog(
@@ -507,28 +533,74 @@ fun WidgetStationPickerScreen(
                         .padding(vertical = 8.dp)
                 ) {
                     Text(
-                        text = "Choose line or route filter for this widget:",
+                        text = "Customize route & direction filters for this widget:",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Option 1: All Lines (no filter)
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onStationAndLineSelected(activeStation, null)
-                            },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    // Step 1: Line Selection
+                    Text(
+                        text = "1. Select Line:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = "All Lines & Routes (Default)",
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                            modifier = Modifier.padding(14.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        // All lines chip
+                        val isAllSelected = selectedLineForFilter == null
+                        Box(
+                            modifier = Modifier
+                                .height(32.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (isAllSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                                )
+                                .clickable { selectedLineForFilter = null }
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "All Lines",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = if (isAllSelected) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        availableLines.forEach { badge ->
+                            val isSelected = selectedLineForFilter?.lineId == badge.lineId
+                            Box(
+                                modifier = Modifier
+                                    .height(32.dp)
+                                    .defaultMinSize(minWidth = 56.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(badge.backgroundColor)
+                                    .clickable { selectedLineForFilter = badge }
+                                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (isSelected) "✓ ${badge.displayName}" else badge.displayName,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = badge.textColor,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
+                        }
                     }
 
                     if (isLoadingLines) {
@@ -538,48 +610,69 @@ fun WidgetStationPickerScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                            Text("Loading station routes...", style = MaterialTheme.typography.bodySmall)
+                            Text("Loading station routes & directions...", style = MaterialTheme.typography.bodySmall)
                         }
-                    } else if (availableLines.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(12.dp))
+                    } else if (availableDirections.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Or filter to specific route:",
+                            text = "2. Select Direction (Optional):",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Use a FlowRow to display chips exactly like the station details view
                         androidx.compose.foundation.layout.FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            availableLines.forEach { badge ->
-                                Box(
+                            // Any direction option
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onStationAndLineSelected(activeStation, selectedLineForFilter, null)
+                                    },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Text(
+                                    text = "All Directions (Default)",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            availableDirections.forEach { dir ->
+                                Card(
                                     modifier = Modifier
-                                        .height(32.dp)
-                                        .defaultMinSize(minWidth = 56.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(badge.backgroundColor)
+                                        .fillMaxWidth()
                                         .clickable {
-                                            onStationAndLineSelected(activeStation, badge)
-                                        }
-                                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                                    contentAlignment = Alignment.Center
+                                            onStationAndLineSelected(activeStation, selectedLineForFilter, dir)
+                                        },
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
                                 ) {
+                                    val dirIndicator = com.androidfung.departureboard.data.model.TransitDirection.fromString(dir)?.indicatorArrow ?: dir
                                     Text(
-                                        text = badge.displayName,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold
-                                        ),
-                                        color = badge.textColor,
-                                        maxLines = 1,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        text = dirIndicator,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = {
+                                onStationAndLineSelected(activeStation, selectedLineForFilter, null)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Save Widget")
                         }
                     }
                 }

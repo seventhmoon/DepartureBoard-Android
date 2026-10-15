@@ -17,6 +17,11 @@ class StationCodeDataSource(private val stationCrsDao: StationCrsDao? = null) {
             return listOf(stationId.uppercase())
         }
 
+        // Guard: TfL bus stops (NaPTAN prefix 4900... or stopArea 490G...) must NEVER resolve to National Rail train stations
+        if (stationId.startsWith("490")) {
+            return emptyList()
+        }
+
         val dao = stationCrsDao ?: return emptyList()
 
         // 1. Direct O(log N) indexed NaPTAN / Hub ID lookup
@@ -27,6 +32,12 @@ class StationCodeDataSource(private val stationCrsDao: StationCrsDao? = null) {
 
         // 2. Normalized Name exact or keyword lookup
         val cleanName = StationNameFormatter.clean(stationName).lowercase()
+
+        // Guard: Bus stops or street-level stops (e.g. "Euston Road", "Euston Road (Stop C)", "Euston / Eversholt St") shouldn't resolve to mainline train stations
+        if (cleanName.contains("(stop ") || cleanName.contains("stop ") || cleanName.contains("bus stand") || cleanName.contains("bus stop") ||
+            cleanName.contains(" road") || cleanName.contains(" street") || cleanName.contains(" st ") || cleanName.contains(" avenue") || cleanName.contains(" lane")) {
+            return emptyList()
+        }
 
         // Guard: Tube-only stations like "King's Cross St. Pancras" shouldn't resolve to mainline
         if (cleanName.contains("king's cross st. pancras") || cleanName.contains("kings cross st. pancras")) {
