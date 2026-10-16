@@ -13,6 +13,23 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+interface LocationDataSource {
+    suspend fun getCurrentLocation(): Location?
+}
+
+class LocationDataSourceImpl(
+    private val context: Context
+) : LocationDataSource {
+    override suspend fun getCurrentLocation(): Location? {
+        val appContext = try {
+            context.applicationContext ?: context
+        } catch (_: Exception) {
+            context
+        }
+        return LocationHelper.getCurrentLocation(appContext)
+    }
+}
+
 object LocationHelper {
 
     @SuppressLint("MissingPermission")

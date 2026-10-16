@@ -1,6 +1,7 @@
 package com.androidfung.departureboard.data.repository
 
 import android.content.Context
+import androidx.glance.appwidget.updateAll
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataSource
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataStore
 import com.androidfung.departureboard.data.db.AppDatabase
@@ -65,14 +66,16 @@ class TransitRepositoryImpl(
     private val nrApiService: NationalRailApiService = NationalRailNetworkClient.apiService,
     private val dataStore: StationPreferencesDataSource,
     private val departureDao: DepartureDao? = null,
-    private val timetableScheduleResolver: TimetableScheduleResolver = TimetableScheduleResolver(apiService)
+    private val timetableScheduleResolver: TimetableScheduleResolver = TimetableScheduleResolver(apiService),
+    private val context: Context? = null
 ) : TransitRepository {
 
     constructor(context: Context) : this(
         apiService = TflNetworkClient.apiService,
         nrApiService = NationalRailNetworkClient.apiService,
         dataStore = StationPreferencesDataStore(context.applicationContext),
-        departureDao = AppDatabase.getInstance(context.applicationContext).departureDao()
+        departureDao = AppDatabase.getInstance(context.applicationContext).departureDao(),
+        context = context.applicationContext
     )
 
     override val savedStationsFlow: Flow<List<Station>> = dataStore.savedStationsFlow
@@ -220,14 +223,13 @@ class TransitRepositoryImpl(
                 val rawArrivals = tflArrivalsDeferred.await()
                 val nrServices = nrServicesDeferred.await()
 
-                val isStPancrasOrKingsCrossNR = stationId == "910GSTPX" || stationId == "910GKNGX" ||
-                        stationName.lowercase().let { it == "st pancras international" || it == "st pancras" || it == "king's cross" }
+                val isStPancrasOrKingsCrossNR = TflStopPointUtils.isStPancrasOrKingsCrossNR(stationId, stationName)
 
                 val filteredRawArrivals = if (isStPancrasOrKingsCrossNR) {
                     rawArrivals.filter { arrival ->
                         val mode = arrival.modeName?.lowercase() ?: ""
                         val line = arrival.lineId?.lowercase() ?: ""
-                        mode != "tube" && line !in listOf("circle", "hammersmith-city", "metropolitan", "northern", "piccadilly", "victoria", "tube")
+                        mode != "tube" && line !in com.androidfung.departureboard.data.model.TflLineColors.TUBE_LINE_IDS && line != "tube"
                     }
                 } else {
                     rawArrivals
@@ -450,9 +452,9 @@ class TransitRepositoryImpl(
                 val nowMillis = System.currentTimeMillis()
                 val isBus = departure.modeName.equals("bus", ignoreCase = true)
                 val interStationSeconds = if (isBus) 90 else 120 // 1.5 min per bus stop, 2 min per tube stop
-                val timeFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.UK).apply {
-                    timeZone = java.util.TimeZone.getTimeZone("Europe/London")
-                }
+                val londonZone = java.time.ZoneId.of("Europe/London")
+                val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm", java.util.Locale.UK)
+                    .withZone(londonZone)
 
                 return@withContext resolvedStops.mapIndexed { idx, stop ->
                     val cleanName = StationNameFormatter.clean(stop.name)
@@ -466,13 +468,13 @@ class TransitRepositoryImpl(
                         idx == 0 -> departure.formattedActualClockTime
                         livePrediction != null && livePrediction.timeToStation > 0 -> {
                             val arrivalMillis = nowMillis + (livePrediction.timeToStation * 1000L)
-                            timeFormat.format(java.util.Date(arrivalMillis))
+                            timeFormatter.format(java.time.Instant.ofEpochMilli(arrivalMillis))
                         }
                         departure.expectedArrivalIso != null || baseSeconds > 0 -> {
                             // Extrapolate forward from current station arrival
                             val cumulativeSeconds = baseSeconds + (idx * interStationSeconds)
                             val arrivalMillis = nowMillis + (cumulativeSeconds * 1000L)
-                            timeFormat.format(java.util.Date(arrivalMillis))
+                            timeFormatter.format(java.time.Instant.ofEpochMilli(arrivalMillis))
                         }
                         else -> null
                     }
@@ -516,9 +518,28 @@ class TransitRepositoryImpl(
         )
     }
 
-    override suspend fun saveStation(station: Station) = dataStore.saveStation(station)
-    override suspend fun reorderStations(stations: List<Station>) = dataStore.saveStations(stations)
-    override suspend fun removeStation(stationId: String) = dataStore.removeStation(stationId)
+    private suspend fun syncGlanceWidgets() {
+        context?.let { ctx ->
+            try {
+                com.androidfung.departureboard.widget.DepartureBoardWidget().updateAll(ctx)
+            } catch (_: Exception) {}
+        }
+    }
+
+    override suspend fun saveStation(station: Station) {
+        dataStore.saveStation(station)
+        syncGlanceWidgets()
+    }
+
+    override suspend fun reorderStations(stations: List<Station>) {
+        dataStore.saveStations(stations)
+        syncGlanceWidgets()
+    }
+
+    override suspend fun removeStation(stationId: String) {
+        dataStore.removeStation(stationId)
+        syncGlanceWidgets()
+    }
     override suspend fun setRecentStationId(stationId: String) = dataStore.setRecentStationId(stationId)
     override suspend fun setDepartureRowsCount(count: Int) = dataStore.setDepartureRowsCount(count)
 
@@ -607,33 +628,7 @@ class TransitRepositoryImpl(
                 results.forEach { childArrivals.addAll(it) }
             }
 
-            // Check known inter-modal siblings for unified stations with split modal NaPTAN IDs:
-            // - Watford Junction: National Rail + London Overground (Lioness line) DC lines
-            // - Wimbledon: District line (Tube) + Croydon Tramlink + South Western Railway
-            // - Stratford: Tube (Central, Jubilee) + DLR + National Rail / Overground / Elizabeth line
-            // - West Ham: Tube (District, H&C, Jubilee) + DLR + c2c Rail
-            // - Canary Wharf: Jubilee line (Tube) + DLR + Elizabeth line
-            // - West Hampstead: Jubilee line (Tube) + Overground (Mildmay) + Thameslink
-            val idUpper = stationId.uppercase()
-            val interchangeSiblings = when {
-                idUpper == "HUBWFJ" || idUpper == "910GWATFDJ" -> listOf("910GWATFJDC")
-                idUpper == "HUBWMB" || idUpper == "940GZZLUWIM" || idUpper == "910GWIMBLDN" -> listOf("940GZZCRWMB", "940GZZLUWIM", "910GWIMBLDN")
-                idUpper == "940GZZCRWMB" -> listOf("940GZZLUWIM", "910GWIMBLDN")
-
-                idUpper == "HUBSRA" || idUpper == "940GZZLUSTD" || idUpper == "940GZZDLSTR" || idUpper == "910GSTFD" ->
-                    listOf("940GZZLUSTD", "940GZZDLSTR", "910GSTFD")
-
-                idUpper == "HUBWEH" || idUpper == "940GZZLUWHM" || idUpper == "940GZZDLWHM" || idUpper == "910GWHAMHL" ->
-                    listOf("940GZZLUWHM", "940GZZDLWHM", "910GWHAMHL")
-
-                idUpper == "HUBCAW" || idUpper == "940GZZLUCYF" || idUpper == "940GZZDLCAN" || idUpper == "910GCANWHRF" || idUpper == "910GCW" ->
-                    listOf("940GZZLUCYF", "940GZZDLCAN", "910GCANWHRF")
-
-                idUpper == "HUBWHD" || idUpper == "940GZZLUWHP" || idUpper == "910GWHMDSTD" || idUpper == "910GWSTHMPD" || idUpper == "910GWSTHMPT" ->
-                    listOf("940GZZLUWHP", "910GWHMDSTD", "910GWSTHMPT")
-
-                else -> emptyList()
-            }
+            val interchangeSiblings = TflStopPointUtils.getInterchangeSiblings(stationId)
 
             val unvisitedSiblings = interchangeSiblings.filter { visited.add(it) }
             if (unvisitedSiblings.isNotEmpty()) {

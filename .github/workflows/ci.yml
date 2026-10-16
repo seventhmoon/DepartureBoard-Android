@@ -40,5 +40,11 @@ jobs:
       - name: Run Unit Tests
         run: ./gradlew testDebugUnitTest --stacktrace
 
+      - name: Run Android Lint
+        run: ./gradlew lintDebug --stacktrace
+
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
+
+      - name: Verify R8 Minified Release Build
+        run: ./gradlew assembleRelease --stacktrace

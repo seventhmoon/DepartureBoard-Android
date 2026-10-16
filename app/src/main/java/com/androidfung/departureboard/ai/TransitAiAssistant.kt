@@ -2,9 +2,11 @@ package com.androidfung.departureboard.ai
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.repository.TransitRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 
 /**
@@ -95,21 +97,33 @@ class TransitAiAssistant(
         }
 
         // Candidate origins: prioritize user's physical nearest station first, followed by saved stations
-        val allOrigins = (listOfNotNull(nearestStation) + savedStations).distinctBy { it.id }
-
-        val stationsToSearch = when {
+        val baseStationsToSearch = when {
             originStation != null -> listOf(originStation)
             nearestStation != null -> listOf(nearestStation) + savedStations.filter { it.id != nearestStation.id }
             else -> savedStations
         }
 
-        // If target destination is queried (e.g. "to Mill Hill East"), first check if our nearest station
-        // or candidate origins have departures heading towards that destination.
+        val stationsToSearch = if (isTrainQuery && originStation == null) {
+            baseStationsToSearch.sortedBy { it.isBusOnly }
+        } else {
+            baseStationsToSearch
+        }
+
+        // Fetch departures across candidate origins concurrently to avoid sequential network latency
+        val departuresByStation = coroutineScope {
+            stationsToSearch.map { origin ->
+                async {
+                    origin to (repository.getDepartures(origin.id, origin.name).getOrNull() ?: emptyList())
+                }
+            }.awaitAll()
+        }
+
+        // If target destination or line is queried (e.g. "to Mill Hill East"), check which candidate origin
+        // has departures heading towards that destination/line.
         var matchingDepartures: List<Departure> = emptyList()
         var departureStation: Station? = null
 
-        for (origin in stationsToSearch) {
-            val deps = repository.getDepartures(origin.id, origin.name).getOrNull() ?: emptyList()
+        for ((origin, deps) in departuresByStation) {
             val matches = deps.filter { dep ->
                 val depDest = dep.destinationName.lowercase()
                 val depTowards = dep.towards?.lowercase() ?: ""
@@ -163,9 +177,8 @@ class TransitAiAssistant(
                 matchedStation = departureStation ?: defaultOrigin,
                 matchedDepartures = matchingDepartures.take(4)
             )
-        } else if (stationsToSearch.isNotEmpty()) {
-            val bestStation = stationsToSearch.first()
-            val stationDepartures = repository.getDepartures(bestStation.id, bestStation.name).getOrNull() ?: emptyList()
+        } else if (departuresByStation.isNotEmpty()) {
+            val (bestStation, stationDepartures) = departuresByStation.first()
             if (stationDepartures.isNotEmpty()) {
                 val next = stationDepartures.first()
                 val prefix = if (nearestStation != null && bestStation.id == nearestStation.id) {

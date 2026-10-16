@@ -24,7 +24,6 @@ import com.androidfung.departureboard.ui.components.reorderableStaggeredGrid
 import com.androidfung.departureboard.ui.components.reorderableStaggeredItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.LocationOn
@@ -32,13 +31,10 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WorkspacePremium
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Surface
 import com.androidfung.departureboard.BuildConfig
-import com.androidfung.departureboard.ui.components.DebugSettingsBottomSheet
-import com.androidfung.departureboard.ui.components.PaywallBottomSheet
 import com.androidfung.departureboard.ui.theme.LocalWindowWidthClass
 import com.androidfung.departureboard.ui.theme.WindowWidthClass
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,268 +48,32 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import android.content.pm.PackageManager
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.ui.components.EmptyDashboardState
-import com.androidfung.departureboard.ui.components.SearchStationBottomSheet
 import com.androidfung.departureboard.ui.components.StationDepartureCard
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
-
-/**
- * Departure Board Dashboard Screen.
- *
- * Implements:
- * - Pixel Clock-inspired departure cards with TfL line badges, platform details, and live countdowns.
- * - Material 3 Expressive design with pill chips, smooth gradient backgrounds, and expressive floating action button (+).
- * - Pull-to-refresh & auto-refresh (via ViewModel).
- * - Swipe-to-delete with Snackbar undo action.
- * - Clean empty state when no stations are saved.
- * - Search station picker & station details bottom sheets.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DashboardScreen(
-    modifier: Modifier = Modifier,
-    initialDetailStation: Station? = null,
-    onNavigateToSearch: () -> Unit = {},
-    onStationClick: (Station) -> Unit = {},
-    viewModel: DashboardViewModel = viewModel()
-) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    var showSearchSheet by rememberSaveable { mutableStateOf(false) }
-    var showAiSheet by rememberSaveable { mutableStateOf(false) }
-    var showDebugSheet by rememberSaveable { mutableStateOf(false) }
-    var showHelpSheet by rememberSaveable { mutableStateOf(false) }
-    var selectedDepartureForJourney by remember { mutableStateOf<Departure?>(null) }
-
-    LaunchedEffect(initialDetailStation) {
-        if (initialDetailStation != null) {
-            viewModel.openStationDetail(initialDetailStation)
-        }
-    }
-
-    // Handle user snackbar notifications (e.g., station deletion undo)
-    LaunchedEffect(uiState.userMessage) {
-        val message = uiState.userMessage
-        if (message != null) {
-            val result = snackbarHostState.showSnackbar(
-                message = message,
-                actionLabel = "Undo",
-                duration = SnackbarDuration.Short
-            )
-            if (result == SnackbarResult.ActionPerformed) {
-                viewModel.undoRemoveStation()
-            }
-            viewModel.clearUserMessage()
-        }
-    }
-
-    // Automatically pause auto-refresh polling and the 1s countdown ticker when the
-    // screen is backgrounded or inactive, so neither keeps running with the screen off.
-    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
-        viewModel.startAutoRefreshPolling()
-        viewModel.startCountdownTicker()
-        onPauseOrDispose {
-            viewModel.stopAutoRefreshPolling()
-            viewModel.stopCountdownTicker()
-        }
-    }
-
-    val context = androidx.compose.ui.platform.LocalContext.current
-
-    // Nearest-station detection requires a location permission, which is requested
-    // contextually with a rationale (e.g. when opening search nearby or AI assistant),
-    // rather than abruptly at app launch.
-    var hasLocationPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        )
-    }
-
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        hasLocationPermission = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-            permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
-    }
-
-    var showLocationRationale by remember { mutableStateOf(false) }
-
-    val requestLocationWithRationale = {
-        if (!hasLocationPermission) {
-            showLocationRationale = true
-        }
-    }
-
-    // Re-run the nearest-station lookup whenever permission is granted (or re-granted).
-    // Uses local candidate stations at startup without firing extra HTTP queries.
-    LaunchedEffect(hasLocationPermission) {
-        if (hasLocationPermission) {
-            viewModel.updateNearestStation(context, fetchApiNearby = false)
-        }
-    }
-
-    DashboardContent(
-        uiState = uiState,
-        snackbarHostState = snackbarHostState,
-        onRefresh = { viewModel.refreshDepartures(isManualPullToRefresh = true) },
-        onDismissStation = { station -> viewModel.removeStation(station) },
-        onMoveStation = { fromIndex, toIndex -> viewModel.moveStation(fromIndex, toIndex) },
-        onAddStationClick = {
-            if (hasLocationPermission) {
-                viewModel.updateNearestStation(context, fetchApiNearby = true)
-            }
-            showSearchSheet = true
-            onNavigateToSearch()
-        },
-        onStationClick = { station ->
-            viewModel.openStationDetail(station)
-            onStationClick(station)
-        },
-        onDepartureClick = { departure ->
-            selectedDepartureForJourney = departure
-        },
-        onAiAssistantClick = { showAiSheet = true },
-        onUpgradeClick = { viewModel.showPaywall("Unlock Prompt Departure Pro") },
-        onOpenSettings = {
-            // Note: If using standalone DashboardScreen, Settings is launched via onOpenSettings
-        },
-        onOpenDebugSettings = {
-            android.util.Log.d("DashboardScreen", "onOpenDebugSettings clicked!")
-            showDebugSheet = true
-        },
-        onOpenHelpFaq = { showHelpSheet = true },
-        modifier = modifier
-    )
-
-    // Search Stations Sheet (opens station details directly without auto-saving)
-    if (showSearchSheet) {
-        SearchStationBottomSheet(
-            onDismissRequest = { showSearchSheet = false },
-            onStationSelected = { station ->
-                showSearchSheet = false
-                viewModel.openStationDetail(station)
-            },
-            savedStationIds = remember(uiState.stationCards) {
-                uiState.stationCards.asSequence().map { it.station.id }.toSet()
-            },
-            nearbyStations = uiState.nearbyStations,
-            hasLocationPermission = hasLocationPermission,
-            onRequestLocation = requestLocationWithRationale,
-            onSearchQuery = { query -> viewModel.searchStations(query) }
-        )
-    }
-
-    // Station Departure Details and Train Journey screens are now handled via Navigation 3 in MainActivity.kt
-
-    // Natural Language Transit Assistant Sheet
-    if (showAiSheet) {
-        val nearest = uiState.nearestStation
-            ?: uiState.stationCards.firstOrNull { it.station.id == uiState.nearestStationId }?.station
-        com.androidfung.departureboard.ui.components.AiTransitSheet(
-            onDismissRequest = { showAiSheet = false },
-            repository = viewModel.repository,
-            savedStations = uiState.stationCards.map { it.station },
-            nearestStation = nearest,
-            initialTriggerSpeech = false,
-            billingRepository = viewModel.billingRepository,
-            aiModelType = uiState.aiModelType,
-            onUpgradeClick = { viewModel.showPaywall("Unlock unlimited Prompt Departure AI queries with Pro") }
-        )
-    }
-
-    // Location Permission Rationale Dialog
-    if (showLocationRationale) {
-        com.androidfung.departureboard.ui.components.LocationRationaleDialog(
-            onConfirm = {
-                showLocationRationale = false
-                locationPermissionLauncher.launch(
-                    arrayOf(
-                        android.Manifest.permission.ACCESS_FINE_LOCATION,
-                        android.Manifest.permission.ACCESS_COARSE_LOCATION
-                    )
-                )
-            },
-            onDismiss = {
-                showLocationRationale = false
-            }
-        )
-    }
-
-    // Paywall Dialog Sheet
-    if (uiState.paywallPromptReason != null) {
-        PaywallBottomSheet(
-            onDismissRequest = { viewModel.dismissPaywall() },
-            billingRepository = viewModel.billingRepository,
-            reasonMessage = uiState.paywallPromptReason
-        )
-    }
-
-    // Developer Debug Settings Sheet (Only enabled in debug builds)
-    if (showDebugSheet && BuildConfig.DEBUG) {
-        DebugSettingsBottomSheet(
-            onDismissRequest = { showDebugSheet = false },
-            billingRepository = viewModel.billingRepository,
-            isPro = uiState.isPro,
-            userPlan = uiState.userPlan,
-            onSelectPlan = { plan -> viewModel.setDebugPlan(plan) },
-            onTogglePro = { viewModel.toggleDebugPro() },
-            onResetStations = { viewModel.resetSavedStationsToDefaults() },
-            selectedAiModel = uiState.aiModelType,
-            onSelectAiModel = { model -> viewModel.setAiModelType(model) }
-        )
-    }
-
-    // Help, App Info & FAQ Bottom Sheet
-    if (showHelpSheet) {
-        com.androidfung.departureboard.ui.components.HelpFaqBottomSheet(
-            onDismissRequest = { showHelpSheet = false }
-        )
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -542,7 +302,9 @@ fun DashboardContent(
     ) { innerPadding ->
         val windowWidthClass = LocalWindowWidthClass.current
         val isTwoPane = com.androidfung.departureboard.ui.components.LocalIsTwoPaneMode.current
+        val isThreePane = com.androidfung.departureboard.ui.components.LocalIsThreePaneMode.current
         val gridColumns = when {
+            isThreePane -> StaggeredGridCells.Fixed(1)
             isTwoPane && windowWidthClass == WindowWidthClass.EXTRA_LARGE -> StaggeredGridCells.Fixed(2)
             isTwoPane -> StaggeredGridCells.Fixed(1)
             windowWidthClass == WindowWidthClass.NARROW || windowWidthClass == WindowWidthClass.REGULAR -> StaggeredGridCells.Fixed(1)

@@ -35,4 +35,49 @@ internal object TflStopPointUtils {
             else -> 1
         }
     }
+
+    /**
+     * Returns true if the station represents St Pancras International or King's Cross National Rail
+     * (where Tube arrivals from the shared King's Cross St. Pancras Underground hub should be excluded).
+     */
+    fun isStPancrasOrKingsCrossNR(stationId: String, stationName: String): Boolean {
+        if (stationId.equals("910GSTPX", ignoreCase = true) || stationId.equals("910GKNGX", ignoreCase = true)) {
+            return true
+        }
+        val lowerName = stationName.lowercase()
+        return lowerName == "st pancras international" || lowerName == "st pancras" || lowerName == "king's cross"
+    }
+
+    /**
+     * Returns true if the station is Wembley Park (used to filter spurious H&C depot movements).
+     */
+    fun isWembleyPark(stationId: String, stationName: String): Boolean {
+        return stationId.equals("940GZZLUWYP", ignoreCase = true) || "wembley park" in stationName.lowercase()
+    }
+
+    /**
+     * Known inter-modal sibling NaPTAN IDs for unified stations with split modal IDs:
+     * - Watford Junction: National Rail + London Overground (Lioness line) DC lines
+     * - Wimbledon: District line (Tube) + Croydon Tramlink + South Western Railway
+     * - Stratford: Tube (Central, Jubilee) + DLR + National Rail / Overground / Elizabeth line
+     * - West Ham: Tube (District, H&C, Jubilee) + DLR + c2c Rail
+     * - Canary Wharf: Jubilee line (Tube) + DLR + Elizabeth line
+     * - West Hampstead: Jubilee line (Tube) + Overground (Mildmay) + Thameslink
+     */
+    fun getInterchangeSiblings(stationId: String): List<String> {
+        return when (stationId.uppercase()) {
+            "HUBWFJ", "910GWATFDJ" -> listOf("910GWATFJDC")
+            "HUBWMB", "940GZZLUWIM", "910GWIMBLDN" -> listOf("940GZZCRWMB", "940GZZLUWIM", "910GWIMBLDN")
+            "940GZZCRWMB" -> listOf("940GZZLUWIM", "910GWIMBLDN")
+            "HUBSRA", "940GZZLUSTD", "940GZZDLSTR", "910GSTFD" ->
+                listOf("940GZZLUSTD", "940GZZDLSTR", "910GSTFD")
+            "HUBWEH", "940GZZLUWHM", "940GZZDLWHM", "910GWHAMHL" ->
+                listOf("940GZZLUWHM", "940GZZDLWHM", "910GWHAMHL")
+            "HUBCAW", "940GZZLUCYF", "940GZZDLCAN", "910GCANWHRF", "910GCW" ->
+                listOf("940GZZLUCYF", "940GZZDLCAN", "910GCANWHRF")
+            "HUBWHD", "940GZZLUWHP", "910GWHMDSTD", "910GWSTHMPD", "910GWSTHMPT" ->
+                listOf("940GZZLUWHP", "910GWHMDSTD", "910GWSTHMPT")
+            else -> emptyList()
+        }
+    }
 }

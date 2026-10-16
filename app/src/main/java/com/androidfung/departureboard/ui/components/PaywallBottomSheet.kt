@@ -273,7 +273,7 @@ fun PaywallBottomSheet(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            val context = androidx.compose.ui.platform.LocalContext.current
+            val context = LocalContext.current
             var isRestoring by remember { mutableStateOf(false) }
 
             // Restore Purchases
@@ -284,7 +284,7 @@ fun PaywallBottomSheet(
                     billingRepository.refreshPurchases { restored, message ->
                         isRestoring = false
                         android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                             if (restored) {
                                 onDismissRequest()
                             }

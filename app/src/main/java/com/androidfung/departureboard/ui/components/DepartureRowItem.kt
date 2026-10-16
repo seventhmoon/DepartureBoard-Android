@@ -75,7 +75,7 @@ fun DepartureRowItem(
                 horizontal = MaterialTheme.dimensions.paddingSmall
             )
             .semantics {
-                contentDescription = "${departure.destinationName}, arriving in ${departure.formattedTimeToArrival}"
+                contentDescription = "${departure.lineName} to ${departure.destinationName}, ${if (departure.status == DepartureStatus.CANCELLED) "cancelled" else "departing in " + departure.formattedTimeToArrival}"
             },
         verticalAlignment = Alignment.CenterVertically
     ) {

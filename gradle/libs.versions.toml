@@ -24,12 +24,10 @@ roomCompiler = "2.8.5"
 kotlinxCoroutinesTest = "1.11.0"
 core = "1.7.0"
 runner = "1.7.0"
-coilCompose = "2.7.0"
 retrofit = "3.0.0"
 converterMoshi = "3.0.0"
 kotlinxCoroutinesAndroid = "1.11.0"
 kotlinxCoroutinesCore = "1.11.0"
-accompanistPermissions = "0.37.3"
 playServicesLocation = "21.4.0"
 loggingInterceptor = "5.5.0"
 okhttp = "5.5.0"
@@ -78,12 +76,10 @@ androidx-runner = { group = "androidx.test", name = "runner", version.ref = "run
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
-coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 converter-moshi = { group = "com.squareup.retrofit2", name = "converter-moshi", version.ref = "converterMoshi" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
-accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanistPermissions" }
 play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "loggingInterceptor" }

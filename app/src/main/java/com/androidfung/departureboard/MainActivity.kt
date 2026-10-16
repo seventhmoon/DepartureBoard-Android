@@ -35,7 +35,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.androidfung.departureboard.billing.BillingRepository
-import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,7 +46,6 @@ import com.androidfung.departureboard.ui.components.StationDetailScreen
 import com.androidfung.departureboard.ui.components.TrainJourneyScreen
 import com.androidfung.departureboard.ui.components.rememberListDetailSceneStrategy
 import com.androidfung.departureboard.ui.dashboard.DashboardContent
-import com.androidfung.departureboard.ui.dashboard.DashboardScreen
 import com.androidfung.departureboard.ui.dashboard.DashboardViewModel
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 import com.google.android.play.core.appupdate.AppUpdateManager
@@ -178,12 +176,12 @@ class MainActivity : ComponentActivity() {
                     // Uses local candidate stations at startup without firing extra HTTP queries.
                     LaunchedEffect(hasLocationPermission) {
                         if (hasLocationPermission) {
-                            viewModel.updateNearestStation(context, fetchApiNearby = false)
+                            viewModel.updateNearestStation(fetchApiNearby = false)
                         }
                     }
 
                     val backStack = rememberNavBackStack(DashboardListRoute as NavKey)
-                    
+
                     LaunchedEffect(uiState.selectedDetailStation) {
                         if (uiState.selectedDetailStation != null) {
                              backStack.addDetail(StationDetailRoute(uiState.selectedDetailStation!!.id))
@@ -192,12 +190,14 @@ class MainActivity : ComponentActivity() {
                              backStack.removeAll(toRemove)
                         }
                     }
-                    
-                    var selectedDepartureForJourney by remember { mutableStateOf<Departure?>(null) }
-                    
-                    LaunchedEffect(selectedDepartureForJourney) {
-                        if (selectedDepartureForJourney != null) {
-                             backStack.addDetail(TrainJourneyRoute(selectedDepartureForJourney!!.id))
+
+                    LaunchedEffect(uiState.selectedJourneyDeparture?.id) {
+                        val journeyDep = uiState.selectedJourneyDeparture
+                        if (journeyDep != null) {
+                             backStack.addDetail(TrainJourneyRoute(journeyDep.id))
+                        } else {
+                             val toRemove = backStack.filter { it is TrainJourneyRoute }
+                             backStack.removeAll(toRemove)
                         }
                     }
 
@@ -210,7 +210,7 @@ class MainActivity : ComponentActivity() {
                             backStack = backStack,
                             onBack = { 
                                 if (backStack.last() is TrainJourneyRoute) {
-                                    selectedDepartureForJourney = null
+                                    viewModel.closeTrainJourney()
                                 } else if (backStack.last() is StationDetailRoute) {
                                     viewModel.closeStationDetail()
                                 }
@@ -233,7 +233,7 @@ class MainActivity : ComponentActivity() {
                                             onMoveStation = { fromIndex, toIndex -> viewModel.moveStation(fromIndex, toIndex) },
                                             onAddStationClick = {
                                                 if (hasLocationPermission) {
-                                                    viewModel.updateNearestStation(context, fetchApiNearby = true)
+                                                    viewModel.updateNearestStation(fetchApiNearby = true)
                                                 }
                                                 showSearchSheet = true
                                             },
@@ -241,7 +241,7 @@ class MainActivity : ComponentActivity() {
                                                 viewModel.openStationDetail(station)
                                             },
                                             onDepartureClick = { departure ->
-                                                selectedDepartureForJourney = departure
+                                                viewModel.openTrainJourney(departure)
                                             },
                                             onAiAssistantClick = { showAiSheet = true },
                                             onUpgradeClick = { viewModel.showPaywall("Unlock Prompt Departure Pro") },
@@ -274,7 +274,7 @@ class MainActivity : ComponentActivity() {
                                                 },
                                                 onRefresh = { viewModel.openStationDetail(station) },
                                                 onDepartureClick = { departure ->
-                                                    selectedDepartureForJourney = departure
+                                                    viewModel.openTrainJourney(departure)
                                                 },
                                                 onBack = { 
                                                     viewModel.closeStationDetail()
@@ -285,13 +285,14 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                     entry<TrainJourneyRoute>(
-                                        metadata = ListDetailScene.detailPane()
-                                    ) {
-                                        if (selectedDepartureForJourney != null) {
+                                        metadata = ListDetailScene.supportingPane()
+                                    ) { trainJourneyRoute ->
+                                        val journeyDep = viewModel.resolveDepartureForJourney(trainJourneyRoute.departureId)
+                                        if (journeyDep != null) {
                                             TrainJourneyScreen(
-                                                departure = selectedDepartureForJourney!!,
+                                                departure = journeyDep,
                                                 onBack = { 
-                                                    selectedDepartureForJourney = null
+                                                    viewModel.closeTrainJourney()
                                                     val last = backStack.last()
                                                     backStack.remove(last)
                                                 },
@@ -406,9 +407,19 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun NavBackStack<NavKey>.addDetail(detailRoute: NavKey) {
-        val toRemove = this.filter { it is StationDetailRoute || it is TrainJourneyRoute }
-        this.removeAll(toRemove)
-        this.add(detailRoute)
+        if (detailRoute is StationDetailRoute) {
+            // When navigating to a new station, clear previous station & train journey details
+            val toRemove = this.filter { it is StationDetailRoute || it is TrainJourneyRoute }
+            this.removeAll(toRemove)
+            this.add(detailRoute)
+        } else if (detailRoute is TrainJourneyRoute) {
+            // Keep the StationDetailRoute in the backstack so on desktop/tablet both or all 3 can coexist!
+            val toRemove = this.filter { it is TrainJourneyRoute }
+            this.removeAll(toRemove)
+            this.add(detailRoute)
+        } else {
+            this.add(detailRoute)
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -519,11 +530,11 @@ class MainActivity : ComponentActivity() {
         }
         debugProReceiver = receiver
         val filter = IntentFilter("com.androidfung.departureboard.TOGGLE_PRO")
-        androidx.core.content.ContextCompat.registerReceiver(
+        ContextCompat.registerReceiver(
             this,
             receiver,
             filter,
-            androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            ContextCompat.RECEIVER_EXPORTED
         )
     }
 

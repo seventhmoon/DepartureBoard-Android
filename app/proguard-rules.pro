@@ -4,16 +4,16 @@
 # You can edit the include path and order by changing the proguardFiles
 # directive in build.gradle.
 
-# Keep Moshi JSON models and annotations
--keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod
--keepclassmembers class * {
+# Keep Moshi code-generated adapters and @JsonClass model constructors (for reflective adapter lookup)
+-keepnames @com.squareup.moshi.JsonClass class *
+-keepclassmembers @com.squareup.moshi.JsonClass class * {
+    <init>(...);
     @com.squareup.moshi.* <fields>;
     @com.squareup.moshi.* <methods>;
 }
-
-# Keep only Moshi model classes and generated adapters
--keep @com.squareup.moshi.JsonClass class * { *; }
--keep class * extends com.squareup.moshi.JsonAdapter { *; }
+-keep class * extends com.squareup.moshi.JsonAdapter {
+    <init>(...);
+}
 
 # Keep Glance AppWidget and receiver components (constructors needed for reflection instantiation)
 -keep class * extends androidx.glance.appwidget.GlanceAppWidget {

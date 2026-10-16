@@ -1,10 +1,15 @@
 package com.androidfung.departureboard.data.network
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import com.squareup.moshi.Moshi
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.io.File
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -19,12 +24,23 @@ object TflNetworkClient {
             .build()
     }
 
-    private var cacheDir: java.io.File? = null
+    private var cacheDir: File? = null
+    private var appContext: Context? = null
 
-    fun initialize(context: android.content.Context) {
+    fun initialize(context: Context) {
+        val app = context.applicationContext ?: context
+        appContext = app
         if (cacheDir == null) {
-            cacheDir = java.io.File(context.applicationContext.cacheDir, "http_cache")
+            cacheDir = File(app.cacheDir, "http_cache")
         }
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val context = appContext ?: return true
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
+        val network = cm.activeNetwork ?: return false
+        val capabilities = cm.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     private val okHttpClient: OkHttpClient by lazy {
@@ -42,6 +58,58 @@ object TflNetworkClient {
 
         val builder = OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
+            .addInterceptor { chain ->
+                // Underground Offline HTTP Cache-Control Interceptor
+                // If network is unavailable or request fails, serve cached responses for 7 days (max-stale=604800)
+                val originalRequest = chain.request()
+                val request = if (!isNetworkAvailable()) {
+                    originalRequest.newBuilder()
+                        .header("Cache-Control", "public, only-if-cached, max-stale=604800")
+                        .build()
+                } else {
+                    originalRequest
+                }
+
+                try {
+                    val response = chain.proceed(request)
+                    if (!response.isSuccessful && !isNetworkAvailable()) {
+                        response.close()
+                        val offlineRequest = originalRequest.newBuilder()
+                            .header("Cache-Control", "public, only-if-cached, max-stale=604800")
+                            .build()
+                        chain.proceed(offlineRequest)
+                    } else {
+                        response
+                    }
+                } catch (_: IOException) {
+                    val offlineRequest = originalRequest.newBuilder()
+                        .header("Cache-Control", "public, only-if-cached, max-stale=604800")
+                        .build()
+                    chain.proceed(offlineRequest)
+                }
+            }
+            .addNetworkInterceptor { chain ->
+                // Response interceptor to allow caching if server returns restrictive headers for metadata queries.
+                // Live arrival predictions (/Arrivals) must never be force-cached for 60s so 15s-30s polling
+                // and pull-to-refresh always fetch fresh live predictions when online.
+                val request = chain.request()
+                val response = chain.proceed(request)
+                val isLiveArrivalsEndpoint = request.url.encodedPath.endsWith("/Arrivals", ignoreCase = true)
+                val cacheControl = response.header("Cache-Control")
+                if (!isLiveArrivalsEndpoint && (
+                    cacheControl == null || cacheControl.contains("no-store", ignoreCase = true) ||
+                        cacheControl.contains("no-cache", ignoreCase = true) || cacheControl.contains("must-revalidate", ignoreCase = true) ||
+                        cacheControl.contains("max-age=0", ignoreCase = true)
+                    )
+                ) {
+                    response.newBuilder()
+                        .removeHeader("Pragma")
+                        .header("Cache-Control", "public, max-age=60")
+                        .build()
+                } else {
+                    response
+                }
+            }
             .addInterceptor { chain ->
                 // Attach app_key parameter if available
                 val originalRequest = chain.request()

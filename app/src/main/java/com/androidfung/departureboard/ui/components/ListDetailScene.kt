@@ -20,15 +20,22 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavMetadataKey
 import androidx.navigation3.runtime.contains
@@ -37,47 +44,79 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SceneStrategyScope
 import androidx.window.core.layout.WindowSizeClass
+import androidx.window.core.layout.WindowSizeClass.Companion.WIDTH_DP_EXPANDED_LOWER_BOUND
 import androidx.window.core.layout.WindowSizeClass.Companion.WIDTH_DP_MEDIUM_LOWER_BOUND
 
 /**
- * A [Scene] that displays a list and a detail [NavEntry] side-by-side in a 40/60 split.
- *
+ * A [Scene] that displays 2 panes on tablets / medium windows, or 3 panes on desktop / extra-large screens.
+ * 
+ * Layout configurations:
+ * - 3-Pane (Desktop / EXTRA_LARGE): List Pane (30%) + Detail Pane (35%) + Supporting Pane (35%)
+ * - 2-Pane (Tablet / Medium / Expanded): List Pane (45%) + Detail/Supporting Pane (55%)
  */
 data class ListDetailScene<T : Any>(
     override val key: Any,
     override val previousEntries: List<NavEntry<T>>,
     val listEntry: NavEntry<T>,
-    val detailEntry: NavEntry<T>,
+    val detailEntry: NavEntry<T>?,
+    val supportingEntry: NavEntry<T>?,
 ) : Scene<T> {
-    override val entries: List<NavEntry<T>> = listOf(listEntry, detailEntry)
+    override val entries: List<NavEntry<T>> = listOfNotNull(listEntry, detailEntry, supportingEntry)
+    
     override val content: @Composable (() -> Unit) = {
-        CompositionLocalProvider(LocalIsTwoPaneMode provides true) {
-            val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
-            val isUltraWide = windowWidthClass == com.androidfung.departureboard.ui.theme.WindowWidthClass.EXTRA_LARGE
+        val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
+        val isThreePaneMode = windowWidthClass == com.androidfung.departureboard.ui.theme.WindowWidthClass.EXTRA_LARGE &&
+                detailEntry != null && supportingEntry != null
 
-            // On ultra-wide desktop / full screen, allow the list pane more room (or 50/50 balance)
-            val listWeight = if (isUltraWide) 0.50f else 0.45f
-            val detailWeight = if (isUltraWide) 0.50f else 0.55f
-
+        CompositionLocalProvider(
+            LocalIsTwoPaneMode provides true,
+            LocalIsThreePaneMode provides isThreePaneMode
+        ) {
             Row(modifier = Modifier.fillMaxSize()) {
-                Column(modifier = Modifier.weight(listWeight)) {
-                    listEntry.Content()
-                }
+                if (isThreePaneMode) {
+                    // 3-Pane Layout on Desktop (EXTRA_LARGE >= 1200dp)
+                    // List (Cards): 30% | Station Detail: 35% | Train Journey Supporting: 35%
+                    Column(modifier = Modifier.weight(0.30f)) {
+                        listEntry.Content()
+                    }
 
-                // Let the detail entry know not to display a back button.
-                CompositionLocalProvider(LocalBackButtonVisibility provides false) {
-                    Column(modifier = Modifier.weight(detailWeight)) {
-                        AnimatedContent(
-                            targetState = detailEntry,
-                            contentKey = { entry -> entry.contentKey },
-                            transitionSpec = {
-                                slideInHorizontally(
-                                    initialOffsetX = { it }
-                                ) togetherWith
-                                        slideOutHorizontally(targetOffsetX = { -it })
+                    CompositionLocalProvider(LocalBackButtonVisibility provides false) {
+                        Column(modifier = Modifier.weight(0.35f)) {
+                            detailEntry.Content()
+                        }
+                    }
+
+                    CompositionLocalProvider(LocalBackButtonVisibility provides false) {
+                        Column(modifier = Modifier.weight(0.35f)) {
+                            supportingEntry.Content()
+                        }
+                    }
+                } else {
+                    // 2-Pane Layout on Tablets / Foldables / Expanded
+                    val isUltraWide = windowWidthClass == com.androidfung.departureboard.ui.theme.WindowWidthClass.EXTRA_LARGE
+                    val listWeight = if (isUltraWide) 0.50f else 0.45f
+                    val detailWeight = if (isUltraWide) 0.50f else 0.55f
+
+                    Column(modifier = Modifier.weight(listWeight)) {
+                        listEntry.Content()
+                    }
+
+                    // Active right pane is whichever detail / supporting entry is on top
+                    val activeRightPane = supportingEntry ?: detailEntry
+                    if (activeRightPane != null) {
+                        CompositionLocalProvider(LocalBackButtonVisibility provides false) {
+                            Column(modifier = Modifier.weight(detailWeight)) {
+                                AnimatedContent(
+                                    targetState = activeRightPane,
+                                    contentKey = { entry -> entry.contentKey },
+                                    transitionSpec = {
+                                        slideInHorizontally(initialOffsetX = { it }) togetherWith
+                                                slideOutHorizontally(targetOffsetX = { -it })
+                                    }
+                                ) { entry ->
+                                    entry.Content()
+                                }
                             }
-                        ) { entry ->
-                            entry.Content()
                         }
                     }
                 }
@@ -86,84 +125,64 @@ data class ListDetailScene<T : Any>(
     }
 
     companion object {
-        /**
-         * Helper function to add metadata to a [NavEntry] indicating it can be displayed
-         * in the list pane of a [ListDetailScene].
-         */
         fun listPane() = metadata {
             put(ListKey, true)
         }
 
-        /**
-         * Helper function to add metadata to a [NavEntry] indicating it can be displayed
-         * in the detail pane of a the [ListDetailScene].
-         */
         fun detailPane() = metadata {
             put(DetailKey, true)
+        }
+
+        fun supportingPane() = metadata {
+            put(SupportingKey, true)
         }
     }
 
     object ListKey : NavMetadataKey<Boolean>
     object DetailKey : NavMetadataKey<Boolean>
+    object SupportingKey : NavMetadataKey<Boolean>
 }
 
-/**
- * This `CompositionLocal` can be used by a detail `NavEntry` to decide whether to display
- * a back button. Default is `true`. It is set to `false` for a detail `NavEntry` when being
- * displayed in a `ListDetailScene`.
- */
 val LocalBackButtonVisibility = compositionLocalOf { true }
-
-/**
- * CompositionLocal indicating whether the screen is actively rendered in a dual-pane layout.
- * When true, the list pane should restrict its grid column count so cards remain readable.
- */
 val LocalIsTwoPaneMode = compositionLocalOf { false }
+val LocalIsThreePaneMode = compositionLocalOf { false }
 
 @Composable
 fun <T : Any> rememberListDetailSceneStrategy(): ListDetailSceneStrategy<T> {
     val windowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass
-
     return remember(windowSizeClass) {
         ListDetailSceneStrategy(windowSizeClass)
     }
 }
 
-
 /**
- * A [SceneStrategy] that returns a [ListDetailScene] if:
- *
- * - the window width is over 600dp
- * - A `Detail` entry is the last item in the back stack
- * - A `List` entry is in the back stack
- *
- * Notably, when the detail entry changes the scene's key does not change. This allows the scene,
- * rather than the NavDisplay, to handle animations when the detail entry changes.
+ * An adaptive [SceneStrategy] that evaluates whether to display 1, 2, or 3 panes based on window width
+ * and the active entries in the backstack.
  */
 class ListDetailSceneStrategy<T : Any>(val windowSizeClass: WindowSizeClass) : SceneStrategy<T> {
 
     override fun SceneStrategyScope<T>.calculateScene(entries: List<NavEntry<T>>): Scene<T>? {
-
         if (!windowSizeClass.isWidthAtLeastBreakpoint(WIDTH_DP_MEDIUM_LOWER_BOUND)) {
             return null
         }
 
-        val detailEntry =
-            entries.lastOrNull()?.takeIf { it.metadata.contains(ListDetailScene.DetailKey) }
-                ?: return null
-        val listEntry =
-            entries.findLast { it.metadata.contains(ListDetailScene.ListKey) } ?: return null
+        val listEntry = entries.findLast { it.metadata.contains(ListDetailScene.ListKey) } ?: return null
+        val detailEntry = entries.findLast { it.metadata.contains(ListDetailScene.DetailKey) }
+        val supportingEntry = entries.findLast { it.metadata.contains(ListDetailScene.SupportingKey) }
 
-        // We use the list's contentKey to uniquely identify the scene.
-        // This allows the detail panes to be animated in and out by the scene, rather than
-        // having NavDisplay animate the whole scene out when the selected detail item changes.
+        // Must have at least one detail or supporting entry to form a multi-pane scene
+        if (detailEntry == null && supportingEntry == null) {
+            return null
+        }
+
         val sceneKey = listEntry.contentKey
 
         return ListDetailScene(
             key = sceneKey,
             previousEntries = entries.dropLast(1),
             listEntry = listEntry,
-            detailEntry = detailEntry
+            detailEntry = detailEntry,
+            supportingEntry = supportingEntry
         )
     }
 }

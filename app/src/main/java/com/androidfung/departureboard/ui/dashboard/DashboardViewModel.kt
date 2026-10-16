@@ -39,7 +39,9 @@ class DashboardViewModel @JvmOverloads constructor(
     internal val repository: TransitRepository = (application as? com.androidfung.departureboard.DepartureBoardApp)?.repository ?: TransitRepositoryImpl(application),
     internal val billingRepository: BillingDataSource = BillingRepository.getInstance(application),
     internal val networkConnectivityObserver: com.androidfung.departureboard.util.NetworkConnectivityObserver =
-        com.androidfung.departureboard.util.NetworkConnectivityObserverImpl(application)
+        com.androidfung.departureboard.util.NetworkConnectivityObserverImpl(application),
+    internal val locationDataSource: com.androidfung.departureboard.util.LocationDataSource =
+        com.androidfung.departureboard.util.LocationDataSourceImpl(application)
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -211,19 +213,17 @@ class DashboardViewModel @JvmOverloads constructor(
      */
     fun refreshStation(station: Station) {
         viewModelScope.launch {
-            val result = repository.getDepartures(station.id, station.name)
+            val lineStatusesDeferred = async { repository.getLineStatuses() }
+            val departuresDeferred = async { repository.getDepartures(station.id, station.name) }
+            val lineStatuses = lineStatusesDeferred.await()
+            val result = departuresDeferred.await()
+
             _uiState.update { state ->
                 val updatedCards = state.stationCards.map { card ->
                     if (card.station.id == station.id) {
                         if (result.isSuccess) {
                             val departures = result.getOrDefault(emptyList())
-                            val badges = if (departures.isNotEmpty()) {
-                                departures.map { it.lineBadge }
-                                    .distinctBy { it.lineId }
-                                    .sortedWith(LineBadgeInfo.NATURAL_COMPARATOR)
-                            } else {
-                                inferLineBadges(card.station)
-                            }
+                            val badges = buildStationLineBadges(card.station, departures, lineStatuses)
                             card.copy(
                                 departures = departures,
                                 availableLineBadges = badges,
@@ -271,54 +271,7 @@ class DashboardViewModel @JvmOverloads constructor(
                 val res = results[card.station.id]
                 if (res != null && res.isSuccess) {
                     val departures = res.getOrDefault(emptyList())
-                    // Extract line badges strictly from active departures, falling back to verified station lines only if departures are empty
-                    val departureBadges = departures.map { it.lineBadge }.distinctBy { it.displayName }
-                    val rawBadges = if (departureBadges.isNotEmpty()) {
-                        departureBadges.filter { badge ->
-                            // Guard: Filter out spurious depot movements (e.g. H&C depot run at Wembley Park)
-                            val isWembleyPark = card.station.id == "940GZZLUWYP" || "wembley park" in card.station.name.lowercase()
-                            if (isWembleyPark && badge.lineId.equals("hammersmith-city", ignoreCase = true)) return@filter false
-
-                            // Guard: Filter out Tube badges for St Pancras or King's Cross National Rail
-                            val isStPancrasOrKingsCrossNR = card.station.id == "910GSTPX" || card.station.id == "910GKNGX" ||
-                                    card.station.name.lowercase().let { it == "st pancras international" || it == "st pancras" || it == "king's cross" }
-                            if (isStPancrasOrKingsCrossNR) {
-                                if (badge.mode == com.androidfung.departureboard.data.model.TransitMode.TUBE ||
-                                    badge.lineId.lowercase() in TflLineColors.TUBE_LINE_IDS
-                                ) {
-                                    return@filter false
-                                }
-                            }
-
-                            true
-                        }
-                    } else {
-                        inferLineBadges(card.station)
-                    }
-
-                    // Sort line badges logically: Tube/Rail lines alphabetically, then numeric Bus routes in ascending order
-                    val sortedBadges = rawBadges.sortedWith(
-                        compareBy<LineBadgeInfo> { badge ->
-                            if (badge.displayName.all { it.isDigit() }) 1 else 0
-                        }.thenBy { badge ->
-                            val num = badge.displayName.filter { it.isDigit() }.toIntOrNull()
-                            num ?: Int.MAX_VALUE
-                        }.thenBy { it.displayName }
-                    )
-
-                    val badgesWithStatus = sortedBadges.map { badge ->
-                        val statusItem = lineStatuses[badge.lineId.lowercase()]
-                        val firstDetail = statusItem?.lineStatuses?.firstOrNull()
-                        if (firstDetail != null) {
-                            badge.copy(
-                                statusSeverity = firstDetail.statusSeverity,
-                                statusDescription = firstDetail.statusSeverityDescription,
-                                disruptionReason = firstDetail.reason
-                            )
-                        } else {
-                            badge
-                        }
-                    }
+                    val badgesWithStatus = buildStationLineBadges(card.station, departures, lineStatuses)
 
                     card.copy(
                         departures = departures,
@@ -338,6 +291,61 @@ class DashboardViewModel @JvmOverloads constructor(
                 isRefreshing = false,
                 lastUpdatedTimestamp = System.currentTimeMillis()
             )
+        }
+    }
+
+    private fun buildStationLineBadges(
+        station: Station,
+        departures: List<Departure>,
+        lineStatuses: Map<String, com.androidfung.departureboard.data.model.TflLineStatusItem>
+    ): List<LineBadgeInfo> {
+        // Extract line badges strictly from active departures, falling back to verified station lines only if departures are empty
+        val departureBadges = departures.map { it.lineBadge }.distinctBy { it.displayName }
+        val rawBadges = if (departureBadges.isNotEmpty()) {
+            val isWembleyPark = com.androidfung.departureboard.data.repository.TflStopPointUtils.isWembleyPark(station.id, station.name)
+            val isStPancrasOrKingsCrossNR = com.androidfung.departureboard.data.repository.TflStopPointUtils.isStPancrasOrKingsCrossNR(station.id, station.name)
+
+            departureBadges.filter { badge ->
+                // Guard: Filter out spurious depot movements (e.g. H&C depot run at Wembley Park)
+                if (isWembleyPark && badge.lineId.equals("hammersmith-city", ignoreCase = true)) return@filter false
+
+                // Guard: Filter out Tube badges for St Pancras or King's Cross National Rail
+                if (isStPancrasOrKingsCrossNR) {
+                    if (badge.mode == com.androidfung.departureboard.data.model.TransitMode.TUBE ||
+                        badge.lineId.lowercase() in TflLineColors.TUBE_LINE_IDS
+                    ) {
+                        return@filter false
+                    }
+                }
+
+                true
+            }
+        } else {
+            inferLineBadges(station)
+        }
+
+        // Sort line badges logically: Tube/Rail lines alphabetically, then numeric Bus routes in ascending order
+        val sortedBadges = rawBadges.sortedWith(
+            compareBy<LineBadgeInfo> { badge ->
+                if (badge.displayName.all { it.isDigit() }) 1 else 0
+            }.thenBy { badge ->
+                val num = badge.displayName.filter { it.isDigit() }.toIntOrNull()
+                num ?: Int.MAX_VALUE
+            }.thenBy { it.displayName }
+        )
+
+        return sortedBadges.map { badge ->
+            val statusItem = lineStatuses[badge.lineId.lowercase()]
+            val firstDetail = statusItem?.lineStatuses?.firstOrNull()
+            if (firstDetail != null) {
+                badge.copy(
+                    statusSeverity = firstDetail.statusSeverity,
+                    statusDescription = firstDetail.statusSeverityDescription,
+                    disruptionReason = firstDetail.reason
+                )
+            } else {
+                badge
+            }
         }
     }
 
@@ -370,6 +378,7 @@ class DashboardViewModel @JvmOverloads constructor(
 
     /**
      * 1-second countdown ticker decrements timeToStationSeconds locally so that live counters tick in real time.
+     * Note: Subtracting 1 with coerceAtLeast(0) is order-preserving, so re-sorting every list on each 1s tick is avoided.
      */
     internal fun startCountdownTicker() {
         countdownTickerJob?.cancel()
@@ -377,28 +386,50 @@ class DashboardViewModel @JvmOverloads constructor(
             while (isActive) {
                 delay(1000L.milliseconds)
                 _uiState.update { state ->
+                    val hasAnyActiveDepartures = state.stationCards.any { card -> card.departures.any { it.timeToStationSeconds > 0 } } ||
+                        state.detailDepartures.any { it.timeToStationSeconds > 0 } ||
+                        (state.selectedJourneyDeparture?.timeToStationSeconds ?: 0) > 0
+                    if (!hasAnyActiveDepartures) return@update state
+
                     val tickedCards = state.stationCards.map { card ->
                         if (card.departures.isEmpty()) {
                             card
                         } else {
-                            val tickedDepartures = card.departures
-                                .map { departure ->
-                                    val newSeconds = (departure.timeToStationSeconds - 1).coerceAtLeast(0)
-                                    departure.copy(timeToStationSeconds = newSeconds)
+                            val tickedDepartures = card.departures.map { departure ->
+                                if (departure.timeToStationSeconds > 0) {
+                                    departure.copy(timeToStationSeconds = departure.timeToStationSeconds - 1)
+                                } else {
+                                    departure
                                 }
-                                .sortedBy { it.timeToStationSeconds }
+                            }
                             card.copy(departures = tickedDepartures)
                         }
                     }
 
-                    val tickedDetailDepartures = state.detailDepartures.map { departure ->
-                        val newSeconds = (departure.timeToStationSeconds - 1).coerceAtLeast(0)
-                        departure.copy(timeToStationSeconds = newSeconds)
-                    }.sortedBy { it.timeToStationSeconds }
+                    val tickedDetailDepartures = if (state.detailDepartures.isEmpty()) {
+                        state.detailDepartures
+                    } else {
+                        state.detailDepartures.map { departure ->
+                            if (departure.timeToStationSeconds > 0) {
+                                departure.copy(timeToStationSeconds = departure.timeToStationSeconds - 1)
+                            } else {
+                                departure
+                            }
+                        }
+                    }
+
+                    val tickedJourneyDeparture = state.selectedJourneyDeparture?.let { dep ->
+                        if (dep.timeToStationSeconds > 0) {
+                            dep.copy(timeToStationSeconds = dep.timeToStationSeconds - 1)
+                        } else {
+                            dep
+                        }
+                    }
 
                     state.copy(
                         stationCards = tickedCards,
-                        detailDepartures = tickedDetailDepartures
+                        detailDepartures = tickedDetailDepartures,
+                        selectedJourneyDeparture = tickedJourneyDeparture
                     )
                 }
             }
@@ -513,7 +544,8 @@ class DashboardViewModel @JvmOverloads constructor(
             it.copy(
                 selectedDetailStation = station,
                 detailDepartures = cachedDepartures,
-                isDetailLoading = cachedDepartures.isEmpty()
+                isDetailLoading = cachedDepartures.isEmpty(),
+                selectedJourneyDeparture = null
             )
         }
 
@@ -562,9 +594,26 @@ class DashboardViewModel @JvmOverloads constructor(
                 selectedDetailStation = null,
                 detailDepartures = emptyList(),
                 isDetailLoading = false,
+                selectedJourneyDeparture = null,
                 serviceHoursInfo = null
             )
         }
+    }
+
+    fun openTrainJourney(departure: Departure) {
+        _uiState.update { it.copy(selectedJourneyDeparture = departure) }
+    }
+
+    fun closeTrainJourney() {
+        _uiState.update { it.copy(selectedJourneyDeparture = null) }
+    }
+
+    fun resolveDepartureForJourney(departureId: String): Departure? {
+        val state = _uiState.value
+        return state.selectedJourneyDeparture?.takeIf { it.id == departureId }
+            ?: state.detailDepartures.firstOrNull { it.id == departureId }
+            ?: state.stationCards.asSequence().flatMap { it.departures }.firstOrNull { it.id == departureId }
+            ?: state.selectedJourneyDeparture
     }
 
     /**
@@ -628,9 +677,14 @@ class DashboardViewModel @JvmOverloads constructor(
      * @param fetchApiNearby If true, queries the TfL StopPoint radius API (used when opening Search).
      *                        If false, computes distance quickly against local candidates without extra HTTP traffic.
      */
+    @Suppress("UNUSED_PARAMETER")
     fun updateNearestStation(context: Context, fetchApiNearby: Boolean = false) {
+        updateNearestStation(fetchApiNearby)
+    }
+
+    fun updateNearestStation(fetchApiNearby: Boolean = false) {
         viewModelScope.launch {
-            val location = com.androidfung.departureboard.util.LocationHelper.getCurrentLocation(context)
+            val location = locationDataSource.getCurrentLocation()
             if (location != null) {
                 val apiNearbyStations = if (fetchApiNearby) {
                     repository.getNearbyStationsFromApi(

@@ -17,13 +17,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -31,21 +28,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
-import androidx.compose.material.icons.rounded.DirectionsBus
-import androidx.compose.material.icons.rounded.DirectionsRailway
-import androidx.compose.material.icons.rounded.DirectionsSubway
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsNone
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Tram
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -54,17 +44,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 
@@ -123,6 +118,7 @@ fun StationDetailScreen(
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val trackedDepartureId by com.androidfung.departureboard.service.TrainTrackingService.currentlyTrackedDepartureIdFlow
         .collectAsStateWithLifecycle()
     var pendingTrackDeparture by remember { mutableStateOf<Departure?>(null) }
@@ -138,8 +134,9 @@ fun StationDetailScreen(
         pendingTrackDeparture = null
     }
 
-    val onToggleTrackDeparture: (Departure) -> Unit = remember(trackedDepartureId, context) {
+    val onToggleTrackDeparture: (Departure) -> Unit = remember(trackedDepartureId, context, haptic) {
         { dep ->
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             if (trackedDepartureId == dep.id) {
                 com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
             } else {
@@ -313,7 +310,10 @@ fun StationDetailScreen(
                         if (isSaved) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surfaceContainerHighest
                     )
-                    .clickable { onToggleSaveStation(station) },
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onToggleSaveStation(station)
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -373,7 +373,7 @@ fun StationDetailScreen(
                                 shape = RoundedCornerShape(10.dp)
                             )
                             .clickable(
-                                role = androidx.compose.ui.semantics.Role.Checkbox
+                                role = Role.Checkbox
                             ) {
                                 val availableDirections = com.androidfung.departureboard.util.DepartureFilterHelper.getAvailableDirections(
                                     departures = departures,
@@ -403,6 +403,11 @@ fun StationDetailScreen(
                                     selectedLineId = null
                                     selectedDirection = null
                                 }
+                            }
+                            .semantics {
+                                this.selected = isSelected
+                                this.role = Role.Checkbox
+                                this.stateDescription = if (isSelected) "Selected" else "Not selected"
                             }
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         contentAlignment = Alignment.Center
@@ -464,9 +469,14 @@ fun StationDetailScreen(
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable(
-                                    role = androidx.compose.ui.semantics.Role.Checkbox
+                                    role = Role.Checkbox
                                 ) {
                                     selectedStopId = if (selectedStopId == subStop.platformName) null else subStop.platformName
+                                }
+                                .semantics {
+                                    this.selected = isSelected
+                                    this.role = Role.Checkbox
+                                    this.stateDescription = if (isSelected) "Selected" else "Not selected"
                                 }
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {

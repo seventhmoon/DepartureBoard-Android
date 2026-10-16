@@ -57,6 +57,7 @@ data class DashboardUiState(
     val selectedDetailStation: Station? = null,
     val detailDepartures: List<Departure> = emptyList(),
     val isDetailLoading: Boolean = false,
+    val selectedJourneyDeparture: Departure? = null,
     val aiModelType: com.androidfung.departureboard.ai.AiModelType = com.androidfung.departureboard.ai.AiModelType.DEFAULT,
     val departureRowsCount: Int = 5,
     val themeMode: com.androidfung.departureboard.ui.theme.AppThemeMode = com.androidfung.departureboard.ui.theme.AppThemeMode.SYSTEM,

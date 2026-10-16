@@ -28,9 +28,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * Interface defining subscription, billing, and quota capabilities.
@@ -269,6 +268,8 @@ class BillingRepository(
     // Quota Helpers: AI Queries
     // =========================================================================
 
+    private val londonZone: ZoneId = ZoneId.of("Europe/London")
+
     /**
      * Checks if user has remaining AI queries for today and increments count if allowed.
      * Returns true if query is allowed, false if free quota is exceeded.
@@ -277,7 +278,7 @@ class BillingRepository(
         val isPro = isProFlow.first()
         if (isPro) return true // Unlimited for Pro
 
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.UK).format(Date())
+        val today = LocalDate.now(londonZone).toString()
         var allowed = false
 
         context.dataStore.edit { preferences ->
@@ -306,7 +307,7 @@ class BillingRepository(
         val isPro = isProFlow.first()
         if (isPro) return SubscriptionTier.PRO_MAX_DAILY_AI_QUERIES
 
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.UK).format(Date())
+        val today = LocalDate.now(londonZone).toString()
         val preferences = context.dataStore.data.first()
         val storedDate = preferences[KEY_AI_QUERY_DATE] ?: ""
         val count = if (storedDate == today) preferences[KEY_AI_QUERY_COUNT] ?: 0 else 0

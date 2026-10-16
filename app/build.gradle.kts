@@ -75,9 +75,6 @@ android {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.addAll(
-            "-Xannotation-default-target=param-property"
-        )
     }
 }
 
@@ -146,7 +143,6 @@ dependencies {
     // Utilities
     implementation(libs.androidx.appfunctions)
     "ksp"(libs.androidx.appfunctions.compiler)
-    implementation(libs.coil.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.play.services)

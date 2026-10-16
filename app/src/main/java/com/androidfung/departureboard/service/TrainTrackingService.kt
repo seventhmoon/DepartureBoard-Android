@@ -562,8 +562,6 @@ class TrainTrackingService : Service() {
         // Android 16 Live Update Notification Promoted Ongoing request
         builder.setRequestPromotedOngoing(!isCancelled)
         builder.setShortCriticalText(shortChipText)        // Glanceable status bar chip: "Due", "1 min", "8 min"
-        builder.setRequestPromotedOngoing(true)
-        builder.setShortCriticalText(shortChipText)        // Glanceable status bar chip: "Due", "1 min", "8 min"
 
         return builder.build()
     }

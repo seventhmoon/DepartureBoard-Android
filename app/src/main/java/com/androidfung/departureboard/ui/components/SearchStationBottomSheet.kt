@@ -21,27 +21,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.DirectionsBus
-import androidx.compose.material.icons.rounded.DirectionsRailway
-import androidx.compose.material.icons.rounded.DirectionsSubway
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Tram
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetState
@@ -58,15 +52,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.androidfung.departureboard.data.model.DefaultStations
-import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
@@ -97,7 +93,16 @@ fun SearchStationBottomSheet(
     var searchResults by remember { mutableStateOf(DefaultStations.POPULAR_STATIONS) }
     var isSearching by remember { mutableStateOf(false) }
 
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     val coroutineScope = rememberCoroutineScope()
+
+    // Auto-request focus on search field after sheet opens
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
 
     // Trigger search when query changes with debouncing
     LaunchedEffect(searchQuery) {
@@ -189,7 +194,13 @@ fun SearchStationBottomSheet(
                 onValueChange = { searchQuery = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 8.dp)
+                    .focusRequester(focusRequester),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                }),
                 placeholder = {
                     Text(
                         text = "Search station or bus route (e.g. 221, SL1)...",
@@ -207,7 +218,11 @@ fun SearchStationBottomSheet(
                 },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
+                        IconButton(onClick = {
+                            searchQuery = ""
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                        }) {
                             Icon(
                                 imageVector = Icons.Rounded.Clear,
                                 contentDescription = "Clear search",
@@ -375,6 +390,8 @@ fun SearchStationBottomSheet(
                                     isSaved = isAlreadySaved,
                                     distanceText = distFormatted,
                                     onAddClick = {
+                                        focusManager.clearFocus()
+                                        keyboardController?.hide()
                                         coroutineScope.launch {
                                             onStationSelected(station)
                                         }
@@ -446,6 +463,8 @@ fun SearchStationBottomSheet(
                             station = station,
                             isSaved = isAlreadySaved,
                             onAddClick = {
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
                                 coroutineScope.launch {
                                     onStationSelected(station)
                                 }
