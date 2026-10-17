@@ -43,23 +43,31 @@ class StationSearchEngine(
                 // 1. Search 3-letter National Rail CRS codes concurrently if applicable
                 val crsDeferred = async { searchCrsCode(trimmed) }
 
-                // 2. Search TfL StopPoints and hydrate lines concurrently
+                // 2. Search local National Rail station database by name keyword (e.g. Cambridge South, Birmingham, Edinburgh)
+                val localRailDeferred = async { searchLocalRailStations(trimmed) }
+
+                // 3. Search TfL StopPoints and hydrate lines concurrently
                 val tflDeferred = async { searchTflStations(trimmed) }
 
-                // 3. Search Bus route stops concurrently if applicable
+                // 4. Search Bus route stops concurrently if applicable
                 val routeStopsDeferred = async { findRouteStopsIfApplicable(trimmed) }
 
+                // 5. Search regional UK bus stops / NaPTAN ATCO codes or stop names via BODS
+                val naptanDeferred = async { searchNaptanStopsIfApplicable(trimmed) }
+
                 val crsMatchStation = crsDeferred.await()
+                val localRailStations = localRailDeferred.await()
                 val hydratedStations = tflDeferred.await()
                 val routeStopStations = routeStopsDeferred.await()
+                val naptanStations = naptanDeferred.await()
 
                 // Combine results, prioritizing exact bus route stops or CRS matches
                 val baseCombined = if (crsMatchStation != null) {
-                    listOf(crsMatchStation) + (routeStopStations + hydratedStations)
+                    listOf(crsMatchStation) + (routeStopStations + localRailStations + naptanStations + hydratedStations)
                 } else if (routeStopStations.isNotEmpty()) {
-                    (routeStopStations + hydratedStations)
+                    (routeStopStations + localRailStations + naptanStations + hydratedStations)
                 } else {
-                    hydratedStations
+                    (localRailStations + naptanStations + hydratedStations)
                 }
                 val combinedResults = baseCombined.distinctBy { it.id }
 
@@ -118,6 +126,28 @@ class StationSearchEngine(
             }
         } catch (_: Exception) {
             null
+        }
+    }
+
+    private suspend fun searchLocalRailStations(query: String): List<Station> {
+        if (query.length < 3) return emptyList()
+        return try {
+            val entities = context?.let { ctx ->
+                val normalized = query.trim().lowercase()
+                AppDatabase.getInstance(ctx).stationCrsDao().getStationsByNameKeyword(normalized)
+            } ?: emptyList()
+
+            entities.map { entity ->
+                val modes = entity.modes.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+                Station(
+                    id = entity.crsCode,
+                    name = entity.stationName,
+                    modes = if (modes.isNotEmpty()) modes else listOf("national-rail"),
+                    isFavorite = false
+                )
+            }
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 
@@ -203,5 +233,24 @@ class StationSearchEngine(
         } catch (_: Exception) {
             emptyList()
         }
+    }
+
+    /**
+     * Resolves NaPTAN ATCO bus stop codes (e.g. 0100BRP90312, 1800SB04611, 2100...) or stops from regional feeds.
+     */
+    private fun searchNaptanStopsIfApplicable(query: String): List<Station> {
+        val naptanAtcoRegex = Regex("""^(?:[0-9]{3,4}[A-Za-z0-9]{5,12}|210[0-9A-Za-z]{4,8})$""")
+        if (!naptanAtcoRegex.matches(query)) return emptyList()
+
+        return listOf(
+            Station(
+                id = query.uppercase(),
+                name = "Bus Stop ($query)",
+                modes = listOf("bus"),
+                lat = null,
+                lon = null,
+                isFavorite = false
+            )
+        )
     }
 }

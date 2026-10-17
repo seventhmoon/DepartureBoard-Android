@@ -36,6 +36,11 @@ object TransitIconHelper {
         val id2 = lineId2.lowercase().trim()
         if (id1 == id2) return true
 
+        // Match BODS regional bus line IDs (e.g. "bods-310" vs "310")
+        val stripped1 = id1.removePrefix("bods-")
+        val stripped2 = id2.removePrefix("bods-")
+        if (stripped1 == stripped2) return true
+
         // Elizabeth line aliases
         if ((id1 == "elizabeth" || id1 == "elizabeth-line" || id1 == "xr") && 
             (id2 == "elizabeth" || id2 == "elizabeth-line" || id2 == "xr")) return true

@@ -16,7 +16,11 @@ object BodsNetworkClient {
     private val okHttpClient: OkHttpClient by lazy {
         val loggingInterceptor = HttpLoggingInterceptor { message ->
             val redacted = message.replace(Regex("""([?&]api_key=)[^&\s]+""", RegexOption.IGNORE_CASE), "$1[REDACTED]")
-            android.util.Log.d("OkHttp-BODS", redacted)
+            try {
+                android.util.Log.d("OkHttp-BODS", redacted)
+            } catch (_: Throwable) {
+                // Ignore in unit tests where android.util.Log is unmocked
+            }
         }.apply {
             level = if (BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BASIC

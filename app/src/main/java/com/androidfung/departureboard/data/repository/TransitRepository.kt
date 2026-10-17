@@ -203,7 +203,35 @@ class TransitRepositoryImpl(
             }
 
             try {
-                val fresh = apiService.getLineStatuses().associateBy { it.id.lowercase() }
+                val fresh = apiService.getLineStatuses().associateBy { it.id.lowercase() }.toMutableMap()
+
+                // Concurrently fetch DfT BODS SIRI-SX disruptions for regional bus lines
+                try {
+                    val bodsDisruptionsXml = bodsApiService.getDisruptions().string()
+                    val bodsDisruptions = com.androidfung.departureboard.data.model.BodsDisruptionXmlParser.parse(bodsDisruptionsXml)
+                    bodsDisruptions.forEach { bd ->
+                        val line = bd.lineRef?.lowercase()
+                        if (!line.isNullOrBlank()) {
+                            val lineKey = if (line.startsWith("bods-")) line else "bods-$line"
+                            fresh[lineKey] = com.androidfung.departureboard.data.model.TflLineStatusItem(
+                                id = lineKey,
+                                name = bd.lineRef.uppercase(),
+                                modeName = "bus",
+                                lineStatuses = listOf(
+                                    com.androidfung.departureboard.data.model.TflLineStatusDetail(
+                                        id = 0,
+                                        statusSeverity = 9,
+                                        statusSeverityDescription = bd.reason ?: "Disrupted",
+                                        reason = "${bd.summary}${if (!bd.description.isNullOrBlank()) ": ${bd.description}" else ""}"
+                                    )
+                                )
+                            )
+                        }
+                    }
+                } catch (_: Exception) {
+                    // Non-fatal if BODS disruptions call fails
+                }
+
                 if (fresh.isNotEmpty()) {
                     cachedLineStatuses = fresh
                     lineStatusesCacheTimestamp = refreshedAt

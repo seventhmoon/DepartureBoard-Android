@@ -27,13 +27,14 @@ internal object TflStopPointUtils {
         }
         val idUpper = stationId.uppercase()
         // 490... = London bus stop/pole, 210... = Regional UK bus stop/pole
-        if (idUpper.startsWith("490") || idUpper.startsWith("210")) {
+        if (idUpper.startsWith("490") || idUpper.startsWith("210") || idUpper.startsWith("BODS")) {
             return true
         }
         val nameLower = stationName.lowercase()
         return nameLower.contains("(stop ") ||
                 nameLower.contains("bus stand") ||
                 nameLower.contains("bus stop") ||
+                nameLower.contains("(route ") ||
                 nameLower.endsWith(" bus station")
     }
 

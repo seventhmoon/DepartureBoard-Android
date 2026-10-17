@@ -21,4 +21,9 @@ class FakeBodsApiService(
         if (shouldThrow) throw java.io.IOException("BODS network error")
         return xmlResponse.toResponseBody("application/xml".toMediaTypeOrNull())
     }
+
+    override suspend fun getDisruptions(apiKey: String): ResponseBody {
+        if (shouldThrow) throw java.io.IOException("BODS network error")
+        return xmlResponse.toResponseBody("application/xml".toMediaTypeOrNull())
+    }
 }

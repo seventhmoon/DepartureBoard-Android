@@ -3,7 +3,7 @@
 **Effective Date:** October 3, 2026  
 **Last Updated:** October 3, 2026
 
-EkiBoard ("we", "our", or "us") provides live public transit departure boards and countdowns for Transport for London (TfL) services. We are committed to protecting your privacy.
+EkiBoard ("we", "our", or "us") provides live public transit departure boards and countdowns for National Rail, Department for Transport (DfT) Bus Open Data Service (BODS), and Transport for London (TfL) services across the United Kingdom. We are committed to protecting your privacy.
 
 ---
 
@@ -15,7 +15,10 @@ EkiBoard ("we", "our", or "us") provides live public transit departure boards an
 - **On-Device Only Processing:** **Your location is processed entirely on your device.** It is never transmitted, uploaded, stored on external servers, or shared with third parties or advertising partners.
 
 #### Transit & Network Queries
-- Station search queries and departure board requests are sent directly to the **Transport for London (TfL) Unified API** (`api.tfl.gov.uk`) to retrieve live departure predictions and line service statuses.
+- Station search queries and departure board requests are sent directly to official transport APIs:
+  - **National Rail Open Data (Darwin API):** To fetch live GB-wide train departures, calling points, and service disruption alerts.
+  - **DfT Bus Open Data Service (BODS):** To fetch live regional UK bus tracking.
+  - **Transport for London (TfL) Unified API:** To retrieve live departure predictions and line service statuses in the London area.
 - No personal identifiers, accounts, or private user details are sent with these transit queries.
 
 ---
@@ -27,11 +30,14 @@ EkiBoard ("we", "our", or "us") provides live public transit departure boards an
 
 ---
 
-### 3. Third-Party Services
+### 3. Third-Party Services & Advertising
 
 This app interacts directly with:
-- **Transport for London (TfL) API:** To fetch live transit predictions and line disruptions ([TfL Privacy Notice](https://tfl.gov.uk/corporate/privacy-and-cookies/)).
+- **National Rail Enquiries / Rail Delivery Group:** For National Rail live train feeds.
+- **Department for Transport (DfT):** For Bus Open Data Service feeds.
+- **Transport for London (TfL):** To fetch live transit predictions and line disruptions ([TfL Privacy Notice](https://tfl.gov.uk/corporate/privacy-and-cookies/)).
 - **Google Play Services:** For on-device fused location resolution.
+- **Google Mobile Ads (AdMob):** We display ads to support the development and maintenance of this app. Google AdMob may collect and use pseudonymous device identifiers, advertising ID, and interaction data to serve non-personalized or personalized ads in accordance with Google's Advertising Policies and Privacy Policy ([Google Privacy & Terms](https://policies.google.com/privacy)).
 
 ---
 

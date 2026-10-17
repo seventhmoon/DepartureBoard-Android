@@ -2,5 +2,5 @@
     <string name="app_name">EkiBoard</string>
     <string name="launcher_name">EkiBoard</string>
     <string name="widget_name">EkiBoard</string>
-    <string name="widget_description">Live London departure predictions for saved stations</string>
+    <string name="widget_description">Live UK &amp; London departure predictions for saved stations</string>
 </resources>

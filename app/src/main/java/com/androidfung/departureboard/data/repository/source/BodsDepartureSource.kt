@@ -16,7 +16,8 @@ class BodsDepartureSource(
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
         if (!isBusStop) return false
-        return stationId.startsWith("210") || !stationId.startsWith("490")
+        val id = stationId.uppercase()
+        return id.startsWith("210") || id.startsWith("BODS") || (!id.startsWith("490") && !id.startsWith("9"))
     }
 
     override suspend fun fetchDepartures(

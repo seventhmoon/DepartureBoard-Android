@@ -20,7 +20,7 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 22
+        versionCode = 23
         versionName = "1.2.0-261016"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -155,6 +155,7 @@ dependencies {
     testImplementation(libs.androidx.core)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation("net.sf.kxml:kxml2:2.3.0")
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

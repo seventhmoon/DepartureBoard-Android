@@ -20,6 +20,9 @@ interface StationCrsDao {
     @Query("SELECT crsCode FROM station_crs_mappings WHERE normalizedName LIKE '%' || :keyword || '%'")
     suspend fun getCrsCodesForNameKeyword(keyword: String): List<String>
 
+    @Query("SELECT * FROM station_crs_mappings WHERE normalizedName LIKE '%' || :keyword || '%' LIMIT 10")
+    suspend fun getStationsByNameKeyword(keyword: String): List<StationCrsEntity>
+
     @Query("SELECT * FROM station_crs_mappings WHERE UPPER(crsCode) = UPPER(:crsCode) LIMIT 1")
     suspend fun getStationByCrsCode(crsCode: String): StationCrsEntity?
 

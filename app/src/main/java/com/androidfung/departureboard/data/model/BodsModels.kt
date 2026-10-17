@@ -25,7 +25,10 @@ data class BodsVehicleActivity(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val vehicleRef: String? = null,
-    val bearing: Double? = null
+    val bearing: Double? = null,
+    val wheelchairAccessible: Boolean? = null,
+    val occupancy: String? = null,
+    val vehicleFeature: String? = null
 ) {
     /**
      * Maps BODS monitored journey to domain Departure model.
@@ -49,7 +52,7 @@ data class BodsVehicleActivity(
         val cleanLine = publishedLineName.ifBlank { lineRef }
 
         val badge = TflLineColors.getLineBadge(
-            lineId = lineRef,
+            lineId = "bods-$lineRef",
             lineName = cleanLine,
             modeName = "bus"
         )
@@ -68,7 +71,9 @@ data class BodsVehicleActivity(
             currentLocation = if (latitude != null && longitude != null) "In service" else null,
             modeName = "bus",
             status = DepartureStatus.ON_TIME,
-            lineBadge = badge
+            lineBadge = badge,
+            isWheelchairAccessible = wheelchairAccessible,
+            occupancyStatus = occupancy
         )
     }
 
@@ -108,15 +113,26 @@ data class BodsVehicleActivity(
  */
 object BodsXmlParser {
 
-    fun parse(xmlString: String): List<BodsVehicleActivity> {
+    fun parse(
+        xmlString: String,
+        pullParser: XmlPullParser? = null
+    ): List<BodsVehicleActivity> {
         val activities = mutableListOf<BodsVehicleActivity>()
         try {
-            val factory = XmlPullParserFactory.newInstance().apply { isNamespaceAware = false }
-            val parser = factory.newPullParser().apply { setInput(StringReader(xmlString)) }
+            val parser = pullParser ?: try {
+                XmlPullParserFactory.newInstance().apply { isNamespaceAware = false }.newPullParser().apply {
+                    setInput(StringReader(xmlString))
+                }
+            } catch (_: Throwable) {
+                // In standard JVM unit tests without android.jar XML implementation
+                val kxml = Class.forName("org.kxml2.io.KXmlParser").getDeclaredConstructor().newInstance() as XmlPullParser
+                kxml.setInput(StringReader(xmlString))
+                kxml
+            }
 
             var eventType = parser.eventType
             while (eventType != XmlPullParser.END_DOCUMENT) {
-                if (eventType == XmlPullParser.START_TAG && parser.name.equals("VehicleActivity", ignoreCase = true)) {
+                if (eventType == XmlPullParser.START_TAG && (parser.name?.equals("VehicleActivity", ignoreCase = true) == true)) {
                     val activity = parseVehicleActivity(parser)
                     if (activity != null) {
                         activities.add(activity)
@@ -124,7 +140,9 @@ object BodsXmlParser {
                 }
                 eventType = parser.next()
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         return activities
     }
 
@@ -141,23 +159,47 @@ object BodsXmlParser {
         var longitude: Double? = null
         var vehicleRef: String? = null
         var bearing: Double? = null
+        var wheelchairAccessible: Boolean? = null
+        var occupancy: String? = null
+        var vehicleFeature: String? = null
 
-        while (parser.next() != XmlPullParser.END_TAG || !parser.name.equals("VehicleActivity", ignoreCase = true)) {
-            if (parser.eventType != XmlPullParser.START_TAG) continue
-
-            when (parser.name) {
-                "LineRef" -> lineRef = parser.nextText().trim()
-                "PublishedLineName" -> publishedLineName = parser.nextText().trim()
-                "OperatorRef" -> operatorRef = parser.nextText().trim()
-                "OriginRef" -> originRef = parser.nextText().trim()
-                "OriginName" -> originName = parser.nextText().trim()
-                "DestinationRef" -> destinationRef = parser.nextText().trim()
-                "DestinationName" -> destinationName = parser.nextText().trim()
-                "DestinationAimedArrivalTime" -> destinationAimedArrivalTime = parser.nextText().trim()
-                "Latitude" -> latitude = parser.nextText().trim().toDoubleOrNull()
-                "Longitude" -> longitude = parser.nextText().trim().toDoubleOrNull()
-                "VehicleRef" -> vehicleRef = parser.nextText().trim()
-                "Bearing" -> bearing = parser.nextText().trim().toDoubleOrNull()
+        var currentTag = ""
+        while (parser.next() != XmlPullParser.END_DOCUMENT) {
+            when (parser.eventType) {
+                XmlPullParser.START_TAG -> {
+                    currentTag = parser.name ?: ""
+                }
+                XmlPullParser.TEXT -> {
+                    val text = parser.text?.trim() ?: ""
+                    if (text.isNotEmpty()) {
+                        when (currentTag) {
+                            "LineRef" -> lineRef = text
+                            "PublishedLineName" -> publishedLineName = text
+                            "OperatorRef" -> operatorRef = text
+                            "OriginRef" -> originRef = text
+                            "OriginName" -> originName = text
+                            "DestinationRef" -> destinationRef = text
+                            "DestinationName" -> destinationName = text
+                            "DestinationAimedArrivalTime" -> destinationAimedArrivalTime = text
+                            "Latitude" -> latitude = text.toDoubleOrNull()
+                            "Longitude" -> longitude = text.toDoubleOrNull()
+                            "VehicleRef" -> vehicleRef = text
+                            "Bearing" -> bearing = text.toDoubleOrNull()
+                            "WheelchairAccessible" -> {
+                                val lower = text.lowercase()
+                                wheelchairAccessible = lower == "true" || lower == "1" || lower == "accessible"
+                            }
+                            "Occupancy" -> occupancy = text
+                            "VehicleFeatureRef" -> vehicleFeature = text
+                        }
+                    }
+                }
+                XmlPullParser.END_TAG -> {
+                    if (parser.name.equals("VehicleActivity", ignoreCase = true)) {
+                        break
+                    }
+                    currentTag = ""
+                }
             }
         }
 
@@ -174,7 +216,10 @@ object BodsXmlParser {
                 latitude = latitude,
                 longitude = longitude,
                 vehicleRef = vehicleRef,
-                bearing = bearing
+                bearing = bearing,
+                wheelchairAccessible = wheelchairAccessible,
+                occupancy = occupancy,
+                vehicleFeature = vehicleFeature
             )
         }
         return null

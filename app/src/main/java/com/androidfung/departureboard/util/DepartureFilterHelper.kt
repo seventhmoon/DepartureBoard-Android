@@ -26,12 +26,17 @@ object DepartureFilterHelper {
             return false
         }
 
-        if (!lineId.isNullOrBlank() && !TransitIconHelper.isSameLine(departure.lineId, lineId)) {
-            return false
+        if (!lineId.isNullOrBlank()) {
+            val matchesLine = TransitIconHelper.isSameLine(departure.lineId, lineId) ||
+                    TransitIconHelper.isSameLine(departure.lineBadge.lineId, lineId) ||
+                    departure.lineName.equals(lineId.removePrefix("bods-"), ignoreCase = true)
+            if (!matchesLine) return false
         }
 
         if (!direction.isNullOrBlank()) {
             val matchesDirection = departure.direction.equals(direction, ignoreCase = true) ||
+                    departure.towards.equals(direction, ignoreCase = true) ||
+                    departure.destinationName.contains(direction, ignoreCase = true) ||
                     departure.platformName.contains(direction, ignoreCase = true)
             if (!matchesDirection) return false
         }
@@ -65,7 +70,7 @@ object DepartureFilterHelper {
         val targetDepartures = if (lineId.isNullOrBlank()) {
             departures
         } else {
-            departures.filter { TransitIconHelper.isSameLine(it.lineId, lineId) }
+            departures.filter { matches(it, lineId = lineId) }
         }
 
         return targetDepartures
@@ -73,7 +78,7 @@ object DepartureFilterHelper {
             .mapNotNull { dep ->
                 dep.direction ?: CARDINAL_DIRECTIONS.firstOrNull { d ->
                     dep.platformName.contains(d, ignoreCase = true)
-                }
+                } ?: dep.towards
             }
             .distinct()
             .map { dir ->

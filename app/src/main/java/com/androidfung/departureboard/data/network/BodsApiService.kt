@@ -29,4 +29,12 @@ interface BodsApiService {
         @Query("lineRef") lineRef: String,
         @Query("api_key") apiKey: String = com.androidfung.departureboard.BuildConfig.BODS_API_KEY
     ): ResponseBody
+
+    /**
+     * Fetches real-time SIRI-SX disruptions datafeed (e.g. cancellations, diversions, closures).
+     */
+    @GET("api/v1/disruptions/")
+    suspend fun getDisruptions(
+        @Query("api_key") apiKey: String = com.androidfung.departureboard.BuildConfig.BODS_API_KEY
+    ): ResponseBody
 }
