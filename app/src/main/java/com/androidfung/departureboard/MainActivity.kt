@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
 
     private var initialStation by mutableStateOf<Station?>(null)
     private lateinit var appUpdateManager: AppUpdateManager
+    private var installStateUpdatedListener: com.google.android.play.core.install.InstallStateUpdatedListener? = null
     private var debugProReceiver: BroadcastReceiver? = null
 
     @OptIn(ExperimentalSharedTransitionApi::class)
@@ -110,6 +111,26 @@ class MainActivity : ComponentActivity() {
                         if (initialStation != null) {
                             viewModel.openStationDetail(initialStation!!)
                         }
+                    }
+
+                    // Register flexible in-app update listener and handle restart prompt via Snackbar
+                    LaunchedEffect(Unit) {
+                        val listener = com.google.android.play.core.install.InstallStateUpdatedListener { state ->
+                            if (state.installStatus() == com.google.android.play.core.install.model.InstallStatus.DOWNLOADED) {
+                                lifecycleScope.launch {
+                                    val result = snackbarHostState.showSnackbar(
+                                        message = "An update has just been downloaded.",
+                                        actionLabel = "Restart",
+                                        duration = SnackbarDuration.Indefinite
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        appUpdateManager.completeUpdate()
+                                    }
+                                }
+                            }
+                        }
+                        installStateUpdatedListener = listener
+                        appUpdateManager.registerListener(listener)
                     }
 
                     // Handle user snackbar notifications (e.g., station deletion undo)
@@ -244,7 +265,7 @@ class MainActivity : ComponentActivity() {
                                                 viewModel.openTrainJourney(departure)
                                             },
                                             onAiAssistantClick = { showAiSheet = true },
-                                            onUpgradeClick = { viewModel.showPaywall("Unlock Prompt Departure Pro") },
+                                            onUpgradeClick = { viewModel.showPaywall("Unlock EkiBoard Pro") },
                                             onOpenSettings = { showSettingsSheet = true },
                                             onOpenDebugSettings = {
                                                 android.util.Log.d("DashboardScreen", "onOpenDebugSettings clicked!")
@@ -334,7 +355,7 @@ class MainActivity : ComponentActivity() {
                             initialTriggerSpeech = false,
                             billingRepository = viewModel.billingRepository,
                             aiModelType = uiState.aiModelType,
-                            onUpgradeClick = { viewModel.showPaywall("Unlock unlimited Prompt Departure AI queries with Pro") }
+                            onUpgradeClick = { viewModel.showPaywall("Unlock unlimited EkiBoard AI queries with Pro") }
                         )
                     }
 
@@ -397,7 +418,7 @@ class MainActivity : ComponentActivity() {
                             onOpenHelpFaq = { showHelpSheet = true },
                             onUpgradeClick = {
                                 showSettingsSheet = false
-                                viewModel.showPaywall("Unlock Prompt Departure Pro")
+                                viewModel.showPaywall("Unlock EkiBoard Pro")
                             }
                         )
                     }
@@ -456,6 +477,15 @@ class MainActivity : ComponentActivity() {
                         this,
                         1001
                     )
+                } else if (info.installStatus() == com.google.android.play.core.install.model.InstallStatus.DOWNLOADED) {
+                    // Update has already been downloaded, prompt user to complete update
+                    lifecycleScope.launch {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "An update is downloaded. Restart the app to finish installing.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
             }
         } catch (_: Exception) {}
@@ -540,6 +570,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        installStateUpdatedListener?.let {
+            try {
+                appUpdateManager.unregisterListener(it)
+            } catch (_: Exception) {}
+        }
         debugProReceiver?.let {
             try {
                 unregisterReceiver(it)

@@ -165,7 +165,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 .padding(14.dp)
                 .clickable(actionStartActivity(clickIntent))
         ) {
-            // Header Row: Prompt Departure Branding + Station
+            // Header Row: EkiBoard Branding + Station
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -196,9 +196,9 @@ class DepartureBoardWidget : GlanceAppWidget() {
                         else -> "No departures"
                     }
                     val subtitle = if (!filterLabel.isNullOrBlank()) {
-                        "Prompt Departure • $filterLabel • $liveLabel"
+                        "EkiBoard • $filterLabel • $liveLabel"
                     } else {
-                        "Prompt Departure • $liveLabel"
+                        "EkiBoard • $liveLabel"
                     }
                     Text(
                         text = subtitle,
@@ -412,7 +412,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
             Spacer(modifier = GlanceModifier.height(12.dp))
 
             Text(
-                text = "Prompt Departure",
+                text = "EkiBoard",
                 style = TextStyle(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,

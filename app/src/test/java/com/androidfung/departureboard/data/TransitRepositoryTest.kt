@@ -163,6 +163,8 @@ class TransitRepositoryTest {
             override suspend fun getCrsCodesForExactName(normalizedName: String): List<String> = emptyList()
             override suspend fun getCrsCodesForStationName(name: String): List<String> = emptyList()
             override suspend fun getCrsCodesForNameKeyword(keyword: String): List<String> = emptyList()
+            override suspend fun getStationByCrsCode(crsCode: String): com.androidfung.departureboard.data.db.StationCrsEntity? = null
+            override suspend fun getStationByStationId(stationId: String): com.androidfung.departureboard.data.db.StationCrsEntity? = null
             override suspend fun insertAll(mappings: List<com.androidfung.departureboard.data.db.StationCrsEntity>) {}
             override suspend fun getCount(): Int = 1
         })

@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Prompt Departure"
+rootProject.name = "EkiBoard"
 include(":app")
  

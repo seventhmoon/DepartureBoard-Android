@@ -33,6 +33,7 @@ jobs:
         run: |
           echo "TFL_API_KEY=mock_ci_key" >> local.properties
           echo "NATIONAL_RAIL_API_KEY=mock_ci_key" >> local.properties
+          echo "BODS_API_KEY=mock_ci_key" >> local.properties
           if [ ! -f "app/google-services.json" ]; then
             echo '{"project_info":{"project_number":"0","project_id":"ci-test","storage_bucket":""},"client":[{"client_info":{"mobilesdk_app_id":"1:0:android:0","android_client_info":{"package_name":"com.androidfung.departureboard"}},"oauth_client":[],"api_key":[{"current_key":"mock"}],"services":{}}],"configuration_version":"1"}' > app/google-services.json
           fi

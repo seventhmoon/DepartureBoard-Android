@@ -96,7 +96,7 @@ fun HelpFaqBottomSheet(
             ),
             FaqItem(
                 question = "How do I add home screen widgets?",
-                answer = "Touch and hold an empty space on your home screen, tap 'Widgets', find Prompt Departure, and drag it to your screen. You can configure each widget to show all lines or focus on a specific line or bus route.",
+                answer = "Touch and hold an empty space on your home screen, tap 'Widgets', find EkiBoard, and drag it to your screen. You can configure each widget to show all lines or focus on a specific line or bus route.",
                 icon = Icons.Rounded.Widgets
             ),
             FaqItem(
@@ -364,7 +364,7 @@ private fun AppInfoCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Prompt Departure",
+                    text = "EkiBoard",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface
                 )

@@ -134,7 +134,7 @@ fun DashboardContent(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Prompt Departure",
+                            text = "EkiBoard",
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = titleFontSize,
@@ -275,19 +275,19 @@ fun DashboardContent(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                    scrolledContainerColor = Color.Transparent
                 ),
                 scrollBehavior = scrollBehavior
             )
         },
         floatingActionButton = {
-            // Expressive Extended FAB for Prompt Departure Transit AI Assistant
+            // Expressive Extended FAB for EkiBoard Transit AI Assistant
             ExtendedFloatingActionButton(
                 text = { Text("Ask AI") },
                 icon = {
                     Icon(
                         imageVector = Icons.Rounded.AutoAwesome,
-                        contentDescription = "Ask Prompt Departure AI",
+                        contentDescription = "Ask EkiBoard AI",
                         modifier = Modifier.size(24.dp)
                     )
                 },

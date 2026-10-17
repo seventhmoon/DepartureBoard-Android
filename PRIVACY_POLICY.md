@@ -1,16 +1,16 @@
-# Privacy Policy for Prompt Departure
+# Privacy Policy for EkiBoard
 
 **Effective Date:** October 3, 2026  
 **Last Updated:** October 3, 2026
 
-Prompt Departure ("we", "our", or "us") provides live public transit departure boards and countdowns for Transport for London (TfL) services. We are committed to protecting your privacy.
+EkiBoard ("we", "our", or "us") provides live public transit departure boards and countdowns for Transport for London (TfL) services. We are committed to protecting your privacy.
 
 ---
 
 ### 1. Information We Collect and How We Use It
 
 #### Location Data (Optional)
-- **What is collected:** With your permission, Prompt Departure accesses your device's approximate or precise location (`ACCESS_COARSE_LOCATION` / `ACCESS_FINE_LOCATION`) while using the app.
+- **What is collected:** With your permission, EkiBoard accesses your device's approximate or precise location (`ACCESS_COARSE_LOCATION` / `ACCESS_FINE_LOCATION`) while using the app.
 - **Purpose:** To calculate walking distance to nearby stations and highlight your nearest saved station on the dashboard.
 - **On-Device Only Processing:** **Your location is processed entirely on your device.** It is never transmitted, uploaded, stored on external servers, or shared with third parties or advertising partners.
 
@@ -37,7 +37,7 @@ This app interacts directly with:
 
 ### 4. Children’s Privacy
 
-Prompt Departure does not knowingly collect any personal identifiable information from children under 13.
+EkiBoard does not knowingly collect any personal identifiable information from children under 13.
 
 ---
 

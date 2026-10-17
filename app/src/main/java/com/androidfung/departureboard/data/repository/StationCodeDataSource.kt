@@ -17,8 +17,8 @@ class StationCodeDataSource(private val stationCrsDao: StationCrsDao? = null) {
             return listOf(stationId.uppercase())
         }
 
-        // Guard: TfL bus stops (NaPTAN prefix 4900... or stopArea 490G...) must NEVER resolve to National Rail train stations
-        if (stationId.startsWith("490")) {
+        // Guard: Bus stops or stands must NEVER resolve to National Rail train stations
+        if (TflStopPointUtils.isBusStop(stationId, stationName)) {
             return emptyList()
         }
 
@@ -34,8 +34,9 @@ class StationCodeDataSource(private val stationCrsDao: StationCrsDao? = null) {
         val cleanName = StationNameFormatter.clean(stationName).lowercase()
 
         // Guard: Bus stops or street-level stops (e.g. "Euston Road", "Euston Road (Stop C)", "Euston / Eversholt St") shouldn't resolve to mainline train stations
-        if (cleanName.contains("(stop ") || cleanName.contains("stop ") || cleanName.contains("bus stand") || cleanName.contains("bus stop") ||
-            cleanName.contains(" road") || cleanName.contains(" street") || cleanName.contains(" st ") || cleanName.contains(" avenue") || cleanName.contains(" lane")) {
+        val hasStopIndicator = cleanName.contains("(stop ") || cleanName.contains("stop ") || cleanName.contains("bus stand") || cleanName.contains("bus stop")
+        val isStreetBusName = cleanName.endsWith(" road") || cleanName.endsWith(" street") || cleanName.endsWith(" ave") || cleanName.endsWith(" lane")
+        if (hasStopIndicator || isStreetBusName) {
             return emptyList()
         }
 
@@ -67,23 +68,10 @@ class StationCodeDataSource(private val stationCrsDao: StationCrsDao? = null) {
             }
         }
 
-        // Keyword lookup fallback
-        val keywords = listOf(
-            "west hampstead", "brent cross west", "st pancras international", "st pancras",
-            "king's cross", "kings cross", "finsbury park", "paddington", "waterloo east",
-            "waterloo", "victoria", "london bridge", "liverpool street", "farringdon", "euston",
-            "charing cross", "clapham junction", "stratford international", "stratford",
-            "ealing broadway", "blackfriars", "cannon street", "marylebone", "moorgate",
-            "old street", "highbury & islington", "vauxhall", "wimbledon", "elephant & castle",
-            "wembley central", "watford junction", "coventry", "st albans abbey", "st albans city",
-            "st albans", "west ealing"
-        )
-
-        for (kw in keywords) {
-            if (cleanName.contains(kw)) {
-                val byKw = dao.getCrsCodesForNameKeyword(kw)
-                if (byKw.isNotEmpty()) return byKw
-            }
+        // Keyword lookup fallback across all 2500+ National Rail stations in database
+        val byKw = dao.getCrsCodesForNameKeyword(stripped.ifBlank { cleanName })
+        if (byKw.isNotEmpty()) {
+            return byKw
         }
 
         // 3. Algorithmic Fallback: Check if station ID embeds a 3-letter CRS code

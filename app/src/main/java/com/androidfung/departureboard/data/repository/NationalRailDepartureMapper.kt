@@ -48,7 +48,17 @@ internal object NationalRailDepartureMapper {
         "Greater Anglia" to Color(0xFFD6262B),
         "LE" to Color(0xFFD6262B),
         "TransPennine Express" to Color(0xFF0B2545),
-        "TP" to Color(0xFF0B2545)
+        "TP" to Color(0xFF0B2545),
+        "Transport for Wales" to Color(0xFFD31F26),
+        "TfW Rail" to Color(0xFFD31F26),
+        "TfW" to Color(0xFFD31F26),
+        "AW" to Color(0xFFD31F26),
+        "ScotRail" to Color(0xFF1E3A8A),
+        "SR" to Color(0xFF1E3A8A),
+        "Merseyrail" to Color(0xFFFFF000),
+        "ME" to Color(0xFFFFF000),
+        "Northern" to Color(0xFF1C2D42),
+        "NT" to Color(0xFF1C2D42)
     )
 
     fun mapToDeparture(
@@ -97,14 +107,22 @@ internal object NationalRailDepartureMapper {
             }
             else -> {
                 val badgeColor = OPERATOR_COLORS[operatorName] ?: OPERATOR_COLORS[operatorCode] ?: Color(0xFF1E3561)
+                val textColor = if (operatorCode.equals("ME", ignoreCase = true) || operatorName.contains("Merseyrail", ignoreCase = true)) Color.Black else Color.White
+                val displayLabel = when {
+                    operatorCode.equals("AW", ignoreCase = true) || operatorName.contains("Wales", ignoreCase = true) -> "TfW"
+                    else -> operatorName
+                }
                 val lineId = "nr-${operatorCode.lowercase()}"
                 val lineBadge = LineBadgeInfo(
                     lineId = lineId,
-                    displayName = operatorName,
+                    displayName = displayLabel,
                     backgroundColor = badgeColor,
-                    textColor = Color.White,
+                    textColor = textColor,
                     mode = TransitMode.NATIONAL_RAIL,
-                    lineCode = operatorCode.take(3).uppercase()
+                    lineCode = when {
+                        operatorCode.equals("AW", ignoreCase = true) -> "TfW"
+                        else -> operatorCode.take(3).uppercase()
+                    }
                 )
                 Triple(lineId, operatorName, lineBadge)
             }

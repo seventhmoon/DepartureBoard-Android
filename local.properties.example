@@ -6,3 +6,6 @@ TFL_API_KEY=your_tfl_api_key_here
 
 ## National Rail Darwin API Key (https://opendata.nationalrail.co.uk/)
 NATIONAL_RAIL_API_KEY=your_national_rail_api_key_here
+
+## Bus Open Data Service (BODS) API Key (https://data.bus-data.dft.gov.uk/)
+BODS_API_KEY=your_bods_api_key_here

@@ -68,6 +68,15 @@ internal object TflStationMapper {
         val cleaned = StationNameFormatter.clean(match.name)
         val isBusOnly = TransitMode.isBusOnly(match.modes)
 
+        // For major multi-modal train / tube transport hubs (e.g. HUBLST Liverpool Street, HUBWAT Waterloo),
+        // omit the generic "bus" mode string from the station model, because bus services depart from external street
+        // bus stops (e.g. 490000138E Liverpool Street Station Stop E), while this hub station represents the train/tube terminal.
+        val cleanedModes = if (!isBusOnly && match.modes.size > 1) {
+            match.modes.filter { !it.equals(TransitMode.BUS.id, ignoreCase = true) }
+        } else {
+            match.modes
+        }
+
         val stopLetter = if (isBusOnly && !cleaned.contains("Stop ", ignoreCase = true)) {
             TflStopPointUtils.extractBusStopLetter(match.id)
         } else null
@@ -79,7 +88,7 @@ internal object TflStationMapper {
             Station(
                 id = match.id,
                 name = displayName,
-                modes = match.modes,
+                modes = cleanedModes,
                 zone = match.zone,
                 lat = match.lat,
                 lon = match.lon,

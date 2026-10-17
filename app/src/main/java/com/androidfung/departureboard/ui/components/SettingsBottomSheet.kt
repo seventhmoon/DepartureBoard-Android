@@ -330,7 +330,7 @@ fun SettingsBottomSheet(
                     SettingsActionItem(
                         icon = Icons.Rounded.WorkspacePremium,
                         iconTint = if (isPro) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        title = if (isPro) "Prompt Departure Pro" else "Free Plan",
+                        title = if (isPro) "EkiBoard Pro" else "Free Plan",
                         subtitle = if (isPro) "Active plan • Tap to view benefits" else "Upgrade for unlimited stations, AI & no ads",
                         onClick = onUpgradeClick
                     )

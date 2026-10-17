@@ -18,6 +18,26 @@ internal object TflStopPointUtils {
     const val PREFIX_BUS_STOP: String = "490"
 
     /**
+     * Determines whether a station identifier or name represents an individual bus stop/stand
+     * versus a train, metro, or railway station.
+     */
+    fun isBusStop(stationId: String, stationName: String, modes: List<String> = emptyList()): Boolean {
+        if (modes.isNotEmpty() && modes.all { it.equals("bus", ignoreCase = true) }) {
+            return true
+        }
+        val idUpper = stationId.uppercase()
+        // 490... = London bus stop/pole, 210... = Regional UK bus stop/pole
+        if (idUpper.startsWith("490") || idUpper.startsWith("210")) {
+            return true
+        }
+        val nameLower = stationName.lowercase()
+        return nameLower.contains("(stop ") ||
+                nameLower.contains("bus stand") ||
+                nameLower.contains("bus stop") ||
+                nameLower.endsWith(" bus station")
+    }
+
+    /**
      * Extracts the bus stop letter code from a NaPTAN bus stop ID if applicable (e.g. 490000185A -> "A").
      */
     fun extractBusStopLetter(id: String): String? {

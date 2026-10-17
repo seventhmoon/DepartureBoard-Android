@@ -61,7 +61,7 @@ import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.SubscriptionTier
 
 /**
- * Paywall bottom sheet showcasing Prompt Departure Pro features and subscription plans.
+ * Paywall bottom sheet showcasing EkiBoard Pro features and subscription plans.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

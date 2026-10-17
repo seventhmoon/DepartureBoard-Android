@@ -1,122 +1,147 @@
-<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Adaptive Icon Circular Mask Safe Bounds:
-         Canvas is 108x108 dp, center is (54, 54).
-         Mask diameter is 66dp -> radius is 33dp.
-         To leave comfortable breathing room inside a circle mask and ensure zero clipping at corners,
-         the content bounding box is kept within ~44dp wide x 44dp tall:
-         X in [32..76], Y in [32..76].
-         Corner distance from (54,54): sqrt(22^2 + 22^2) = 31.1dp < 33dp!
-    -->
+    <!-- Drop Shadow under Departure Board -->
+    <path
+        android:fillColor="#55000000"
+        android:pathData="M40,31L68,31A12,12 0 0,1 80,43L80,71A12,12 0 0,1 68,83L40,83A12,12 0 0,1 28,71L28,43A12,12 0 0,1 40,31Z" />
 
-    <!-- Station Header: TfL Underground Roundel Icon centered at (36, 36.5) -->
-    <!-- Red outer ring: center=(36, 36.5), outer r=3.8, inner r=2.3 -->
+    <!-- Outer Metallic Casing of Departure Board (52x52, safe inside r=33 circle) -->
+    <path android:pathData="M40,28L68,28A12,12 0 0,1 80,40L80,68A12,12 0 0,1 68,80L40,80A12,12 0 0,1 28,68L28,40A12,12 0 0,1 40,28Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="28"
+                android:startY="28"
+                android:endX="80"
+                android:endY="80"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#384366" />
+                <item android:offset="1.0" android:color="#1E2438" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Inner Dark Display Bezel -->
+    <path
+        android:fillColor="#0E121D"
+        android:pathData="M40,30L68,30A10,10 0 0,1 78,40L78,68A10,10 0 0,1 68,78L40,78A10,10 0 0,1 30,68L30,40A10,10 0 0,1 40,30Z" />
+
+    <!-- Top Header Banner in TfL Corporate Blue -->
+    <path android:pathData="M40,30L68,30A10,10 0 0,1 78,40L78,46L30,46L30,40A10,10 0 0,1 40,30Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="30"
+                android:startY="30"
+                android:endX="78"
+                android:endY="46"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#0037BD" />
+                <item android:offset="1.0" android:color="#0019A8" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Header Bottom Accent Line (Underground Red) -->
     <path
         android:fillColor="#E32017"
-        android:fillType="evenOdd"
-        android:pathData="M 36,32.7
-            A 3.8,3.8 0 1,1 35.99,32.7
-            Z
-            M 36,34.2
-            A 2.3,2.3 0 1,0 36.01,34.2
-            Z" />
-    <!-- Blue horizontal bar across roundel: [31.5..40.5] x [35.6..37.4] -->
-    <path
-        android:fillColor="#001489"
-        android:pathData="M 31.5,35.6 H 40.5 V 37.4 H 31.5 Z" />
+        android:pathData="M30,45.5L78,45.5L78,47L30,47Z" />
 
-    <!-- Station name line -->
+    <!-- Iconic Transit Roundel in Header Left (Center: 40, 38) -->
+    <!-- Outer White Halo for High Contrast on Blue Header -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 43,35 H 67 A 1,1 0 0,1 67,37 H 43 A 1,1 0 0,1 43,35 Z" />
-
-    <!-- Subtitle (Departures) line -->
-    <path
-        android:fillColor="#8E9099"
-        android:pathData="M 43,39 H 58 A 0.8,0.8 0 0,1 58,40.6 H 43 A 0.8,0.8 0 0,1 43,39 Z" />
-
-    <!-- Refresh icon circle badge -->
-    <path
-        android:fillColor="#262A38"
-        android:pathData="M 73.5,35 A 2.2,2.2 0 1,1 73.49,35 Z" />
-
-    <!-- Divider line: X in [33..75], Y=44 -->
-    <path
-        android:fillColor="#262A38"
-        android:pathData="M 33,44 H 75 V 45.2 H 33 Z" />
-
-    <!-- Row 1: Destination, Platform, DUE badge -->
-    <!-- Destination primary text bar -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M 33,48.5 H 59 A 1,1 0 0,1 59,50.7 H 33 A 1,1 0 0,1 33,48.5 Z" />
-    <!-- Platform secondary text bar -->
-    <path
-        android:fillColor="#8E9099"
-        android:pathData="M 33,52.2 H 48 A 0.8,0.8 0 0,1 48,53.8 H 33 A 0.8,0.8 0 0,1 33,52.2 Z" />
-    <!-- DUE badge (pill) -->
+        android:pathData="M40,38m-5.2,0a5.2,5.2 0 1,1 10.4,0a5.2,5.2 0 1,1 -10.4,0" />
+    <!-- Red Roundel Ring -->
     <path
         android:fillColor="#E32017"
-        android:pathData="M 66.5,48.5
-            H 73.5
-            A 1.8,1.8 0 0,1 75.3,50.3
-            V 50.3
-            A 1.8,1.8 0 0,1 73.5,52.1
-            H 66.5
-            A 1.8,1.8 0 0,1 64.7,50.3
-            V 50.3
-            A 1.8,1.8 0 0,1 66.5,48.5
-            Z" />
-
-    <!-- Row 2: Destination, Platform, 2m badge -->
-    <!-- Destination primary text bar -->
+        android:pathData="M40,38m-4.4,0a4.4,4.4 0 1,1 8.8,0a4.4,4.4 0 1,1 -8.8,0" />
+    <!-- Inner Cutout -->
+    <path
+        android:fillColor="#0026B2"
+        android:pathData="M40,38m-2.3,0a2.3,2.3 0 1,1 4.6,0a2.3,2.3 0 1,1 -4.6,0" />
+    <!-- Roundel Horizontal Crossbar -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 33,57 H 57 A 1,1 0 0,1 57,59.2 H 33 A 1,1 0 0,1 33,57 Z" />
-    <!-- Platform secondary text bar -->
-    <path
-        android:fillColor="#8E9099"
-        android:pathData="M 33,60.7 H 46 A 0.8,0.8 0 0,1 46,62.3 H 33 A 0.8,0.8 0 0,1 33,60.7 Z" />
-    <!-- 2m badge (pill) -->
-    <path
-        android:fillColor="#0037BD"
-        android:pathData="M 67.5,57
-            H 73.5
-            A 1.8,1.8 0 0,1 75.3,58.8
-            V 58.8
-            A 1.8,1.8 0 0,1 73.5,60.6
-            H 67.5
-            A 1.8,1.8 0 0,1 65.7,58.8
-            V 58.8
-            A 1.8,1.8 0 0,1 67.5,57
-            Z" />
+        android:pathData="M34.2,36.9L45.8,36.9A1.1,1.1 0 0,1 46.9,38A1.1,1.1 0 0,1 45.8,39.1L34.2,39.1A1.1,1.1 0 0,1 33.1,38A1.1,1.1 0 0,1 34.2,36.9Z" />
 
-    <!-- Row 3: Destination, Platform, 5m badge -->
-    <!-- Destination primary text bar -->
+    <!-- Header Station Title Bar & Live Pulse Dot -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M50.5,36.3L66.5,36.3A1.7,1.7 0 0,1 68.2,38A1.7,1.7 0 0,1 66.5,39.7L50.5,39.7A1.7,1.7 0 0,1 48.8,38A1.7,1.7 0 0,1 50.5,36.3Z" />
+    <path
+        android:fillColor="#00E676"
+        android:pathData="M72.5,38m-2.0,0a2.0,2.0 0 1,1 4.0,0a2.0,2.0 0 1,1 -4.0,0" />
+
+    <!-- ==================== DEPARTURE ROW 1 (Y: 50 to 60.5) ==================== -->
+    <!-- Recessed Split-Flap Slot 1 -->
+    <path
+        android:fillColor="#181F32"
+        android:pathData="M36.5,50L71.5,50A3.5,3.5 0 0,1 75,53.5L75,57A3.5,3.5 0 0,1 71.5,60.5L36.5,60.5A3.5,3.5 0 0,1 33,57L33,53.5A3.5,3.5 0 0,1 36.5,50Z" />
+
+    <!-- Line 1 Colour Pill (Central/Underground Red) -->
+    <path
+        android:fillColor="#E32017"
+        android:pathData="M36.5,52.2L36.5,52.2A1.3,1.3 0 0,1 37.8,53.5L37.8,57A1.3,1.3 0 0,1 36.5,58.3A1.3,1.3 0 0,1 35.2,57L35.2,53.5A1.3,1.3 0 0,1 36.5,52.2Z" />
+
+    <!-- Primary Destination Bar -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 33,65.5 H 60 A 1,1 0 0,1 60,67.7 H 33 A 1,1 0 0,1 33,65.5 Z" />
-    <!-- Platform secondary text bar -->
-    <path
-        android:fillColor="#8E9099"
-        android:pathData="M 33,69.2 H 49 A 0.8,0.8 0 0,1 49,70.8 H 33 A 0.8,0.8 0 0,1 33,69.2 Z" />
-    <!-- 5m badge (pill) -->
-    <path
-        android:fillColor="#0037BD"
-        android:pathData="M 67.5,65.5
-            H 73.5
-            A 1.8,1.8 0 0,1 75.3,67.3
-            V 67.3
-            A 1.8,1.8 0 0,1 73.5,69.1
-            H 67.5
-            A 1.8,1.8 0 0,1 65.7,67.3
-            V 67.3
-            A 1.8,1.8 0 0,1 67.5,65.5
-            Z" />
+        android:pathData="M41.5,53.4L56.5,53.4A1.85,1.85 0 0,1 58.35,55.25A1.85,1.85 0 0,1 56.5,57.1L41.5,57.1A1.85,1.85 0 0,1 39.65,55.25A1.85,1.85 0 0,1 41.5,53.4Z" />
 
+    <!-- Glowing Amber LED Countdown Badge 1 -->
+    <path android:pathData="M63,52L70.5,52A2.5,2.5 0 0,1 73,54.5L73,56A2.5,2.5 0 0,1 70.5,58.5L63,58.5A2.5,2.5 0 0,1 60.5,56L60.5,54.5A2.5,2.5 0 0,1 63,52Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="60.5"
+                android:startY="52"
+                android:endX="73"
+                android:endY="58.5"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FFD54F" />
+                <item android:offset="1.0" android:color="#FF8F00" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- ==================== DEPARTURE ROW 2 (Y: 63.5 to 74) ==================== -->
+    <!-- Recessed Split-Flap Slot 2 -->
+    <path
+        android:fillColor="#181F32"
+        android:pathData="M36.5,63.5L71.5,63.5A3.5,3.5 0 0,1 75,67L75,70.5A3.5,3.5 0 0,1 71.5,74L36.5,74A3.5,3.5 0 0,1 33,70.5L33,67A3.5,3.5 0 0,1 36.5,63.5Z" />
+
+    <!-- Line 2 Colour Pill (Victoria/Piccadilly Blue) -->
+    <path
+        android:fillColor="#0098D4"
+        android:pathData="M36.5,65.7L36.5,65.7A1.3,1.3 0 0,1 37.8,67L37.8,70.5A1.3,1.3 0 0,1 36.5,71.8A1.3,1.3 0 0,1 35.2,70.5L35.2,67A1.3,1.3 0 0,1 36.5,65.7Z" />
+
+    <!-- Secondary Destination Bar -->
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M41.5,66.9L52.5,66.9A1.85,1.85 0 0,1 54.35,68.75A1.85,1.85 0 0,1 52.5,70.6L41.5,70.6A1.85,1.85 0 0,1 39.65,68.75A1.85,1.85 0 0,1 41.5,66.9Z" />
+
+    <!-- Glowing Amber LED Countdown Badge 2 -->
+    <path
+        android:fillColor="#33FFB300"
+        android:pathData="M63,65.5L70.5,65.5A2.5,2.5 0 0,1 73,68L73,69.5A2.5,2.5 0 0,1 70.5,72L63,72A2.5,2.5 0 0,1 60.5,69.5L60.5,68A2.5,2.5 0 0,1 63,65.5Z" />
+    <path
+        android:fillColor="#FFB300"
+        android:pathData="M63.8,67.3L69.7,67.3A1.45,1.45 0 0,1 71.15,68.75A1.45,1.45 0 0,1 69.7,70.2L63.8,70.2A1.45,1.45 0 0,1 62.35,68.75A1.45,1.45 0 0,1 63.8,67.3Z" />
+
+    <!-- Subtle Split-Flap Mechanical Divider Line Across Rows -->
+    <path
+        android:fillColor="#330E121D"
+        android:pathData="M33,55L75,55L75,55.6L33,55.6Z" />
+    <path
+        android:fillColor="#330E121D"
+        android:pathData="M33,68.5L75,68.5L75,69.1L33,69.1Z" />
+
+    <!-- Subtle Top Rim Highlight on Board Frame -->
+    <path
+        android:pathData="M40,28.7L68,28.7A11.3,11.3 0 0,1 79.3,40"
+        android:strokeWidth="0.8"
+        android:strokeColor="#33FFFFFF" />
 </vector>

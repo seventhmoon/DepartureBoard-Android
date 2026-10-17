@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.billing
 
 /**
- * Defines subscription tiers and enforced quota limits for Prompt Departure.
+ * Defines subscription tiers and enforced quota limits for EkiBoard.
  * Both Free and Pro tiers have strict caps to safeguard against excessive
  * battery drain and protect external transit API rate limits.
  */

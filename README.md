@@ -1,4 +1,4 @@
-# Prompt Departure 🚇
+# EkiBoard 🚇
 
 A modern, high-performance London transit departure board app built for Android with **Jetpack Compose**, **Material 3 Expressive**, and **Glance AppWidgets**. Powered by the **Transport for London (TfL) Unified API** and **National Rail Darwin Live Feeds**.
 

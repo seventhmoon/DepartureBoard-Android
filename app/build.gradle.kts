@@ -20,8 +20,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 19
-        versionName = "1.1.2-261015"
+        versionCode = 22
+        versionName = "1.2.0-261016"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -35,6 +35,9 @@ android {
 
         val nrApiKey = props.getProperty("NATIONAL_RAIL_API_KEY") ?: System.getenv("NATIONAL_RAIL_API_KEY") ?: ""
         buildConfigField("String", "NATIONAL_RAIL_API_KEY", "\"$nrApiKey\"")
+
+        val bodsApiKey = props.getProperty("BODS_API_KEY") ?: System.getenv("BODS_API_KEY") ?: ""
+        buildConfigField("String", "BODS_API_KEY", "\"$bodsApiKey\"")
     }
 
     buildTypes {
@@ -85,6 +88,7 @@ ksp {
 dependencies {
     // Platform / BOMs
     implementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.firebase.bom))
 
     // AndroidX & Core

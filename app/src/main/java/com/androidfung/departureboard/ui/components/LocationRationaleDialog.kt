@@ -72,7 +72,7 @@ fun LocationRationaleDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Prompt Departure uses your approximate location to:",
+                    text = "EkiBoard uses your approximate location to:",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

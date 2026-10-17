@@ -223,7 +223,7 @@ class DashboardViewModel @JvmOverloads constructor(
                     if (card.station.id == station.id) {
                         if (result.isSuccess) {
                             val departures = result.getOrDefault(emptyList())
-                            val badges = buildStationLineBadges(card.station, departures, lineStatuses)
+                            val badges = StationBadgeSynthesizer.buildStationLineBadges(card.station, departures, lineStatuses)
                             card.copy(
                                 departures = departures,
                                 availableLineBadges = badges,
@@ -271,7 +271,7 @@ class DashboardViewModel @JvmOverloads constructor(
                 val res = results[card.station.id]
                 if (res != null && res.isSuccess) {
                     val departures = res.getOrDefault(emptyList())
-                    val badgesWithStatus = buildStationLineBadges(card.station, departures, lineStatuses)
+                    val badgesWithStatus = StationBadgeSynthesizer.buildStationLineBadges(card.station, departures, lineStatuses)
 
                     card.copy(
                         departures = departures,
@@ -291,61 +291,6 @@ class DashboardViewModel @JvmOverloads constructor(
                 isRefreshing = false,
                 lastUpdatedTimestamp = System.currentTimeMillis()
             )
-        }
-    }
-
-    private fun buildStationLineBadges(
-        station: Station,
-        departures: List<Departure>,
-        lineStatuses: Map<String, com.androidfung.departureboard.data.model.TflLineStatusItem>
-    ): List<LineBadgeInfo> {
-        // Extract line badges strictly from active departures, falling back to verified station lines only if departures are empty
-        val departureBadges = departures.map { it.lineBadge }.distinctBy { it.displayName }
-        val rawBadges = if (departureBadges.isNotEmpty()) {
-            val isWembleyPark = com.androidfung.departureboard.data.repository.TflStopPointUtils.isWembleyPark(station.id, station.name)
-            val isStPancrasOrKingsCrossNR = com.androidfung.departureboard.data.repository.TflStopPointUtils.isStPancrasOrKingsCrossNR(station.id, station.name)
-
-            departureBadges.filter { badge ->
-                // Guard: Filter out spurious depot movements (e.g. H&C depot run at Wembley Park)
-                if (isWembleyPark && badge.lineId.equals("hammersmith-city", ignoreCase = true)) return@filter false
-
-                // Guard: Filter out Tube badges for St Pancras or King's Cross National Rail
-                if (isStPancrasOrKingsCrossNR) {
-                    if (badge.mode == com.androidfung.departureboard.data.model.TransitMode.TUBE ||
-                        badge.lineId.lowercase() in TflLineColors.TUBE_LINE_IDS
-                    ) {
-                        return@filter false
-                    }
-                }
-
-                true
-            }
-        } else {
-            inferLineBadges(station)
-        }
-
-        // Sort line badges logically: Tube/Rail lines alphabetically, then numeric Bus routes in ascending order
-        val sortedBadges = rawBadges.sortedWith(
-            compareBy<LineBadgeInfo> { badge ->
-                if (badge.displayName.all { it.isDigit() }) 1 else 0
-            }.thenBy { badge ->
-                val num = badge.displayName.filter { it.isDigit() }.toIntOrNull()
-                num ?: Int.MAX_VALUE
-            }.thenBy { it.displayName }
-        )
-
-        return sortedBadges.map { badge ->
-            val statusItem = lineStatuses[badge.lineId.lowercase()]
-            val firstDetail = statusItem?.lineStatuses?.firstOrNull()
-            if (firstDetail != null) {
-                badge.copy(
-                    statusSeverity = firstDetail.statusSeverity,
-                    statusDescription = firstDetail.statusSeverityDescription,
-                    disruptionReason = firstDetail.reason
-                )
-            } else {
-                badge
-            }
         }
     }
 
@@ -391,40 +336,9 @@ class DashboardViewModel @JvmOverloads constructor(
                         (state.selectedJourneyDeparture?.timeToStationSeconds ?: 0) > 0
                     if (!hasAnyActiveDepartures) return@update state
 
-                    val tickedCards = state.stationCards.map { card ->
-                        if (card.departures.isEmpty()) {
-                            card
-                        } else {
-                            val tickedDepartures = card.departures.map { departure ->
-                                if (departure.timeToStationSeconds > 0) {
-                                    departure.copy(timeToStationSeconds = departure.timeToStationSeconds - 1)
-                                } else {
-                                    departure
-                                }
-                            }
-                            card.copy(departures = tickedDepartures)
-                        }
-                    }
-
-                    val tickedDetailDepartures = if (state.detailDepartures.isEmpty()) {
-                        state.detailDepartures
-                    } else {
-                        state.detailDepartures.map { departure ->
-                            if (departure.timeToStationSeconds > 0) {
-                                departure.copy(timeToStationSeconds = departure.timeToStationSeconds - 1)
-                            } else {
-                                departure
-                            }
-                        }
-                    }
-
-                    val tickedJourneyDeparture = state.selectedJourneyDeparture?.let { dep ->
-                        if (dep.timeToStationSeconds > 0) {
-                            dep.copy(timeToStationSeconds = dep.timeToStationSeconds - 1)
-                        } else {
-                            dep
-                        }
-                    }
+                    val tickedCards = CountdownTicker.tick(state.stationCards)
+                    val tickedDetailDepartures = CountdownTicker.tickDepartures(state.detailDepartures)
+                    val tickedJourneyDeparture = CountdownTicker.tickDeparture(state.selectedJourneyDeparture)
 
                     state.copy(
                         stationCards = tickedCards,
@@ -483,7 +397,7 @@ class DashboardViewModel @JvmOverloads constructor(
     }
 
     fun showPaywall(reason: String? = null) {
-        _uiState.update { it.copy(paywallPromptReason = reason ?: "Unlock Prompt Departure Pro") }
+        _uiState.update { it.copy(paywallPromptReason = reason ?: "Unlock EkiBoard Pro") }
     }
 
     fun dismissPaywall() {
