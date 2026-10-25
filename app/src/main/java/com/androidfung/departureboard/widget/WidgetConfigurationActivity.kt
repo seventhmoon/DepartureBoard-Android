@@ -411,7 +411,7 @@ fun WidgetStationPickerScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Search London stations...") },
+            placeholder = { Text("Search stations, lines, or bus stops...") },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Rounded.Search,
@@ -474,7 +474,7 @@ fun WidgetStationPickerScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.DirectionsSubway,
+                                    imageVector = com.androidfung.departureboard.ui.components.TransitIconHelper.getTransitIconForMode(station.modes.firstOrNull()),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.size(22.dp)
@@ -489,8 +489,14 @@ fun WidgetStationPickerScreen(
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                                val subtitleLabel = when {
+                                    station.id.startsWith("HK_") -> station.zone ?: "Hong Kong Transit"
+                                    station.displayZone != null -> "Zone ${station.displayZone}"
+                                    station.zone != null -> station.zone
+                                    else -> "Transit Network"
+                                }
                                 Text(
-                                    text = if (station.displayZone != null) "Zone ${station.displayZone}" else "TfL Network",
+                                    text = subtitleLabel,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

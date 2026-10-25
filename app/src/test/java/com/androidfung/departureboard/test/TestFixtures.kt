@@ -56,7 +56,8 @@ object TestFixtures {
             mode = TransitMode.TUBE
         ),
         callingPoints: List<CallingPoint> = emptyList(),
-        vehicleId: String? = null
+        vehicleId: String? = null,
+        destinationStationId: String? = null
     ): Departure = Departure(
         id = id,
         stationId = stationId,
@@ -74,6 +75,7 @@ object TestFixtures {
         lineBadge = lineBadge,
         callingPoints = callingPoints,
         status = status,
-        vehicleId = vehicleId
+        vehicleId = vehicleId,
+        destinationStationId = destinationStationId
     )
 }

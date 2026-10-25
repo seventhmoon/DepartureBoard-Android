@@ -10,7 +10,7 @@ import androidx.room.RoomDatabase
         CachedDepartureEntity::class,
         StationCrsEntity::class
     ],
-    version = 3,
+    version = 10,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -2,5 +2,37 @@
     <string name="app_name">EkiBoard</string>
     <string name="launcher_name">EkiBoard</string>
     <string name="widget_name">EkiBoard</string>
-    <string name="widget_description">Live UK &amp; London departure predictions for saved stations</string>
+    <string name="widget_description">Live departure predictions for saved transit stations</string>
+
+    <!-- Region Names -->
+    <string name="region_uk">United Kingdom</string>
+    <string name="region_hk">Hong Kong</string>
+
+    <!-- Transit Statuses -->
+    <string name="status_due">Due</string>
+    <string name="status_on_time">On time</string>
+    <string name="status_delayed">Delayed</string>
+    <string name="status_cancelled">Cancelled</string>
+    <string name="status_approaching">Approaching</string>
+    <string name="status_at_platform">At Platform</string>
+    <string name="status_at_stop">At Stop</string>
+    <string name="status_in_transit">In Transit</string>
+
+    <!-- UI Labels -->
+    <string name="platform_label">Plat %s</string>
+    <string name="search_hint">Search station, line, or stop…</string>
+    <string name="filter_all">All</string>
+    <string name="filter_bus">Bus</string>
+    <string name="filter_rail">Rail</string>
+    <string name="filter_metro">Metro</string>
+    <string name="nearest_station_header">Nearest Station</string>
+    <string name="saved_stations_header">Saved Stations</string>
+    <string name="empty_saved_stations_title">No saved stations</string>
+    <string name="empty_saved_stations_desc">Search and save your favorite stations to see live departures here.</string>
+
+    <!-- Debug & Settings -->
+    <string name="debug_settings_title">Developer Options</string>
+    <string name="debug_enable_hk_title">Enable Hong Kong (Experimental)</string>
+    <string name="debug_enable_hk_subtitle">Unlock Hong Kong MTR and franchised buses (KMB/Citybus)</string>
+    <string name="switch_region_title">Switch Region</string>
 </resources>

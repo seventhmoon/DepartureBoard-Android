@@ -25,12 +25,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.androidfung.departureboard.data.model.DefaultStations
+import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TransitMode
@@ -138,11 +140,18 @@ fun StationSearchResultRow(
                         // Mode badges with standardized official terminology and branding
                         displayModes.take(3).forEach { modeStr ->
                             val transitMode = TransitMode.fromModeString(modeStr)
-                            val badge = TflLineColors.getLineBadge(
-                                lineId = transitMode.id,
-                                lineName = transitMode.displayName,
-                                modeName = transitMode.id
-                            )
+                            val badge = if (station.id.startsWith("HK_MTR_")) {
+                                val primaryLine = station.lines.firstOrNull()?.id ?: "ISL"
+                                com.androidfung.departureboard.data.model.HkMtrLineRegistry.getLineBadge(primaryLine)
+                            } else if (station.id.startsWith("HK_BUS_")) {
+                                LineBadgeInfo("bus", "Bus", com.androidfung.departureboard.data.model.HkDefaultStations.ColorKmbRed, Color.White, TransitMode.BUS)
+                            } else {
+                                TflLineColors.getLineBadge(
+                                    lineId = transitMode.id,
+                                    lineName = transitMode.displayName,
+                                    modeName = transitMode.id
+                                )
+                            }
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))

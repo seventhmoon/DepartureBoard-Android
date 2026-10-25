@@ -166,7 +166,20 @@ object StationLineInferrer {
             }
             .map { line ->
                 val mode = line.mode ?: resolveDefaultMode(line.id)
-                TflLineColors.getLineBadge(line.id, line.name, mode)
+                if (station.id.startsWith("HK_MTR_") || line.id in HkMtrLineRegistry.LINES) {
+                    HkMtrLineRegistry.getLineBadge(line.id)
+                } else if (station.id.startsWith("HK_BUS_") || line.id.startsWith("KMB_") || line.id.startsWith("CTB_")) {
+                    val cleanRoute = line.name.ifBlank { line.id.removePrefix("KMB_").removePrefix("CTB_") }
+                    LineBadgeInfo(
+                        lineId = cleanRoute,
+                        displayName = cleanRoute,
+                        backgroundColor = HkDefaultStations.ColorKmbRed,
+                        textColor = androidx.compose.ui.graphics.Color.White,
+                        mode = TransitMode.BUS
+                    )
+                } else {
+                    TflLineColors.getLineBadge(line.id, line.name, mode)
+                }
             }
             .distinctBy { it.displayName }
             .sortedBy { it.displayName }

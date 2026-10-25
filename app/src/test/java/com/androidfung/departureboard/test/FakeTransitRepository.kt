@@ -42,6 +42,10 @@ open class FakeTransitRepository(
     val departureRowsCountStateFlow = MutableStateFlow(initialDepartureRowsCount)
     val themeModeStateFlow = MutableStateFlow(initialThemeMode)
     val dynamicColorStateFlow = MutableStateFlow(initialDynamicColor)
+    val selectedRegionStateFlow = MutableStateFlow(com.androidfung.departureboard.data.model.TransitRegion.GB)
+    val isHkRegionEnabledStateFlow = MutableStateFlow(false)
+    val autoSortByLocationStateFlow = MutableStateFlow(false)
+    val recentSearchedStationsStateFlow = MutableStateFlow<List<Station>>(emptyList())
 
     val savedStations = mutableListOf<Station>()
     val removedStationIds = mutableListOf<String>()
@@ -51,6 +55,22 @@ open class FakeTransitRepository(
     override val departureRowsCountFlow: Flow<Int> = departureRowsCountStateFlow.asStateFlow()
     override val themeModeFlow: Flow<AppThemeMode> = themeModeStateFlow.asStateFlow()
     override val dynamicColorFlow: Flow<Boolean> = dynamicColorStateFlow.asStateFlow()
+    override val selectedRegionFlow: Flow<com.androidfung.departureboard.data.model.TransitRegion> = selectedRegionStateFlow.asStateFlow()
+    override val isHkRegionEnabledFlow: Flow<Boolean> = isHkRegionEnabledStateFlow.asStateFlow()
+    override val autoSortByLocationFlow: Flow<Boolean> = autoSortByLocationStateFlow.asStateFlow()
+    override val recentSearchedStationsFlow: Flow<List<Station>> = recentSearchedStationsStateFlow.asStateFlow()
+
+    override suspend fun setAutoSortByLocation(enabled: Boolean) {
+        autoSortByLocationStateFlow.value = enabled
+    }
+
+    override suspend fun setSelectedRegion(region: com.androidfung.departureboard.data.model.TransitRegion) {
+        selectedRegionStateFlow.value = region
+    }
+
+    override suspend fun setHkRegionEnabled(enabled: Boolean) {
+        isHkRegionEnabledStateFlow.value = enabled
+    }
 
     override suspend fun setDepartureRowsCount(count: Int) {
         departureRowsCountStateFlow.value = count
@@ -107,6 +127,20 @@ open class FakeTransitRepository(
 
     override suspend fun setRecentStationId(stationId: String) {
         recentStationIdStateFlow.value = stationId
+    }
+
+    override suspend fun addRecentSearchedStation(station: Station) {
+        val list = recentSearchedStationsStateFlow.value.filterNot { it.id == station.id }.toMutableList()
+        list.add(0, station)
+        recentSearchedStationsStateFlow.value = list
+    }
+
+    override suspend fun removeRecentSearchedStation(stationId: String) {
+        recentSearchedStationsStateFlow.value = recentSearchedStationsStateFlow.value.filterNot { it.id == stationId }
+    }
+
+    override suspend fun clearRecentSearchedStations() {
+        recentSearchedStationsStateFlow.value = emptyList()
     }
 
     override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> =

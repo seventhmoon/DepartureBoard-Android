@@ -79,10 +79,13 @@ fun SettingsBottomSheet(
     onThemeModeChange: (AppThemeMode) -> Unit = {},
     isDynamicColor: Boolean = true,
     onDynamicColorChange: (Boolean) -> Unit = {},
+    isAutoSortByLocation: Boolean = false,
+    onAutoSortByLocationChange: (Boolean) -> Unit = {},
     isPro: Boolean,
     billingRepository: BillingDataSource,
     onOpenHelpFaq: () -> Unit,
     onUpgradeClick: () -> Unit,
+    onRateApp: () -> Unit = {},
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
@@ -307,6 +310,39 @@ fun SettingsBottomSheet(
                             )
                         }
                     }
+
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+
+                    // Smart Commute Auto-Sort by GPS Location
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = "Smart Location Auto-Sort",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Automatically place your nearest saved station at the top",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isAutoSortByLocation,
+                            onCheckedChange = onAutoSortByLocationChange,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+                    }
                 }
             }
 
@@ -406,13 +442,7 @@ fun SettingsBottomSheet(
                         icon = Icons.Rounded.StarRate,
                         title = "Rate on Google Play",
                         subtitle = "Share your review with other commuters",
-                        onClick = {
-                            val intent = Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse("https://play.google.com/store/apps/details?id=com.androidfung.departureboard")
-                            )
-                            context.startActivity(intent)
-                        }
+                        onClick = onRateApp
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))

@@ -31,7 +31,7 @@ object NationalRailNetworkClient {
             }
         }
 
-        OkHttpClient.Builder()
+        SharedNetworkConfig.newBuilder()
             .addInterceptor(loggingInterceptor)
             .addInterceptor { chain ->
                 val originalRequest = chain.request()

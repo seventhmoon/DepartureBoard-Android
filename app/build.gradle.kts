@@ -20,8 +20,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 23
-        versionName = "1.2.0-261016"
+        versionCode = 31
+        versionName = "1.2.0-261024"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -64,7 +64,12 @@ android {
     lint {
         warningsAsErrors = false
         abortOnError = false
-        disable += setOf("UnusedAttribute", "GradleDependency", "NewerVersionAvailable", "UseKtx")
+//        disable += setOf("UnusedAttribute", "GradleDependency", "NewerVersionAvailable", "UseKtx")
+    }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
     }
     packaging {
         resources {
@@ -88,6 +93,7 @@ ksp {
 dependencies {
     // Platform / BOMs
     implementation(platform(libs.androidx.compose.bom))
+    testImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.firebase.bom))
 
@@ -132,6 +138,8 @@ dependencies {
 
     // Google Play Services & Billing
     implementation(libs.play.app.update.ktx)
+    implementation(libs.play.review)
+    implementation(libs.play.review.ktx)
     implementation(libs.play.billing)
     implementation(libs.play.billing.ktx)
     implementation(libs.play.services.ads)
@@ -147,6 +155,7 @@ dependencies {
     // Utilities
     implementation(libs.androidx.appfunctions)
     "ksp"(libs.androidx.appfunctions.compiler)
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.play.services)
@@ -155,7 +164,9 @@ dependencies {
     testImplementation(libs.androidx.core)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation("net.sf.kxml:kxml2:2.3.0")
+    testImplementation(libs.kxml2)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

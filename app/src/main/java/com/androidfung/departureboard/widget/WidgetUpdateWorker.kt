@@ -23,6 +23,9 @@ class WidgetUpdateWorker(
         return try {
             val manager = GlanceAppWidgetManager(appContext)
             val glanceIds = manager.getGlanceIds(DepartureBoardWidget::class.java)
+            if (glanceIds.isEmpty()) {
+                return Result.success()
+            }
             glanceIds.forEach { glanceId ->
                 DepartureBoardWidget().update(appContext, glanceId)
             }
@@ -38,6 +41,7 @@ class WidgetUpdateWorker(
         fun enqueuePeriodicUpdate(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
+                .setRequiresBatteryNotLow(true)
                 .build()
 
             val request = PeriodicWorkRequestBuilder<WidgetUpdateWorker>(

@@ -65,3 +65,8 @@ val TflDarkSurfaceContainer = Color(0xFF1E2331)
 val TflDarkSurfaceContainerHigh = Color(0xFF242938)
 val TflDarkSurfaceContainerHighest = Color(0xFF2C3243)
 val TflDarkSurfaceContainerLow = Color(0xFF151822)
+
+// Semantic Transit Status Colors
+val GoodServiceGreen = Color(0xFF2E7D32)
+val MinorDelaysAmber = Color(0xFFF57C00)
+val SevereDelaysRed = Color(0xFFD32F2F)

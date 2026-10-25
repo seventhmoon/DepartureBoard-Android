@@ -19,55 +19,63 @@ object TurnaroundTimeTracker {
         val lineId: String,
         val penultimateStationName: String,
         val penultimateRunTimeSeconds: Int,
-        val steppingBackDwellSeconds: Int
+        val steppingBackDwellSeconds: Int,
+        val stationIds: Set<String> = emptySet()
     )
 
     // Specific WTT profiles for major high-frequency London termini
     private val WTT_TERMINUS_PROFILES = listOf(
         // Victoria line (intensive 36 tph stepping-back)
-        TerminusWttProfile("Brixton", "victoria", "Stockwell", 115, 110),
-        TerminusWttProfile("Walthamstow Central", "victoria", "Blackhorse Road", 110, 120),
+        TerminusWttProfile("Brixton", "victoria", "Stockwell", 115, 110, setOf("940GZZLUBXN")),
+        TerminusWttProfile("Walthamstow Central", "victoria", "Blackhorse Road", 110, 120, setOf("940GZZLUWWL", "940GZZLUWAC")),
 
-        // Northern line (stepping-back at Morden, Edgware, High Barnet, Battersea)
-        TerminusWttProfile("Morden", "northern", "South Wimbledon", 100, 150),
-        TerminusWttProfile("Edgware", "northern", "Burnt Oak", 120, 180),
-        TerminusWttProfile("High Barnet", "northern", "Totteridge & Whetstone", 135, 180),
-        TerminusWttProfile("Battersea Power Station", "northern", "Nine Elms", 110, 150),
-        TerminusWttProfile("Mill Hill East", "northern", "Finchley Central", 180, 150),
+        // Northern line (stepping-back at Morden, Edgware, High Barnet, Battersea, Mill Hill East)
+        TerminusWttProfile("Morden", "northern", "South Wimbledon", 100, 150, setOf("940GZZLUMDN")),
+        TerminusWttProfile("Edgware", "northern", "Burnt Oak", 120, 180, setOf("940GZZLUEGW")),
+        TerminusWttProfile("High Barnet", "northern", "Totteridge & Whetstone", 135, 180, setOf("940GZZLUHBT")),
+        TerminusWttProfile("Battersea Power Station", "northern", "Nine Elms", 110, 150, setOf("940GZZBPSUST")),
+        TerminusWttProfile("Mill Hill East", "northern", "Finchley Central", 180, 150, setOf("940GZZLUMHL")),
 
         // Jubilee line
-        TerminusWttProfile("Stratford", "jubilee", "West Ham", 140, 180),
-        TerminusWttProfile("Stanmore", "jubilee", "Canons Park", 120, 180),
+        TerminusWttProfile("Stratford", "jubilee", "West Ham", 140, 180, setOf("940GZZLUSTD")),
+        TerminusWttProfile("Stanmore", "jubilee", "Canons Park", 120, 180, setOf("940GZZLUSTM")),
 
         // Bakerloo line
-        TerminusWttProfile("Elephant & Castle", "bakerloo", "Lambeth North", 110, 180),
-        TerminusWttProfile("Harrow & Wealdstone", "bakerloo", "Kenton", 125, 210),
+        TerminusWttProfile("Elephant & Castle", "bakerloo", "Lambeth North", 110, 180, setOf("940GZZLUEHA")),
+        TerminusWttProfile("Harrow & Wealdstone", "bakerloo", "Kenton", 125, 210, setOf("940GZZLUHAW")),
 
         // Central line
-        TerminusWttProfile("West Ruislip", "central", "Ruislip Gardens", 130, 210),
-        TerminusWttProfile("Ealing Broadway", "central", "West Acton", 140, 210),
-        TerminusWttProfile("Epping", "central", "Theydon Bois", 160, 210),
-        TerminusWttProfile("Hainault", "central", "Fairlop", 110, 180),
+        TerminusWttProfile("West Ruislip", "central", "Ruislip Gardens", 130, 210, setOf("940GZZLUWRP")),
+        TerminusWttProfile("Ealing Broadway", "central", "West Acton", 140, 210, setOf("940GZZLUEBY")),
+        TerminusWttProfile("Epping", "central", "Theydon Bois", 160, 210, setOf("940GZZLUEPG")),
+        TerminusWttProfile("Hainault", "central", "Fairlop", 110, 180, setOf("940GZZLUHHL")),
 
         // Piccadilly line
-        TerminusWttProfile("Cockfosters", "piccadilly", "Oakwood", 130, 210),
-        TerminusWttProfile("Uxbridge", "piccadilly", "Hillingdon", 140, 240),
-        TerminusWttProfile("Heathrow Terminal 5", "piccadilly", "Heathrow Terminals 2 & 3", 180, 240),
+        TerminusWttProfile("Cockfosters", "piccadilly", "Oakwood", 130, 210, setOf("940GZZLUCKF")),
+        TerminusWttProfile("Uxbridge", "piccadilly", "Hillingdon", 140, 240, setOf("940GZZLUUXB")),
+        TerminusWttProfile("Heathrow Terminal 5", "piccadilly", "Heathrow Terminals 2 & 3", 180, 240, setOf("940GZZLUHR5")),
 
         // District line
-        TerminusWttProfile("Upminster", "district", "Upminster Bridge", 110, 240),
-        TerminusWttProfile("Wimbledon", "district", "Wimbledon Park", 120, 240),
-        TerminusWttProfile("Richmond", "district", "Kew Gardens", 150, 240),
+        TerminusWttProfile("Upminster", "district", "Upminster Bridge", 110, 240, setOf("940GZZLUUPM")),
+        TerminusWttProfile("Wimbledon", "district", "Wimbledon Park", 120, 240, setOf("940GZZLUWBR")),
+        TerminusWttProfile("Richmond", "district", "Kew Gardens", 150, 240, setOf("940GZZLURMD")),
 
         // Elizabeth line
-        TerminusWttProfile("Abbey Wood", "elizabeth-line", "Woolwich", 190, 300),
-        TerminusWttProfile("Reading", "elizabeth-line", "Twyford", 300, 360),
-        TerminusWttProfile("Shenfield", "elizabeth-line", "Brentwood", 240, 360)
+        TerminusWttProfile("Abbey Wood", "elizabeth-line", "Woolwich", 190, 300, setOf("910GABWD", "HUBABW")),
+        TerminusWttProfile("Reading", "elizabeth-line", "Twyford", 300, 360, setOf("910GREADING")),
+        TerminusWttProfile("Shenfield", "elizabeth-line", "Brentwood", 240, 360, setOf("910GSHENFLD"))
     )
 
-    // Lookup index by clean terminus name + lineId
-    private val WTT_LOOKUP = WTT_TERMINUS_PROFILES.associateBy {
+    // Lookup index by clean terminus name + lineId, and by stationId + lineId
+    private val WTT_NAME_LOOKUP = WTT_TERMINUS_PROFILES.associateBy {
         "${StationNameFormatter.clean(it.terminusName).lowercase()}_${it.lineId.lowercase()}"
+    }
+    private val WTT_ID_LOOKUP = buildMap {
+        for (profile in WTT_TERMINUS_PROFILES) {
+            for (id in profile.stationIds) {
+                put("${id.uppercase()}_${profile.lineId.lowercase()}", profile)
+            }
+        }
     }
 
     // Default conservative fallback priors (in seconds) based on physical line operating standards
@@ -94,15 +102,26 @@ object TurnaroundTimeTracker {
     private val vehicleArrivalTimestamps = ConcurrentHashMap<String, Long>()
 
     /**
-     * Returns the WTT profile if available for a given station name and line.
+     * Returns the WTT profile if available for a given station name or station ID and line.
      */
-    fun getWttProfile(stationName: String, lineId: String): TerminusWttProfile? {
-        val key = "${StationNameFormatter.clean(stationName).lowercase()}_${lineId.lowercase()}"
-        return WTT_LOOKUP[key]
-            ?: WTT_TERMINUS_PROFILES.firstOrNull {
-                it.lineId.equals(lineId, ignoreCase = true) &&
-                stationName.contains(it.terminusName, ignoreCase = true)
-            }
+    fun getWttProfile(stationNameOrId: String, lineId: String): TerminusWttProfile? {
+        val cleanLine = lineId.lowercase()
+        // 1. Try exact Station ID lookup first (O(1))
+        val idKey = "${stationNameOrId.uppercase()}_$cleanLine"
+        WTT_ID_LOOKUP[idKey]?.let { return it }
+
+        // 2. Try normalized name lookup (O(1))
+        val nameKey = "${StationNameFormatter.clean(stationNameOrId).lowercase()}_$cleanLine"
+        WTT_NAME_LOOKUP[nameKey]?.let { return it }
+
+        // 3. Fallback to substring matching
+        return WTT_TERMINUS_PROFILES.firstOrNull {
+            it.lineId.equals(cleanLine, ignoreCase = true) && (
+                stationNameOrId.contains(it.terminusName, ignoreCase = true) ||
+                it.terminusName.contains(stationNameOrId, ignoreCase = true) ||
+                it.stationIds.any { id -> id.equals(stationNameOrId, ignoreCase = true) }
+            )
+        }
     }
 
     /**
@@ -110,14 +129,16 @@ object TurnaroundTimeTracker {
      * Uses WTT stepping-back standards as baseline, refined by learned moving averages.
      */
     fun getEstimatedTurnaroundSeconds(stationNameOrId: String, lineId: String): Int {
-        val cleanStation = StationNameFormatter.clean(stationNameOrId).lowercase()
         val cleanLine = lineId.lowercase()
-        val key = "${cleanStation}_${cleanLine}"
 
-        // Check if there is an empirically learned moving average
-        learnedTurnarounds[key]?.let { return it }
+        // 1. Check if there is an empirically learned moving average by ID or Name
+        val idKey = "${stationNameOrId.uppercase()}_$cleanLine"
+        learnedTurnarounds[idKey]?.let { return it }
 
-        // Otherwise check the Working Timetable profile for this specific station
+        val nameKey = "${StationNameFormatter.clean(stationNameOrId).lowercase()}_$cleanLine"
+        learnedTurnarounds[nameKey]?.let { return it }
+
+        // 2. Check the Working Timetable profile for this specific station
         val wtt = getWttProfile(stationNameOrId, lineId)
         if (wtt != null) {
             return wtt.steppingBackDwellSeconds

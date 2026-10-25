@@ -26,7 +26,8 @@ import kotlinx.coroutines.withContext
 class StationSearchEngine(
     private val apiService: TflApiService,
     private val bodsApiService: BodsApiService,
-    private val context: Context? = null
+    private val context: Context? = null,
+    private val stationCrsDao: com.androidfung.departureboard.data.db.StationCrsDao? = null
 ) {
 
     /**
@@ -55,35 +56,76 @@ class StationSearchEngine(
                 // 5. Search regional UK bus stops / NaPTAN ATCO codes or stop names via BODS
                 val naptanDeferred = async { searchNaptanStopsIfApplicable(trimmed) }
 
+                // 6. Search Tyne & Wear Metro stations
+                val metroStations = com.androidfung.departureboard.data.repository.source.gb.TyneAndWearMetroSource.searchMetroStations(trimmed)
+
                 val crsMatchStation = crsDeferred.await()
                 val localRailStations = localRailDeferred.await()
                 val hydratedStations = tflDeferred.await()
                 val routeStopStations = routeStopsDeferred.await()
                 val naptanStations = naptanDeferred.await()
 
+                // If TfL reports a National Rail station (mode "national-rail" or id starts with "910G"),
+                // it contains richer metadata (real coordinates, fare zone, lines).
+                // Resolve CRS code(s) for the TfL stations via the station_crs_mappings database
+                // (first by stationId, with fallback to exact normalized station name)
+                // to cleanly deduplicate against localRailStations (where station.id is the 3-letter CRS code).
+                val dao = stationCrsDao ?: context?.let { AppDatabase.getInstance(it).stationCrsDao() }
+
+                val tflCrsCodes = hydratedStations
+                    .filter { station ->
+                        station.id.startsWith(TflStopPointUtils.PREFIX_NATIONAL_RAIL, ignoreCase = true) ||
+                                station.modes.any { it.equals(TransitMode.NATIONAL_RAIL.id, ignoreCase = true) }
+                    }
+                    .flatMap { station ->
+                        val byId = dao?.getCrsCodesForStationId(station.id).orEmpty()
+                        if (byId.isNotEmpty()) {
+                            byId
+                        } else {
+                            val cleanName = StationNameFormatter.clean(station.name).lowercase()
+                            dao?.getCrsCodesForExactName(cleanName).orEmpty()
+                        }
+                    }
+                    .toSet()
+
+                val filteredLocalRail = if (tflCrsCodes.isNotEmpty()) {
+                    localRailStations.filter { localStation ->
+                        localStation.id.uppercase() !in tflCrsCodes
+                    }
+                } else {
+                    localRailStations
+                }
+
                 // Combine results, prioritizing exact bus route stops or CRS matches
                 val baseCombined = if (crsMatchStation != null) {
-                    listOf(crsMatchStation) + (routeStopStations + localRailStations + naptanStations + hydratedStations)
+                    listOf(crsMatchStation) + (routeStopStations + filteredLocalRail + metroStations + naptanStations + hydratedStations)
                 } else if (routeStopStations.isNotEmpty()) {
-                    (routeStopStations + localRailStations + naptanStations + hydratedStations)
+                    (routeStopStations + filteredLocalRail + metroStations + naptanStations + hydratedStations)
                 } else {
-                    (localRailStations + naptanStations + hydratedStations)
+                    (filteredLocalRail + metroStations + naptanStations + hydratedStations)
                 }
-                val combinedResults = baseCombined.distinctBy { it.id }
+                val distinctStations = baseCombined.distinctBy { it.id }
+                val combinedResults = rankStations(distinctStations, trimmed)
 
                 if (combinedResults.isNotEmpty()) {
                     Result.success(combinedResults)
                 } else {
-                    val localMatches = DefaultStations.POPULAR_STATIONS.filter {
-                        it.name.contains(trimmed, ignoreCase = true)
-                    }
+                    val localMatches = rankStations(
+                        DefaultStations.POPULAR_STATIONS.filter {
+                            it.name.contains(trimmed, ignoreCase = true)
+                        },
+                        trimmed
+                    )
                     Result.success(localMatches)
                 }
             }
         } catch (e: Exception) {
-            val localMatches = DefaultStations.POPULAR_STATIONS.filter {
-                it.name.contains(trimmed, ignoreCase = true)
-            }
+            val localMatches = rankStations(
+                DefaultStations.POPULAR_STATIONS.filter {
+                    it.name.contains(trimmed, ignoreCase = true)
+                },
+                trimmed
+            )
             if (localMatches.isNotEmpty()) {
                 Result.success(localMatches)
             } else {
@@ -92,12 +134,58 @@ class StationSearchEngine(
         }
     }
 
+    /**
+     * Ranks stations based on relevance to the search query:
+     * 1. Exact name match (ignoring case)
+     * 2. Station name starts with query
+     * 3. Any word in the station name starts with query (word boundary match)
+     * 4. Station name contains query
+     *
+     * Ties are broken by mode tier (rapid transit/rail hubs > buses) and line count.
+     */
+    private fun rankStations(stations: List<Station>, query: String): List<Station> {
+        val q = query.trim().lowercase()
+        if (q.isBlank()) return stations
+
+        return stations.sortedWith(
+            compareBy<Station> { station ->
+                val nameLower = station.name.lowercase().trim()
+                // Strip common stop/towards suffixes for matching base name, e.g. "Bank (Stop A)" -> "bank"
+                val baseNameLower = nameLower.substringBefore(" (").trim()
+
+                when {
+                    baseNameLower == q -> 0
+                    nameLower == q -> 1
+                    baseNameLower.startsWith(q) -> 2
+                    nameLower.startsWith(q) -> 3
+                    baseNameLower.split(Regex("[\\s/\\-]+")).any { it.startsWith(q) } -> 4
+                    nameLower.split(Regex("[\\s/\\-]+")).any { it.startsWith(q) } -> 5
+                    baseNameLower.contains(q) -> 6
+                    else -> 7
+                }
+            }.thenBy { station ->
+                // Rail / Metro / Underground hubs rank higher than individual bus stops
+                when {
+                    station.modes.any { it in listOf("tube", "dlr", "elizabeth-line", "overground", "national-rail", "metro", "tram") } -> 0
+                    !station.isBusOnly -> 1
+                    else -> 2
+                }
+            }.thenByDescending { station ->
+                // Stations with more interconnecting lines rank higher
+                station.lines.size
+            }.thenBy { station ->
+                // Shorter names preferred (e.g. "Bank" vs "Bank Underground Station (Stop X)")
+                station.name.length
+            }
+        )
+    }
+
     private suspend fun searchCrsCode(query: String): Station? {
         if (query.length != 3 || !query.all { it.isLetter() }) return null
         return try {
-            val crsEntity = context?.let { ctx ->
-                AppDatabase.getInstance(ctx).stationCrsDao().getStationByCrsCode(query.uppercase())
-            } ?: return null
+            val crsEntity = (stationCrsDao ?: context?.let { ctx ->
+                AppDatabase.getInstance(ctx).stationCrsDao()
+            })?.getStationByCrsCode(query.uppercase()) ?: return null
 
             // Query TfL for this station name so we get proper coordinates/Naptan if available
             val tflSearch = try {
@@ -132,10 +220,9 @@ class StationSearchEngine(
     private suspend fun searchLocalRailStations(query: String): List<Station> {
         if (query.length < 3) return emptyList()
         return try {
-            val entities = context?.let { ctx ->
-                val normalized = query.trim().lowercase()
-                AppDatabase.getInstance(ctx).stationCrsDao().getStationsByNameKeyword(normalized)
-            } ?: emptyList()
+            val entities = (stationCrsDao ?: context?.let { ctx ->
+                AppDatabase.getInstance(ctx).stationCrsDao()
+            })?.getStationsByNameKeyword(query.trim().lowercase()) ?: emptyList()
 
             entities.map { entity ->
                 val modes = entity.modes.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
@@ -236,16 +323,25 @@ class StationSearchEngine(
     }
 
     /**
-     * Resolves NaPTAN ATCO bus stop codes (e.g. 0100BRP90312, 1800SB04611, 2100...) or stops from regional feeds.
+     * Resolves NaPTAN ATCO bus stop codes (e.g. 0100BRP90312 Bristol, 1800SB04611 Manchester, 430... West Midlands, 210...)
+     * or stops from regional feeds, providing the regional transport authority name when recognized.
      */
     private fun searchNaptanStopsIfApplicable(query: String): List<Station> {
-        val naptanAtcoRegex = Regex("""^(?:[0-9]{3,4}[A-Za-z0-9]{5,12}|210[0-9A-Za-z]{4,8})$""")
+        val naptanAtcoRegex = Regex("""^[0-9]{3,4}[A-Za-z0-9]{4,12}$""")
         if (!naptanAtcoRegex.matches(query)) return emptyList()
+
+        val cleanQuery = query.uppercase()
+        val areaName = com.androidfung.departureboard.data.model.AtcoAreaRegistry.getAreaName(cleanQuery)
+        val displayName = if (areaName != null) {
+            "Bus Stop ($cleanQuery) • $areaName"
+        } else {
+            "Bus Stop ($cleanQuery)"
+        }
 
         return listOf(
             Station(
-                id = query.uppercase(),
-                name = "Bus Stop ($query)",
+                id = cleanQuery,
+                name = displayName,
                 modes = listOf("bus"),
                 lat = null,
                 lon = null,

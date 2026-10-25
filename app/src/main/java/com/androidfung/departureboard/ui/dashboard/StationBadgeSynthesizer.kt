@@ -52,7 +52,7 @@ object StationBadgeSynthesizer {
         // Sort line badges logically: Tube/Rail lines alphabetically, then numeric Bus routes in ascending order
         val sortedBadges = rawBadges.sortedWith(
             compareBy<LineBadgeInfo> { badge ->
-                if (badge.displayName.all { it.isDigit() }) 1 else 0
+                if (badge.mode == TransitMode.BUS || badge.displayName.matches(Regex("^[A-Za-z]?[0-9]+[A-Za-z]?$"))) 1 else 0
             }.thenBy { badge ->
                 val num = badge.displayName.filter { it.isDigit() }.toIntOrNull()
                 num ?: Int.MAX_VALUE

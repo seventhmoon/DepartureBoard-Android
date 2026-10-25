@@ -6,9 +6,12 @@ package com.androidfung.departureboard.data.repository
 internal object TflStopPointUtils {
 
     /**
-     * Regex matching London bus NaPTAN IDs (typically starting with 490 followed by digits and stop letter/code).
+     * Regex matching London bus NaPTAN StopPoint IDs according to the NaPTAN schema:
+     * Area 490 (Greater London) + 0 (StopPoint flag) + 5 digits + 1-2 alphanumeric stop letters (e.g. 490000185A -> "A", 490013323SB -> "SB").
+     *
+     * Note: StopAreas use 490G and pure numeric IDs without letters (e.g. 490G000773 or 490000000000) are excluded.
      */
-    private val BUS_STOP_ID_REGEX = Regex("^490\\d+([A-Za-z0-9]+)$")
+    private val BUS_STOP_ID_REGEX = Regex("^4900\\d{5}([A-Za-z]{1,2})$")
 
     /**
      * TfL NaPTAN ID prefixes for transit modes.
@@ -26,8 +29,9 @@ internal object TflStopPointUtils {
             return true
         }
         val idUpper = stationId.uppercase()
-        // 490... = London bus stop/pole, 210... = Regional UK bus stop/pole
-        if (idUpper.startsWith("490") || idUpper.startsWith("210") || idUpper.startsWith("BODS")) {
+        // 490... = London bus stop/pole, regional DfT ATCO bus stop codes, or BODS query identifiers
+        if (com.androidfung.departureboard.data.model.AtcoAreaRegistry.isLondonBusStop(idUpper) ||
+            com.androidfung.departureboard.data.model.AtcoAreaRegistry.isRegionalBusStop(idUpper)) {
             return true
         }
         val nameLower = stationName.lowercase()

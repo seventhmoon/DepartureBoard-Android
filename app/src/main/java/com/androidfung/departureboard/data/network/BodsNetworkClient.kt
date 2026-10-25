@@ -29,7 +29,7 @@ object BodsNetworkClient {
             }
         }
 
-        OkHttpClient.Builder()
+        SharedNetworkConfig.newBuilder()
             .addInterceptor(loggingInterceptor)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)

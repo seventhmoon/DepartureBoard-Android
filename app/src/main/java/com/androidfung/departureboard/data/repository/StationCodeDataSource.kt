@@ -30,7 +30,31 @@ class StationCodeDataSource(private val stationCrsDao: StationCrsDao? = null) {
             return byId
         }
 
-        // 2. Normalized Name exact or keyword lookup
+        // 2. Algorithmic Fallback: Check if station ID embeds an exact 3-letter CRS code
+        // TfL National Rail NaPTAN IDs frequently follow patterns like:
+        // "910G" + 3-character CRS (e.g. 910GCOV -> COV, 910GKGX -> KGX, 910GWAT -> WAT)
+        // CRITICAL: Must be EXACTLY 7 characters ("910G" + 3 letters).
+        // Longer IDs like "910GSUTTON" (9 chars) must NEVER be sliced into "SUT" because
+        // "SUT" is Sutton Coldfield (Birmingham), not Sutton (London) which is "SUO".
+        if (stationId.startsWith("910G", ignoreCase = true) && stationId.length == 7) {
+            val possibleCrs = stationId.substring(4, 7).uppercase()
+            if (possibleCrs.all { it.isLetter() }) {
+                val verified = dao.getCrsCodesForStationId(possibleCrs)
+                if (verified.isNotEmpty()) {
+                    return listOf(possibleCrs)
+                }
+            }
+        }
+
+        // 3. For TfL stations (HUB... or 940G...), stop here.
+        // Interchanges with National Rail are already registered by stationId in station_crs_mappings.
+        // Pure Tube/DLR/Tram stops (like Bank: HUBBAN / 940GZZLUBNK) MUST NOT fall back to arbitrary
+        // name searches which cause false positives against unrelated UK-wide rail stations.
+        if (stationId.startsWith("HUB", ignoreCase = true) || stationId.startsWith(TflStopPointUtils.PREFIX_METRO_TRAM, ignoreCase = true)) {
+            return emptyList()
+        }
+
+        // 4. Normalized Name exact match (for stations added without a known ID, but matching a real rail station)
         val cleanName = StationNameFormatter.clean(stationName).lowercase()
 
         // Guard: Bus stops or street-level stops (e.g. "Euston Road", "Euston Road (Stop C)", "Euston / Eversholt St") shouldn't resolve to mainline train stations
@@ -65,25 +89,6 @@ class StationCodeDataSource(private val stationCrsDao: StationCrsDao? = null) {
             val byName = dao.getCrsCodesForStationName(stripped)
             if (byName.isNotEmpty()) {
                 return byName
-            }
-        }
-
-        // Keyword lookup fallback across all 2500+ National Rail stations in database
-        val byKw = dao.getCrsCodesForNameKeyword(stripped.ifBlank { cleanName })
-        if (byKw.isNotEmpty()) {
-            return byKw
-        }
-
-        // 3. Algorithmic Fallback: Check if station ID embeds a 3-letter CRS code
-        // TfL National Rail NaPTAN IDs frequently follow patterns like:
-        // "910G" + 3-character CRS (e.g. 910GCOV -> COV, 910GKGX -> KGX, 910GWAT -> WAT)
-        if (stationId.startsWith("910G", ignoreCase = true) && stationId.length >= 7) {
-            val possibleCrs = stationId.substring(4, 7).uppercase()
-            if (possibleCrs.all { it.isLetter() }) {
-                val verified = dao.getCrsCodesForStationId(possibleCrs)
-                if (verified.isNotEmpty()) {
-                    return listOf(possibleCrs)
-                }
             }
         }
 

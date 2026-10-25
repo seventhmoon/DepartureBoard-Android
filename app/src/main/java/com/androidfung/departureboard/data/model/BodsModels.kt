@@ -72,6 +72,7 @@ data class BodsVehicleActivity(
             modeName = "bus",
             status = DepartureStatus.ON_TIME,
             lineBadge = badge,
+            destinationStationId = destinationRef,
             isWheelchairAccessible = wheelchairAccessible,
             occupancyStatus = occupancy
         )

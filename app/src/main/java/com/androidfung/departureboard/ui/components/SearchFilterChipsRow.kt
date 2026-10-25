@@ -52,6 +52,12 @@ fun SearchFilterChipsRow(
                     )
                 },
                 shape = RoundedCornerShape(12.dp),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = isSelected,
+                    borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                    selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                ),
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,

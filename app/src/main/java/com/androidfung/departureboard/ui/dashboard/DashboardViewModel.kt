@@ -57,10 +57,91 @@ class DashboardViewModel @JvmOverloads constructor(
         observeSubscriptionStatus()
         observeDepartureRowsCount()
         observeThemePreferences()
+        observeRegionPreferences()
+        observeAutoSortPreference()
+        observeRecentSearchedStations()
         observeNetworkConnectivity()
         // startAutoRefreshPolling() and startCountdownTicker() are driven lifecycle-aware
         // from DashboardScreen (LifecycleResumeEffect) so the 1s ticker doesn't keep
         // updating StateFlow with the screen off.
+    }
+
+    private fun observeRegionPreferences() {
+        viewModelScope.launch {
+            repository.selectedRegionFlow.collectLatest { region ->
+                _uiState.update { it.copy(selectedRegion = region) }
+            }
+        }
+        viewModelScope.launch {
+            repository.isHkRegionEnabledFlow.collectLatest { enabled ->
+                _uiState.update { it.copy(isHkRegionEnabled = enabled) }
+            }
+        }
+    }
+
+    fun setSelectedRegion(region: com.androidfung.departureboard.data.model.TransitRegion) {
+        viewModelScope.launch {
+            repository.setSelectedRegion(region)
+        }
+    }
+
+    fun setHkRegionEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setHkRegionEnabled(enabled)
+        }
+    }
+
+    private fun observeAutoSortPreference() {
+        viewModelScope.launch {
+            repository.autoSortByLocationFlow.collectLatest { autoSort ->
+                _uiState.update { it.copy(isAutoSortByLocation = autoSort) }
+                if (autoSort) {
+                    updateNearestStation(fetchApiNearby = false)
+                }
+            }
+        }
+    }
+
+    private fun observeRecentSearchedStations() {
+        viewModelScope.launch {
+            repository.recentSearchedStationsFlow.collectLatest { recents ->
+                _uiState.update { it.copy(recentSearchedStations = recents) }
+            }
+        }
+    }
+
+    fun addRecentSearchedStation(station: Station) {
+        viewModelScope.launch {
+            repository.addRecentSearchedStation(station)
+        }
+    }
+
+    fun removeRecentSearchedStation(stationId: String) {
+        viewModelScope.launch {
+            repository.removeRecentSearchedStation(stationId)
+        }
+    }
+
+    fun clearRecentSearchedStations() {
+        viewModelScope.launch {
+            repository.clearRecentSearchedStations()
+        }
+    }
+
+    fun setAutoSortByLocation(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setAutoSortByLocation(enabled)
+            if (enabled) {
+                updateNearestStation(fetchApiNearby = false)
+            }
+        }
+    }
+
+    fun refreshLineStatuses() {
+        viewModelScope.launch {
+            val statuses = repository.getLineStatuses()
+            _uiState.update { it.copy(lineStatuses = statuses) }
+        }
     }
 
     private fun observeNetworkConnectivity() {
@@ -240,7 +321,10 @@ class DashboardViewModel @JvmOverloads constructor(
                         card
                     }
                 }
-                state.copy(stationCards = updatedCards)
+                state.copy(
+                    stationCards = updatedCards,
+                    lineStatuses = if (lineStatuses.isNotEmpty()) lineStatuses else state.lineStatuses
+                )
             }
         }
     }
@@ -288,6 +372,7 @@ class DashboardViewModel @JvmOverloads constructor(
             }
             state.copy(
                 stationCards = updatedCards,
+                lineStatuses = if (lineStatuses.isNotEmpty()) lineStatuses else state.lineStatuses,
                 isRefreshing = false,
                 lastUpdatedTimestamp = System.currentTimeMillis()
             )
@@ -339,6 +424,13 @@ class DashboardViewModel @JvmOverloads constructor(
                     val tickedCards = CountdownTicker.tick(state.stationCards)
                     val tickedDetailDepartures = CountdownTicker.tickDepartures(state.detailDepartures)
                     val tickedJourneyDeparture = CountdownTicker.tickDeparture(state.selectedJourneyDeparture)
+
+                    if (tickedCards === state.stationCards &&
+                        tickedDetailDepartures === state.detailDepartures &&
+                        tickedJourneyDeparture === state.selectedJourneyDeparture
+                    ) {
+                        return@update state
+                    }
 
                     state.copy(
                         stationCards = tickedCards,
@@ -449,23 +541,56 @@ class DashboardViewModel @JvmOverloads constructor(
     /**
      * Opens the detail bottom sheet for a station (whether from card click or widget launch),
      * ensuring live departures are always fetched independently of saved dashboard cards.
+     *
+     * @param stationsContext The list of stations to allow swiping between (defaults to saved stations).
      */
-    fun openStationDetail(station: Station) {
+    fun openStationDetail(station: Station, stationsContext: List<Station>? = null) {
         val existingCard = _uiState.value.stationCards.firstOrNull { it.station.id == station.id }
         val cachedDepartures = existingCard?.departures ?: emptyList()
+
+        val resolvedStationsContext = stationsContext
+            ?: _uiState.value.stationCards.map { it.station }.takeIf { it.isNotEmpty() }
+            ?: listOf(station)
 
         _uiState.update {
             it.copy(
                 selectedDetailStation = station,
+                detailStationsContext = resolvedStationsContext,
                 detailDepartures = cachedDepartures,
                 isDetailLoading = cachedDepartures.isEmpty(),
-                selectedJourneyDeparture = null
+                selectedJourneyDeparture = null,
+                journeyDeparturesContext = emptyList()
             )
         }
 
         viewModelScope.launch {
-            val result = repository.getDepartures(station.id, station.name)
-            val freshDepartures = result.getOrDefault(cachedDepartures)
+            val lineStatusesDeferred = async { repository.getLineStatuses() }
+            val departuresDeferred = async { repository.getDepartures(station.id, station.name) }
+
+            val lineStatuses = lineStatusesDeferred.await()
+            val result = departuresDeferred.await()
+            val rawDepartures = result.getOrDefault(cachedDepartures)
+
+            // Enrich departures with live line statuses so badges carry disruption info
+            val freshDepartures = if (lineStatuses.isNotEmpty()) {
+                rawDepartures.map { dep ->
+                    val statusItem = lineStatuses[dep.lineBadge.lineId.lowercase()]
+                    val firstDetail = statusItem?.lineStatuses?.firstOrNull()
+                    if (firstDetail != null) {
+                        dep.copy(
+                            lineBadge = dep.lineBadge.copy(
+                                statusSeverity = firstDetail.statusSeverity,
+                                statusDescription = firstDetail.statusSeverityDescription,
+                                disruptionReason = firstDetail.reason
+                            )
+                        )
+                    } else {
+                        dep
+                    }
+                }
+            } else {
+                rawDepartures
+            }
 
             // If no departures returned, check whether the station is closed for the night
             val serviceHours = if (freshDepartures.isEmpty()) {
@@ -489,15 +614,20 @@ class DashboardViewModel @JvmOverloads constructor(
                 // Also update card in dashboard if present
                 val updatedCards = updatedState.stationCards.map { card ->
                     if (card.station.id == station.id) {
+                        val badgesWithStatus = StationBadgeSynthesizer.buildStationLineBadges(card.station, freshDepartures, lineStatuses)
                         card.copy(
                             departures = freshDepartures,
+                            availableLineBadges = badgesWithStatus,
                             isLoading = false,
                             errorMessage = null
                         )
                     } else card
                 }
 
-                updatedState.copy(stationCards = updatedCards)
+                updatedState.copy(
+                    stationCards = updatedCards,
+                    lineStatuses = if (lineStatuses.isNotEmpty()) lineStatuses else updatedState.lineStatuses
+                )
             }
         }
     }
@@ -506,20 +636,60 @@ class DashboardViewModel @JvmOverloads constructor(
         _uiState.update {
             it.copy(
                 selectedDetailStation = null,
+                detailStationsContext = emptyList(),
                 detailDepartures = emptyList(),
                 isDetailLoading = false,
                 selectedJourneyDeparture = null,
+                journeyDeparturesContext = emptyList(),
                 serviceHoursInfo = null
             )
         }
     }
 
-    fun openTrainJourney(departure: Departure) {
-        _uiState.update { it.copy(selectedJourneyDeparture = departure) }
+    fun openTrainJourney(departure: Departure, departuresContext: List<Departure>? = null) {
+        val resolvedDepartures = departuresContext
+            ?: _uiState.value.detailDepartures.takeIf { it.isNotEmpty() }
+            ?: _uiState.value.stationCards.firstOrNull { it.station.id == departure.stationId }?.departures
+            ?: listOf(departure)
+
+        _uiState.update {
+            it.copy(
+                selectedJourneyDeparture = departure,
+                journeyDeparturesContext = resolvedDepartures
+            )
+        }
     }
 
     fun closeTrainJourney() {
-        _uiState.update { it.copy(selectedJourneyDeparture = null) }
+        _uiState.update {
+            it.copy(
+                selectedJourneyDeparture = null,
+                journeyDeparturesContext = emptyList()
+            )
+        }
+    }
+
+    fun openStationDetailFromCallingPoint(callingPoint: com.androidfung.departureboard.data.model.CallingPoint, callingPoints: List<com.androidfung.departureboard.data.model.CallingPoint>) {
+        val targetStationId = callingPoint.stationId ?: callingPoint.stationName
+        viewModelScope.launch {
+            val station = repository.getStationById(targetStationId) ?: Station(
+                id = targetStationId,
+                name = callingPoint.stationName,
+                modes = callingPoint.modes
+            )
+
+            // Convert all calling points into Station instances for the context-aware swipe pager
+            val callingStations = callingPoints.map { cp ->
+                val id = cp.stationId ?: cp.stationName
+                Station(
+                    id = id,
+                    name = cp.stationName,
+                    modes = cp.modes
+                )
+            }
+
+            openStationDetail(station, callingStations)
+        }
     }
 
     fun resolveDepartureForJourney(departureId: String): Departure? {
@@ -531,11 +701,15 @@ class DashboardViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Resets saved stations back to default popular London transit stations (for debug testing).
+     * Resets saved stations back to default popular transit stations for active region (for debug testing).
      */
     fun resetSavedStationsToDefaults() {
         viewModelScope.launch {
-            repository.reorderStations(DefaultStations.POPULAR_STATIONS)
+            val defaults = when (_uiState.value.selectedRegion) {
+                com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.HkDefaultStations.POPULAR_STATIONS
+                com.androidfung.departureboard.data.model.TransitRegion.GB -> DefaultStations.POPULAR_STATIONS
+            }
+            repository.reorderStations(defaults)
             _uiState.update { it.copy(userMessage = "Debug: Reset to default stations") }
         }
     }
@@ -609,7 +783,11 @@ class DashboardViewModel @JvmOverloads constructor(
                 } else emptyList()
 
                 val savedStations = _uiState.value.stationCards.map { it.station }
-                val allCandidateStations: List<Station> = (apiNearbyStations + savedStations + DefaultStations.POPULAR_STATIONS)
+                val regionDefaults = when (_uiState.value.selectedRegion) {
+                    com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.HkDefaultStations.POPULAR_STATIONS + com.androidfung.departureboard.data.model.HkMtrStationRegistry.STATIONS.values.map { com.androidfung.departureboard.data.model.HkStationDirectory.mtrToStation(it) }
+                    com.androidfung.departureboard.data.model.TransitRegion.GB -> DefaultStations.POPULAR_STATIONS
+                }
+                val allCandidateStations: List<Station> = (apiNearbyStations + savedStations + regionDefaults)
                     .distinctBy { it.id }
 
                 val nearest = com.androidfung.departureboard.util.LocationHelper.findNearestStation(location, allCandidateStations)
@@ -622,17 +800,38 @@ class DashboardViewModel @JvmOverloads constructor(
 
                 if (nearest != null) {
                     val (nearestSt, distance) = nearest
-                    android.util.Log.d("LocationHelper", "Found true nearest station: ${nearestSt.name} (${distance}m away)")
+                    try {
+                        android.util.Log.d("LocationHelper", "Found true nearest station: ${nearestSt.name} (${distance}m away)")
+                    } catch (_: Throwable) {}
 
                     // Check if this nearest station is one of the saved dashboard cards
                     val isSavedOnDashboard = savedStations.any { it.id == nearestSt.id }
 
-                    _uiState.update {
-                        it.copy(
+                    _uiState.update { state ->
+                        val sortedCards = if (state.isAutoSortByLocation && state.stationCards.size > 1) {
+                            state.stationCards.sortedBy { card ->
+                                val stLat = card.station.lat
+                                val stLon = card.station.lon
+                                if (stLat != null && stLon != null) {
+                                    com.androidfung.departureboard.util.LocationHelper.calculateDistanceMeters(
+                                        location.latitude,
+                                        location.longitude,
+                                        stLat,
+                                        stLon
+                                    )
+                                } else {
+                                    Double.MAX_VALUE
+                                }
+                            }
+                        } else {
+                            state.stationCards
+                        }
+                        state.copy(
+                            stationCards = sortedCards,
                             nearestStation = nearestSt,
                             nearestStationId = if (isSavedOnDashboard) nearestSt.id else null,
                             nearestStationDistanceMeters = distance,
-                            nearbyStations = if (fetchApiNearby || it.nearbyStations.isEmpty()) nearbyList else it.nearbyStations
+                            nearbyStations = if (fetchApiNearby || state.nearbyStations.isEmpty()) nearbyList else state.nearbyStations
                         )
                     }
                 } else {
@@ -641,7 +840,9 @@ class DashboardViewModel @JvmOverloads constructor(
                     }
                 }
             } else {
-                android.util.Log.w("LocationHelper", "Location was null")
+                try {
+                    android.util.Log.w("LocationHelper", "Location was null")
+                } catch (_: Throwable) {}
             }
         }
     }

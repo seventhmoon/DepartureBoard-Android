@@ -1,33 +1,43 @@
 package com.androidfung.departureboard.ui.components
 
 import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsNone
@@ -40,6 +50,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,6 +74,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 
+private sealed interface StationDetailListItem {
+    data class DepartureItem(val departure: Departure, val index: Int) : StationDetailListItem
+    data class AdItem(val key: String) : StationDetailListItem
+}
+
 @Composable
 fun StationDetailScreen(
     station: Station,
@@ -74,8 +90,102 @@ fun StationDetailScreen(
     isSaved: Boolean = false,
     onToggleSaveStation: (Station) -> Unit = {},
     initialSelectedLineId: String? = null,
-    onDepartureClick: ((Departure) -> Unit)? = null,
-    serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo? = null
+    onDepartureClick: ((departure: Departure, contextDepartures: List<Departure>) -> Unit)? = null,
+    serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo? = null,
+    isPro: Boolean = false,
+    stations: List<Station> = listOf(station),
+    onStationChange: ((Station) -> Unit)? = null
+) {
+    val stationList = remember(stations, station) {
+        if (stations.none { it.id == station.id }) {
+            listOf(station) + stations
+        } else {
+            stations
+        }
+    }
+
+    val initialIndex = remember(stationList, station.id) {
+        stationList.indexOfFirst { it.id == station.id }.coerceAtLeast(0)
+    }
+
+    if (stationList.size <= 1) {
+        StationDetailContent(
+            station = station,
+            departures = departures,
+            isLoading = isLoading,
+            onRefresh = onRefresh,
+            onBack = onBack,
+            modifier = modifier,
+            isSaved = isSaved,
+            onToggleSaveStation = onToggleSaveStation,
+            initialSelectedLineId = initialSelectedLineId,
+            onDepartureClick = onDepartureClick,
+            serviceHoursInfo = serviceHoursInfo,
+            isPro = isPro
+        )
+    } else {
+        val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+            initialPage = initialIndex,
+            pageCount = { stationList.size }
+        )
+
+        LaunchedEffect(station.id) {
+            val targetPage = stationList.indexOfFirst { it.id == station.id }
+            if (targetPage >= 0 && targetPage != pagerState.currentPage) {
+                pagerState.scrollToPage(targetPage)
+            }
+        }
+
+        LaunchedEffect(pagerState.settledPage) {
+            val currentStation = stationList[pagerState.settledPage]
+            if (currentStation.id != station.id) {
+                onStationChange?.invoke(currentStation)
+            }
+        }
+
+        androidx.compose.foundation.pager.HorizontalPager(
+            state = pagerState,
+            modifier = modifier.fillMaxSize(),
+            key = { stationList[it].id }
+        ) { page ->
+            val pageStation = stationList[page]
+            val pageDepartures = if (pageStation.id == station.id) departures else emptyList()
+            val pageLoading = if (pageStation.id == station.id) isLoading else true
+
+            StationDetailContent(
+                station = pageStation,
+                departures = pageDepartures,
+                isLoading = pageLoading,
+                onRefresh = onRefresh,
+                onBack = onBack,
+                modifier = Modifier.fillMaxSize(),
+                isSaved = isSaved,
+                onToggleSaveStation = onToggleSaveStation,
+                initialSelectedLineId = initialSelectedLineId,
+                onDepartureClick = onDepartureClick,
+                serviceHoursInfo = if (pageStation.id == station.id) serviceHoursInfo else null,
+                isPro = isPro,
+                pageInfo = "${page + 1} of ${stationList.size}"
+            )
+        }
+    }
+}
+
+@Composable
+private fun StationDetailContent(
+    station: Station,
+    departures: List<Departure>,
+    isLoading: Boolean,
+    onRefresh: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    isSaved: Boolean = false,
+    onToggleSaveStation: (Station) -> Unit = {},
+    initialSelectedLineId: String? = null,
+    onDepartureClick: ((departure: Departure, contextDepartures: List<Departure>) -> Unit)? = null,
+    serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo? = null,
+    isPro: Boolean = false,
+    pageInfo: String? = null
 ) {
     val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram")
         .firstOrNull { it in station.modes }
@@ -115,6 +225,21 @@ fun StationDetailScreen(
             direction = selectedDirection,
             stopId = selectedStopId
         )
+    }
+
+    // Unified list items to ensure LazyColumn applies identical 8.dp item spacing to both departures and ads
+    val displayItems = remember(filteredDepartures, isPro) {
+        buildList<StationDetailListItem> {
+            filteredDepartures.forEachIndexed { index, departure ->
+                add(StationDetailListItem.DepartureItem(departure, index))
+                if (!isPro && (index == 2 || (index > 2 && (index - 2) % 6 == 0))) {
+                    add(StationDetailListItem.AdItem("ad_$index"))
+                }
+            }
+            if (!isPro && filteredDepartures.isNotEmpty() && filteredDepartures.size < 3) {
+                add(StationDetailListItem.AdItem("ad_bottom"))
+            }
+        }
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -189,6 +314,16 @@ fun StationDetailScreen(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+
+            if (!pageInfo.isNullOrBlank()) {
+                Text(
+                    text = pageInfo,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
 
             // Subtitle: Bus stop "towards ..." indicator for single-direction bus stops
             val distinctTowards = departures
@@ -326,288 +461,406 @@ fun StationDetailScreen(
         }
     ) { _ ->
 
+        var isDisruptionsExpanded by remember { mutableStateOf(false) }
+
         // Lines badges serving this station - now interactive filter chips
         val distinctLines = departures.map { it.lineBadge }
             .distinctBy { it.lineId }
             .sortedWith(com.androidfung.departureboard.data.model.LineBadgeInfo.NATURAL_COMPARATOR)
         // Show line badges if multiple lines exist, OR if single line has multiple directions to filter
         val singleLineHasDirections = distinctLines.size == 1 && departures.mapNotNull { it.direction }.distinct().size > 1
-        if (distinctLines.size > 1 || singleLineHasDirections) {
-            FlowRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                val hasActiveSelection = selectedLineId != null
-                val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
-                val isNarrow = windowWidthClass.isNarrow
 
-                distinctLines.forEach { badge ->
-                    val isSelected = selectedLineId.equals(badge.lineId, ignoreCase = true)
-                    val directionIndicator = com.androidfung.departureboard.data.model.TransitDirection.fromString(
-                        if (isSelected) selectedDirection else null
-                    )?.indicatorArrow
+        val isTwoPane = LocalIsTwoPaneMode.current
+        val isThreePane = LocalIsThreePaneMode.current
+        val isMultiPane = isTwoPane || isThreePane
 
-                    val baseName = if (isNarrow && badge.lineCode.isNotBlank()) badge.lineCode else badge.displayName
-                    val labelText = if (!directionIndicator.isNullOrBlank()) {
-                        "$baseName $directionIndicator"
-                    } else {
-                        baseName
-                    }
+        val disruptedBadgesToShow = if (selectedLineId != null) {
+            distinctLines.filter { TransitIconHelper.isSameLine(it.lineId, selectedLineId) && it.isDisrupted }
+        } else if (!isMultiPane) {
+            distinctLines.filter { it.isDisrupted }
+        } else {
+            emptyList()
+        }
 
-                    // Standardized chip dimensions: 32dp height, consistent min-width, perfectly centered text
-                    Box(
+        val isBusStop = station.isBusOnly
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // 1. Lines filter chips row (scrolls seamlessly with departures, no background artifact)
+            if (distinctLines.size > 1 || singleLineHasDirections) {
+                item(key = "line_filters") {
+                    val hasActiveSelection = selectedLineId != null
+                    val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
+                    val isNarrow = windowWidthClass.isNarrow
+
+                    Row(
                         modifier = Modifier
-                            .height(32.dp)
-                            .defaultMinSize(minWidth = if (isNarrow) 48.dp else 56.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                if (isSelected || !hasActiveSelection) badge.backgroundColor
-                                else badge.backgroundColor.copy(alpha = 0.35f)
-                            )
-                            .border(
-                                width = if (isSelected) 2.dp else 0.dp,
-                                color = if (isSelected) Color.White else Color.Transparent,
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                            .clickable(
-                                role = Role.Checkbox
-                            ) {
-                                val availableDirections = com.androidfung.departureboard.util.DepartureFilterHelper.getAvailableDirections(
-                                    departures = departures,
-                                    lineId = badge.lineId
-                                )
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        distinctLines.forEach { badge ->
+                            val isSelected = selectedLineId.equals(badge.lineId, ignoreCase = true)
+                            val directionIndicator = com.androidfung.departureboard.data.model.TransitDirection.fromString(
+                                if (isSelected) selectedDirection else null
+                            )?.indicatorArrow
 
-                                if (!TransitIconHelper.isSameLine(selectedLineId, badge.lineId)) {
-                                    selectedLineId = badge.lineId
-                                    selectedDirection = null
-                                } else if (availableDirections.size > 1) {
-                                    // Multi-direction line: cycle through available directions
-                                    val currentIndex = if (selectedDirection == null) -1 else availableDirections.indexOf(selectedDirection)
-                                    when (currentIndex) {
-                                        -1 -> {
-                                            selectedDirection = availableDirections[0]
-                                        }
-                                        in 0 until availableDirections.lastIndex -> {
-                                            selectedDirection = availableDirections[currentIndex + 1]
-                                        }
-                                        else -> {
+                            val baseName = if (isNarrow && badge.lineCode.isNotBlank()) badge.lineCode else badge.displayName
+                            val labelText = if (!directionIndicator.isNullOrBlank()) {
+                                "$baseName $directionIndicator"
+                            } else {
+                                baseName
+                            }
+
+                            // Detect very dark badge backgrounds (e.g. Northern line black) to add a subtle contrasting border
+                            val badgeLuminance = 0.299f * badge.backgroundColor.red + 0.587f * badge.backgroundColor.green + 0.114f * badge.backgroundColor.blue
+                            val isVeryDarkBadge = badgeLuminance < 0.2f
+                            val defaultBorderWidth = if (isVeryDarkBadge) 1.dp else 0.dp
+                            val defaultBorderColor = if (isVeryDarkBadge) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f) else Color.Transparent
+
+                            Box(
+                                modifier = Modifier
+                                    .height(32.dp)
+                                    .defaultMinSize(minWidth = if (isNarrow) 48.dp else 56.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (isSelected || !hasActiveSelection) badge.backgroundColor
+                                        else badge.backgroundColor.copy(alpha = 0.35f)
+                                    )
+                                    .border(
+                                        width = if (isSelected) 2.dp else defaultBorderWidth,
+                                        color = if (isSelected) Color.White else defaultBorderColor,
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable(role = Role.Checkbox) {
+                                        val availableDirections = com.androidfung.departureboard.util.DepartureFilterHelper.getAvailableDirections(
+                                            departures = departures,
+                                            lineId = badge.lineId
+                                        )
+
+                                        if (!TransitIconHelper.isSameLine(selectedLineId, badge.lineId)) {
+                                            selectedLineId = badge.lineId
+                                            selectedDirection = null
+                                        } else if (availableDirections.size > 1) {
+                                            val currentIndex = if (selectedDirection == null) -1 else availableDirections.indexOf(selectedDirection)
+                                            when (currentIndex) {
+                                                -1 -> {
+                                                    selectedDirection = availableDirections[0]
+                                                }
+                                                in 0 until availableDirections.lastIndex -> {
+                                                    selectedDirection = availableDirections[currentIndex + 1]
+                                                }
+                                                else -> {
+                                                    selectedLineId = null
+                                                    selectedDirection = null
+                                                }
+                                            }
+                                        } else {
                                             selectedLineId = null
                                             selectedDirection = null
                                         }
                                     }
-                                } else {
-                                    // Terminus or single-direction line: deselect directly
-                                    selectedLineId = null
-                                    selectedDirection = null
+                                    .semantics {
+                                        this.selected = isSelected
+                                        this.role = Role.Checkbox
+                                        this.stateDescription = if (isSelected) "Selected" else "Not selected"
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = labelText,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 11.5.sp,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                            color = if (isSelected || !hasActiveSelection) badge.textColor else badge.textColor.copy(alpha = 0.6f),
+                                            maxLines = 1
+                                        )
+                                        if (badge.isDisrupted) {
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFFFFC107))
+                                            )
+                                        }
+                                    }
                                 }
                             }
-                            .semantics {
-                                this.selected = isSelected
-                                this.role = Role.Checkbox
-                                this.stateDescription = if (isSelected) "Selected" else "Not selected"
+                        }
+                    }
+                }
+
+            // 2. Interruption & Disruption Banners (inside LazyColumn so they scroll away):
+            if (disruptedBadgesToShow.isNotEmpty()) {
+                item(key = "disruptions") {
+                    if (disruptedBadgesToShow.size == 1) {
+                        LineDisruptionBanner(badge = disruptedBadgesToShow.first())
+                    } else {
+                        // Compact expandable banner when multiple lines have disruptions
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFFFF3CD).copy(alpha = 0.15f))
+                                .border(1.dp, Color(0xFFFFC107).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .clickable { isDisruptionsExpanded = !isDisruptionsExpanded }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            text = "⚠",
+                                            color = Color(0xFFFFC107),
+                                            fontSize = 13.sp,
+                                            modifier = Modifier.padding(end = 6.dp)
+                                        )
+                                        Text(
+                                            text = "${disruptedBadgesToShow.size} Line Disruptions",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = Color(0xFFFFC107)
+                                        )
+                                        Text(
+                                            text = " (${disruptedBadgesToShow.joinToString(", ") { it.displayName }})",
+                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = if (isDisruptionsExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                        contentDescription = if (isDisruptionsExpanded) "Collapse Disruptions" else "Expand Disruptions",
+                                        tint = Color(0xFFFFC107),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                AnimatedVisibility(
+                                    visible = isDisruptionsExpanded,
+                                    enter = expandVertically() + fadeIn(),
+                                    exit = shrinkVertically() + fadeOut()
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(top = 8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        disruptedBadgesToShow.forEach { disruptedBadge ->
+                                            LineDisruptionBanner(badge = disruptedBadge)
+                                        }
+                                    }
+                                }
                             }
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = labelText,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            color = if (isSelected || !hasActiveSelection) badge.textColor else badge.textColor.copy(alpha = 0.6f),
-                            maxLines = 1
-                        )
+                        }
                     }
                 }
             }
 
-            // If selected line has disruptions, show a disruption banner right under the badges in detail sheet
-            val activeBadge = distinctLines.firstOrNull { it.lineId.equals(selectedLineId, ignoreCase = true) }
-            if (activeBadge != null && activeBadge.isDisrupted) {
-                Spacer(modifier = Modifier.height(8.dp))
-                LineDisruptionBanner(badge = activeBadge)
-            }
-        }
-
-        // Only show sub-stops / stand filter chips for bus stops/stations (e.g. Stop P, Stop S, Stop Z4).
-        // Tube and rail stations already have clear Line and Cardinal Direction filters.
-        val isBusStop = station.isBusOnly
-        if (isBusStop && distinctStops.size > 1) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Stops / Stands:",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                FlowRow(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    distinctStops.forEach { subStop ->
-                        val isSelected = selectedStopId.equals(subStop.platformName, ignoreCase = true)
-                        Box(
+            // 3. Sub-stops / stand filter chips for bus stops
+            if (isBusStop && distinctStops.size > 1) {
+                item(key = "sub_stops") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Stops / Stands:",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Row(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.surfaceVariant
-                                )
-                                .border(
-                                    width = if (isSelected) 1.5.dp else 0.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .clickable(
-                                    role = Role.Checkbox
-                                ) {
-                                    selectedStopId = if (selectedStopId == subStop.platformName) null else subStop.platformName
-                                }
-                                .semantics {
-                                    this.selected = isSelected
-                                    this.role = Role.Checkbox
-                                    this.stateDescription = if (isSelected) "Selected" else "Not selected"
-                                }
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .weight(1f)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            distinctStops.forEach { subStop ->
+                                val isSelected = selectedStopId.equals(subStop.platformName, ignoreCase = true)
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                            else MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                        .border(
+                                            width = if (isSelected) 1.5.dp else 0.dp,
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                        .clickable(role = Role.Checkbox) {
+                                            selectedStopId = if (selectedStopId == subStop.platformName) null else subStop.platformName
+                                        }
+                                        .semantics {
+                                            this.selected = isSelected
+                                            this.role = Role.Checkbox
+                                            this.stateDescription = if (isSelected) "Selected" else "Not selected"
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                ) {
+                                    Text(
+                                        text = subStop.platformName,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                        ),
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Live Departures Header
+            item(key = "live_departures_header") {
+                Column {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Pulsing live indicator
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF22C55E).copy(alpha = pulseAlpha))
+                            )
                             Text(
-                                text = subStop.platformName,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                text = "Live Departures",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
                                 ),
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Text(
+                                text = "${filteredDepartures.size} predictions",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 5. Departures list or empty state
+            if (filteredDepartures.isEmpty() && !isLoading) {
+                item(key = "empty_state") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (serviceHoursInfo?.isClosedForNight == true) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(horizontal = 24.dp)
+                            ) {
+                                Text(
+                                    text = "🌙 Service Ended for Today",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                val lastText = serviceHoursInfo.lastTrainTime?.let { "Last train departed at $it." } ?: ""
+                                val firstText = serviceHoursInfo.firstTrainTime?.let { "Morning service starts at ~$it." } ?: ""
+                                Text(
+                                    text = listOf(lastText, firstText).filter { it.isNotBlank() }.joinToString("\n"),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    lineHeight = 22.sp
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = if (selectedLineId != null) "No departures for this line" else "No departures currently available.\nTap the refresh icon above to check for updates.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 20.sp,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(
+                    items = displayItems,
+                    key = { item ->
+                        when (item) {
+                            is StationDetailListItem.DepartureItem -> {
+                                val dep = item.departure
+                                val baseId = dep.id.ifBlank { "${dep.stationId}_${dep.lineId}" }
+                                "${baseId}_${item.index}"
+                            }
+                            is StationDetailListItem.AdItem -> item.key
+                        }
+                    }
+                ) { item ->
+                    when (item) {
+                        is StationDetailListItem.DepartureItem -> {
+                            val departure = item.departure
+                            DepartureDetailItemRow(
+                                departure = departure,
+                                isTracked = trackedDepartureId == departure.id,
+                                onToggleTrackDeparture = onToggleTrackDeparture,
+                                onClick = onDepartureClick?.let { { it(departure, filteredDepartures) } }
+                            )
+                        }
+                        is StationDetailListItem.AdItem -> {
+                            NativeAdViewContainer(
+                                style = NativeAdStyle.ROW,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Live Departures Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Pulsing live indicator
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF22C55E).copy(alpha = pulseAlpha))
-                )
-                Text(
-                    text = "Live Departures",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            } else {
-                Text(
-                    text = "${filteredDepartures.size} predictions",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // Departures List
-        if (filteredDepartures.isEmpty() && !isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                if (serviceHoursInfo?.isClosedForNight == true) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(horizontal = 24.dp)
-                    ) {
-                        Text(
-                            text = "🌙 Service Ended for Today",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        val lastText = serviceHoursInfo.lastTrainTime?.let { "Last train departed at $it." } ?: ""
-                        val firstText = serviceHoursInfo.firstTrainTime?.let { "Morning service starts at ~$it." } ?: ""
-                        Text(
-                            text = listOf(lastText, firstText).filter { it.isNotBlank() }.joinToString("\n"),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            lineHeight = 22.sp
-                        )
-                    }
-                } else {
-                    Text(
-                        text = if (selectedLineId != null) "No departures for this line" else "No departures currently available.\nTap the refresh icon above to check for updates.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 20.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                itemsIndexed(
-                    items = filteredDepartures,
-                    key = { index, item ->
-                        val baseId = item.id.ifBlank { "${item.stationId}_${item.lineId}" }
-                        "${baseId}_$index"
-                    }
-                ) { _, departure ->
-                    DepartureDetailItemRow(
-                        departure = departure,
-                        isTracked = trackedDepartureId == departure.id,
-                        onToggleTrackDeparture = onToggleTrackDeparture,
-                        onClick = onDepartureClick?.let { { it(departure) } }
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
     }
 }
 

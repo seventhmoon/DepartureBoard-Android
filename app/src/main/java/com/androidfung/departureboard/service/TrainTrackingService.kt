@@ -45,6 +45,7 @@ class TrainTrackingService : Service() {
         private const val POLL_INTERVAL_LONG = 45L
         private const val POLL_INTERVAL_MEDIUM = 30L
         private const val POLL_INTERVAL_SHORT = 15L
+        private const val MAX_TRACKING_DURATION_MS = 90 * 60 * 1000L // 90 min max runtime safeguard
 
         const val ACTION_START_TRACKING = "com.androidfung.departureboard.action.START_TRACKING"
         const val ACTION_STOP_TRACKING = "com.androidfung.departureboard.action.STOP_TRACKING"
@@ -140,6 +141,8 @@ class TrainTrackingService : Service() {
                 val baselineSeconds = initialSeconds.coerceAtLeast(30)
 
                 val notification = buildLiveNotification(
+                    stationId = stationId,
+                    stationName = stationName,
                     destination = destination,
                     lineName = lineName,
                     platform = platform,
@@ -205,8 +208,10 @@ class TrainTrackingService : Service() {
             var currentPlatform = platform
             var baselineStops: Int? = null
             var missingCount = 0
+            var isServiceCancelled = false
+            val startTrackingTimeMillis = System.currentTimeMillis()
 
-            while (isActive && remainingSeconds > 0) {
+            while (isActive && remainingSeconds > 0 && (System.currentTimeMillis() - startTrackingTimeMillis) < MAX_TRACKING_DURATION_MS) {
                 // Poll live API periodically
                 var liveLocation: String? = null
                 var isCancelled = false
@@ -236,7 +241,9 @@ class TrainTrackingService : Service() {
                                 currentDestination = target.destinationName
                                 postDisruptionAlert(
                                     title = "Destination Changed",
-                                    message = "$lineName to $oldDest is now terminating at $currentDestination"
+                                    message = "$lineName to $oldDest is now terminating at $currentDestination",
+                                    stationId = stationId,
+                                    stationName = stationName
                                 )
                             }
 
@@ -249,7 +256,9 @@ class TrainTrackingService : Service() {
                                 currentPlatform = target.platformName
                                 postDisruptionAlert(
                                     title = "Platform Changed",
-                                    message = "$lineName to $currentDestination moved from $oldPlatform to $currentPlatform"
+                                    message = "$lineName to $currentDestination moved from $oldPlatform to $currentPlatform",
+                                    stationId = stationId,
+                                    stationName = stationName
                                 )
                             }
                         } else {
@@ -272,11 +281,16 @@ class TrainTrackingService : Service() {
                 }
 
                 if (isCancelled) {
+                    isServiceCancelled = true
                     postDisruptionAlert(
                         title = "Service Cancelled",
-                        message = "Your $lineName to $currentDestination has been cancelled."
+                        message = "Your $lineName to $currentDestination has been cancelled.",
+                        stationId = stationId,
+                        stationName = stationName
                     )
                     val cancelledNotification = buildLiveNotification(
+                        stationId = stationId,
+                        stationName = stationName,
                         destination = currentDestination,
                         lineName = lineName,
                         platform = currentPlatform,
@@ -341,6 +355,8 @@ class TrainTrackingService : Service() {
                 }
 
                 val updatedNotification = buildLiveNotification(
+                    stationId = stationId,
+                    stationName = stationName,
                     destination = currentDestination,
                     lineName = lineName,
                     platform = currentPlatform,
@@ -376,8 +392,9 @@ class TrainTrackingService : Service() {
                 delay(pollIntervalSeconds * 1000L)
             }
 
-            // If cancelled, keep the notification readable so the user sees the cancellation status until they dismiss
-            if (isActive) {
+            // If cancelled, keep the notification visible so the user sees the cancellation status.
+            // When the train has departed (remainingSeconds <= 0) or user stopped tracking, clean up and auto-dismiss.
+            if (isServiceCancelled) {
                 currentlyTrackedDepartureId = null
             } else {
                 stopTrackingInternal()
@@ -386,9 +403,20 @@ class TrainTrackingService : Service() {
         }
     }
 
-    private fun postDisruptionAlert(title: String, message: String) {
+    private fun postDisruptionAlert(
+        title: String,
+        message: String,
+        stationId: String = "",
+        stationName: String = ""
+    ) {
         try {
-            val openAppIntent = Intent(this, MainActivity::class.java)
+            val openAppIntent = Intent(this, MainActivity::class.java).apply {
+                if (stationId.isNotBlank()) {
+                    putExtra(MainActivity.EXTRA_STATION_ID, stationId)
+                    putExtra(MainActivity.EXTRA_STATION_NAME, stationName)
+                }
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
             val openAppPendingIntent = PendingIntent.getActivity(
                 this,
                 0,
@@ -430,6 +458,8 @@ class TrainTrackingService : Service() {
     }
 
     private fun buildLiveNotification(
+        stationId: String = "",
+        stationName: String = "",
         destination: String,
         lineName: String,
         platform: String,
@@ -442,7 +472,13 @@ class TrainTrackingService : Service() {
         isCancelled: Boolean = false,
         statusChipOverride: String? = null
     ): android.app.Notification {
-        val openAppIntent = Intent(this, MainActivity::class.java)
+        val openAppIntent = Intent(this, MainActivity::class.java).apply {
+            if (stationId.isNotBlank()) {
+                putExtra(MainActivity.EXTRA_STATION_ID, stationId)
+                putExtra(MainActivity.EXTRA_STATION_NAME, stationName)
+            }
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
         val openAppPendingIntent = PendingIntent.getActivity(
             this,
             0,
@@ -480,7 +516,7 @@ class TrainTrackingService : Service() {
             (timeFraction * 95.0).toInt().coerceIn(5, 95)
         }
 
-        // Milestone points simply mark the start (Base Point B) and end (Station S)
+        // Milestone points mark the journey bounds (1 to 100) per NotificationCompat.ProgressStyle requirements
         val milestonePoints = listOf(
             NotificationCompat.ProgressStyle.Point(1),
             NotificationCompat.ProgressStyle.Point(100)

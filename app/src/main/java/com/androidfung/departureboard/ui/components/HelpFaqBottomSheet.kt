@@ -77,6 +77,7 @@ data class FaqItem(
 @Composable
 fun HelpFaqBottomSheet(
     onDismissRequest: () -> Unit,
+    onRateApp: () -> Unit = {},
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
@@ -233,13 +234,7 @@ fun HelpFaqBottomSheet(
                             )
                             context.startActivity(intent)
                         },
-                        onOpenPlayStore = {
-                            val intent = Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse("https://play.google.com/store/apps/details?id=com.androidfung.departureboard")
-                            )
-                            context.startActivity(intent)
-                        }
+                        onOpenPlayStore = onRateApp
                     )
                 }
             }

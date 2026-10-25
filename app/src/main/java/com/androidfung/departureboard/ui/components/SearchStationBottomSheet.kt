@@ -35,6 +35,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -78,13 +79,24 @@ fun SearchStationBottomSheet(
     onSearchQuery: suspend (String) -> List<Station>,
     modifier: Modifier = Modifier,
     nearbyStations: List<Pair<Station, Double>> = emptyList(),
+    recentSearchedStations: List<Station> = emptyList(),
+    onRemoveRecentSearch: (String) -> Unit = {},
+    onClearRecentSearches: () -> Unit = {},
     hasLocationPermission: Boolean = false,
     onRequestLocation: () -> Unit = {},
+    selectedRegion: com.androidfung.departureboard.data.model.TransitRegion = com.androidfung.departureboard.data.model.TransitRegion.GB,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
+    val defaultStationsForRegion = remember(selectedRegion) {
+        when (selectedRegion) {
+            com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.HkDefaultStations.POPULAR_STATIONS
+            com.androidfung.departureboard.data.model.TransitRegion.GB -> DefaultStations.POPULAR_STATIONS
+        }
+    }
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedModeFilter by remember { mutableStateOf("All") }
-    var searchResults by remember { mutableStateOf(DefaultStations.POPULAR_STATIONS) }
+    var searchResults by remember(defaultStationsForRegion) { mutableStateOf(defaultStationsForRegion) }
     var isSearching by remember { mutableStateOf(false) }
 
     val focusRequester = remember { FocusRequester() }
@@ -99,9 +111,9 @@ fun SearchStationBottomSheet(
     }
 
     // Trigger search when query changes with debouncing
-    LaunchedEffect(searchQuery) {
+    LaunchedEffect(searchQuery, defaultStationsForRegion) {
         if (searchQuery.isBlank()) {
-            searchResults = DefaultStations.POPULAR_STATIONS
+            searchResults = defaultStationsForRegion
             isSearching = false
         } else {
             isSearching = true
@@ -313,10 +325,85 @@ fun SearchStationBottomSheet(
                     contentPadding = PaddingValues(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // When search query is blank:
-                    // 1. If location is granted & nearby stations found, show "Nearby Stations" section
-                    // 2. If location is not granted, show "Find stations near me" affordance
                     if (searchQuery.isBlank()) {
+                        // 1. Recent Searches Section
+                        if (recentSearchedStations.isNotEmpty()) {
+                            item(key = "header_recent") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp, bottom = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Search,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Recent Searches",
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    TextButton(
+                                        onClick = onClearRecentSearches,
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                    ) {
+                                        Text(
+                                            text = "Clear",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                            }
+
+                            items(
+                                items = recentSearchedStations,
+                                key = { "recent_" + it.id }
+                            ) { station ->
+                                val isAlreadySaved = savedStationIds.contains(station.id)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        StationSearchResultRow(
+                                            station = station,
+                                            isSaved = isAlreadySaved,
+                                            distanceText = "Recently viewed",
+                                            onAddClick = {
+                                                focusManager.clearFocus()
+                                                keyboardController?.hide()
+                                                coroutineScope.launch {
+                                                    onStationSelected(station)
+                                                }
+                                            }
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { onRemoveRecentSearch(station.id) },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Close,
+                                            contentDescription = "Remove from history",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         if (hasLocationPermission && filteredNearby.isNotEmpty()) {
                             item(key = "header_nearby") {
                                 Row(

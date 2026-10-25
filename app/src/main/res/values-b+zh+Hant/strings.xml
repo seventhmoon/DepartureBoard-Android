@@ -1,0 +1,38 @@
+<resources>
+    <string name="app_name">EkiBoard</string>
+    <string name="launcher_name">EkiBoard</string>
+    <string name="widget_name">EkiBoard</string>
+    <string name="widget_description">即時抵達時間與車站班次預測</string>
+
+    <!-- Region Names -->
+    <string name="region_uk">英國</string>
+    <string name="region_hk">香港</string>
+
+    <!-- Transit Statuses -->
+    <string name="status_due">即將抵達</string>
+    <string name="status_on_time">準時</string>
+    <string name="status_delayed">延誤</string>
+    <string name="status_cancelled">取消</string>
+    <string name="status_approaching">即將到達</string>
+    <string name="status_at_platform">現已抵達</string>
+    <string name="status_at_stop">現已抵站</string>
+    <string name="status_in_transit">行駛中</string>
+
+    <!-- UI Labels -->
+    <string name="platform_label">%s 號月台</string>
+    <string name="search_hint">搜尋車站、路線或巴士站…</string>
+    <string name="filter_all">全部</string>
+    <string name="filter_bus">巴士</string>
+    <string name="filter_rail">鐵路</string>
+    <string name="filter_metro">地鐵</string>
+    <string name="nearest_station_header">最近車站</string>
+    <string name="saved_stations_header">已儲存車站</string>
+    <string name="empty_saved_stations_title">未有已儲存車站</string>
+    <string name="empty_saved_stations_desc">搜尋並收藏您常用的車站，隨時查看即時班次預測。</string>
+
+    <!-- Debug & Settings -->
+    <string name="debug_settings_title">開發者選項</string>
+    <string name="debug_enable_hk_title">啟用香港地區（實驗性）</string>
+    <string name="debug_enable_hk_subtitle">解鎖港鐵 (MTR) 及專營巴士 (九巴/城巴) 即時班次</string>
+    <string name="switch_region_title">切換地區</string>
+</resources>

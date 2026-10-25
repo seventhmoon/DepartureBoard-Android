@@ -44,7 +44,7 @@ object LocationHelper {
                 val cts = CancellationTokenSource()
                 fusedClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token).await()
             }
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             null
         }
     }

@@ -39,7 +39,7 @@ data class Station(
         get() {
             if (!isBusOnly) return name
 
-            val letter = Regex("^490\\d+([A-Za-z0-9]+)$").find(id)?.groupValues?.getOrNull(1)?.uppercase()
+            val letter = com.androidfung.departureboard.data.repository.TflStopPointUtils.extractBusStopLetter(id)
             if (letter != null) {
                 if (!name.contains(Regex("\\bStop\\s+$letter\\b", RegexOption.IGNORE_CASE)) && !name.contains("(")) {
                     return "$name (Stop $letter)"
@@ -68,7 +68,9 @@ data class CallingPoint(
     val scheduledTime: String? = null,
     val estimatedTime: String? = null,
     val isCurrentStation: Boolean = false,
-    val isDestination: Boolean = false
+    val isDestination: Boolean = false,
+    val stationId: String? = null,
+    val modes: List<String> = emptyList()
 )
 
 /**
@@ -93,6 +95,7 @@ data class Departure(
     val callingPoints: List<CallingPoint> = emptyList(),
     val status: DepartureStatus = DepartureStatus.fromString(currentLocation, timeToStationSeconds),
     val vehicleId: String? = null,
+    val destinationStationId: String? = null,
     val isWheelchairAccessible: Boolean? = null,
     val occupancyStatus: String? = null
 ) {
@@ -114,17 +117,19 @@ data class Departure(
      */
     val formattedActualClockTime: String?
         get() {
+            val targetZone = TransitRegion.fromStationId(stationId.ifBlank { id }).timeZone
+
             if (!expectedArrivalIso.isNullOrBlank()) {
                 return try {
                     val instant = java.time.Instant.parse(expectedArrivalIso)
-                    val local = java.time.ZonedDateTime.ofInstant(instant, java.time.ZoneId.of("Europe/London"))
+                    val local = java.time.ZonedDateTime.ofInstant(instant, targetZone)
                     local.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
                 } catch (_: Exception) {
                     null
                 }
             }
             // Fallback: estimate from current time + seconds
-            val estimated = java.time.ZonedDateTime.now(java.time.ZoneId.of("Europe/London"))
+            val estimated = java.time.ZonedDateTime.now(targetZone)
                 .plusSeconds(timeToStationSeconds.toLong())
             return estimated.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
         }

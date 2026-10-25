@@ -36,6 +36,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -111,8 +112,11 @@ fun StationDepartureCard(
         }
     }
 
-    val dismissProgress = dismissState.progress
-    val isPastThreshold = dismissProgress >= 0.5f && dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
+    val isPastThreshold by remember {
+        derivedStateOf {
+            dismissState.progress >= 0.5f && dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
+        }
+    }
 
     // Trigger haptic when crossing the threshold
     val hapticFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
@@ -426,12 +430,15 @@ private fun StationHeaderSection(
 
 /**
  * Line Disruption Alert Banner with warning icon and reason description.
+ * Intelligently converts raw disruption URLs into clean, clickable travel alert links.
  */
 @Composable
 fun LineDisruptionBanner(
     badge: LineBadgeInfo,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -453,15 +460,70 @@ fun LineDisruptionBanner(
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = Color(0xFFFFC107)
                 )
-                if (!badge.disruptionReason.isNullOrBlank()) {
+                val reason = badge.disruptionReason?.trim()
+                if (!reason.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = badge.disruptionReason,
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
-                    )
+
+                    val urlRegex = Regex("""(https?://[^\s]+)""")
+                    val urlMatch = urlRegex.find(reason)
+                    val url = urlMatch?.value
+
+                    if (url != null && (reason.startsWith("http://") || reason.startsWith("https://"))) {
+                        // Entire reason is a URL: show a clean clickable action link
+                        Text(
+                            text = "View travel alert details ↗",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                            ),
+                            color = Color(0xFFFFC107),
+                            modifier = Modifier
+                                .clickable {
+                                    try {
+                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                                    } catch (_: Exception) {}
+                                }
+                                .padding(vertical = 1.dp)
+                        )
+                    } else if (url != null) {
+                        // Mixed text and URL: display clean text with a trailing link button
+                        val textWithoutUrl = reason.replace(url, "").trim()
+                        if (textWithoutUrl.isNotBlank()) {
+                            Text(
+                                text = textWithoutUrl,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Text(
+                            text = "More details ↗",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                            ),
+                            color = Color(0xFFFFC107),
+                            modifier = Modifier
+                                .clickable {
+                                    try {
+                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                                    } catch (_: Exception) {}
+                                }
+                                .padding(top = 2.dp)
+                        )
+                    } else {
+                        // Plain text disruption description
+                        Text(
+                            text = reason,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
@@ -480,7 +542,9 @@ fun LinePillBadge(
     isDimmed: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
-    val isBusOrNumeric = badge.mode == TransitMode.BUS || badge.displayName.all { it.isDigit() }
+    val isBusOrNumeric = badge.mode == TransitMode.BUS ||
+            badge.displayName.matches(Regex("^[A-Za-z]?[0-9]+[A-Za-z]?$")) ||
+            badge.displayName.all { it.isDigit() }
 
     val alpha = if (isDimmed) 0.35f else 1.0f
 
@@ -504,7 +568,7 @@ fun LinePillBadge(
         modifier = modifier
             .height(32.dp)
             .defaultMinSize(
-                minWidth = if (isNarrow) 48.dp else if (isBusOrNumeric && badge.displayName.length <= 3) 36.dp else 56.dp
+                minWidth = if (isNarrow) 48.dp else if (isBusOrNumeric && baseName.length <= 4) 36.dp else 56.dp
             )
             .clip(RoundedCornerShape(10.dp))
             .then(
@@ -520,7 +584,7 @@ fun LinePillBadge(
                 else Modifier
             )
             .padding(
-                horizontal = if (isNarrow) 8.dp else if (isBusOrNumeric && badge.displayName.length <= 3) 10.dp else 12.dp,
+                horizontal = if (isNarrow) 8.dp else if (isBusOrNumeric && baseName.length <= 4) 10.dp else 12.dp,
                 vertical = 4.dp
             ),
         contentAlignment = Alignment.Center

@@ -38,7 +38,11 @@ import androidx.glance.text.TextStyle
 import com.androidfung.departureboard.MainActivity
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TflLineStatusItem
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.first
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -104,12 +108,21 @@ class DepartureBoardWidget : GlanceAppWidget() {
                         isFavorite = true
                     )
 
-                    // Collect departures reactively when stationId or refreshTimestamp changes
-                    val departuresResult by androidx.compose.runtime.remember(stationId, refreshTimestamp) {
-                        repository.getDeparturesFlow(stationId, targetStation.name)
+                    // Collect departures and line statuses reactively when stationId or refreshTimestamp changes
+                    val payload by androidx.compose.runtime.remember(stationId, refreshTimestamp) {
+                        flow {
+                            val cached = repository.getCachedDepartures(stationId)
+                            val cachedStatuses = repository.getLineStatuses()
+                            if (cached.isNotEmpty()) {
+                                emit(WidgetPayload(Result.success(cached), cachedStatuses))
+                            }
+                            val departuresResult = repository.getDepartures(stationId, targetStation.name)
+                            val freshStatuses = repository.getLineStatuses()
+                            emit(WidgetPayload(departuresResult, freshStatuses))
+                        }.flowOn(Dispatchers.IO)
                     }.collectAsState(initial = null)
 
-                    when (val result = departuresResult) {
+                    when (val currentPayload = payload) {
                         null -> {
                             // Loading state
                             WidgetPreparingPlaceholder(
@@ -118,21 +131,30 @@ class DepartureBoardWidget : GlanceAppWidget() {
                             )
                         }
                         else -> {
-                            val allDepartures = result.getOrNull() ?: emptyList()
+                            val allDepartures = currentPayload.departuresResult.getOrNull() ?: emptyList()
                             val filteredDepartures = com.androidfung.departureboard.util.DepartureFilterHelper.filterDepartures(
                                 departures = allDepartures,
                                 lineId = filterLineId,
                                 direction = filterDirection
                             )
 
-                            val isSuccess = result.isSuccess && allDepartures.isNotEmpty()
+                            val isSuccess = currentPayload.departuresResult.isSuccess && allDepartures.isNotEmpty()
+                            val interruptionInfo = WidgetInterruptionHelper.resolveInterruption(
+                                station = targetStation,
+                                departures = allDepartures,
+                                filteredDepartures = filteredDepartures,
+                                lineStatuses = currentPayload.lineStatuses,
+                                filterLineId = filterLineId,
+                                filterLineName = filterLineName
+                            )
 
                             WidgetContent(
                                 station = targetStation,
                                 filterLabel = combinedFilterLabel,
                                 departures = filteredDepartures,
                                 isLiveData = isSuccess,
-                                isError = result.isFailure
+                                isError = currentPayload.departuresResult.isFailure,
+                                interruptionInfo = interruptionInfo
                             )
                         }
                     }
@@ -141,13 +163,19 @@ class DepartureBoardWidget : GlanceAppWidget() {
         }
     }
 
+    private data class WidgetPayload(
+        val departuresResult: Result<List<Departure>>,
+        val lineStatuses: Map<String, TflLineStatusItem>
+    )
+
     @Composable
     private fun WidgetContent(
         station: Station,
         filterLabel: String?,
         departures: List<Departure>,
         isLiveData: Boolean = true,
-        isError: Boolean = false
+        isError: Boolean = false,
+        interruptionInfo: WidgetInterruptionHelper.InterruptionInfo = WidgetInterruptionHelper.InterruptionInfo()
     ) {
         val clickIntent = Intent(androidx.glance.LocalContext.current, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
@@ -170,12 +198,24 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Line accent / indicator
+                // Line accent / indicator dot
+                val indicatorColor = when (interruptionInfo.level) {
+                    WidgetInterruptionHelper.InterruptionLevel.SEVERE -> androidx.glance.color.ColorProvider(
+                        day = androidx.compose.ui.graphics.Color(0xFFE53935),
+                        night = androidx.compose.ui.graphics.Color(0xFFEF5350)
+                    )
+                    WidgetInterruptionHelper.InterruptionLevel.WARNING -> androidx.glance.color.ColorProvider(
+                        day = androidx.compose.ui.graphics.Color(0xFFE65100),
+                        night = androidx.compose.ui.graphics.Color(0xFFFFB300)
+                    )
+                    WidgetInterruptionHelper.InterruptionLevel.NONE -> GlanceTheme.colors.primary
+                }
+
                 Box(
                     modifier = GlanceModifier
                         .size(10.dp)
                         .cornerRadius(5.dp)
-                        .background(GlanceTheme.colors.primary)
+                        .background(indicatorColor)
                 ) {}
 
                 Spacer(modifier = GlanceModifier.width(8.dp))
@@ -190,8 +230,11 @@ class DepartureBoardWidget : GlanceAppWidget() {
                         ),
                         maxLines = 1
                     )
+                    val currentClockStr = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                        .format(java.util.Date())
                     val liveLabel = when {
-                        isLiveData -> "Live"
+                        interruptionInfo.statusText != null -> "⚠ ${interruptionInfo.statusText}"
+                        isLiveData -> "Live $currentClockStr"
                         isError -> "Offline"
                         else -> "No departures"
                     }
@@ -200,13 +243,26 @@ class DepartureBoardWidget : GlanceAppWidget() {
                     } else {
                         "EkiBoard • $liveLabel"
                     }
+                    val subtitleColor = when {
+                        interruptionInfo.level == WidgetInterruptionHelper.InterruptionLevel.SEVERE -> androidx.glance.color.ColorProvider(
+                            day = androidx.compose.ui.graphics.Color(0xFFE53935),
+                            night = androidx.compose.ui.graphics.Color(0xFFEF5350)
+                        )
+                        interruptionInfo.level == WidgetInterruptionHelper.InterruptionLevel.WARNING -> androidx.glance.color.ColorProvider(
+                            day = androidx.compose.ui.graphics.Color(0xFFE65100),
+                            night = androidx.compose.ui.graphics.Color(0xFFFFB300)
+                        )
+                        !filterLabel.isNullOrBlank() -> GlanceTheme.colors.primary
+                        else -> GlanceTheme.colors.onSurfaceVariant
+                    }
                     Text(
                         text = subtitle,
                         style = TextStyle(
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = if (!filterLabel.isNullOrBlank()) GlanceTheme.colors.primary else GlanceTheme.colors.onSurfaceVariant
-                        )
+                            fontWeight = if (interruptionInfo.level != WidgetInterruptionHelper.InterruptionLevel.NONE) FontWeight.Medium else FontWeight.Normal,
+                            color = subtitleColor
+                        ),
+                        maxLines = 1
                     )
                 }
 
@@ -272,19 +328,30 @@ class DepartureBoardWidget : GlanceAppWidget() {
         }
 
         val minutes = departure.timeToStationSeconds / 60
-        val isDue = departure.timeToStationSeconds <= 30
-        val countdownText = if (isDue) "DUE" else "${minutes}m"
+        val isCancelled = departure.status == com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED
+        val isDelayed = departure.status == com.androidfung.departureboard.data.model.DepartureStatus.DELAYED
+        val isDue = !isCancelled && departure.timeToStationSeconds <= 30
+        val countdownText = when {
+            isCancelled -> "CANC"
+            isDue -> "DUE"
+            else -> "${minutes}m"
+        }
 
         val isBus = departure.modeName.equals("bus", ignoreCase = true) || departure.lineId.toIntOrNull() != null
         val badge = departure.lineBadge
         val routeLineLabel = departure.lineName.ifBlank { departure.lineId }
         val platformOrStand = departure.platformName.takeIf { it.isNotBlank() && it.lowercase() != "null" }
 
-        val subtitleText = when {
+        val baseSubtitle = when {
             isBus && !platformOrStand.isNullOrBlank() -> "$routeLineLabel • $platformOrStand"
             isBus -> routeLineLabel
             !platformOrStand.isNullOrBlank() -> platformOrStand
             else -> routeLineLabel
+        }
+        val subtitleText = when {
+            isCancelled -> "$baseSubtitle • Cancelled"
+            isDelayed -> "$baseSubtitle • Delayed"
+            else -> baseSubtitle
         }
 
         Row(
@@ -348,26 +415,27 @@ class DepartureBoardWidget : GlanceAppWidget() {
 
             Spacer(modifier = GlanceModifier.width(8.dp))
 
-            // London Dot-Matrix Amber LED Pill or Alert Red DUE
+            // London Dot-Matrix Amber LED Pill or Alert Red DUE/CANCELLED
+            val isAlert = isDue || isCancelled
             Box(
                 modifier = GlanceModifier
                     .cornerRadius(8.dp)
                     .background(
-                        if (isDue) GlanceTheme.colors.errorContainer
+                        if (isAlert) GlanceTheme.colors.errorContainer
                         else GlanceTheme.colors.primaryContainer
                     )
                     .padding(horizontal = 9.dp, vertical = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 val clockTime = departure.formattedActualClockTime
-                val displayLabel = if (!clockTime.isNullOrBlank() && !isDue) "$countdownText • $clockTime" else countdownText
+                val displayLabel = if (!clockTime.isNullOrBlank() && !isAlert) "$countdownText • $clockTime" else countdownText
 
                 Text(
                     text = displayLabel,
                     style = TextStyle(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDue) GlanceTheme.colors.onErrorContainer
+                        color = if (isAlert) GlanceTheme.colors.onErrorContainer
                         else GlanceTheme.colors.onPrimaryContainer
                     )
                 )

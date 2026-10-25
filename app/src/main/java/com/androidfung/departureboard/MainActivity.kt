@@ -50,7 +50,10 @@ import com.androidfung.departureboard.ui.dashboard.DashboardViewModel
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.appupdate.AppUpdateOptions
+import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
 import kotlinx.serialization.Serializable
 
@@ -58,10 +61,10 @@ import kotlinx.serialization.Serializable
 data object DashboardListRoute : NavKey
 
 @Serializable
-data class StationDetailRoute(val stationId: String) : NavKey
+data object StationDetailRoute : NavKey
 
 @Serializable
-data class TrainJourneyRoute(val departureId: String) : NavKey
+data object TrainJourneyRoute : NavKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -69,12 +72,26 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_STATION_ID = "extra_station_id"
         const val EXTRA_STATION_NAME = "extra_station_name"
+        private const val TAG = "InAppUpdate"
     }
 
     private var initialStation by mutableStateOf<Station?>(null)
     private lateinit var appUpdateManager: AppUpdateManager
-    private var installStateUpdatedListener: com.google.android.play.core.install.InstallStateUpdatedListener? = null
+    private var installStateUpdatedListener: InstallStateUpdatedListener? = null
     private var debugProReceiver: BroadcastReceiver? = null
+
+    // Modern ActivityResultLauncher for in-app update flows
+    private val appUpdateLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            android.util.Log.d(TAG, "In-app update flow started successfully.")
+        } else if (result.resultCode == RESULT_CANCELED) {
+            android.util.Log.d(TAG, "User cancelled the in-app update flow.")
+        } else {
+            android.util.Log.w(TAG, "In-app update flow failed with resultCode: ${result.resultCode}")
+        }
+    }
 
     @OptIn(ExperimentalSharedTransitionApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,6 +105,11 @@ class MainActivity : ComponentActivity() {
         // Check for Google Play In-App Updates
         appUpdateManager = AppUpdateManagerFactory.create(this)
         checkForAppUpdate()
+
+        // Track app launch for In-App Review engagement metrics
+        lifecycleScope.launch {
+            com.androidfung.departureboard.review.InAppReviewManager.getInstance(applicationContext).recordAppLaunch()
+        }
 
         setContent {
             val viewModel: DashboardViewModel = viewModel()
@@ -106,6 +128,7 @@ class MainActivity : ComponentActivity() {
                     var showDebugSheet by rememberSaveable { mutableStateOf(false) }
                     var showHelpSheet by rememberSaveable { mutableStateOf(false) }
                     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
+                    var showLineStatusSheet by rememberSaveable { mutableStateOf(false) }
 
                     LaunchedEffect(initialStation) {
                         if (initialStation != null) {
@@ -113,10 +136,31 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // Contextual smart review trigger for active users:
+                    // Checks if conditions are met after the dashboard loads with saved stations
+                    // without interrupting the user during active navigation or urgent departure checks.
+                    LaunchedEffect(uiState.stationCards.size) {
+                        if (uiState.stationCards.isNotEmpty() && !uiState.isInitialLoading && !uiState.isRefreshing) {
+                            // Delay slightly after launch so the UI is calm and settled
+                            kotlinx.coroutines.delay(3000)
+                            // Only trigger when the user is on the top-level dashboard (not deep in station or journey details)
+                            if (uiState.selectedDetailStation == null && uiState.selectedJourneyDeparture == null) {
+                                com.androidfung.departureboard.review.InAppReviewManager.getInstance(applicationContext)
+                                    .launchReviewFlow(
+                                        activity = this@MainActivity,
+                                        force = false,
+                                        savedStationsCount = uiState.stationCards.size,
+                                        fallbackToPlayStore = false
+                                    )
+                            }
+                        }
+                    }
+
                     // Register flexible in-app update listener and handle restart prompt via Snackbar
                     LaunchedEffect(Unit) {
-                        val listener = com.google.android.play.core.install.InstallStateUpdatedListener { state ->
-                            if (state.installStatus() == com.google.android.play.core.install.model.InstallStatus.DOWNLOADED) {
+                        val listener = InstallStateUpdatedListener { state ->
+                            android.util.Log.d(TAG, "InstallState: status=${state.installStatus()}, errorCode=${state.installErrorCode()}")
+                            if (state.installStatus() == InstallStatus.DOWNLOADED) {
                                 lifecycleScope.launch {
                                     val result = snackbarHostState.showSnackbar(
                                         message = "An update has just been downloaded.",
@@ -203,21 +247,25 @@ class MainActivity : ComponentActivity() {
 
                     val backStack = rememberNavBackStack(DashboardListRoute as NavKey)
 
-                    LaunchedEffect(uiState.selectedDetailStation) {
+                    LaunchedEffect(uiState.selectedDetailStation != null) {
                         if (uiState.selectedDetailStation != null) {
-                             backStack.addDetail(StationDetailRoute(uiState.selectedDetailStation!!.id))
+                             if (!backStack.contains(StationDetailRoute)) {
+                                 backStack.addDetail(StationDetailRoute)
+                             }
                         } else {
-                             val toRemove = backStack.filter { it is StationDetailRoute || it is TrainJourneyRoute }
+                             val toRemove = backStack.filter { it == StationDetailRoute || it == TrainJourneyRoute }
                              backStack.removeAll(toRemove)
                         }
                     }
 
-                    LaunchedEffect(uiState.selectedJourneyDeparture?.id) {
+                    LaunchedEffect(uiState.selectedJourneyDeparture != null) {
                         val journeyDep = uiState.selectedJourneyDeparture
                         if (journeyDep != null) {
-                             backStack.addDetail(TrainJourneyRoute(journeyDep.id))
+                             if (!backStack.contains(TrainJourneyRoute)) {
+                                 backStack.addDetail(TrainJourneyRoute)
+                             }
                         } else {
-                             val toRemove = backStack.filter { it is TrainJourneyRoute }
+                             val toRemove = backStack.filter { it == TrainJourneyRoute }
                              backStack.removeAll(toRemove)
                         }
                     }
@@ -266,6 +314,10 @@ class MainActivity : ComponentActivity() {
                                             },
                                             onAiAssistantClick = { showAiSheet = true },
                                             onUpgradeClick = { viewModel.showPaywall("Unlock EkiBoard Pro") },
+                                            onOpenLineStatus = {
+                                                viewModel.refreshLineStatuses()
+                                                showLineStatusSheet = true
+                                            },
                                             onOpenSettings = { showSettingsSheet = true },
                                             onOpenDebugSettings = {
                                                 android.util.Log.d("DashboardScreen", "onOpenDebugSettings clicked!")
@@ -276,9 +328,9 @@ class MainActivity : ComponentActivity() {
                                     }
                                     entry<StationDetailRoute>(
                                         metadata = ListDetailScene.detailPane()
-                                    ) { stationDetailRoute ->
+                                    ) {
                                         val station = uiState.selectedDetailStation
-                                        if (station != null && station.id == stationDetailRoute.stationId) {
+                                        if (station != null) {
                                             val isSaved = uiState.stationCards.any { it.station.id == station.id }
                                             StationDetailScreen(
                                                 station = station,
@@ -286,6 +338,10 @@ class MainActivity : ComponentActivity() {
                                                 isLoading = uiState.isDetailLoading,
                                                 isSaved = isSaved,
                                                 serviceHoursInfo = uiState.serviceHoursInfo,
+                                                stations = uiState.detailStationsContext.ifEmpty { listOf(station) },
+                                                onStationChange = { nextStation ->
+                                                    viewModel.openStationDetail(nextStation, uiState.detailStationsContext)
+                                                },
                                                 onToggleSaveStation = { st ->
                                                     if (isSaved) {
                                                         viewModel.removeStation(st)
@@ -293,31 +349,40 @@ class MainActivity : ComponentActivity() {
                                                         viewModel.addStation(st)
                                                     }
                                                 },
-                                                onRefresh = { viewModel.openStationDetail(station) },
-                                                onDepartureClick = { departure ->
-                                                    viewModel.openTrainJourney(departure)
+                                                onRefresh = { viewModel.openStationDetail(station, uiState.detailStationsContext) },
+                                                onDepartureClick = { departure, contextDepartures ->
+                                                    viewModel.openTrainJourney(departure, contextDepartures)
                                                 },
                                                 onBack = { 
                                                     viewModel.closeStationDetail()
                                                     val last = backStack.last()
                                                     backStack.remove(last)
-                                                }
+                                                },
+                                                isPro = uiState.isPro
                                             )
                                         }
                                     }
                                     entry<TrainJourneyRoute>(
                                         metadata = ListDetailScene.supportingPane()
-                                    ) { trainJourneyRoute ->
-                                        val journeyDep = viewModel.resolveDepartureForJourney(trainJourneyRoute.departureId)
+                                    ) {
+                                        val journeyDep = uiState.selectedJourneyDeparture
                                         if (journeyDep != null) {
                                             TrainJourneyScreen(
                                                 departure = journeyDep,
+                                                departures = uiState.journeyDeparturesContext.ifEmpty { listOf(journeyDep) },
+                                                onDepartureChange = { nextDep ->
+                                                    viewModel.openTrainJourney(nextDep, uiState.journeyDeparturesContext)
+                                                },
+                                                onCallingPointClick = { cp, cps ->
+                                                    viewModel.openStationDetailFromCallingPoint(cp, cps)
+                                                },
                                                 onBack = { 
                                                     viewModel.closeTrainJourney()
                                                     val last = backStack.last()
                                                     backStack.remove(last)
                                                 },
-                                                onLoadCallingPoints = { dep -> viewModel.getCallingPoints(dep) }
+                                                onLoadCallingPoints = { dep -> viewModel.getCallingPoints(dep) },
+                                                isPro = uiState.isPro
                                             )
                                         }
                                     }
@@ -332,14 +397,19 @@ class MainActivity : ComponentActivity() {
                             onDismissRequest = { showSearchSheet = false },
                             onStationSelected = { station ->
                                 showSearchSheet = false
+                                viewModel.addRecentSearchedStation(station)
                                 viewModel.openStationDetail(station)
                             },
                             savedStationIds = remember(uiState.stationCards) {
                                 uiState.stationCards.asSequence().map { it.station.id }.toSet()
                             },
                             nearbyStations = uiState.nearbyStations,
+                            recentSearchedStations = uiState.recentSearchedStations,
+                            onRemoveRecentSearch = { stationId -> viewModel.removeRecentSearchedStation(stationId) },
+                            onClearRecentSearches = { viewModel.clearRecentSearchedStations() },
                             hasLocationPermission = hasLocationPermission,
                             onRequestLocation = requestLocationWithRationale,
+                            selectedRegion = uiState.selectedRegion,
                             onSearchQuery = { query -> viewModel.searchStations(query) }
                         )
                     }
@@ -394,13 +464,59 @@ class MainActivity : ComponentActivity() {
                             onTogglePro = { viewModel.toggleDebugPro() },
                             onResetStations = { viewModel.resetSavedStationsToDefaults() },
                             selectedAiModel = uiState.aiModelType,
-                            onSelectAiModel = { model -> viewModel.setAiModelType(model) }
+                            onSelectAiModel = { model -> viewModel.setAiModelType(model) },
+                            selectedRegion = uiState.selectedRegion,
+                            onSelectRegion = { region -> viewModel.setSelectedRegion(region) },
+                            isHkRegionEnabled = uiState.isHkRegionEnabled,
+                            onToggleHkRegionEnabled = { enabled -> viewModel.setHkRegionEnabled(enabled) },
+                            onTriggerInAppReview = {
+                                lifecycleScope.launch {
+                                    com.androidfung.departureboard.review.InAppReviewManager.getInstance(applicationContext)
+                                        .launchReviewFlow(
+                                            activity = this@MainActivity,
+                                            force = true,
+                                            fallbackToPlayStore = false
+                                        )
+                                }
+                            },
+                            onResetInAppReviewData = {
+                                lifecycleScope.launch {
+                                    com.androidfung.departureboard.review.InAppReviewManager.getInstance(applicationContext)
+                                        .resetReviewDataForTesting()
+                                    Toast.makeText(applicationContext, "In-app review tracking reset", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         )
                     }
 
                     if (showHelpSheet) {
                         com.androidfung.departureboard.ui.components.HelpFaqBottomSheet(
-                            onDismissRequest = { showHelpSheet = false }
+                            onDismissRequest = { showHelpSheet = false },
+                            onRateApp = {
+                                lifecycleScope.launch {
+                                    com.androidfung.departureboard.review.InAppReviewManager.getInstance(applicationContext)
+                                        .launchReviewFlow(
+                                            activity = this@MainActivity,
+                                            force = true,
+                                            fallbackToPlayStore = true
+                                        )
+                                }
+                            }
+                        )
+                    }
+
+                    if (showLineStatusSheet) {
+                        val relevantLineIds = remember(uiState.stationCards) {
+                            uiState.stationCards.flatMap { card ->
+                                card.availableLineBadges.map { it.lineId.lowercase() }
+                            }.toSet()
+                        }
+                        com.androidfung.departureboard.ui.components.LineStatusBottomSheet(
+                            lineStatuses = uiState.lineStatuses,
+                            selectedRegion = uiState.selectedRegion,
+                            relevantLineIds = relevantLineIds,
+                            onRefresh = { viewModel.refreshLineStatuses() },
+                            onDismiss = { showLineStatusSheet = false }
                         )
                     }
 
@@ -413,12 +529,29 @@ class MainActivity : ComponentActivity() {
                             onThemeModeChange = { mode -> viewModel.setThemeMode(mode) },
                             isDynamicColor = uiState.isDynamicColor,
                             onDynamicColorChange = { enabled -> viewModel.setDynamicColor(enabled) },
+                            isAutoSortByLocation = uiState.isAutoSortByLocation,
+                            onAutoSortByLocationChange = { enabled ->
+                                if (enabled && !hasLocationPermission) {
+                                    requestLocationWithRationale()
+                                }
+                                viewModel.setAutoSortByLocation(enabled)
+                            },
                             isPro = uiState.isPro,
                             billingRepository = viewModel.billingRepository,
                             onOpenHelpFaq = { showHelpSheet = true },
                             onUpgradeClick = {
                                 showSettingsSheet = false
                                 viewModel.showPaywall("Unlock EkiBoard Pro")
+                            },
+                            onRateApp = {
+                                lifecycleScope.launch {
+                                    com.androidfung.departureboard.review.InAppReviewManager.getInstance(applicationContext)
+                                        .launchReviewFlow(
+                                            activity = this@MainActivity,
+                                            force = true,
+                                            fallbackToPlayStore = true
+                                        )
+                                }
                             }
                         )
                     }
@@ -428,14 +561,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun NavBackStack<NavKey>.addDetail(detailRoute: NavKey) {
-        if (detailRoute is StationDetailRoute) {
+        if (detailRoute == StationDetailRoute) {
             // When navigating to a new station, clear previous station & train journey details
-            val toRemove = this.filter { it is StationDetailRoute || it is TrainJourneyRoute }
+            val toRemove = this.filter { it == StationDetailRoute || it == TrainJourneyRoute }
             this.removeAll(toRemove)
             this.add(detailRoute)
-        } else if (detailRoute is TrainJourneyRoute) {
+        } else if (detailRoute == TrainJourneyRoute) {
             // Keep the StationDetailRoute in the backstack so on desktop/tablet both or all 3 can coexist!
-            val toRemove = this.filter { it is TrainJourneyRoute }
+            val toRemove = this.filter { it == TrainJourneyRoute }
             this.removeAll(toRemove)
             this.add(detailRoute)
         } else {
@@ -443,42 +576,52 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun checkForAppUpdate() {
         try {
             val appUpdateInfoTask = appUpdateManager.appUpdateInfo
             appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
-                if ((appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) &&
-                    appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
-                ) {
-                    // Flexible in-app update available
+                val availability = appUpdateInfo.updateAvailability()
+                val isFlexibleAllowed = appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
+                val availableVersion = appUpdateInfo.availableVersionCode()
+                android.util.Log.d(
+                    TAG,
+                    "AppUpdateInfo: availability=$availability, isFlexibleAllowed=$isFlexibleAllowed, availableVersionCode=$availableVersion"
+                )
+
+                if (availability == UpdateAvailability.UPDATE_AVAILABLE && isFlexibleAllowed) {
                     try {
                         appUpdateManager.startUpdateFlowForResult(
                             appUpdateInfo,
-                            AppUpdateType.FLEXIBLE,
-                            this,
-                            1001
+                            appUpdateLauncher,
+                            AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build()
                         )
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        android.util.Log.e(TAG, "Failed to start in-app update flow", e)
+                    }
                 }
+            }.addOnFailureListener { error ->
+                android.util.Log.w(TAG, "Failed to check for in-app updates: ${error.message}", error)
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Error checking for app updates", e)
+        }
     }
 
-    @Suppress("DEPRECATION")
     override fun onResume() {
         super.onResume()
         try {
             appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
                 if (info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
-                    appUpdateManager.startUpdateFlowForResult(
-                        info,
-                        AppUpdateType.FLEXIBLE,
-                        this,
-                        1001
-                    )
-                } else if (info.installStatus() == com.google.android.play.core.install.model.InstallStatus.DOWNLOADED) {
-                    // Update has already been downloaded, prompt user to complete update
+                    try {
+                        appUpdateManager.startUpdateFlowForResult(
+                            info,
+                            appUpdateLauncher,
+                            AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build()
+                        )
+                    } catch (e: Exception) {
+                        android.util.Log.e(TAG, "Failed to resume developer triggered update", e)
+                    }
+                } else if (info.installStatus() == InstallStatus.DOWNLOADED) {
                     lifecycleScope.launch {
                         Toast.makeText(
                             this@MainActivity,
@@ -487,8 +630,12 @@ class MainActivity : ComponentActivity() {
                         ).show()
                     }
                 }
+            }.addOnFailureListener { error ->
+                android.util.Log.d(TAG, "onResume: Failed to check app update info: ${error.message}")
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "onResume: Error checking app update info", e)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

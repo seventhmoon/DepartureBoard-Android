@@ -337,4 +337,40 @@ class DashboardViewModelTest {
         advanceUntilIdle()
         assertTrue(viewModel.uiState.value.isOnline)
     }
+
+    @Test
+    fun testRefreshLineStatusesAndAutoSortPreference() = runTest {
+        val fakeRepo = FakeTransitRepository().apply {
+            lineStatuses = mapOf(
+                "victoria" to com.androidfung.departureboard.data.model.TflLineStatusItem(
+                    id = "victoria",
+                    name = "Victoria",
+                    modeName = "tube",
+                    lineStatuses = listOf(
+                        com.androidfung.departureboard.data.model.TflLineStatusDetail(
+                            statusSeverity = 9,
+                            statusSeverityDescription = "Minor Delays",
+                            reason = "Signal failure at Brixton"
+                        )
+                    )
+                )
+            )
+        }
+        val viewModel = DashboardViewModel(
+            application = FakeApplication(),
+            repository = fakeRepo,
+            billingRepository = FakeBillingRepository(),
+            locationDataSource = object : com.androidfung.departureboard.util.LocationDataSource {
+                override suspend fun getCurrentLocation(): android.location.Location? = null
+            }
+        )
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.lineStatuses.containsKey("victoria"))
+        assertFalse(viewModel.uiState.value.isAutoSortByLocation)
+
+        viewModel.setAutoSortByLocation(true)
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isAutoSortByLocation)
+    }
 }

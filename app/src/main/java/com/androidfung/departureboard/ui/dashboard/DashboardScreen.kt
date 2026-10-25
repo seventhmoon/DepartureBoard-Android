@@ -1,17 +1,20 @@
 package com.androidfung.departureboard.ui.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
@@ -30,6 +33,7 @@ import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Traffic
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -89,6 +93,7 @@ fun DashboardContent(
     onDepartureClick: ((Departure) -> Unit)? = null,
     onAiAssistantClick: () -> Unit = {},
     onUpgradeClick: () -> Unit = {},
+    onOpenLineStatus: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onOpenDebugSettings: () -> Unit = {},
     onOpenHelpFaq: () -> Unit = {},
@@ -167,15 +172,64 @@ fun DashboardContent(
                                 )
                             }
                         }
+
+                        // Debug Region Switcher Chip (Shown when HK experimental is enabled)
+                        if (uiState.isHkRegionEnabled) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                    .clickable { onOpenDebugSettings() }
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "${uiState.selectedRegion.flagEmoji} ${uiState.selectedRegion.id}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
                     }
                 },
                 actions = {
                     var showMenu by remember { mutableStateOf(false) }
+                    val disruptedCount = remember(uiState.lineStatuses, uiState.selectedRegion) {
+                        com.androidfung.departureboard.ui.components.buildDisplayLineStatusItems(
+                            uiState.lineStatuses,
+                            uiState.selectedRegion
+                        ).count { it.isDisrupted }
+                    }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
+                        Box {
+                            IconButton(onClick = onOpenLineStatus) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Traffic,
+                                    contentDescription = "Live Network Status",
+                                    tint = if (disruptedCount > 0) {
+                                        com.androidfung.departureboard.ui.theme.MinorDelaysAmber
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
+                            }
+                            if (disruptedCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(top = 8.dp, end = 8.dp)
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(com.androidfung.departureboard.ui.theme.MinorDelaysAmber)
+                                )
+                            }
+                        }
+
                         if (!uiState.isPro) {
                             IconButton(
                                 onClick = onUpgradeClick,
@@ -206,6 +260,33 @@ fun DashboardContent(
                                 expanded = showMenu,
                                 onDismissRequest = { showMenu = false }
                             ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (disruptedCount > 0) {
+                                                "Network Status ($disruptedCount)"
+                                            } else {
+                                                "Network Status"
+                                            }
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Traffic,
+                                            contentDescription = null,
+                                            tint = if (disruptedCount > 0) {
+                                                com.androidfung.departureboard.ui.theme.MinorDelaysAmber
+                                            } else {
+                                                MaterialTheme.colorScheme.primary
+                                            }
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onOpenLineStatus()
+                                    }
+                                )
+
                                 DropdownMenuItem(
                                     text = { Text("Settings") },
                                     leadingIcon = {
@@ -312,6 +393,16 @@ fun DashboardContent(
             else -> StaggeredGridCells.Fixed(3)
         }
 
+        val showInGridAd = !uiState.isPro
+        val adInterval = 3
+        val initialAdOffset = 2
+
+        val (firstChunk, remainingChunks) = remember(uiState.stationCards, showInGridAd) {
+            val first = uiState.stationCards.take(initialAdOffset)
+            val remaining = uiState.stationCards.drop(initialAdOffset).chunked(adInterval)
+            Pair(first, remaining)
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -342,6 +433,8 @@ fun DashboardContent(
                     item(key = "search_bar", span = StaggeredGridItemSpan.FullLine) {
                         DashboardSearchBar(
                             onClick = onAddStationClick,
+                            lastUpdatedTimestamp = uiState.lastUpdatedTimestamp,
+                            isOnline = uiState.isOnline,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -398,34 +491,85 @@ fun DashboardContent(
                             )
                         }
                     } else {
-                        // Station Departure Cards in adaptive staggered grid
-                        // All cards uniformly occupy 1 column for consistent grid layout
-                        items(
-                            items = uiState.stationCards,
-                            key = { it.station.id + it.station.name },
-                            span = { StaggeredGridItemSpan.SingleLane }
-                        ) { cardModel ->
-                            val isNearest = uiState.nearestStationId == cardModel.station.id
-                            StationDepartureCard(
-                                cardModel = cardModel,
-                                onDismissStation = onDismissStation,
-                                onStationClick = onStationClick,
-                                onDepartureClick = onDepartureClick,
-                                isNearest = isNearest,
-                                distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
-                                maxDepartureRows = uiState.departureRowsCount,
-                                modifier = Modifier
-                                    .reorderableStaggeredItem(reorderState, cardModel.station.id)
-                                    .animateItem()
-                            )
-                        }
+                        // Station Departure Cards in adaptive staggered grid.
+                        // Dynamically interleave NativeAdCard: first after 2nd station, then every 3 stations thereafter.
+                        if (!showInGridAd) {
+                            items(
+                                items = uiState.stationCards,
+                                key = { it.station.id + it.station.name },
+                                span = { StaggeredGridItemSpan.SingleLane }
+                            ) { cardModel ->
+                                val isNearest = uiState.nearestStationId == cardModel.station.id
+                                StationDepartureCard(
+                                    cardModel = cardModel,
+                                    onDismissStation = onDismissStation,
+                                    onStationClick = onStationClick,
+                                    onDepartureClick = onDepartureClick,
+                                    isNearest = isNearest,
+                                    distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
+                                    maxDepartureRows = uiState.departureRowsCount,
+                                    modifier = Modifier
+                                        .reorderableStaggeredItem(reorderState, cardModel.station.id)
+                                        .animateItem()
+                                )
+                            }
+                        } else {
+                            items(
+                                items = firstChunk,
+                                key = { it.station.id + it.station.name },
+                                span = { StaggeredGridItemSpan.SingleLane }
+                            ) { cardModel ->
+                                val isNearest = uiState.nearestStationId == cardModel.station.id
+                                StationDepartureCard(
+                                    cardModel = cardModel,
+                                    onDismissStation = onDismissStation,
+                                    onStationClick = onStationClick,
+                                    onDepartureClick = onDepartureClick,
+                                    isNearest = isNearest,
+                                    distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
+                                    maxDepartureRows = uiState.departureRowsCount,
+                                    modifier = Modifier
+                                        .reorderableStaggeredItem(reorderState, cardModel.station.id)
+                                        .animateItem()
+                                )
+                            }
 
-                        // Medium Rectangle ad card in the feed for free users
-                        if (!uiState.isPro) {
-                            item(key = "ad_card", span = StaggeredGridItemSpan.SingleLane) {
-                                com.androidfung.departureboard.ui.components.AdCard(
+                            // First Native Ad Card
+                            item(key = "native_ad_card_0", span = StaggeredGridItemSpan.SingleLane) {
+                                com.androidfung.departureboard.ui.components.NativeAdViewContainer(
+                                    style = com.androidfung.departureboard.ui.components.NativeAdStyle.CARD,
                                     modifier = Modifier.animateItem()
                                 )
+                            }
+
+                            // Subsequent chunks, each followed by a native ad card
+                            remainingChunks.forEachIndexed { chunkIndex, chunk ->
+                                items(
+                                    items = chunk,
+                                    key = { it.station.id + it.station.name },
+                                    span = { StaggeredGridItemSpan.SingleLane }
+                                ) { cardModel ->
+                                    val isNearest = uiState.nearestStationId == cardModel.station.id
+                                    StationDepartureCard(
+                                        cardModel = cardModel,
+                                        onDismissStation = onDismissStation,
+                                        onStationClick = onStationClick,
+                                        onDepartureClick = onDepartureClick,
+                                        isNearest = isNearest,
+                                        distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
+                                        maxDepartureRows = uiState.departureRowsCount,
+                                        modifier = Modifier
+                                            .reorderableStaggeredItem(reorderState, cardModel.station.id)
+                                            .animateItem()
+                                    )
+                                }
+
+                                item(key = "native_ad_card_${chunkIndex + 1}", span = StaggeredGridItemSpan.SingleLane) {
+                                    com.androidfung.departureboard.ui.components.NativeAdViewContainer(
+                                        style = com.androidfung.departureboard.ui.components.NativeAdStyle.CARD,
+                                        modifier = Modifier.animateItem()
+                                    )
+                                }
                             }
                         }
                     }
@@ -442,8 +586,16 @@ fun DashboardContent(
 @Composable
 fun DashboardSearchBar(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    lastUpdatedTimestamp: Long = 0L,
+    isOnline: Boolean = true
 ) {
+    val updatedTimeText = remember(lastUpdatedTimestamp) {
+        if (lastUpdatedTimestamp <= 0L) null
+        else java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+            .format(java.util.Date(lastUpdatedTimestamp))
+    }
+
     Surface(
         onClick = onClick,
         modifier = modifier
@@ -466,7 +618,8 @@ fun DashboardSearchBar(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Search,
@@ -480,17 +633,38 @@ fun DashboardSearchBar(
                         fontWeight = FontWeight.Normal,
                         fontSize = 15.sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
 
-            // Quick nearby indicator icon
-            Icon(
-                imageVector = Icons.Rounded.LocationOn,
-                contentDescription = "Nearby stations",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.size(18.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                if (updatedTimeText != null && isOnline) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(com.androidfung.departureboard.ui.theme.GoodServiceGreen)
+                    )
+                    Text(
+                        text = updatedTimeText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                    )
+                }
+
+                // Quick nearby indicator icon
+                Icon(
+                    imageVector = Icons.Rounded.LocationOn,
+                    contentDescription = "Nearby stations",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }

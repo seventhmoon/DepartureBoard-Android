@@ -10,7 +10,6 @@ import com.androidfung.departureboard.data.db.DepartureDao
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.TflLineStatusItem
 import com.androidfung.departureboard.data.network.NationalRailApiService
 import com.androidfung.departureboard.data.network.NationalRailNetworkClient
@@ -22,6 +21,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.sync.Mutex
@@ -37,6 +37,10 @@ interface TransitRepository {
     val departureRowsCountFlow: Flow<Int>
     val themeModeFlow: Flow<AppThemeMode>
     val dynamicColorFlow: Flow<Boolean>
+    val selectedRegionFlow: Flow<com.androidfung.departureboard.data.model.TransitRegion>
+    val isHkRegionEnabledFlow: Flow<Boolean>
+    val autoSortByLocationFlow: Flow<Boolean>
+    val recentSearchedStationsFlow: Flow<List<Station>>
 
     suspend fun searchStations(query: String): Result<List<Station>>
     suspend fun getStationById(stationId: String): Station?
@@ -51,9 +55,15 @@ interface TransitRepository {
     suspend fun reorderStations(stations: List<Station>)
     suspend fun removeStation(stationId: String)
     suspend fun setRecentStationId(stationId: String)
+    suspend fun addRecentSearchedStation(station: Station)
+    suspend fun removeRecentSearchedStation(stationId: String)
+    suspend fun clearRecentSearchedStations()
     suspend fun setDepartureRowsCount(count: Int)
     suspend fun setThemeMode(mode: AppThemeMode)
     suspend fun setDynamicColor(enabled: Boolean)
+    suspend fun setSelectedRegion(region: com.androidfung.departureboard.data.model.TransitRegion)
+    suspend fun setHkRegionEnabled(enabled: Boolean)
+    suspend fun setAutoSortByLocation(enabled: Boolean)
     suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int = 1500): List<Station>
 }
 
@@ -74,8 +84,31 @@ class TransitRepositoryImpl(
     private val nationalRailDepartureSource = com.androidfung.departureboard.data.repository.source.NationalRailDepartureSource(nrApiService)
     private val bodsDepartureSource = com.androidfung.departureboard.data.repository.source.BodsDepartureSource(bodsApiService) { id -> getStationById(id) }
     private val tyneAndWearMetroSource = com.androidfung.departureboard.data.repository.source.TyneAndWearMetroSource()
+    private val hkBusDepartureSource = com.androidfung.departureboard.data.repository.source.HkBusDepartureSource()
+    private val hkMtrDepartureSource = com.androidfung.departureboard.data.repository.source.HkMtrDepartureSource()
+    private val hkBusCallingPointsResolver = com.androidfung.departureboard.data.resolver.hk.HkBusCallingPointsResolver()
+    private val hkMtrCallingPointsResolver = com.androidfung.departureboard.data.resolver.hk.HkMtrCallingPointsResolver()
+    private val bodsCallingPointsResolver = com.androidfung.departureboard.data.resolver.gb.BodsCallingPointsResolver(bodsApiService)
+    private val tflCallingPointsResolver = com.androidfung.departureboard.data.resolver.gb.TflCallingPointsResolver(apiService)
+
+    private val callingPointsEngine = com.androidfung.departureboard.data.resolver.CallingPointsEngine(
+        listOf(
+            bodsCallingPointsResolver,
+            hkMtrCallingPointsResolver,
+            hkBusCallingPointsResolver,
+            tflCallingPointsResolver
+        )
+    )
+
     private val departureQueryEngine = DepartureQueryEngine(
-        listOf(tflDepartureSource, nationalRailDepartureSource, bodsDepartureSource, tyneAndWearMetroSource)
+        listOf(
+            tflDepartureSource,
+            nationalRailDepartureSource,
+            bodsDepartureSource,
+            tyneAndWearMetroSource,
+            hkBusDepartureSource,
+            hkMtrDepartureSource
+        )
     )
     private val stationSearchEngine = com.androidfung.departureboard.data.repository.search.StationSearchEngine(
         apiService = apiService,
@@ -97,20 +130,54 @@ class TransitRepositoryImpl(
     override val departureRowsCountFlow: Flow<Int> = dataStore.departureRowsCountFlow
     override val themeModeFlow: Flow<AppThemeMode> = dataStore.themeModeFlow
     override val dynamicColorFlow: Flow<Boolean> = dataStore.dynamicColorFlow
+    override val selectedRegionFlow: Flow<com.androidfung.departureboard.data.model.TransitRegion> = dataStore.selectedRegionFlow
+    override val isHkRegionEnabledFlow: Flow<Boolean> = dataStore.isHkRegionEnabledFlow
+    override val autoSortByLocationFlow: Flow<Boolean> = dataStore.autoSortByLocationFlow
+    override val recentSearchedStationsFlow: Flow<List<Station>> = dataStore.recentSearchedStationsFlow
 
     override suspend fun setThemeMode(mode: AppThemeMode) = dataStore.setThemeMode(mode)
     override suspend fun setDynamicColor(enabled: Boolean) = dataStore.setDynamicColor(enabled)
+    override suspend fun setSelectedRegion(region: com.androidfung.departureboard.data.model.TransitRegion) = dataStore.setSelectedRegion(region)
+    override suspend fun setHkRegionEnabled(enabled: Boolean) = dataStore.setHkRegionEnabled(enabled)
+    override suspend fun setAutoSortByLocation(enabled: Boolean) = dataStore.setAutoSortByLocation(enabled)
 
-    override suspend fun searchStations(query: String): Result<List<Station>> =
-        stationSearchEngine.searchStations(query)
+    override suspend fun searchStations(query: String): Result<List<Station>> = withContext(Dispatchers.IO) {
+        val currentRegion = try {
+            dataStore.selectedRegionFlow.first()
+        } catch (_: Exception) {
+            com.androidfung.departureboard.data.model.TransitRegion.GB
+        }
+        if (currentRegion == com.androidfung.departureboard.data.model.TransitRegion.HK) {
+            Result.success(com.androidfung.departureboard.data.model.HkStationDirectory.searchHkStations(query))
+        } else {
+            stationSearchEngine.searchStations(query)
+        }
+    }
 
     override suspend fun getStationById(stationId: String): Station? = withContext(Dispatchers.IO) {
-        // 1. Check local popular stations first
+        // 1. Check HK stations if HK station ID
+        if (stationId.startsWith("HK_")) {
+            com.androidfung.departureboard.data.model.HkDefaultStations.POPULAR_STATIONS.firstOrNull {
+                it.id.equals(stationId, ignoreCase = true)
+            }?.let { return@withContext it }
+
+            if (stationId.startsWith("HK_MTR_")) {
+                val parts = stationId.removePrefix("HK_MTR_").split("_")
+                val lineCode = parts.getOrNull(0)
+                val staCode = parts.getOrNull(1) ?: (if (parts.size == 1) parts[0] else "")
+                val mtrStation = com.androidfung.departureboard.data.model.HkMtrStationRegistry.getStation(staCode)
+                if (mtrStation != null) {
+                    return@withContext com.androidfung.departureboard.data.model.HkStationDirectory.mtrToStation(mtrStation, lineCode)
+                }
+            }
+        }
+
+        // 2. Check local popular stations first
         DefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(stationId, ignoreCase = true) }?.let {
             return@withContext it
         }
 
-        // 2. Fetch live StopPointDetail from TfL API
+        // 3. Fetch live StopPointDetail from TfL API
         try {
             val detail = apiService.getStopPointDetail(stationId)
             val lines = TflStationMapper.extractLines(detail)
@@ -136,21 +203,40 @@ class TransitRepositoryImpl(
         }
     }
 
+    private val repositoryScope = kotlinx.coroutines.CoroutineScope(Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
+    private val inFlightDepartures = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.Deferred<Result<List<Departure>>>>()
+    private val inFlightLock = Mutex()
+
     override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> =
         withContext(Dispatchers.IO) {
-            val queryResult = departureQueryEngine.queryDepartures(stationId, stationName)
-            queryResult.fold(
-                onSuccess = { departures ->
-                    if (departures.isNotEmpty()) {
-                        cacheDeparturesSafely(stationId, departures)
+            val deferred = inFlightLock.withLock {
+                inFlightDepartures[stationId] ?: run {
+                    val d = repositoryScope.async {
+                        try {
+                            val queryResult = departureQueryEngine.queryDepartures(stationId, stationName)
+                            queryResult.fold(
+                                onSuccess = { departures ->
+                                    if (departures.isNotEmpty()) {
+                                        cacheDeparturesSafely(stationId, departures)
+                                    }
+                                    Result.success(departures)
+                                },
+                                onFailure = { error ->
+                                    val exception = if (error is Exception) error else Exception(error)
+                                    fallbackDepartures(stationId, exception)
+                                }
+                            )
+                        } finally {
+                            inFlightLock.withLock {
+                                inFlightDepartures.remove(stationId)
+                            }
+                        }
                     }
-                    Result.success(departures)
-                },
-                onFailure = { error ->
-                    val exception = if (error is Exception) error else Exception(error)
-                    fallbackDepartures(stationId, exception)
+                    inFlightDepartures[stationId] = d
+                    d
                 }
-            )
+            }
+            deferred.await()
         }
 
     override suspend fun getBatchDepartures(stations: List<Station>): Map<String, Result<List<Departure>>> =
@@ -169,7 +255,12 @@ class TransitRepositoryImpl(
         }
 
     override suspend fun getCachedDepartures(stationId: String): List<Departure> = withContext(Dispatchers.IO) {
-        departureDao?.getDeparturesForStation(stationId)?.map { it.toDeparture() } ?: emptyList()
+        val now = System.currentTimeMillis()
+        departureDao?.getDeparturesForStation(stationId)
+            ?.filter { !it.isExpired(now) }
+            ?.map { it.toDeparture(now) }
+            ?.sortedBy { it.timeToStationSeconds }
+            ?: emptyList()
     }
 
     override fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>> = flow {
@@ -243,232 +334,8 @@ class TransitRepositoryImpl(
         }
     }
 
-    // In-memory cache for line route sequences to prevent redundant network calls on tap
-    private val routeSequenceCache = java.util.concurrent.ConcurrentHashMap<String, com.androidfung.departureboard.data.model.TflRouteSequenceResponse>()
-
     override suspend fun getCallingPoints(departure: Departure): List<com.androidfung.departureboard.data.model.CallingPoint> = withContext(Dispatchers.IO) {
-        // If departure already has calling points (e.g. from National Rail Darwin details)
-        if (departure.callingPoints.isNotEmpty()) {
-            return@withContext departure.callingPoints
-        }
-
-        // For BODS buses, resolve calling points from BODS vehicle journey data
-        if (departure.lineId.startsWith("bods-", ignoreCase = true)) {
-            val rawLineRef = departure.lineId.removePrefix("bods-").uppercase()
-            return@withContext fetchBodsCallingPoints(rawLineRef, departure)
-        }
-
-        // For TfL rail, tube, elizabeth line, and buses, query route sequence
-        val lineId = departure.lineId.lowercase().trim()
-        if (lineId.isBlank()) return@withContext emptyList()
-
-        try {
-            val sequenceResponse = routeSequenceCache.getOrPut(lineId) {
-                apiService.getLineRouteSequence(lineId, "all")
-            }
-
-            val currentStationClean = StationNameFormatter.clean(departure.stationName).lowercase()
-            val destClean = StationNameFormatter.clean(departure.destinationName).lowercase()
-            val branchMap = sequenceResponse.stopPointSequences.associateBy { it.branchId }
-
-            // 1. Try finding a branch sequence that directly contains both current station and destination
-            var resolvedStops: List<com.androidfung.departureboard.data.model.TflMatchedStop>? = null
-
-            for ((_, _, _, _, stopPoint) in sequenceResponse.stopPointSequences) {
-                val names = stopPoint.map { StationNameFormatter.clean(it.name).lowercase() }
-                val curIndex = names.indexOfFirst { it.contains(currentStationClean) || currentStationClean.contains(it) }
-                val destIndex = names.indexOfFirst { it.contains(destClean) || destClean.contains(it) }
-                if (curIndex != -1 && destIndex != -1 && destIndex >= curIndex) {
-                    resolvedStops = stopPoint.subList(curIndex, destIndex + 1)
-                    break
-                }
-            }
-
-            // 2. Multi-branch traversal (e.g. Northern Line: Finchley Central -> Camden Town -> Charing Cross -> Kennington -> Battersea)
-            if (resolvedStops == null && branchMap.isNotEmpty()) {
-                val startBranches = sequenceResponse.stopPointSequences.filter { seq ->
-                    seq.stopPoint.any {
-                        val n = StationNameFormatter.clean(it.name).lowercase()
-                        n.contains(currentStationClean) || currentStationClean.contains(n)
-                    }
-                }
-
-                fun findBranchPath(
-                    currBranchId: Int,
-                    targetStr: String,
-                    visited: Set<Int>
-                ): List<Int>? {
-                    if (currBranchId in visited) return null
-                    val branch = branchMap[currBranchId] ?: return null
-                    val containsTarget = branch.stopPoint.any {
-                        val n = StationNameFormatter.clean(it.name).lowercase()
-                        n.contains(targetStr) || targetStr.contains(n)
-                    }
-                    if (containsTarget) return listOf(currBranchId)
-
-                    val nextVisited = visited + currBranchId
-                    for (nxt in branch.nextBranchIds) {
-                        val subPath = findBranchPath(nxt, targetStr, nextVisited)
-                        if (subPath != null) return listOf(currBranchId) + subPath
-                    }
-                    return null
-                }
-
-                for ((branchId) in startBranches) {
-                    val branchPath = findBranchPath(branchId, destClean, emptySet())
-                    if (branchPath != null) {
-                        val combined = mutableListOf<com.androidfung.departureboard.data.model.TflMatchedStop>()
-                        for (bId in branchPath) {
-                            val branch = branchMap[bId] ?: continue
-                            for (sp in branch.stopPoint) {
-                                if (combined.isEmpty() || combined.last().id != sp.id) {
-                                    combined.add(sp)
-                                }
-                            }
-                        }
-                        val combinedNames = combined.map { StationNameFormatter.clean(it.name).lowercase() }
-                        val curIdx = combinedNames.indexOfFirst { it.contains(currentStationClean) || currentStationClean.contains(it) }
-                        val destIdx = combinedNames.indexOfFirst { it.contains(destClean) || destClean.contains(it) }
-
-                        val sIdx = if (curIdx != -1) curIdx else 0
-                        val eIdx = if (destIdx != -1 && destIdx >= sIdx) destIdx else (combined.size - 1)
-                        resolvedStops = combined.subList(sIdx, eIdx + 1)
-                        break
-                    }
-                }
-            }
-
-            if (!resolvedStops.isNullOrEmpty()) {
-                // If we have a vehicleId, query live Line Arrivals across the route to get exact prediction times
-                val vehicleArrivalsByStation = mutableMapOf<String, TflArrivalPrediction>()
-                val vehicleId = departure.vehicleId
-                if (!vehicleId.isNullOrBlank()) {
-                    try {
-                        val lineArrivals = apiService.getLineArrivals(lineId)
-                        lineArrivals.filter { it.vehicleId == vehicleId }.forEach { pred ->
-                            val naptan = pred.naptanId?.lowercase()
-                            val stName = pred.stationName?.let { StationNameFormatter.clean(it).lowercase() }
-                            if (!naptan.isNullOrBlank()) vehicleArrivalsByStation[naptan] = pred
-                            if (!stName.isNullOrBlank()) vehicleArrivalsByStation[stName] = pred
-                        }
-                    } catch (_: Exception) {}
-                }
-
-                val baseSeconds = departure.timeToStationSeconds
-                val nowMillis = System.currentTimeMillis()
-                val isBus = departure.modeName.equals("bus", ignoreCase = true)
-                val interStationSeconds = if (isBus) 90 else 120 // 1.5 min per bus stop, 2 min per tube stop
-                val londonZone = java.time.ZoneId.of("Europe/London")
-                val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm", java.util.Locale.UK)
-                    .withZone(londonZone)
-
-                return@withContext resolvedStops.mapIndexed { idx, stop ->
-                    val cleanName = StationNameFormatter.clean(stop.name)
-                    val stopKey = cleanName.lowercase()
-                    val naptanKey = stop.id.lowercase()
-
-                    // Check if there is a live prediction for this exact vehicle at this calling point
-                    val livePrediction = vehicleArrivalsByStation[naptanKey] ?: vehicleArrivalsByStation[stopKey]
-
-                    val formattedTime: String? = when {
-                        idx == 0 -> departure.formattedActualClockTime
-                        livePrediction != null && livePrediction.timeToStation > 0 -> {
-                            val arrivalMillis = nowMillis + (livePrediction.timeToStation * 1000L)
-                            timeFormatter.format(java.time.Instant.ofEpochMilli(arrivalMillis))
-                        }
-                        departure.expectedArrivalIso != null || baseSeconds > 0 -> {
-                            // Extrapolate forward from current station arrival
-                            val cumulativeSeconds = baseSeconds + (idx * interStationSeconds)
-                            val arrivalMillis = nowMillis + (cumulativeSeconds * 1000L)
-                            timeFormatter.format(java.time.Instant.ofEpochMilli(arrivalMillis))
-                        }
-                        else -> null
-                    }
-
-                    val estimatedBadge: String? = when {
-                        idx == 0 -> departure.formattedTimeToArrival
-                        livePrediction != null && livePrediction.timeToStation > 0 -> {
-                            val mins = (livePrediction.timeToStation / 60).coerceAtLeast(1)
-                            "$mins min${if (mins > 1) "s" else ""}"
-                        }
-                        else -> null
-                    }
-
-                    com.androidfung.departureboard.data.model.CallingPoint(
-                        stationName = cleanName,
-                        scheduledTime = formattedTime,
-                        estimatedTime = estimatedBadge,
-                        isCurrentStation = idx == 0,
-                        isDestination = idx == resolvedStops.lastIndex
-                    )
-                }
-            }
-        } catch (_: Exception) {
-            // Ignore error and fall through to fallback
-        }
-
-        // Minimal fallback: [Current Station] -> [Destination Station]
-        listOf(
-            com.androidfung.departureboard.data.model.CallingPoint(
-                stationName = departure.stationName,
-                scheduledTime = departure.formattedActualClockTime,
-                estimatedTime = departure.formattedTimeToArrival,
-                isCurrentStation = true,
-                isDestination = false
-            ),
-            com.androidfung.departureboard.data.model.CallingPoint(
-                stationName = departure.destinationName,
-                isCurrentStation = false,
-                isDestination = true
-            )
-        )
-    }
-
-    private suspend fun fetchBodsCallingPoints(lineRef: String, departure: Departure): List<com.androidfung.departureboard.data.model.CallingPoint> {
-        return try {
-            val responseBody = bodsApiService.getVehicleDatafeedByLine(lineRef = lineRef)
-            val xmlString = responseBody.string()
-            val activities = com.androidfung.departureboard.data.model.BodsXmlParser.parse(xmlString)
-
-            // Find matching vehicle activity by destination or line
-            val match = activities.firstOrNull { act ->
-                act.destinationName?.replace("_", " ")?.contains(departure.destinationName, ignoreCase = true) == true ||
-                act.lineRef.equals(lineRef, ignoreCase = true)
-            } ?: activities.firstOrNull()
-
-            val origin = match?.originName?.replace("_", " ")?.trim() ?: departure.stationName
-            val dest = match?.destinationName?.replace("_", " ")?.trim() ?: departure.destinationName
-
-            listOf(
-                com.androidfung.departureboard.data.model.CallingPoint(
-                    stationName = origin,
-                    scheduledTime = departure.formattedActualClockTime,
-                    estimatedTime = departure.formattedTimeToArrival,
-                    isCurrentStation = true,
-                    isDestination = false
-                ),
-                com.androidfung.departureboard.data.model.CallingPoint(
-                    stationName = dest,
-                    isCurrentStation = false,
-                    isDestination = true
-                )
-            )
-        } catch (_: Exception) {
-            listOf(
-                com.androidfung.departureboard.data.model.CallingPoint(
-                    stationName = departure.stationName,
-                    scheduledTime = departure.formattedActualClockTime,
-                    estimatedTime = departure.formattedTimeToArrival,
-                    isCurrentStation = true,
-                    isDestination = false
-                ),
-                com.androidfung.departureboard.data.model.CallingPoint(
-                    stationName = departure.destinationName,
-                    isCurrentStation = false,
-                    isDestination = true
-                )
-            )
-        }
+        callingPointsEngine.resolveCallingPoints(departure)
     }
 
 
@@ -495,6 +362,9 @@ class TransitRepositoryImpl(
         syncGlanceWidgets()
     }
     override suspend fun setRecentStationId(stationId: String) = dataStore.setRecentStationId(stationId)
+    override suspend fun addRecentSearchedStation(station: Station) = dataStore.addRecentSearchedStation(station)
+    override suspend fun removeRecentSearchedStation(stationId: String) = dataStore.removeRecentSearchedStation(stationId)
+    override suspend fun clearRecentSearchedStations() = dataStore.clearRecentSearchedStations()
     override suspend fun setDepartureRowsCount(count: Int) = dataStore.setDepartureRowsCount(count)
 
     /**
@@ -526,21 +396,25 @@ class TransitRepositoryImpl(
     private suspend fun cacheDeparturesSafely(stationId: String, departures: List<Departure>) {
         if (departures.isNotEmpty() && departureDao != null) {
             try {
+                val now = System.currentTimeMillis()
                 departureDao.replaceDeparturesForStation(
                     stationId,
-                    departures.map { CachedDepartureEntity.fromDeparture(it) }
+                    departures.map { CachedDepartureEntity.fromDeparture(it, now) }
                 )
+                departureDao.clearStaleDepartures(now - 3_600_000L)
             } catch (_: Exception) {}
         }
     }
-
-
 
     private suspend fun fallbackDepartures(
         stationId: String,
         originalException: Exception
     ): Result<List<Departure>> {
-        val cached = departureDao?.getDeparturesForStation(stationId)?.map { it.toDeparture() }
+        val now = System.currentTimeMillis()
+        val cached = departureDao?.getDeparturesForStation(stationId)
+            ?.filter { !it.isExpired(now) }
+            ?.map { it.toDeparture(now) }
+            ?.sortedBy { it.timeToStationSeconds }
         return if (!cached.isNullOrEmpty()) {
             Result.success(cached)
         } else {

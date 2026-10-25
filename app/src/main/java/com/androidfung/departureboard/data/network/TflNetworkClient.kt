@@ -56,7 +56,7 @@ object TflNetworkClient {
             }
         }
 
-        val builder = OkHttpClient.Builder()
+        val builder = SharedNetworkConfig.newBuilder()
             .addInterceptor(loggingInterceptor)
             .addInterceptor { chain ->
                 // Underground Offline HTTP Cache-Control Interceptor

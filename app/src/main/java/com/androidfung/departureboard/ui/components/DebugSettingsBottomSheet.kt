@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.SmartToy
+import androidx.compose.material.icons.rounded.StarRate
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Card
@@ -81,7 +82,51 @@ fun DebugSettingsBottomSheet(
     onSelectPlan: (com.androidfung.departureboard.billing.UserPlan) -> Unit = { onTogglePro() },
     selectedAiModel: AiModelType = AiModelType.DEFAULT,
     onSelectAiModel: (AiModelType) -> Unit = {},
+    selectedRegion: com.androidfung.departureboard.data.model.TransitRegion = com.androidfung.departureboard.data.model.TransitRegion.GB,
+    onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit = {},
+    isHkRegionEnabled: Boolean = false,
+    onToggleHkRegionEnabled: (Boolean) -> Unit = {},
+    onTriggerInAppReview: () -> Unit = {},
+    onResetInAppReviewData: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+) {
+    DebugSettingsContent(
+        onDismissRequest = onDismissRequest,
+        billingRepository = billingRepository,
+        userPlan = userPlan,
+        onSelectPlan = onSelectPlan,
+        selectedAiModel = selectedAiModel,
+        onSelectAiModel = onSelectAiModel,
+        selectedRegion = selectedRegion,
+        onSelectRegion = onSelectRegion,
+        isHkRegionEnabled = isHkRegionEnabled,
+        onToggleHkRegionEnabled = onToggleHkRegionEnabled,
+        onResetStations = onResetStations,
+        onTriggerInAppReview = onTriggerInAppReview,
+        onResetInAppReviewData = onResetInAppReviewData,
+        sheetState = sheetState,
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DebugSettingsContent(
+    onDismissRequest: () -> Unit,
+    billingRepository: BillingDataSource,
+    userPlan: com.androidfung.departureboard.billing.UserPlan,
+    onSelectPlan: (com.androidfung.departureboard.billing.UserPlan) -> Unit,
+    selectedAiModel: AiModelType,
+    onSelectAiModel: (AiModelType) -> Unit,
+    selectedRegion: com.androidfung.departureboard.data.model.TransitRegion,
+    onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit,
+    isHkRegionEnabled: Boolean,
+    onToggleHkRegionEnabled: (Boolean) -> Unit,
+    onResetStations: () -> Unit,
+    onTriggerInAppReview: () -> Unit,
+    onResetInAppReviewData: () -> Unit,
+    sheetState: SheetState,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -97,13 +142,50 @@ fun DebugSettingsBottomSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier
     ) {
-        val scrollState = rememberScrollState()
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp, vertical = 8.dp)
-        ) {
+        DebugSettingsBody(
+            onDismissRequest = onDismissRequest,
+            userPlan = userPlan,
+            onSelectPlan = onSelectPlan,
+            selectedAiModel = selectedAiModel,
+            onSelectAiModel = onSelectAiModel,
+            selectedRegion = selectedRegion,
+            onSelectRegion = onSelectRegion,
+            isHkRegionEnabled = isHkRegionEnabled,
+            onToggleHkRegionEnabled = onToggleHkRegionEnabled,
+            remainingAiQueries = remainingAiQueries,
+            onResetStations = onResetStations,
+            onTriggerInAppReview = onTriggerInAppReview,
+            onResetInAppReviewData = onResetInAppReviewData
+        )
+    }
+}
+
+@Composable
+fun DebugSettingsBody(
+    onDismissRequest: () -> Unit,
+    userPlan: com.androidfung.departureboard.billing.UserPlan,
+    onSelectPlan: (com.androidfung.departureboard.billing.UserPlan) -> Unit,
+    selectedAiModel: AiModelType,
+    onSelectAiModel: (AiModelType) -> Unit,
+    selectedRegion: com.androidfung.departureboard.data.model.TransitRegion,
+    onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit,
+    isHkRegionEnabled: Boolean,
+    onToggleHkRegionEnabled: (Boolean) -> Unit,
+    remainingAiQueries: Int,
+    onResetStations: () -> Unit,
+    onTriggerInAppReview: () -> Unit,
+    onResetInAppReviewData: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(scrollState)
+            .padding(horizontal = 24.dp, vertical = 8.dp)
+    ) {
             // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -324,7 +406,101 @@ fun DebugSettingsBottomSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Section 3: Quick Action Triggers
+            // Section 3: Multi-Region Testing
+            Text(
+                text = "REGION TESTING (EXPERIMENTAL)",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Enable Hong Kong (Experimental)",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Unlock MTR and KMB/Citybus departures",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isHkRegionEnabled,
+                            onCheckedChange = { onToggleHkRegionEnabled(it) }
+                        )
+                    }
+
+                    if (isHkRegionEnabled) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+                        com.androidfung.departureboard.data.model.TransitRegion.entries.forEachIndexed { index, region ->
+                            val isSelected = selectedRegion == region
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelectRegion(region) }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { onSelectRegion(region) },
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = region.flagEmoji,
+                                        fontSize = 20.sp
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = "${androidx.compose.ui.res.stringResource(region.displayNameRes)} (${region.code})",
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                            ),
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = region.subtitle,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = { onSelectRegion(region) }
+                                )
+                            }
+                            if (index < com.androidfung.departureboard.data.model.TransitRegion.entries.lastIndex) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Section 4: Quick Action Triggers
             Text(
                 text = "TESTING ACTIONS",
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
@@ -364,25 +540,25 @@ fun DebugSettingsBottomSheet(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 
                     DebugActionItem(
-                        icon = Icons.Rounded.DeleteSweep,
-                        title = "Reset Daily AI Quotas",
-                        subtitle = "Remaining: $remainingAiQueries / ${SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES}",
-                        onClick = {
-                            coroutineScope.launch {
-                                // Resets daily AI query count in DataStore
-                                billingRepository.setDebugPro(false)
-                                context.getSharedPreferences("ai_prefs", Context.MODE_PRIVATE).edit().clear().apply()
-                                remainingAiQueries = SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES
-                                Toast.makeText(context, "AI queries reset to 3", Toast.LENGTH_SHORT).show()
-                            }
-                        }
+                        icon = Icons.Rounded.StarRate,
+                        title = "Test In-App Review Flow",
+                        subtitle = "Launches Google Play In-App Review dialog",
+                        onClick = onTriggerInAppReview
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+                    DebugActionItem(
+                        icon = Icons.Rounded.RestartAlt,
+                        title = "Reset In-App Review Tracker",
+                        subtitle = "Clears first launch, open count & cooldown",
+                        onClick = onResetInAppReviewData
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
         }
-    }
 }
 
 @Composable

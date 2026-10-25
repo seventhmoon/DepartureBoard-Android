@@ -88,15 +88,17 @@ fun DepartureRowItem(
         // Destination & Platform details
         Column(modifier = Modifier.weight(1f)) {
             val destinationText = departure.destinationName.ifBlank { departure.lineName }
+            val isCancelled = departure.status == DepartureStatus.CANCELLED
 
             Text(
                 text = destinationText,
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = if (isFirst || variant == DepartureRowVariant.DETAILED) FontWeight.Bold else FontWeight.Medium,
                     fontSize = if (isFirst || variant == DepartureRowVariant.DETAILED) 15.sp else 14.5.sp,
-                    lineHeight = 18.sp
+                    lineHeight = 18.sp,
+                    textDecoration = if (isCancelled) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None
                 ),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (isCancelled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f) else MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -116,6 +118,8 @@ fun DepartureRowItem(
                     departure.platformName
                 }
 
+                val isPlatformTbd = platformLabel.contains("TBD", ignoreCase = true)
+
                 Spacer(modifier = Modifier.height(3.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -125,11 +129,12 @@ fun DepartureRowItem(
                         Text(
                             text = platformLabel,
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontWeight = FontWeight.Medium,
+                                fontWeight = if (isPlatformTbd) FontWeight.Normal else FontWeight.Medium,
+                                fontStyle = if (isPlatformTbd) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal,
                                 fontSize = 12.sp,
                                 lineHeight = 16.sp
                             ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isPlatformTbd) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f) else MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -397,12 +402,17 @@ fun LiveTrainTrackIndicator(
             }
         }
         Spacer(modifier = Modifier.width(4.dp))
+        val statusText = when (stage) {
+            2 -> if (isBus) {
+                androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.status_at_stop)
+            } else {
+                androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.status_at_platform)
+            }
+            1 -> androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.status_approaching)
+            else -> androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.status_in_transit)
+        }
         Text(
-            text = when (stage) {
-                2 -> if (isBus) "At stop" else "At platform"
-                1 -> "Approaching"
-                else -> "In transit"
-            },
+            text = statusText,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

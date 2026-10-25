@@ -18,6 +18,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
+import com.androidfung.departureboard.data.model.TransitRegion
+import com.androidfung.departureboard.data.model.HkDefaultStations
+
 internal val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "station_preferences")
 
 /**
@@ -29,14 +32,24 @@ interface StationPreferencesDataSource {
     val departureRowsCountFlow: Flow<Int>
     val themeModeFlow: Flow<AppThemeMode>
     val dynamicColorFlow: Flow<Boolean>
+    val selectedRegionFlow: Flow<TransitRegion>
+    val isHkRegionEnabledFlow: Flow<Boolean>
+    val autoSortByLocationFlow: Flow<Boolean>
+    val recentSearchedStationsFlow: Flow<List<Station>>
 
     suspend fun saveStation(station: Station)
     suspend fun saveStations(stations: List<Station>)
     suspend fun removeStation(stationId: String)
     suspend fun setRecentStationId(stationId: String)
+    suspend fun addRecentSearchedStation(station: Station)
+    suspend fun removeRecentSearchedStation(stationId: String)
+    suspend fun clearRecentSearchedStations()
     suspend fun setDepartureRowsCount(count: Int)
     suspend fun setThemeMode(mode: AppThemeMode)
     suspend fun setDynamicColor(enabled: Boolean)
+    suspend fun setSelectedRegion(region: TransitRegion)
+    suspend fun setHkRegionEnabled(enabled: Boolean)
+    suspend fun setAutoSortByLocation(enabled: Boolean)
 }
 
 /**
@@ -54,12 +67,18 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
 
     companion object {
         private val KEY_SAVED_STATIONS = stringPreferencesKey("saved_stations_json")
+        private val KEY_SAVED_STATIONS_HK = stringPreferencesKey("saved_stations_json_hk")
+        private val KEY_RECENT_SEARCHED_STATIONS = stringPreferencesKey("recent_searched_stations_json")
         private val KEY_RECENT_STATION_ID = stringPreferencesKey("recent_station_id")
         private val KEY_DEPARTURE_ROWS_COUNT = androidx.datastore.preferences.core.intPreferencesKey("departure_rows_count")
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         private val KEY_DYNAMIC_COLOR = androidx.datastore.preferences.core.booleanPreferencesKey("dynamic_color")
+        private val KEY_SELECTED_REGION = stringPreferencesKey("selected_region")
+        private val KEY_HK_REGION_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("hk_region_enabled")
+        private val KEY_AUTO_SORT_BY_LOCATION = androidx.datastore.preferences.core.booleanPreferencesKey("auto_sort_by_location")
         const val DEFAULT_DEPARTURE_ROWS = 5
         const val DEFAULT_DYNAMIC_COLOR = true
+        private const val MAX_RECENT_SEARCHES = 10
     }
 
     override val themeModeFlow: Flow<AppThemeMode> = context.dataStore.data
@@ -125,8 +144,80 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         }
     }
 
+    override val isHkRegionEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_HK_REGION_ENABLED] ?: false
+        }
+
+    override suspend fun setHkRegionEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_HK_REGION_ENABLED] = enabled
+            if (!enabled && preferences[KEY_SELECTED_REGION] == TransitRegion.HK.id) {
+                preferences[KEY_SELECTED_REGION] = TransitRegion.GB.id
+            }
+        }
+    }
+
+    override val autoSortByLocationFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_AUTO_SORT_BY_LOCATION] ?: false
+        }
+
+    override suspend fun setAutoSortByLocation(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_AUTO_SORT_BY_LOCATION] = enabled
+        }
+    }
+
+    override val selectedRegionFlow: Flow<TransitRegion> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            val regionId = preferences[KEY_SELECTED_REGION]
+            TransitRegion.fromId(regionId)
+        }
+
+    override suspend fun setSelectedRegion(region: TransitRegion) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_SELECTED_REGION] = region.id
+        }
+    }
+
+    private fun getSavedStationsKey(region: TransitRegion): Preferences.Key<String> {
+        return when (region) {
+            TransitRegion.HK -> KEY_SAVED_STATIONS_HK
+            TransitRegion.GB -> KEY_SAVED_STATIONS
+        }
+    }
+
+    private fun getDefaultStationsForRegion(region: TransitRegion): List<Station> {
+        return when (region) {
+            TransitRegion.HK -> HkDefaultStations.POPULAR_STATIONS
+            TransitRegion.GB -> DefaultStations.POPULAR_STATIONS
+        }
+    }
+
     /**
-     * Flow of saved/favorite stations. If empty, provides popular defaults.
+     * Flow of saved/favorite stations. If empty, provides popular defaults for the active region.
      */
     override val savedStationsFlow: Flow<List<Station>> = context.dataStore.data
         .catch { exception ->
@@ -137,19 +228,18 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
             }
         }
         .map { preferences ->
-            val json = preferences[KEY_SAVED_STATIONS]
+            val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
+            val key = getSavedStationsKey(region)
+            val defaults = getDefaultStationsForRegion(region)
+            val json = preferences[key]
             if (json.isNullOrBlank()) {
-                DefaultStations.POPULAR_STATIONS
+                defaults
             } else {
                 try {
                     val dtos = stationListAdapter.fromJson(json)
-                    dtos?.// An explicitly empty list is preserved so the dashboard can show
-                        // its empty state instead of silently resurrecting the defaults.
-                    map { it.toStation() }
-                        ?: // JSON is the literal "null" — treat as never-saved → popular defaults
-                        DefaultStations.POPULAR_STATIONS
+                    dtos?.map { it.toStation() } ?: defaults
                 } catch (_: Exception) {
-                    DefaultStations.POPULAR_STATIONS
+                    defaults
                 }
             }
         }
@@ -166,7 +256,9 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
             }
         }
         .map { preferences ->
-            preferences[KEY_RECENT_STATION_ID] ?: DefaultStations.POPULAR_STATIONS.firstOrNull()?.id
+            val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
+            val defaults = getDefaultStationsForRegion(region)
+            preferences[KEY_RECENT_STATION_ID] ?: defaults.firstOrNull()?.id
         }
 
     /**
@@ -174,7 +266,9 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
      */
     override suspend fun saveStation(station: Station) {
         context.dataStore.edit { preferences ->
-            val currentList = loadCurrentList(preferences)
+            val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
+            val key = getSavedStationsKey(region)
+            val currentList = loadCurrentList(preferences, key, region)
             val updated = currentList.toMutableList()
             val existingIndex = updated.indexOfFirst { it.id == station.id }
             if (existingIndex >= 0) {
@@ -182,49 +276,117 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
             } else {
                 updated.add(station.toDto())
             }
-            preferences[KEY_SAVED_STATIONS] = stationListAdapter.toJson(updated)
+            preferences[key] = stationListAdapter.toJson(updated)
         }
     }
 
-    /**
-     * Saves the entire list of stations preserving order.
-     */
     override suspend fun saveStations(stations: List<Station>) {
         context.dataStore.edit { preferences ->
-            val dtos = stations.map { it.toDto() }
-            preferences[KEY_SAVED_STATIONS] = stationListAdapter.toJson(dtos)
+            val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
+            val key = getSavedStationsKey(region)
+            preferences[key] = stationListAdapter.toJson(stations.map { it.toDto() })
         }
     }
 
-    /**
-     * Removes a station from saved list.
-     */
     override suspend fun removeStation(stationId: String) {
         context.dataStore.edit { preferences ->
-            val currentList = loadCurrentList(preferences)
-            val filtered = currentList.filterNot { it.id == stationId }
-            preferences[KEY_SAVED_STATIONS] = stationListAdapter.toJson(filtered)
+            val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
+            val key = getSavedStationsKey(region)
+            val currentList = loadCurrentList(preferences, key, region)
+            val updated = currentList.filterNot { it.id == stationId }
+            preferences[key] = stationListAdapter.toJson(updated)
         }
     }
 
-    /**
-     * Sets the most recently viewed station ID.
-     */
     override suspend fun setRecentStationId(stationId: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_RECENT_STATION_ID] = stationId
         }
     }
 
-    private fun loadCurrentList(preferences: Preferences): List<StationDto> {
-        val json = preferences[KEY_SAVED_STATIONS]
+    override val recentSearchedStationsFlow: Flow<List<Station>> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            val json = preferences[KEY_RECENT_SEARCHED_STATIONS]
+            if (json.isNullOrBlank()) {
+                emptyList()
+            } else {
+                try {
+                    val dtos = stationListAdapter.fromJson(json) ?: emptyList()
+                    dtos.map { it.toStation() }
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
+        }
+
+    override suspend fun addRecentSearchedStation(station: Station) {
+        context.dataStore.edit { preferences ->
+            val json = preferences[KEY_RECENT_SEARCHED_STATIONS]
+            val currentList = if (!json.isNullOrBlank()) {
+                try {
+                    stationListAdapter.fromJson(json)?.toMutableList() ?: mutableListOf()
+                } catch (_: Exception) {
+                    mutableListOf()
+                }
+            } else {
+                mutableListOf()
+            }
+
+            // Remove if already exists so we can move it to the top
+            currentList.removeAll { it.id == station.id }
+            currentList.add(0, station.toDto())
+
+            val trimmed = if (currentList.size > MAX_RECENT_SEARCHES) {
+                currentList.subList(0, MAX_RECENT_SEARCHES)
+            } else {
+                currentList
+            }
+
+            preferences[KEY_RECENT_SEARCHED_STATIONS] = stationListAdapter.toJson(trimmed)
+        }
+    }
+
+    override suspend fun removeRecentSearchedStation(stationId: String) {
+        context.dataStore.edit { preferences ->
+            val json = preferences[KEY_RECENT_SEARCHED_STATIONS] ?: return@edit
+            val currentList = try {
+                stationListAdapter.fromJson(json)?.toMutableList() ?: return@edit
+            } catch (_: Exception) {
+                return@edit
+            }
+
+            currentList.removeAll { it.id == stationId }
+            preferences[KEY_RECENT_SEARCHED_STATIONS] = stationListAdapter.toJson(currentList)
+        }
+    }
+
+    override suspend fun clearRecentSearchedStations() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(KEY_RECENT_SEARCHED_STATIONS)
+        }
+    }
+
+    private fun loadCurrentList(
+        preferences: Preferences,
+        key: Preferences.Key<String> = KEY_SAVED_STATIONS,
+        region: TransitRegion = TransitRegion.GB
+    ): List<StationDto> {
+        val json = preferences[key]
+        val defaults = getDefaultStationsForRegion(region)
         if (json.isNullOrBlank()) {
-            return DefaultStations.POPULAR_STATIONS.map { it.toDto() }
+            return defaults.map { it.toDto() }
         }
         return try {
-            stationListAdapter.fromJson(json) ?: DefaultStations.POPULAR_STATIONS.map { it.toDto() }
+            stationListAdapter.fromJson(json) ?: defaults.map { it.toDto() }
         } catch (_: Exception) {
-            DefaultStations.POPULAR_STATIONS.map { it.toDto() }
+            defaults.map { it.toDto() }
         }
     }
 }

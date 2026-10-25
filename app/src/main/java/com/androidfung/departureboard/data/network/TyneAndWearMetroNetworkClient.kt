@@ -27,7 +27,7 @@ object TyneAndWearMetroNetworkClient {
             }
         }
 
-        OkHttpClient.Builder()
+        SharedNetworkConfig.newBuilder()
             .addInterceptor(logging)
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
