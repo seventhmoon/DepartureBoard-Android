@@ -131,7 +131,14 @@ fun NativeAdViewContainer(
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     val primaryColor = (accentColor ?: MaterialTheme.colorScheme.primary).toArgb()
-    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary.toArgb()
+
+    // Determine high-contrast text color on top of primaryColor (e.g. Northern Line black vs white text)
+    val onPrimaryColor = if (accentColor != null) {
+        val luminance = androidx.core.graphics.ColorUtils.calculateLuminance(primaryColor)
+        if (luminance > 0.5) Color.Black.toArgb() else Color.White.toArgb()
+    } else {
+        MaterialTheme.colorScheme.onPrimary.toArgb()
+    }
 
     when (style) {
         NativeAdStyle.CARD -> {
