@@ -5,6 +5,9 @@ package com.androidfung.departureboard.data.model
  */
 object HkMtrRoutes {
 
+    private val HK_ZONE = java.time.ZoneId.of("Asia/Hong_Kong")
+    private val TIME_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+
     // Clean, ordered station code sequences along each line
     val LINE_SEQUENCES: Map<String, List<String>> = mapOf(
         "ISL" to listOf("KET", "HKU", "SYP", "SHW", "CEN", "ADM", "WAC", "CAB", "TIH", "FOH", "NOP", "QUB", "TAK", "SWH", "SKW", "HFC", "CHW"),
@@ -46,8 +49,15 @@ object HkMtrRoutes {
 
     /**
      * Resolves calling points from origin station code to destination station code on a given line.
+     * Computes sequential estimated clock times based on average inter-station runtimes (120s per MTR stop)
+     * when [departureEpochSeconds] is provided.
      */
-    fun resolveCallingPoints(lineCode: String, originSta: String, destStaOrName: String): List<CallingPoint> {
+    fun resolveCallingPoints(
+        lineCode: String,
+        originSta: String,
+        destStaOrName: String,
+        departureEpochSeconds: Long? = null
+    ): List<CallingPoint> {
         val seq = LINE_SEQUENCES[lineCode] ?: return emptyList()
         val originIdx = seq.indexOfFirst { it.equals(originSta, ignoreCase = true) }
         if (originIdx == -1) return emptyList()
@@ -66,9 +76,29 @@ object HkMtrRoutes {
             else -> seq.subList(destIdx, originIdx + 1).reversed()
         }
 
+        val hkZone = HK_ZONE
+        val timeFormatter = TIME_FORMATTER
+
         return range.mapIndexed { idx, code ->
+            val clockTime = departureEpochSeconds?.let { baseEpoch ->
+                val stopEpoch = baseEpoch + (idx * 120L)
+                java.time.Instant.ofEpochSecond(stopEpoch)
+                    .atZone(hkZone)
+                    .format(timeFormatter)
+            }
+            val estBadge = when {
+                idx == 0 -> "Due"
+                departureEpochSeconds != null -> {
+                    val mins = idx * 2
+                    "$mins mins"
+                }
+                else -> null
+            }
+
             CallingPoint(
                 stationName = HkMtrStationRegistry.getName(code),
+                scheduledTime = clockTime,
+                estimatedTime = estBadge,
                 isCurrentStation = idx == 0,
                 isDestination = idx == range.lastIndex,
                 stationId = code,

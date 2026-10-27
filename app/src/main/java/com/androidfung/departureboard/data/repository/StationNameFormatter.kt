@@ -6,6 +6,9 @@ package com.androidfung.departureboard.data.repository
  */
 internal object StationNameFormatter {
 
+    private val PARENTHESIS_REGEX = Regex("""\s*(\([^)]+\))$""")
+    private val STATION_SUFFIX_REGEX = Regex("""\s+Station$""")
+
     fun clean(name: String): String {
         val trimmed = name.trim()
         // "Battersea Power Station" has "Station" as part of its proper landmark name
@@ -18,7 +21,7 @@ internal object StationNameFormatter {
         }
 
         // Preserve any stop indicators and towards clauses in parentheses, e.g. "Euston (Stop D)", "Euston (Stop B, towards Aldwych)"
-        val parenthesisMatch = Regex("""\s*(\([^)]+\))$""").find(trimmed)
+        val parenthesisMatch = PARENTHESIS_REGEX.find(trimmed)
         val suffix = parenthesisMatch?.value ?: ""
         val baseName = if (parenthesisMatch != null) trimmed.substring(0, parenthesisMatch.range.first).trim() else trimmed
 
@@ -29,7 +32,7 @@ internal object StationNameFormatter {
             .replace(" DLR Station", "")
             .replace(" Tram Stop", "")
             .replace(" Bus Station", "")
-            .replace(Regex("""\s+Station$"""), "")
+            .replace(STATION_SUFFIX_REGEX, "")
             .trim()
 
         val trimmedSuffix = suffix.trim()

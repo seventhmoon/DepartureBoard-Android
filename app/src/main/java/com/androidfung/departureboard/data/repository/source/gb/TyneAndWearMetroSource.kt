@@ -10,6 +10,7 @@ import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.network.TyneAndWearMetroApiService
 import com.androidfung.departureboard.data.network.TyneAndWearMetroNetworkClient
 import com.androidfung.departureboard.data.repository.source.DepartureSource
+import com.androidfung.departureboard.data.routes.TyneAndWearMetroRoute
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
@@ -144,6 +145,20 @@ class TyneAndWearMetroSource(
                         lineCode = "MET"
                     )
 
+                    val callingPoints = TyneAndWearMetroRoute.resolveCallingPoints(
+                        lineId = badge.lineId,
+                        originName = stationName,
+                        destinationName = dest,
+                        departureSeconds = seconds
+                    )
+
+                    val resolvedDirection = TyneAndWearMetroRoute.resolveDirection(
+                        lineId = badge.lineId,
+                        originName = stationName,
+                        destinationName = dest,
+                        platformName = "Platform $platformNum"
+                    )?.displayName
+
                     departures.add(
                         Departure(
                             id = "nexus_${code}_${platformNum}_${item.trn ?: mins}_$seconds",
@@ -154,10 +169,12 @@ class TyneAndWearMetroSource(
                             platformName = "Platform $platformNum",
                             destinationName = dest,
                             towards = dest,
+                            direction = resolvedDirection,
                             timeToStationSeconds = seconds,
                             expectedArrivalIso = null,
                             currentLocation = item.lastEventLocation,
                             modeName = "tube",
+                            callingPoints = callingPoints,
                             status = if (mins == 0) DepartureStatus.DUE else DepartureStatus.ON_TIME,
                             lineBadge = badge
                         )

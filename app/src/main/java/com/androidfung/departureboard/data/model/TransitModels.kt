@@ -123,7 +123,7 @@ data class Departure(
                 return try {
                     val instant = java.time.Instant.parse(expectedArrivalIso)
                     val local = java.time.ZonedDateTime.ofInstant(instant, targetZone)
-                    local.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+                    local.format(TIME_FORMATTER)
                 } catch (_: Exception) {
                     null
                 }
@@ -131,8 +131,12 @@ data class Departure(
             // Fallback: estimate from current time + seconds
             val estimated = java.time.ZonedDateTime.now(targetZone)
                 .plusSeconds(timeToStationSeconds.toLong())
-            return estimated.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+            return estimated.format(TIME_FORMATTER)
         }
+
+    companion object {
+        private val TIME_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+    }
 }
 
 /**

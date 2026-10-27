@@ -592,8 +592,9 @@ fun DashboardSearchBar(
 ) {
     val updatedTimeText = remember(lastUpdatedTimestamp) {
         if (lastUpdatedTimestamp <= 0L) null
-        else java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-            .format(java.util.Date(lastUpdatedTimestamp))
+        else java.time.Instant.ofEpochMilli(lastUpdatedTimestamp)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
     }
 
     Surface(

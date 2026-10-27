@@ -80,22 +80,28 @@ class HkMtrDepartureSource(
                             val destCode = item.dest?.uppercase() ?: ""
                             if (destCode.equals(sta, ignoreCase = true)) return@mapNotNull null
                             val destName = HkMtrStationRegistry.getName(destCode).ifBlank { "MTR Terminus" }
-                            val plat = item.plat ?: "1"
+                            val rawPlat = item.plat ?: "1"
+                            val formattedPlatform = com.androidfung.departureboard.data.repository.PlatformFormatter.format(
+                                rawPlatform = rawPlat,
+                                towards = destName,
+                                isBus = false
+                            )
 
-                            // Pre-compute calling points for MTR so tapping opens complete stop sequence
+                            // Pre-compute calling points for MTR so tapping opens complete stop sequence with estimated times
                             val callingPoints = HkMtrRoutes.resolveCallingPoints(
                                 lineCode = lineCode,
                                 originSta = sta,
-                                destStaOrName = destCode
+                                destStaOrName = destCode,
+                                departureEpochSeconds = departureInstant.epochSecond
                             )
 
                             Departure(
-                                id = "HK_MTR_${lineCode}_${sta}_${plat}_${departureInstant.epochSecond}_${item.seq ?: "0"}",
+                                id = "HK_MTR_${lineCode}_${sta}_${rawPlat}_${departureInstant.epochSecond}_${item.seq ?: "0"}",
                                 stationId = stationId,
                                 stationName = stationName,
                                 lineId = lineCode,
                                 lineName = lineTitle,
-                                platformName = plat,
+                                platformName = formattedPlatform,
                                 destinationName = destName,
                                 towards = destName,
                                 timeToStationSeconds = timeToStation,

@@ -50,14 +50,17 @@ import androidx.glance.currentState
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import kotlinx.coroutines.flow.first
-import androidx.compose.ui.platform.LocalLocale
 import androidx.core.net.toUri
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 class DepartureBoardWidget : GlanceAppWidget() {
 
     override var stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
     companion object {
+        private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
+
         val PREF_STATION_ID = stringPreferencesKey("widget_station_id")
         val PREF_STATION_NAME = stringPreferencesKey("widget_station_name")
         val PREF_FILTER_LINE_ID = stringPreferencesKey("widget_filter_line_id")
@@ -232,8 +235,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
                         ),
                         maxLines = 1
                     )
-                    val currentClockStr = java.text.SimpleDateFormat("HH:mm", LocalLocale.current.platformLocale)
-                        .format(java.util.Date())
+                    val currentClockStr = LocalTime.now().format(TIME_FORMATTER)
                     val liveLabel = when {
                         interruptionInfo.statusText != null -> "⚠ ${interruptionInfo.statusText}"
                         isLiveData -> "Live $currentClockStr"

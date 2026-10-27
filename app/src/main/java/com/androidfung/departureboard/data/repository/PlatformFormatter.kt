@@ -8,6 +8,8 @@ internal object PlatformFormatter {
     private val SINGLE_CHAR_PLATFORM_REGEX = Regex("^[A-Z0-9]$", RegexOption.IGNORE_CASE)
     private val CARDINAL_DIRECTION_REGEX = Regex("""\b(Northbound|Southbound|Eastbound|Westbound|Inbound|Outbound)\b""", RegexOption.IGNORE_CASE)
 
+    private val DIR_PLAT_REGEX = Regex("""^(Northbound|Southbound|Eastbound|Westbound|Inbound|Outbound)\s*-\s*Platform\s*(\w+)$""", RegexOption.IGNORE_CASE)
+
     /**
      * Formats the raw platform string or towards description into a clear user-facing label.
      *
@@ -25,7 +27,7 @@ internal object PlatformFormatter {
         if (trimmed.isNotBlank() && !trimmed.equals("null", ignoreCase = true)) {
             // Reformat "Southbound - Platform 3" to "Plat 3 • Southbound" so platform number is prominent
             // and never clipped on narrow mobile displays.
-            val dirPlatMatch = Regex("""^(Northbound|Southbound|Eastbound|Westbound|Inbound|Outbound)\s*-\s*Platform\s*(\w+)$""", RegexOption.IGNORE_CASE).find(trimmed)
+            val dirPlatMatch = DIR_PLAT_REGEX.find(trimmed)
             if (dirPlatMatch != null) {
                 val dir = overrideDirection ?: dirPlatMatch.groupValues[1]
                 val plat = dirPlatMatch.groupValues[2]

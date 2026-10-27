@@ -13,16 +13,24 @@ enum class TransitDirection(
     EASTBOUND("Eastbound", "EB", "→ EB"),
     WESTBOUND("Westbound", "WB", "← WB"),
     INBOUND("Inbound", "IN", "IN"),
-    OUTBOUND("Outbound", "OUT", "OUT");
+    OUTBOUND("Outbound", "OUT", "OUT"),
+    CLOCKWISE("Clockwise", "CW", "↻ CW"),
+    ANTI_CLOCKWISE("Anti-Clockwise", "CCW", "↺ CCW");
 
     companion object {
         fun fromString(value: String?): TransitDirection? {
             if (value.isNullOrBlank()) return null
             val clean = value.trim()
-            return entries.firstOrNull {
-                it.displayName.equals(clean, ignoreCase = true) ||
+            return when {
+                clean.equals("Counter-Clockwise", ignoreCase = true) ||
+                    clean.equals("CounterClockwise", ignoreCase = true) ||
+                    clean.equals("Outer", ignoreCase = true) -> ANTI_CLOCKWISE
+                clean.equals("Inner", ignoreCase = true) -> CLOCKWISE
+                else -> entries.firstOrNull {
+                    it.displayName.equals(clean, ignoreCase = true) ||
                         it.shortCode.equals(clean, ignoreCase = true) ||
                         it.name.equals(clean, ignoreCase = true)
+                }
             }
         }
     }

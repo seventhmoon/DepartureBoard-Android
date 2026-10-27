@@ -9,15 +9,18 @@ import com.androidfung.departureboard.data.repository.StationNameFormatter
 import com.androidfung.departureboard.data.repository.direction.ElizabethLineDirectionResolver
 import com.androidfung.departureboard.data.repository.direction.OvergroundLineResolver
 import com.androidfung.departureboard.data.repository.direction.ThameslinkDirectionResolver
-import java.util.Calendar
-import java.util.TimeZone
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 
 /**
  * Maps National Rail (NRE Darwin) live train services into domain [Departure] models.
  */
 object NationalRailDepartureMapper {
 
-    private val UK_TIME_ZONE = TimeZone.getTimeZone("Europe/London")
+    private val UK_ZONE = ZoneId.of("Europe/London")
+    private val TIME_FORMAT_REGEX = Regex("""^\d{1,2}:\d{2}$""")
 
     private val OPERATOR_COLORS = mapOf(
         "LNER" to Color(0xFFC70826),
@@ -130,7 +133,7 @@ object NationalRailDepartureMapper {
             service.isCancelled -> "Cancelled"
             etd.equals("Delayed", ignoreCase = true) -> "Delayed"
             etd.equals("On time", ignoreCase = true) -> "On time"
-            etd.matches(Regex("""^\d{1,2}:\d{2}$""")) -> "Exp $etd"
+            etd.matches(TIME_FORMAT_REGEX) -> "Exp $etd"
             else -> etd
         }
 
@@ -200,29 +203,20 @@ object NationalRailDepartureMapper {
     }
 
     private fun calculateSecondsToDeparture(std: String, etd: String): Int {
-        val targetTimeStr = if (etd.matches(Regex("""^\d{1,2}:\d{2}$"""))) etd else std
+        val targetTimeStr = if (etd.matches(TIME_FORMAT_REGEX)) etd else std
         val parts = targetTimeStr.split(":")
         if (parts.size != 2) return 0
 
         val targetHour = parts[0].toIntOrNull() ?: return 0
         val targetMinute = parts[1].toIntOrNull() ?: return 0
 
-        val cal = Calendar.getInstance(UK_TIME_ZONE)
-        val currentMillis = cal.timeInMillis
-
-        val targetCal = Calendar.getInstance(UK_TIME_ZONE).apply {
-            set(Calendar.HOUR_OF_DAY, targetHour)
-            set(Calendar.MINUTE, targetMinute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
+        val nowZdt = ZonedDateTime.now(UK_ZONE)
+        var targetZdt = nowZdt.with(LocalTime.of(targetHour, targetMinute, 0))
+        if (targetZdt.isBefore(nowZdt.minusHours(1))) {
+            targetZdt = targetZdt.plusDays(1)
         }
 
-        var diffSeconds = ((targetCal.timeInMillis - currentMillis) / 1000).toInt()
-        if (diffSeconds < -3600) {
-            targetCal.add(Calendar.DAY_OF_YEAR, 1)
-            diffSeconds = ((targetCal.timeInMillis - currentMillis) / 1000).toInt()
-        }
-
+        val diffSeconds = ChronoUnit.SECONDS.between(nowZdt, targetZdt).toInt()
         return diffSeconds.coerceAtLeast(0)
     }
 }
