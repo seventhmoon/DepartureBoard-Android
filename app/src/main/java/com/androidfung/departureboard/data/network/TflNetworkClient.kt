@@ -3,13 +3,14 @@ package com.androidfung.departureboard.data.network
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import androidx.core.content.getSystemService
 import com.squareup.moshi.Moshi
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import retrofit2.create
 import java.io.File
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -20,8 +21,7 @@ object TflNetworkClient {
     private const val BASE_URL = "https://api.tfl.gov.uk/"
 
     val moshi: Moshi by lazy {
-        Moshi.Builder()
-            .build()
+        SharedNetworkConfig.moshi
     }
 
     private var cacheDir: File? = null
@@ -37,10 +37,11 @@ object TflNetworkClient {
 
     private fun isNetworkAvailable(): Boolean {
         val context = appContext ?: return true
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
+        val cm = context.getSystemService<ConnectivityManager>() ?: return true
         val network = cm.activeNetwork ?: return false
         val capabilities = cm.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     private val okHttpClient: OkHttpClient by lazy {
@@ -58,36 +59,7 @@ object TflNetworkClient {
 
         val builder = SharedNetworkConfig.newBuilder()
             .addInterceptor(loggingInterceptor)
-            .addInterceptor { chain ->
-                // Underground Offline HTTP Cache-Control Interceptor
-                // If network is unavailable or request fails, serve cached responses for 7 days (max-stale=604800)
-                val originalRequest = chain.request()
-                val request = if (!isNetworkAvailable()) {
-                    originalRequest.newBuilder()
-                        .header("Cache-Control", "public, only-if-cached, max-stale=604800")
-                        .build()
-                } else {
-                    originalRequest
-                }
-
-                try {
-                    val response = chain.proceed(request)
-                    if (!response.isSuccessful && !isNetworkAvailable()) {
-                        response.close()
-                        val offlineRequest = originalRequest.newBuilder()
-                            .header("Cache-Control", "public, only-if-cached, max-stale=604800")
-                            .build()
-                        chain.proceed(offlineRequest)
-                    } else {
-                        response
-                    }
-                } catch (_: IOException) {
-                    val offlineRequest = originalRequest.newBuilder()
-                        .header("Cache-Control", "public, only-if-cached, max-stale=604800")
-                        .build()
-                    chain.proceed(offlineRequest)
-                }
-            }
+            .addOfflineCacheSupport(isNetworkAvailable = ::isNetworkAvailable)
             .addNetworkInterceptor { chain ->
                 // Response interceptor to allow caching if server returns restrictive headers for metadata queries.
                 // Live arrival predictions (/Arrivals) must never be force-cached for 60s so 15s-30s polling
@@ -95,15 +67,17 @@ object TflNetworkClient {
                 val request = chain.request()
                 val response = chain.proceed(request)
                 val isLiveArrivalsEndpoint = request.url.encodedPath.endsWith("/Arrivals", ignoreCase = true)
-                val cacheControl = response.header("Cache-Control")
-                if (!isLiveArrivalsEndpoint && (
-                    cacheControl == null || cacheControl.contains("no-store", ignoreCase = true) ||
-                        cacheControl.contains("no-cache", ignoreCase = true) || cacheControl.contains("must-revalidate", ignoreCase = true) ||
-                        cacheControl.contains("max-age=0", ignoreCase = true)
-                    )
-                ) {
+                val isCacheable = (request.method == "GET") && response.isSuccessful
+                val cacheControl = response.cacheControl
+                val isRestrictiveOrUncached = (cacheControl.noStore ||
+                        cacheControl.noCache ||
+                        cacheControl.mustRevalidate ||
+                        (cacheControl.maxAgeSeconds <= 0))
+
+                if (isCacheable && !isLiveArrivalsEndpoint && isRestrictiveOrUncached) {
                     response.newBuilder()
                         .removeHeader("Pragma")
+                        .removeHeader("Expires")
                         .header("Cache-Control", "public, max-age=60")
                         .build()
                 } else {
@@ -132,10 +106,10 @@ object TflNetworkClient {
             .readTimeout(15, TimeUnit.SECONDS)
 
         cacheDir?.let { dir ->
-            try {
+            runCatching {
                 // 10 MB HTTP response cache for offline access underground
                 builder.cache(okhttp3.Cache(dir, 10L * 1024 * 1024))
-            } catch (_: Exception) {}
+            }
         }
 
         builder.build()
@@ -150,6 +124,6 @@ object TflNetworkClient {
     }
 
     val apiService: TflApiService by lazy {
-        retrofit.create(TflApiService::class.java)
+        retrofit.create()
     }
 }

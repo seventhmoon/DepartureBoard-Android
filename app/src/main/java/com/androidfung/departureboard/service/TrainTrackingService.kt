@@ -12,6 +12,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import androidx.core.content.getSystemService
 import com.androidfung.departureboard.MainActivity
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.Departure
@@ -314,8 +315,8 @@ class TrainTrackingService : Service() {
                         isCancelled = true
                     )
                     try {
-                        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                        nm.notify(NOTIFICATION_ID, cancelledNotification)
+                        val nm = getSystemService<NotificationManager>()
+                        nm?.notify(NOTIFICATION_ID, cancelledNotification)
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to update notification for cancellation", e)
                     }
@@ -380,8 +381,8 @@ class TrainTrackingService : Service() {
                 )
 
                 try {
-                    val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                    nm.notify(NOTIFICATION_ID, updatedNotification)
+                    val nm = getSystemService<NotificationManager>()
+                    nm?.notify(NOTIFICATION_ID, updatedNotification)
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to update notification", e)
                 }
@@ -447,8 +448,8 @@ class TrainTrackingService : Service() {
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .build()
 
-            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            nm.notify(ALERT_NOTIFICATION_ID, alertNotification)
+            val nm = getSystemService<NotificationManager>()
+            nm?.notify(ALERT_NOTIFICATION_ID, alertNotification)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to post disruption alert", e)
         }
@@ -461,7 +462,7 @@ class TrainTrackingService : Service() {
             currentlyTrackedDepartureId = null
             // Remove foreground status and dismiss the ongoing notification
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
-            val nm = getSystemService(NOTIFICATION_SERVICE) as? NotificationManager
+            val nm = getSystemService<NotificationManager>()
             nm?.cancel(NOTIFICATION_ID)
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping tracking", e)
@@ -634,9 +635,9 @@ class TrainTrackingService : Service() {
                 setShowBadge(true)
             }
 
-            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(liveChannel)
-            nm.createNotificationChannel(alertChannel)
+            val nm = getSystemService<NotificationManager>()
+            nm?.createNotificationChannel(liveChannel)
+            nm?.createNotificationChannel(alertChannel)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create notification channels", e)
         }

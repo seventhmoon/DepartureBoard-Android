@@ -8,6 +8,8 @@ import com.androidfung.departureboard.data.resolver.CallingPointsResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+import com.androidfung.departureboard.data.model.isBods
+
 /**
  * Resolves calling points for UK Department for Transport BODS bus services.
  */
@@ -16,7 +18,7 @@ class BodsCallingPointsResolver(
 ) : CallingPointsResolver {
 
     override fun canHandle(departure: Departure): Boolean {
-        return departure.lineId.startsWith("bods-", ignoreCase = true)
+        return departure.isBods
     }
 
     override suspend fun resolveCallingPoints(departure: Departure): List<CallingPoint> = withContext(Dispatchers.IO) {

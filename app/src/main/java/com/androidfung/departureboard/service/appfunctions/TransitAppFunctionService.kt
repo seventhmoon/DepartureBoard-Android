@@ -2,7 +2,6 @@ package com.androidfung.departureboard.service.appfunctions
 
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
-import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.appfunctions.AppFunctionDeclaration
 import androidx.appfunctions.AppFunctionElementNotFoundException
@@ -132,7 +131,7 @@ abstract class BaseTransitAppFunctionService : AppFunctionService() {
         val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
         val provider = ComponentName(applicationContext, DepartureBoardWidgetReceiver::class.java)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && appWidgetManager.isRequestPinAppWidgetSupported) {
+        if (appWidgetManager.isRequestPinAppWidgetSupported) {
             // Note: In a real app we'd pass the station details via intent extras to the configure activity
             appWidgetManager.requestPinAppWidget(provider, null, null)
             ActionResult(

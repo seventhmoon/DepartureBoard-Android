@@ -3,6 +3,7 @@ package com.androidfung.departureboard.data.repository.source.hk
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.HkDefaultStations
+import com.androidfung.departureboard.data.model.isHkMtrStationId
 import com.androidfung.departureboard.data.model.HkMtrLineRegistry
 import com.androidfung.departureboard.data.model.HkMtrRoutes
 import com.androidfung.departureboard.data.model.HkMtrStationRegistry
@@ -33,7 +34,7 @@ class HkMtrDepartureSource(
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
         if (isBusStop) return false
-        return stationId.startsWith("HK_MTR_") ||
+        return stationId.isHkMtrStationId ||
                 stationName.contains("港鐵") ||
                 stationName.contains("MTR")
     }

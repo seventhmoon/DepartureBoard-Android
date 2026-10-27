@@ -437,7 +437,7 @@ fun SearchStationBottomSheet(
                                 val distFormatted = if (distMeters < 1000) {
                                     "${distMeters.toInt()}m away"
                                 } else {
-                                    String.format(java.util.Locale.UK, "%.1f km away", distMeters / 1000.0)
+                                    "%.1f km away".format(java.util.Locale.UK, distMeters / 1000.0)
                                 }
                                 StationSearchResultRow(
                                     station = station,

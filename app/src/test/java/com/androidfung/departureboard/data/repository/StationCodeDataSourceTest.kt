@@ -49,7 +49,7 @@ class StationCodeDataSourceTest {
     }
 
     private val fakeDao = FakeStationCrsDao()
-    private val dataSource = StationCodeDataSource(fakeDao)
+    private val dataSource: StationCodeDataSource = StationCodeDataSourceImpl(fakeDao)
 
     @Test
     fun testBankStationDoesNotMatchNationalRail() = runTest {

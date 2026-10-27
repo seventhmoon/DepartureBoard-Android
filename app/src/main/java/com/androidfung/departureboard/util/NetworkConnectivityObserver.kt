@@ -5,6 +5,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import androidx.core.content.getSystemService
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -22,11 +23,9 @@ class NetworkConnectivityObserverImpl(
     context: Context
 ) : NetworkConnectivityObserver {
 
-    private val connectivityManager: ConnectivityManager? = try {
-        (context.applicationContext ?: context).getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-    } catch (_: Exception) {
-        null
-    }
+    private val connectivityManager: ConnectivityManager? = runCatching {
+        (context.applicationContext ?: context).getSystemService<ConnectivityManager>()
+    }.getOrNull()
 
     override val isOnline: Flow<Boolean> = callbackFlow {
         if (connectivityManager == null) {

@@ -6,7 +6,10 @@ import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.HkDefaultStations
 import com.androidfung.departureboard.data.model.HkKmbEtaItem
 import com.androidfung.departureboard.data.model.LineBadgeInfo
+import com.androidfung.departureboard.data.model.StationIdPrefixes
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.extractRawHkBusStopId
+import com.androidfung.departureboard.data.model.isHkBusStationId
 import com.androidfung.departureboard.data.network.HkBusApiService
 import com.androidfung.departureboard.data.network.HkBusNetworkClient
 import com.androidfung.departureboard.data.repository.source.DepartureSource
@@ -27,9 +30,7 @@ class HkBusDepartureSource(
 ) : DepartureSource {
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
-        return stationId.startsWith("HK_BUS_") ||
-                stationId.startsWith("HK_KMB_") ||
-                stationId.startsWith("HK_CTB_") ||
+        return stationId.isHkBusStationId ||
                 stationName.contains("海底隧道") ||
                 stationName.contains("轉車站") ||
                 stationName.contains("Cross Harbour Tunnel")
@@ -41,15 +42,9 @@ class HkBusDepartureSource(
         isBusStop: Boolean
     ): Result<List<Departure>> = coroutineScope {
         try {
-            val isCtbOnly = stationId.startsWith("HK_BUS_CTB_") || stationId.startsWith("HK_CTB_")
-            val rawStopId = when {
-                stationId.startsWith("HK_BUS_KMB_") -> stationId.removePrefix("HK_BUS_KMB_")
-                stationId.startsWith("HK_BUS_CTB_") -> stationId.removePrefix("HK_BUS_CTB_")
-                stationId.startsWith("HK_BUS_") -> stationId.removePrefix("HK_BUS_")
-                stationId.startsWith("HK_KMB_") -> stationId.removePrefix("HK_KMB_")
-                stationId.startsWith("HK_CTB_") -> stationId.removePrefix("HK_CTB_")
-                else -> stationId
-            }
+            val isCtbOnly = stationId.startsWith(StationIdPrefixes.HK_BUS_CTB, ignoreCase = true) ||
+                    stationId.startsWith(StationIdPrefixes.HK_CTB, ignoreCase = true)
+            val rawStopId = extractRawHkBusStopId(stationId)
 
             // Look up known CTB routes configured on this station (if any)
             val stationMeta = HkDefaultStations.POPULAR_STATIONS.firstOrNull {

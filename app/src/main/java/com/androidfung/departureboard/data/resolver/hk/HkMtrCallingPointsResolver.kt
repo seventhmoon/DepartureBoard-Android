@@ -5,14 +5,15 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.HkMtrRoutes
 import com.androidfung.departureboard.data.resolver.CallingPointsResolver
 
+import com.androidfung.departureboard.data.model.isHkMtr
+
 /**
  * Resolves calling points for Hong Kong MTR heavy rail lines using [HkMtrRoutes].
  */
 class HkMtrCallingPointsResolver : CallingPointsResolver {
 
     override fun canHandle(departure: Departure): Boolean {
-        return departure.stationId.startsWith("HK_MTR_", ignoreCase = true) ||
-                departure.id.startsWith("HK_MTR_", ignoreCase = true)
+        return departure.isHkMtr
     }
 
     override suspend fun resolveCallingPoints(departure: Departure): List<CallingPoint> {

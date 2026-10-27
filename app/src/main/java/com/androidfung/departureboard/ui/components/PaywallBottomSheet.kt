@@ -283,11 +283,9 @@ fun PaywallBottomSheet(
                     isRestoring = true
                     billingRepository.refreshPurchases { restored, message ->
                         isRestoring = false
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                            if (restored) {
-                                onDismissRequest()
-                            }
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        if (restored) {
+                            onDismissRequest()
                         }
                     }
                 }
@@ -451,7 +449,7 @@ private fun calculateSubscriptionPricing(
         } catch (_: Exception) {
             "£"
         }
-        "1 Year of Pro Access (${symbol}${String.format(java.util.Locale.UK, "%.2f", monthlyEquiv)}/mo)"
+        "1 Year of Pro Access (${symbol}${"%.2f".format(java.util.Locale.UK, monthlyEquiv)}/mo)"
     } else {
         "1 Year of Pro Access (£0.83/mo)"
     }

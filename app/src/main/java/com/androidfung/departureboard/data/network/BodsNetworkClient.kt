@@ -4,6 +4,7 @@ import com.androidfung.departureboard.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
+import retrofit2.create
 import java.util.concurrent.TimeUnit
 
 /**
@@ -44,6 +45,6 @@ object BodsNetworkClient {
     }
 
     val apiService: BodsApiService by lazy {
-        retrofit.create(BodsApiService::class.java)
+        retrofit.create()
     }
 }

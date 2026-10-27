@@ -3,6 +3,7 @@ package com.androidfung.departureboard.data.repository.source.gb
 import com.androidfung.departureboard.data.model.BodsXmlParser
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.isBodsTransitId
 import com.androidfung.departureboard.data.network.BodsApiService
 import com.androidfung.departureboard.data.repository.source.DepartureSource
 
@@ -20,7 +21,7 @@ class BodsDepartureSource(
         val id = stationId.uppercase()
         // Handle all DfT regional bus prefixes outside London (or explicit BODS queries)
         return com.androidfung.departureboard.data.model.AtcoAreaRegistry.isRegionalBusStop(id) ||
-                id.startsWith("BODS") ||
+                stationId.isBodsTransitId ||
                 (!com.androidfung.departureboard.data.model.AtcoAreaRegistry.isLondonBusStop(id) && !id.startsWith("9"))
     }
 

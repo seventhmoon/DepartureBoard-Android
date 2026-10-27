@@ -25,10 +25,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val props = Properties()
-        val propFile = project.rootProject.file("local.properties")
-        if (propFile.exists()) {
-            propFile.inputStream().use { props.load(it) }
+        val props = Properties().apply {
+            val propFile = project.rootProject.file("local.properties")
+            if (propFile.exists()) {
+                propFile.reader().use(::load)
+            }
         }
         val tflApiKey = props.getProperty("TFL_API_KEY") ?: System.getenv("TFL_API_KEY") ?: ""
         buildConfigField("String", "TFL_API_KEY", "\"$tflApiKey\"")

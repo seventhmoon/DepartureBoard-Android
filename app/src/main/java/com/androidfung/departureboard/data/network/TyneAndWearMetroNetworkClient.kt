@@ -5,6 +5,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import retrofit2.create
 import java.util.concurrent.TimeUnit
 
 /**
@@ -15,7 +16,7 @@ object TyneAndWearMetroNetworkClient {
     private const val BASE_URL = "https://metro-rti.nexus.org.uk/"
 
     private val moshi: Moshi by lazy {
-        Moshi.Builder().build()
+        SharedNetworkConfig.moshi
     }
 
     private val okHttpClient: OkHttpClient by lazy {
@@ -43,6 +44,6 @@ object TyneAndWearMetroNetworkClient {
     }
 
     val apiService: TyneAndWearMetroApiService by lazy {
-        retrofit.create(TyneAndWearMetroApiService::class.java)
+        retrofit.create()
     }
 }

@@ -3,15 +3,22 @@ package com.androidfung.departureboard.data.repository
 import com.androidfung.departureboard.data.db.StationCrsDao
 
 /**
+ * Abstraction for resolving National Rail CRS codes from station IDs or names.
+ */
+interface StationCodeDataSource {
+    suspend fun findCrsCodes(stationId: String, stationName: String): List<String>
+}
+
+/**
  * Data source providing fast binary SQLite indexed lookups for National Rail CRS codes
  * via Room [StationCrsDao], eliminating runtime JSON parsing and heap memory allocations.
  */
-class StationCodeDataSource(private val stationCrsDao: StationCrsDao? = null) {
+class StationCodeDataSourceImpl(private val stationCrsDao: StationCrsDao? = null) : StationCodeDataSource {
 
     /**
      * Resolves the list of CRS codes for a given station ID and name.
      */
-    suspend fun findCrsCodes(stationId: String, stationName: String): List<String> {
+    override suspend fun findCrsCodes(stationId: String, stationName: String): List<String> {
         // Direct ID lookup if user or system passed a 3-letter CRS code
         if (stationId.length == 3 && stationId.all { it.isLetter() }) {
             return listOf(stationId.uppercase())

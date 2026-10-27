@@ -719,14 +719,10 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         installStateUpdatedListener?.let {
-            try {
-                appUpdateManager.unregisterListener(it)
-            } catch (_: Exception) {}
+            runCatching { appUpdateManager.unregisterListener(it) }
         }
         debugProReceiver?.let {
-            try {
-                unregisterReceiver(it)
-            } catch (_: Exception) {}
+            runCatching { unregisterReceiver(it) }
         }
     }
 }

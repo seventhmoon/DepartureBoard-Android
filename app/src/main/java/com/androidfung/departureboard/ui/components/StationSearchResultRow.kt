@@ -36,6 +36,8 @@ import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.isHkBus
+import com.androidfung.departureboard.data.model.isHkMtr
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 
 /**
@@ -140,10 +142,10 @@ fun StationSearchResultRow(
                         // Mode badges with standardized official terminology and branding
                         displayModes.take(3).forEach { modeStr ->
                             val transitMode = TransitMode.fromModeString(modeStr)
-                            val badge = if (station.id.startsWith("HK_MTR_")) {
+                            val badge = if (station.isHkMtr) {
                                 val primaryLine = station.lines.firstOrNull()?.id ?: "ISL"
                                 com.androidfung.departureboard.data.model.HkMtrLineRegistry.getLineBadge(primaryLine)
-                            } else if (station.id.startsWith("HK_BUS_")) {
+                            } else if (station.isHkBus) {
                                 LineBadgeInfo("bus", "Bus", com.androidfung.departureboard.data.model.HkDefaultStations.ColorKmbRed, Color.White, TransitMode.BUS)
                             } else {
                                 TflLineColors.getLineBadge(

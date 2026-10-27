@@ -17,8 +17,24 @@ import com.google.android.play.core.review.ReviewManagerFactory
 import com.google.android.play.core.review.testing.FakeReviewManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
-import java.util.concurrent.TimeUnit
 import androidx.core.net.toUri
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.milliseconds
+
+/**
+ * Interface defining In-App Review triggering and management.
+ */
+interface ReviewPrompter {
+    suspend fun recordAppLaunch()
+    suspend fun shouldTriggerSmartReview(savedStationsCount: Int): Boolean
+    suspend fun launchReviewFlow(
+        activity: Activity,
+        force: Boolean = false,
+        savedStationsCount: Int = 0,
+        fallbackToPlayStore: Boolean = false
+    )
+    fun openPlayStore(context: Context)
+}
 
 /**
  * Manages Google Play In-App Review requests according to Google Play guidelines:
@@ -34,7 +50,7 @@ class InAppReviewManager(
     } else {
         ReviewManagerFactory.create(context)
     }
-) {
+) : ReviewPrompter {
 
     companion object {
         private const val TAG = "InAppReviewManager"
@@ -44,9 +60,9 @@ class InAppReviewManager(
         var USE_FAKE_REVIEW_IN_DEBUG = true
 
         // Smart trigger thresholds for engaged users
-        const val MIN_DAYS_SINCE_FIRST_LAUNCH = 3L
+        val MIN_DURATION_SINCE_FIRST_LAUNCH = 3.days
         const val MIN_APP_OPENS = 5
-        val COOLDOWN_DAYS_BETWEEN_REVIEWS = TimeUnit.DAYS.toMillis(30)
+        val COOLDOWN_BETWEEN_REVIEWS = 30.days
 
         private val KEY_FIRST_LAUNCH_TIME = longPreferencesKey("review_first_launch_time")
         private val KEY_APP_OPEN_COUNT = intPreferencesKey("review_app_open_count")
@@ -67,7 +83,7 @@ class InAppReviewManager(
     /**
      * Record an app session launch to track engagement.
      */
-    suspend fun recordAppLaunch() {
+    override suspend fun recordAppLaunch() {
         try {
             context.dataStore.edit { prefs ->
                 val now = System.currentTimeMillis()
@@ -90,7 +106,7 @@ class InAppReviewManager(
      * - At least 30 days have elapsed since the last prompt.
      * - Has not already completed the review flow.
      */
-    suspend fun shouldTriggerSmartReview(savedStationsCount: Int): Boolean {
+    override suspend fun shouldTriggerSmartReview(savedStationsCount: Int): Boolean {
         return try {
             val prefs = context.dataStore.data.first()
             val completed = prefs[KEY_REVIEW_COMPLETED] ?: false
@@ -101,11 +117,11 @@ class InAppReviewManager(
             val lastReviewTime = prefs[KEY_LAST_REVIEW_TIME] ?: 0L
 
             val now = System.currentTimeMillis()
-            val daysSinceFirstLaunch = TimeUnit.MILLISECONDS.toDays(now - firstLaunchTime)
-            val timeSinceLastPrompt = now - lastReviewTime
+            val timeSinceFirstLaunch = (now - firstLaunchTime).milliseconds
+            val timeSinceLastPrompt = (now - lastReviewTime).milliseconds
 
-            // Must have installed at least MIN_DAYS_SINCE_FIRST_LAUNCH days ago
-            if (daysSinceFirstLaunch < MIN_DAYS_SINCE_FIRST_LAUNCH) return false
+            // Must have installed at least MIN_DURATION_SINCE_FIRST_LAUNCH ago
+            if (timeSinceFirstLaunch < MIN_DURATION_SINCE_FIRST_LAUNCH) return false
 
             // Must have at least MIN_APP_OPENS opens
             if (openCount < MIN_APP_OPENS) return false
@@ -114,7 +130,7 @@ class InAppReviewManager(
             if (savedStationsCount < 1) return false
 
             // Must satisfy cooldown
-            if (timeSinceLastPrompt < COOLDOWN_DAYS_BETWEEN_REVIEWS) return false
+            if (timeSinceLastPrompt < COOLDOWN_BETWEEN_REVIEWS) return false
 
             true
         } catch (e: Exception) {
@@ -128,11 +144,11 @@ class InAppReviewManager(
      * If [force] is false, it first checks [shouldTriggerSmartReview].
      * If [fallbackToPlayStore] is true and in-app review fails, it opens the Play Store URL.
      */
-    suspend fun launchReviewFlow(
+    override suspend fun launchReviewFlow(
         activity: Activity,
-        force: Boolean = false,
-        savedStationsCount: Int = 0,
-        fallbackToPlayStore: Boolean = false
+        force: Boolean,
+        savedStationsCount: Int,
+        fallbackToPlayStore: Boolean
     ) {
         if (!force && !shouldTriggerSmartReview(savedStationsCount)) {
             Log.d(TAG, "Smart review conditions not met. Skipping review flow.")
@@ -159,7 +175,7 @@ class InAppReviewManager(
     /**
      * Directly opens the Play Store app or browser listing.
      */
-    fun openPlayStore(context: Context) {
+    override fun openPlayStore(context: Context) {
         try {
             val intent = Intent(Intent.ACTION_VIEW, STORE_URL.toUri()).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

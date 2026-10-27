@@ -52,7 +52,7 @@ enum class TransitRegion(
         fun fromStationId(stationId: String?): TransitRegion {
             if (stationId == null) return GB
             return when {
-                stationId.startsWith("HK_", ignoreCase = true) -> HK
+                stationId.isHkTransitId -> HK
                 else -> GB
             }
         }

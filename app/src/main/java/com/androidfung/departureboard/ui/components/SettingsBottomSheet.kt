@@ -400,9 +400,7 @@ fun SettingsBottomSheet(
                                 isRestoring = true
                                 billingRepository.refreshPurchases { _, message ->
                                     isRestoring = false
-                                    android.os.Handler(android.os.Looper.getMainLooper()).post {
-                                        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
-                                    }
+                                    android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
                                 }
                             }
                         }

@@ -21,12 +21,24 @@ data class AiTransitResult(
 )
 
 /**
+ * Interface representing the Transit AI Assistant capable of answering commuter queries.
+ */
+interface AiTransitAssistant {
+    suspend fun answerQuery(
+        query: String,
+        savedStations: List<Station>,
+        nearestStation: Station? = null,
+        modelType: AiModelType = AiModelType.DEFAULT
+    ): AiTransitResult
+}
+
+/**
  * Intelligent Transit Assistant that translates natural language commuter queries into
  * real-time departure lookups across saved stations and TfL live lines.
  */
 class TransitAiAssistant(
     private val repository: TransitRepository
-) {
+) : AiTransitAssistant {
 
     /**
      * Answers queries such as:
@@ -35,11 +47,11 @@ class TransitAiAssistant(
      * - "next departure to Morden"
      * - "any trains from King's Cross?"
      */
-    suspend fun answerQuery(
+    override suspend fun answerQuery(
         query: String,
         savedStations: List<Station>,
-        nearestStation: Station? = null,
-        modelType: AiModelType = AiModelType.DEFAULT
+        nearestStation: Station?,
+        modelType: AiModelType
     ): AiTransitResult = withContext(Dispatchers.Default) {
         val result = executeQueryInternal(query, savedStations, nearestStation)
         val prefix = when (modelType) {

@@ -1,5 +1,6 @@
 package com.androidfung.departureboard.data.network
 
+import com.squareup.moshi.Moshi
 import okhttp3.ConnectionPool
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
@@ -32,6 +33,14 @@ object SharedNetworkConfig {
             .connectionPool(connectionPool)
             .dispatcher(dispatcher)
             .build()
+    }
+
+    /**
+     * Shared [Moshi] instance across all clients to reuse cached reflective/codegen adapters
+     * and avoid allocating duplicate Moshi instances.
+     */
+    val moshi: Moshi by lazy {
+        Moshi.Builder().build()
     }
 
     /**

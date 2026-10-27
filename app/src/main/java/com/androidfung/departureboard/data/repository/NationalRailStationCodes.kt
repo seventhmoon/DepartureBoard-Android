@@ -17,14 +17,18 @@ object NationalRailStationCodes {
             synchronized(this) {
                 if (dataSource == null) {
                     val db = AppDatabase.getInstance(context.applicationContext)
-                    dataSource = StationCodeDataSource(db.stationCrsDao())
+                    dataSource = StationCodeDataSourceImpl(db.stationCrsDao())
                 }
             }
         }
     }
 
     fun setDao(dao: StationCrsDao) {
-        dataSource = StationCodeDataSource(dao)
+        dataSource = StationCodeDataSourceImpl(dao)
+    }
+
+    fun setDataSource(source: StationCodeDataSource) {
+        dataSource = source
     }
 
     /**

@@ -2,6 +2,7 @@ package com.androidfung.departureboard.data.resolver.hk
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.isHkBus
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.HkKmbStopDetailItem
 import com.androidfung.departureboard.data.network.HkBusApiService
@@ -29,15 +30,12 @@ class HkBusCallingPointsResolver(
     private val stopDetailCache = ConcurrentHashMap<String, HkKmbStopDetailItem>()
 
     override fun canHandle(departure: Departure): Boolean {
-        return departure.lineId.startsWith("HK_BUS_", ignoreCase = true) ||
-                departure.stationId.startsWith("HK_BUS_", ignoreCase = true)
+        return departure.isHkBus
     }
 
     override suspend fun resolveCallingPoints(departure: Departure): List<CallingPoint> {
         val route = departure.lineName.trim()
-        val rawStopId = departure.stationId.removePrefix("HK_BUS_KMB_")
-            .removePrefix("HK_BUS_CTB_")
-            .removePrefix("HK_BUS_")
+        val rawStopId = com.androidfung.departureboard.data.model.extractRawHkBusStopId(departure.stationId)
         val dir = departure.direction ?: "outbound"
 
         return resolveCallingPoints(
