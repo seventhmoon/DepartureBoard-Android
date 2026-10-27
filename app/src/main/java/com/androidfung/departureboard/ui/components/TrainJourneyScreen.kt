@@ -282,17 +282,32 @@ private fun TrainJourneyContent(
             contentPadding = PaddingValues(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 1. Main Destination Title
+            // 1. Main Destination Title & Departure Time Badge
             item(key = "destination_title") {
-                Text(
-                    text = "Train to ${departure.destinationName}",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Train to ${departure.destinationName}",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    UnifiedDepartureTimeBadge(
+                        departure = departure,
+                        isFirst = true
+                    )
+                }
             }
 
             // 2. Where the train is NOW banner

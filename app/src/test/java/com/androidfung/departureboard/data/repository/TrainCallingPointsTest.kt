@@ -43,9 +43,14 @@ class TrainCallingPointsTest {
 
         assertEquals("London King's Cross", departure.stationName)
         assertEquals("Edinburgh", departure.destinationName)
-        assertEquals(4, departure.callingPoints.size)
-        assertEquals("Peterborough", departure.callingPoints[0].stationName)
-        assertEquals("15:02", departure.callingPoints[0].scheduledTime)
+        // Calling points must include origin (current station) followed by subsequent stations
+        assertEquals(5, departure.callingPoints.size)
+        assertEquals("London King's Cross", departure.callingPoints[0].stationName)
+        assertEquals("14:15", departure.callingPoints[0].scheduledTime)
+        assertTrue(departure.callingPoints[0].isCurrentStation)
+
+        assertEquals("Peterborough", departure.callingPoints[1].stationName)
+        assertEquals("15:02", departure.callingPoints[1].scheduledTime)
         assertTrue(departure.callingPoints.last().isDestination)
     }
 

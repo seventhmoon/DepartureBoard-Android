@@ -42,7 +42,11 @@ class NationalRailDepartureSource(
                 } catch (_: Exception) {
                     nrApiService.getDepartureBoard(crs)
                 }
-                board.trainServices?.let { collectedServices.addAll(it) }
+                board.trainServices?.filter { service ->
+                    val destCrs = service.destination.firstOrNull()?.crs
+                    (!service.std.isNullOrBlank() || !service.etd.isNullOrBlank()) &&
+                        (destCrs == null || !destCrs.equals(crs, ignoreCase = true))
+                }?.let { collectedServices.addAll(it) }
             } catch (e: Exception) {
                 lastError = e
             }

@@ -95,6 +95,29 @@ class DestinationResolverTest {
     }
 
     @Test
+    fun terminatingTrain_millHillEast_resolvesFinchleyCentralOrBattersea() {
+        // Without outbound towards or with generic inbound, default to Finchley Central
+        val defaultResult = DestinationResolver.resolve(
+            stationName = "Mill Hill East",
+            itemDestination = "Mill Hill East",
+            itemTowards = null,
+            lineId = "northern",
+            platformName = "Platform 1"
+        )
+        assertEquals("Finchley Central", defaultResult)
+
+        // When TfL provides inbound "Mill Hill East via CX", it should not force Morden via Charing Cross
+        val cxInboundResult = DestinationResolver.resolve(
+            stationName = "Mill Hill East",
+            itemDestination = "Mill Hill East",
+            itemTowards = "Mill Hill East via CX",
+            lineId = "northern",
+            platformName = "Platform 1"
+        )
+        assertEquals("Battersea Power Station via Charing Cross", cxInboundResult)
+    }
+
+    @Test
     fun edgwareRoad_districtCircle_doesNotTriggerNorthernEdgwareRule() {
         val result = DestinationResolver.resolve(
             stationName = "Edgware Road",

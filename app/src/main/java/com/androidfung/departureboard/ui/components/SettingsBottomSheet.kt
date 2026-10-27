@@ -64,6 +64,7 @@ import androidx.compose.material3.SwitchDefaults
 import com.androidfung.departureboard.BuildConfig
 import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.ui.theme.AppThemeMode
+import androidx.core.net.toUri
 
 /**
  * Production-ready Settings bottom sheet allowing users to configure
@@ -75,18 +76,18 @@ fun SettingsBottomSheet(
     onDismissRequest: () -> Unit,
     departureRowsCount: Int,
     onDepartureRowsChange: (Int) -> Unit,
+    isPro: Boolean,
+    billingRepository: BillingDataSource,
+    onOpenHelpFaq: () -> Unit,
+    onUpgradeClick: () -> Unit,
+    modifier: Modifier = Modifier,
     themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     onThemeModeChange: (AppThemeMode) -> Unit = {},
     isDynamicColor: Boolean = true,
     onDynamicColorChange: (Boolean) -> Unit = {},
     isAutoSortByLocation: Boolean = false,
     onAutoSortByLocationChange: (Boolean) -> Unit = {},
-    isPro: Boolean,
-    billingRepository: BillingDataSource,
-    onOpenHelpFaq: () -> Unit,
-    onUpgradeClick: () -> Unit,
     onRateApp: () -> Unit = {},
-    modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val context = LocalContext.current
@@ -380,7 +381,7 @@ fun SettingsBottomSheet(
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                Uri.parse("https://play.google.com/store/account/subscriptions?package=com.androidfung.departureboard")
+                                "https://play.google.com/store/account/subscriptions?package=com.androidfung.departureboard".toUri()
                             )
                             context.startActivity(intent)
                         }
@@ -454,7 +455,7 @@ fun SettingsBottomSheet(
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                Uri.parse("https://github.com/seventhmoon/DepartureBoard-Android")
+                                "https://github.com/seventhmoon/DepartureBoard-Android".toUri()
                             )
                             context.startActivity(intent)
                         }

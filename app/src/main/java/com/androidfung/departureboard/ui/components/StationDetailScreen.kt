@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import androidx.core.net.toUri
 
 private sealed interface StationDetailListItem {
     data class DepartureItem(val departure: Departure, val index: Int) : StationDetailListItem
@@ -386,9 +387,9 @@ private fun StationDetailContent(
                         val encodedQuery = java.net.URLEncoder.encode(queryText, "UTF-8")
 
                         val geoUri = if (station.lat != null && station.lon != null) {
-                            android.net.Uri.parse("geo:${station.lat},${station.lon}?q=$encodedQuery")
+                            "geo:${station.lat},${station.lon}?q=$encodedQuery".toUri()
                         } else {
-                            android.net.Uri.parse("geo:0,0?q=$encodedQuery")
+                            "geo:0,0?q=$encodedQuery".toUri()
                         }
                         val mapIntent = Intent(Intent.ACTION_VIEW, geoUri).apply {
                             setPackage("com.google.android.apps.maps")
@@ -401,9 +402,9 @@ private fun StationDetailContent(
                                 context.startActivity(fallbackIntent)
                             } catch (_: Exception) {
                                 val browserUri = if (station.lat != null && station.lon != null) {
-                                    android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=$encodedQuery")
+                                    "https://www.google.com/maps/search/?api=1&query=$encodedQuery".toUri()
                                 } else {
-                                    android.net.Uri.parse("https://www.google.com/maps/search/?api=1&query=$encodedQuery")
+                                    "https://www.google.com/maps/search/?api=1&query=$encodedQuery".toUri()
                                 }
                                 context.startActivity(Intent(Intent.ACTION_VIEW, browserUri))
                             }
@@ -870,9 +871,9 @@ private fun StationDetailContent(
 @Composable
 fun DepartureDetailItemRow(
     departure: Departure,
+    modifier: Modifier = Modifier,
     isTracked: Boolean = false,
     onToggleTrackDeparture: (Departure) -> Unit = {},
-    modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
     Surface(

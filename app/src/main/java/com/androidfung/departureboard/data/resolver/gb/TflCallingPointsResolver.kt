@@ -5,6 +5,7 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.TflMatchedStop
 import com.androidfung.departureboard.data.model.TflRouteSequenceResponse
+import com.androidfung.departureboard.data.model.TflStationIds
 import com.androidfung.departureboard.data.network.TflApiService
 import com.androidfung.departureboard.data.repository.StationNameFormatter
 import com.androidfung.departureboard.data.resolver.CallingPointsResolver
@@ -24,6 +25,10 @@ class TflCallingPointsResolver(
     private val apiService: TflApiService,
     private val routeSequenceCache: ConcurrentHashMap<String, TflRouteSequenceResponse> = ConcurrentHashMap()
 ) : CallingPointsResolver {
+
+    companion object {
+        private val VIA_SPLIT_REGEX = Regex("""\s+via\s+""", RegexOption.IGNORE_CASE)
+    }
 
     override fun canHandle(departure: Departure): Boolean {
         // Fallback resolver for TfL lines (Tube, Rail, Overground, DLR, Elizabeth line, London Buses)
@@ -47,26 +52,57 @@ class TflCallingPointsResolver(
             val destClean = StationNameFormatter.clean(departure.destinationName).lowercase()
             // When destination contains routing like "Morden via Charing Cross" or "Morden via Bank",
             // extract the actual terminal station (e.g. "Morden") and the via routing stop (e.g. "Charing Cross" or "Bank").
-            val destParts = destClean.split(Regex("""\s+via\s+"""))
+            val destParts = destClean.split(VIA_SPLIT_REGEX)
             val targetTerminal = destParts[0].trim()
+            val targetTerminals = targetTerminal.split("/").asSequence().map { it.trim() }.filter { it.isNotBlank() }.toList()
             val viaStation = if (destParts.size > 1) destParts[1].trim() else ""
-            val destCode = departure.destinationStationId?.lowercase()?.trim()?.takeIf { it.isNotBlank() }
             val originCode = departure.stationId.lowercase().trim().takeIf { it.isNotBlank() }
+            val explicitDestCode = departure.destinationStationId?.lowercase()?.trim()?.takeIf {
+                it.isNotBlank() && !it.equals(originCode, ignoreCase = true)
+            }
+            val candidateDestCodes = buildSet {
+                if (explicitDestCode != null) add(explicitDestCode)
+                for (target in targetTerminals) {
+                    TflStationIds.CANONICAL_TERMINALS_BY_NAME[target]?.let { add(it.lowercase()) }
+                }
+            }
+
+            fun stationNamesMatch(stopNameClean: String, queryClean: String): Boolean {
+                if (stopNameClean.isBlank() || queryClean.isBlank()) return false
+                if (stopNameClean == queryClean) return true
+                // Guard against distinct stations where one name is a substring of another
+                if ((stopNameClean == "edgware" || queryClean == "edgware") &&
+                    (stopNameClean.contains("edgware road") || queryClean.contains("edgware road"))
+                ) return false
+                if ((stopNameClean == "wimbledon" || queryClean == "wimbledon") &&
+                    (stopNameClean.contains("wimbledon park") || queryClean.contains("wimbledon park") ||
+                     stopNameClean.contains("south wimbledon") || queryClean.contains("south wimbledon"))
+                ) return false
+                if ((stopNameClean == "aldgate" || queryClean == "aldgate") &&
+                    (stopNameClean.contains("aldgate east") || queryClean.contains("aldgate east"))
+                ) return false
+                return stopNameClean.contains(queryClean) || queryClean.contains(stopNameClean)
+            }
 
             fun matchesOrigin(stop: TflMatchedStop): Boolean {
                 if (originCode != null && (stop.id.equals(originCode, ignoreCase = true) || stop.stationId?.equals(originCode, ignoreCase = true) == true)) {
                     return true
                 }
                 val n = StationNameFormatter.clean(stop.name).lowercase()
-                return n.contains(currentStationClean) || currentStationClean.contains(n)
+                return stationNamesMatch(n, currentStationClean)
             }
 
             fun matchesDestination(stop: TflMatchedStop): Boolean {
-                if (destCode != null) {
-                    return stop.id.equals(destCode, ignoreCase = true) || stop.stationId?.equals(destCode, ignoreCase = true) == true
+                if (matchesOrigin(stop)) return false
+                if (candidateDestCodes.isNotEmpty()) {
+                    val stopIdLower = stop.id.lowercase()
+                    val stopStationIdLower = stop.stationId?.lowercase()
+                    if (candidateDestCodes.contains(stopIdLower) || (stopStationIdLower != null && candidateDestCodes.contains(stopStationIdLower))) {
+                        return true
+                    }
                 }
                 val n = StationNameFormatter.clean(stop.name).lowercase()
-                return n.contains(targetTerminal) || targetTerminal.contains(n)
+                return targetTerminals.any { candidate -> stationNamesMatch(n, candidate) }
             }
 
             val branchMap = sequenceResponse.stopPointSequences.associateBy { it.branchId }
@@ -76,8 +112,8 @@ class TflCallingPointsResolver(
 
             for ((_, _, _, _, stopPoint) in sequenceResponse.stopPointSequences) {
                 val curIndex = stopPoint.indexOfFirst { matchesOrigin(it) }
-                val destIndex = stopPoint.indexOfFirst { matchesDestination(it) }
-                if (curIndex != -1 && destIndex != -1 && destIndex >= curIndex) {
+                val destIndex = stopPoint.indexOfLast { matchesDestination(it) }
+                if (curIndex != -1 && destIndex != -1 && destIndex > curIndex) {
                     resolvedStops = stopPoint.subList(curIndex, destIndex + 1)
                     break
                 }
@@ -95,8 +131,10 @@ class TflCallingPointsResolver(
                 ): List<Int>? {
                     if (currBranchId in visited) return null
                     val branch = branchMap[currBranchId] ?: return null
-                    val containsTarget = branch.stopPoint.any { matchesDestination(it) }
-                    if (containsTarget) return listOf(currBranchId)
+                    val originIdxInBranch = branch.stopPoint.indexOfFirst { matchesOrigin(it) }
+                    val destIdxInBranch = branch.stopPoint.indexOfLast { matchesDestination(it) }
+                    val containsTargetAfterOrigin = destIdxInBranch != -1 && (originIdxInBranch == -1 || destIdxInBranch > originIdxInBranch)
+                    if (containsTargetAfterOrigin) return listOf(currBranchId)
 
                     val nextVisited = visited + currBranchId
                     val candidatePaths = mutableListOf<List<Int>>()
@@ -142,9 +180,11 @@ class TflCallingPointsResolver(
                         val destIdx = combined.indexOfLast { matchesDestination(it) }
 
                         val sIdx = if (curIdx != -1) curIdx else 0
-                        val eIdx = if (destIdx != -1 && destIdx >= sIdx) destIdx else (combined.size - 1)
-                        resolvedStops = combined.subList(sIdx, eIdx + 1)
-                        break
+                        val eIdx = if (destIdx != -1 && destIdx > sIdx) destIdx else (combined.size - 1)
+                        if (eIdx > sIdx) {
+                            resolvedStops = combined.subList(sIdx, eIdx + 1)
+                            break
+                        }
                     }
                 }
             }
@@ -158,11 +198,11 @@ class TflCallingPointsResolver(
                         val lineArrivals = apiService.getLineArrivals(lineId)
                         // If destination station code is known, filter predictions to ensure they are on this trip
                         lineArrivals.filter { pred ->
-                            pred.vehicleId == vehicleId && (
-                                    destCode == null || pred.destinationNaptanId == null ||
-                                            pred.destinationNaptanId.equals(destCode, ignoreCase = true) ||
-                                            pred.naptanId?.equals(destCode, ignoreCase = true) == true
-                                    )
+                            val matchesTripDest = candidateDestCodes.isEmpty() ||
+                                pred.destinationNaptanId == null ||
+                                candidateDestCodes.contains(pred.destinationNaptanId.lowercase()) ||
+                                (pred.naptanId != null && candidateDestCodes.contains(pred.naptanId.lowercase()))
+                            pred.vehicleId == vehicleId && matchesTripDest
                         }.forEach { pred ->
                             val naptan = pred.naptanId?.lowercase()
                             val stName = pred.stationName?.let { StationNameFormatter.clean(it).lowercase() }

@@ -63,6 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.androidfung.departureboard.BuildConfig
+import androidx.core.net.toUri
 
 data class FaqItem(
     val question: String,
@@ -77,8 +78,8 @@ data class FaqItem(
 @Composable
 fun HelpFaqBottomSheet(
     onDismissRequest: () -> Unit,
-    onRateApp: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onRateApp: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val context = LocalContext.current
@@ -230,7 +231,7 @@ fun HelpFaqBottomSheet(
                         onOpenPrivacyPolicy = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                Uri.parse("https://github.com/seventhmoon/DepartureBoard-Android")
+                                "https://github.com/seventhmoon/DepartureBoard-Android".toUri()
                             )
                             context.startActivity(intent)
                         },
@@ -389,7 +390,7 @@ private fun AppInfoCard(
                     .clickable {
                         val intent = Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse("https://play.google.com/store/account/subscriptions?package=com.androidfung.departureboard")
+                            "https://play.google.com/store/account/subscriptions?package=com.androidfung.departureboard".toUri()
                         )
                         context.startActivity(intent)
                     }

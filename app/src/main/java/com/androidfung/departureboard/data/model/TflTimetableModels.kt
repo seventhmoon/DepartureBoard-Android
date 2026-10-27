@@ -12,6 +12,7 @@ data class TflTimetableResponse(
     @Json(name = "lineId") val lineId: String? = null,
     @Json(name = "lineName") val lineName: String? = null,
     @Json(name = "direction") val direction: String? = null,
+    @Json(name = "stations") val stations: List<TflStopPointMatch> = emptyList(),
     @Json(name = "timetable") val timetable: TflTimetable? = null,
     @Json(name = "disambiguation") val disambiguation: TflDisambiguation? = null
 )
@@ -24,7 +25,20 @@ data class TflTimetable(
 
 @JsonClass(generateAdapter = true)
 data class TflTimetableRoute(
+    @Json(name = "stationIntervals") val stationIntervals: List<TflStationInterval> = emptyList(),
     @Json(name = "schedules") val schedules: List<TflSchedule> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class TflStationInterval(
+    @Json(name = "id") val id: String = "",
+    @Json(name = "intervals") val intervals: List<TflInterval> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class TflInterval(
+    @Json(name = "stopId") val stopId: String = "",
+    @Json(name = "timeToArrival") val timeToArrival: Double = 0.0
 )
 
 @JsonClass(generateAdapter = true)

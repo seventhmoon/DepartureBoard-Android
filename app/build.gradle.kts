@@ -20,8 +20,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 31
-        versionName = "1.2.0-261024"
+        versionCode = 32
+        versionName = "1.2.0-261025"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -64,7 +64,6 @@ android {
     lint {
         warningsAsErrors = false
         abortOnError = false
-//        disable += setOf("UnusedAttribute", "GradleDependency", "NewerVersionAvailable", "UseKtx")
     }
     testOptions {
         unitTests {

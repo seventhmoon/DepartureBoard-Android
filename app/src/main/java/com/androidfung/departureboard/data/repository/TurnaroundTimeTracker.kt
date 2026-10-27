@@ -1,5 +1,6 @@
 package com.androidfung.departureboard.data.repository
 
+import com.androidfung.departureboard.data.model.TflStationIds
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -26,44 +27,44 @@ object TurnaroundTimeTracker {
     // Specific WTT profiles for major high-frequency London termini
     private val WTT_TERMINUS_PROFILES = listOf(
         // Victoria line (intensive 36 tph stepping-back)
-        TerminusWttProfile("Brixton", "victoria", "Stockwell", 115, 110, setOf("940GZZLUBXN")),
-        TerminusWttProfile("Walthamstow Central", "victoria", "Blackhorse Road", 110, 120, setOf("940GZZLUWWL", "940GZZLUWAC")),
+        TerminusWttProfile("Brixton", "victoria", "Stockwell", 115, 110, setOf(TflStationIds.BRIXTON, TflStationIds.BRIXTON_ALT)),
+        TerminusWttProfile("Walthamstow Central", "victoria", "Blackhorse Road", 110, 120, setOf(TflStationIds.WALTHAMSTOW_CENTRAL, TflStationIds.WALTHAMSTOW_CENTRAL_ALT)),
 
         // Northern line (stepping-back at Morden, Edgware, High Barnet, Battersea, Mill Hill East)
-        TerminusWttProfile("Morden", "northern", "South Wimbledon", 100, 150, setOf("940GZZLUMDN")),
-        TerminusWttProfile("Edgware", "northern", "Burnt Oak", 120, 180, setOf("940GZZLUEGW")),
-        TerminusWttProfile("High Barnet", "northern", "Totteridge & Whetstone", 135, 180, setOf("940GZZLUHBT")),
-        TerminusWttProfile("Battersea Power Station", "northern", "Nine Elms", 110, 150, setOf("940GZZBPSUST")),
-        TerminusWttProfile("Mill Hill East", "northern", "Finchley Central", 180, 150, setOf("940GZZLUMHL")),
+        TerminusWttProfile("Morden", "northern", "South Wimbledon", 100, 150, setOf(TflStationIds.MORDEN)),
+        TerminusWttProfile("Edgware", "northern", "Burnt Oak", 120, 180, setOf(TflStationIds.EDGWARE)),
+        TerminusWttProfile("High Barnet", "northern", "Totteridge & Whetstone", 135, 180, setOf(TflStationIds.HIGH_BARNET)),
+        TerminusWttProfile("Battersea Power Station", "northern", "Nine Elms", 110, 150, setOf(TflStationIds.BATTERSEA_POWER_STATION, TflStationIds.BATTERSEA_POWER_STATION_ALT)),
+        TerminusWttProfile("Mill Hill East", "northern", "Finchley Central", 180, 150, setOf(TflStationIds.MILL_HILL_EAST)),
 
         // Jubilee line
-        TerminusWttProfile("Stratford", "jubilee", "West Ham", 140, 180, setOf("940GZZLUSTD")),
-        TerminusWttProfile("Stanmore", "jubilee", "Canons Park", 120, 180, setOf("940GZZLUSTM")),
+        TerminusWttProfile("Stratford", "jubilee", "West Ham", 140, 180, setOf(TflStationIds.STRATFORD)),
+        TerminusWttProfile("Stanmore", "jubilee", "Canons Park", 120, 180, setOf(TflStationIds.STANMORE)),
 
         // Bakerloo line
-        TerminusWttProfile("Elephant & Castle", "bakerloo", "Lambeth North", 110, 180, setOf("940GZZLUEHA")),
-        TerminusWttProfile("Harrow & Wealdstone", "bakerloo", "Kenton", 125, 210, setOf("940GZZLUHAW")),
+        TerminusWttProfile("Elephant & Castle", "bakerloo", "Lambeth North", 110, 180, setOf(TflStationIds.ELEPHANT_AND_CASTLE, TflStationIds.ELEPHANT_AND_CASTLE_ALT)),
+        TerminusWttProfile("Harrow & Wealdstone", "bakerloo", "Kenton", 125, 210, setOf(TflStationIds.HARROW_AND_WEALDSTONE)),
 
         // Central line
-        TerminusWttProfile("West Ruislip", "central", "Ruislip Gardens", 130, 210, setOf("940GZZLUWRP")),
-        TerminusWttProfile("Ealing Broadway", "central", "West Acton", 140, 210, setOf("940GZZLUEBY")),
-        TerminusWttProfile("Epping", "central", "Theydon Bois", 160, 210, setOf("940GZZLUEPG")),
-        TerminusWttProfile("Hainault", "central", "Fairlop", 110, 180, setOf("940GZZLUHHL")),
+        TerminusWttProfile("West Ruislip", "central", "Ruislip Gardens", 130, 210, setOf(TflStationIds.WEST_RUISLIP)),
+        TerminusWttProfile("Ealing Broadway", "central", "West Acton", 140, 210, setOf(TflStationIds.EALING_BROADWAY)),
+        TerminusWttProfile("Epping", "central", "Theydon Bois", 160, 210, setOf(TflStationIds.EPPING)),
+        TerminusWttProfile("Hainault", "central", "Fairlop", 110, 180, setOf(TflStationIds.HAINAULT)),
 
         // Piccadilly line
-        TerminusWttProfile("Cockfosters", "piccadilly", "Oakwood", 130, 210, setOf("940GZZLUCKF")),
-        TerminusWttProfile("Uxbridge", "piccadilly", "Hillingdon", 140, 240, setOf("940GZZLUUXB")),
-        TerminusWttProfile("Heathrow Terminal 5", "piccadilly", "Heathrow Terminals 2 & 3", 180, 240, setOf("940GZZLUHR5")),
+        TerminusWttProfile("Cockfosters", "piccadilly", "Oakwood", 130, 210, setOf(TflStationIds.COCKFOSTERS)),
+        TerminusWttProfile("Uxbridge", "piccadilly", "Hillingdon", 140, 240, setOf(TflStationIds.UXBRIDGE)),
+        TerminusWttProfile("Heathrow Terminal 5", "piccadilly", "Heathrow Terminals 2 & 3", 180, 240, setOf(TflStationIds.HEATHROW_TERMINAL_5)),
 
         // District line
-        TerminusWttProfile("Upminster", "district", "Upminster Bridge", 110, 240, setOf("940GZZLUUPM")),
-        TerminusWttProfile("Wimbledon", "district", "Wimbledon Park", 120, 240, setOf("940GZZLUWBR")),
-        TerminusWttProfile("Richmond", "district", "Kew Gardens", 150, 240, setOf("940GZZLURMD")),
+        TerminusWttProfile("Upminster", "district", "Upminster Bridge", 110, 240, setOf(TflStationIds.UPMINSTER)),
+        TerminusWttProfile("Wimbledon", "district", "Wimbledon Park", 120, 240, setOf(TflStationIds.WIMBLEDON, TflStationIds.WIMBLEDON_ALT)),
+        TerminusWttProfile("Richmond", "district", "Kew Gardens", 150, 240, setOf(TflStationIds.RICHMOND)),
 
         // Elizabeth line
-        TerminusWttProfile("Abbey Wood", "elizabeth-line", "Woolwich", 190, 300, setOf("910GABWD", "HUBABW")),
-        TerminusWttProfile("Reading", "elizabeth-line", "Twyford", 300, 360, setOf("910GREADING")),
-        TerminusWttProfile("Shenfield", "elizabeth-line", "Brentwood", 240, 360, setOf("910GSHENFLD"))
+        TerminusWttProfile("Abbey Wood", "elizabeth-line", "Woolwich", 190, 300, setOf(TflStationIds.ABBEY_WOOD, TflStationIds.ABBEY_WOOD_HUB)),
+        TerminusWttProfile("Reading", "elizabeth-line", "Twyford", 300, 360, setOf(TflStationIds.READING)),
+        TerminusWttProfile("Shenfield", "elizabeth-line", "Brentwood", 240, 360, setOf(TflStationIds.SHENFIELD))
     )
 
     // Lookup index by clean terminus name + lineId, and by stationId + lineId
@@ -169,11 +170,12 @@ object TurnaroundTimeTracker {
 
         // Filter out extreme anomalies (e.g. overnight depot stabling > 30m or glitch < 30s)
         if (observedDwellSeconds in 45..1200) {
-            val key = "${stationId.lowercase()}_${lineId.lowercase()}"
+            val cleanLine = lineId.lowercase()
             val prior = getEstimatedTurnaroundSeconds(stationId, lineId)
             // Exponential moving average: alpha = 0.35 (gives 35% weight to fresh observation)
             val updated = ((0.35 * observedDwellSeconds) + (0.65 * prior)).toInt()
-            learnedTurnarounds[key] = updated
+            learnedTurnarounds["${stationId.uppercase()}_$cleanLine"] = updated
+            learnedTurnarounds["${StationNameFormatter.clean(stationId).lowercase()}_$cleanLine"] = updated
         }
     }
 }

@@ -18,6 +18,7 @@ import com.google.android.play.core.review.testing.FakeReviewManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
+import androidx.core.net.toUri
 
 /**
  * Manages Google Play In-App Review requests according to Google Play guidelines:
@@ -160,7 +161,7 @@ class InAppReviewManager(
      */
     fun openPlayStore(context: Context) {
         try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(STORE_URL)).apply {
+            val intent = Intent(Intent.ACTION_VIEW, STORE_URL.toUri()).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)

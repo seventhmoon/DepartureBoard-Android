@@ -50,6 +50,8 @@ import androidx.glance.currentState
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import kotlinx.coroutines.flow.first
+import androidx.compose.ui.platform.LocalLocale
+import androidx.core.net.toUri
 
 class DepartureBoardWidget : GlanceAppWidget() {
 
@@ -179,7 +181,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
     ) {
         val clickIntent = Intent(androidx.glance.LocalContext.current, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
-            data = android.net.Uri.parse("mindtheboard://station/${station.id}?name=${java.net.URLEncoder.encode(station.name, "UTF-8")}")
+            data = "mindtheboard://station/${station.id}?name=${java.net.URLEncoder.encode(station.name, "UTF-8")}".toUri()
             putExtra(MainActivity.EXTRA_STATION_ID, station.id)
             putExtra(MainActivity.EXTRA_STATION_NAME, station.name)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -230,7 +232,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
                         ),
                         maxLines = 1
                     )
-                    val currentClockStr = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                    val currentClockStr = java.text.SimpleDateFormat("HH:mm", LocalLocale.current.platformLocale)
                         .format(java.util.Date())
                     val liveLabel = when {
                         interruptionInfo.statusText != null -> "⚠ ${interruptionInfo.statusText}"
@@ -321,7 +323,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
     ) {
         val clickIntent = Intent(androidx.glance.LocalContext.current, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
-            data = android.net.Uri.parse("mindtheboard://station/${station.id}?name=${java.net.URLEncoder.encode(station.name, "UTF-8")}")
+            data = "mindtheboard://station/${station.id}?name=${java.net.URLEncoder.encode(station.name, "UTF-8")}".toUri()
             putExtra(MainActivity.EXTRA_STATION_ID, station.id)
             putExtra(MainActivity.EXTRA_STATION_NAME, station.name)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

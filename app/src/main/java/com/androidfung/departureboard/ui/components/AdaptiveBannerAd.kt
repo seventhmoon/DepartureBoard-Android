@@ -9,8 +9,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.viewinterop.AndroidView
 import com.androidfung.departureboard.BuildConfig
 import com.google.android.gms.ads.AdRequest
@@ -33,12 +34,13 @@ fun AdaptiveBannerAd(
     adUnitId: String = if (BuildConfig.DEBUG) TEST_BANNER_AD_UNIT_ID else PROD_BANNER_AD_UNIT_ID,
 ) {
     val context = LocalContext.current
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
+    val containerWidthDp = with(density) { windowInfo.containerSize.width.toDp().value.toInt() }
 
-    // Calculate anchored adaptive banner ad size based on current screen width
-    val adSize = remember(screenWidthDp) {
-        AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, screenWidthDp)
+    // Calculate anchored adaptive banner ad size based on current container width
+    val adSize = remember(containerWidthDp) {
+        AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, containerWidthDp)
     }
 
     val adView = remember(adUnitId, adSize) {

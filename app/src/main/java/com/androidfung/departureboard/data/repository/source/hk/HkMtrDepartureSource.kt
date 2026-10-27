@@ -78,6 +78,7 @@ class HkMtrDepartureSource(
 
                             val timeToStation = max(0, diffSeconds)
                             val destCode = item.dest?.uppercase() ?: ""
+                            if (destCode.equals(sta, ignoreCase = true)) return@mapNotNull null
                             val destName = HkMtrStationRegistry.getName(destCode).ifBlank { "MTR Terminus" }
                             val plat = item.plat ?: "1"
 
@@ -103,7 +104,8 @@ class HkMtrDepartureSource(
                                 modeName = "tube",
                                 lineBadge = lineBadge,
                                 callingPoints = callingPoints,
-                                status = if (timeToStation <= 45) DepartureStatus.DUE else DepartureStatus.ON_TIME
+                                status = if (timeToStation <= 45) DepartureStatus.DUE else DepartureStatus.ON_TIME,
+                                destinationStationId = destCode.ifBlank { null }
                             )
                         }
                     } catch (_: Exception) {

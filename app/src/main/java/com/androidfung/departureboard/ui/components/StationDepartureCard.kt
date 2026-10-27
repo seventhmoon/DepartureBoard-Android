@@ -63,6 +63,7 @@ import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.ui.dashboard.StationCardUiModel
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
+import androidx.core.net.toUri
 
 /**
  * Pixel Clock-inspired departure card displaying a station, TfL line badges,
@@ -481,7 +482,7 @@ fun LineDisruptionBanner(
                             modifier = Modifier
                                 .clickable {
                                     try {
-                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, url.toUri()))
                                     } catch (_: Exception) {}
                                 }
                                 .padding(vertical = 1.dp)
@@ -509,7 +510,8 @@ fun LineDisruptionBanner(
                             modifier = Modifier
                                 .clickable {
                                     try {
-                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
+                                            url.toUri()))
                                     } catch (_: Exception) {}
                                 }
                                 .padding(top = 2.dp)

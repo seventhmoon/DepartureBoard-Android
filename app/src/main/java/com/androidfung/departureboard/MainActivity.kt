@@ -14,7 +14,6 @@ import kotlinx.coroutines.launch
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -56,6 +55,7 @@ import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
 import kotlinx.serialization.Serializable
+import kotlin.time.Duration.Companion.milliseconds
 
 @Serializable
 data object DashboardListRoute : NavKey
@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
     private var debugProReceiver: BroadcastReceiver? = null
 
     // Modern ActivityResultLauncher for in-app update flows
+    @Suppress("UpgradeFragmentVersion")
     private val appUpdateLauncher = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
@@ -142,7 +143,7 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(uiState.stationCards.size) {
                         if (uiState.stationCards.isNotEmpty() && !uiState.isInitialLoading && !uiState.isRefreshing) {
                             // Delay slightly after launch so the UI is calm and settled
-                            kotlinx.coroutines.delay(3000)
+                            kotlinx.coroutines.delay(3000.milliseconds)
                             // Only trigger when the user is on the top-level dashboard (not deep in station or journey details)
                             if (uiState.selectedDetailStation == null && uiState.selectedJourneyDeparture == null) {
                                 com.androidfung.departureboard.review.InAppReviewManager.getInstance(applicationContext)

@@ -20,15 +20,61 @@ object TflDepartureMapper {
 
     /**
      * Deduplicates raw arrivals based on vehicleId, or line + destination + 30-sec time bucket.
+     * When a stationId/stationName is provided and TfL returns both an inbound terminating prediction
+     * and an outbound departure prediction for the same vehicleId, prefers the outbound prediction.
      */
-    fun deduplicate(rawArrivals: List<TflArrivalPrediction>): List<TflArrivalPrediction> {
-        return rawArrivals.distinctBy { item ->
-            if (!item.vehicleId.isNullOrBlank()) {
-                item.vehicleId
+    fun deduplicate(
+        rawArrivals: List<TflArrivalPrediction>,
+        stationId: String = "",
+        stationName: String = ""
+    ): List<TflArrivalPrediction> {
+        if (stationId.isBlank() && stationName.isBlank()) {
+            return rawArrivals.distinctBy { item ->
+                if (!item.vehicleId.isNullOrBlank()) {
+                    item.vehicleId
+                } else {
+                    "${item.lineId}_${item.destinationName}_${item.timeToStation / 30}"
+                }
+            }
+        }
+
+        val orderedKeys = mutableListOf<String>()
+        val bestByKey = LinkedHashMap<String, TflArrivalPrediction>()
+
+        for (item in rawArrivals) {
+            val key = if (!item.vehicleId.isNullOrBlank()) {
+                "veh_${item.vehicleId}"
             } else {
                 "${item.lineId}_${item.destinationName}_${item.timeToStation / 30}"
             }
+            val existing = bestByKey[key]
+            if (existing == null) {
+                orderedKeys.add(key)
+                bestByKey[key] = item
+            } else if (!item.vehicleId.isNullOrBlank()) {
+                val existingTerminating = DestinationResolver.isTerminatingAtStation(
+                    stationId = stationId,
+                    stationName = stationName,
+                    itemDestination = existing.destinationName,
+                    itemTowards = existing.towards,
+                    destinationNaptanId = existing.destinationNaptanId,
+                    itemNaptanId = existing.naptanId
+                )
+                val candidateTerminating = DestinationResolver.isTerminatingAtStation(
+                    stationId = stationId,
+                    stationName = stationName,
+                    itemDestination = item.destinationName,
+                    itemTowards = item.towards,
+                    destinationNaptanId = item.destinationNaptanId,
+                    itemNaptanId = item.naptanId
+                )
+                if (existingTerminating && !candidateTerminating) {
+                    bestByKey[key] = item
+                }
+            }
         }
+
+        return orderedKeys.mapNotNull { bestByKey[it] }
     }
 
     /**
@@ -37,47 +83,97 @@ object TflDepartureMapper {
     fun mapToDeparture(
         item: TflArrivalPrediction,
         stationId: String,
-        stationName: String
+        stationName: String,
+        wasTerminatingHere: Boolean = false,
+        scheduledDepartureEpochSeconds: Long? = null
     ): Departure {
+        val effectiveStationId = item.naptanId ?: stationId
         val lineName = item.lineName ?: item.lineId ?: "Transit"
         val badge = TflLineColors.getLineBadge(
             lineId = item.lineId,
             lineName = item.lineName,
             modeName = item.modeName
         )
-        val rawInput = item.destinationName ?: item.towards ?: ""
+
+        val isTerminatingHere = wasTerminatingHere || DestinationResolver.isTerminatingAtStation(
+            stationId = stationId,
+            stationName = stationName,
+            itemDestination = item.destinationName,
+            itemTowards = item.towards,
+            destinationNaptanId = item.destinationNaptanId,
+            itemNaptanId = item.naptanId
+        )
+
         val resolvedDest = DestinationResolver.resolve(
             stationName = stationName,
             itemDestination = item.destinationName,
             itemTowards = item.towards,
             lineId = item.lineId.orEmpty(),
             platformName = item.platformName,
-            stationId = item.naptanId ?: stationId,
+            stationId = effectiveStationId,
             destinationNaptanId = item.destinationNaptanId
         )
         val isBus = item.modeName.equals(TransitMode.BUS.id, ignoreCase = true) || item.lineId?.toIntOrNull() != null
-        val platformDisplay = PlatformFormatter.format(item.platformName, item.towards, isBus)
-        val cleanTowards = item.towards?.takeIf { !it.trim().equals("null", ignoreCase = true) }?.let { StationNameFormatter.clean(it) }
-        val resolvedDirection = resolveCardinalDirection(item, resolvedDest, stationName)
-
-        val isTerminatingById = !item.destinationNaptanId.isNullOrBlank() && (
-                item.destinationNaptanId.equals(stationId, ignoreCase = true) ||
-                        item.destinationNaptanId.equals(item.naptanId, ignoreCase = true)
-                )
-        val cleanDest = StationNameFormatter.clean(rawInput)
+        val terminusOutboundDirection = if (!isBus) {
+            DestinationResolver.resolveTerminusOutboundDirection(
+                stationId = effectiveStationId,
+                stationName = stationName,
+                lineId = item.lineId
+            )
+        } else null
+        val platformDisplay = PlatformFormatter.format(
+            rawPlatform = item.platformName,
+            towards = item.towards,
+            isBus = isBus,
+            overrideDirection = terminusOutboundDirection
+        )
         val cleanStation = StationNameFormatter.clean(stationName)
-        val isTerminatingByName = cleanDest.isNotBlank() && (
-                cleanDest.equals(cleanStation, ignoreCase = true) ||
-                        cleanDest.startsWith("$cleanStation ", ignoreCase = true)
-                )
-        val isTerminatingHere = isTerminatingById || isTerminatingByName
+        val rawCleanTowards = item.towards?.takeIf { !it.trim().equals("null", ignoreCase = true) }?.let { StationNameFormatter.clean(it) }
+        val cleanTowards = if (isTerminatingHere && rawCleanTowards != null && (
+                rawCleanTowards.equals(cleanStation, ignoreCase = true) ||
+                rawCleanTowards.startsWith("$cleanStation ", ignoreCase = true)
+            )
+        ) {
+            resolvedDest.ifBlank { null }
+        } else {
+            rawCleanTowards
+        }
+        val resolvedDirection = terminusOutboundDirection ?: resolveCardinalDirection(item, resolvedDest, stationName)
 
         val finalTimeToStationSeconds = if (isTerminatingHere && !isBus) {
             val buffer = TurnaroundTimeTracker.getEstimatedTurnaroundSeconds(stationId.ifBlank { stationName }, item.lineId ?: "")
-            item.timeToStation + buffer
+            val bufferedCountdown = item.timeToStation + buffer
+            if (scheduledDepartureEpochSeconds != null) {
+                val nowEpochSeconds = System.currentTimeMillis() / 1000L
+                val scheduledCountdown = (scheduledDepartureEpochSeconds - nowEpochSeconds).toInt()
+                maxOf(bufferedCountdown, scheduledCountdown)
+            } else {
+                bufferedCountdown
+            }
         } else {
             item.timeToStation
         }
+
+        val addedTurnaroundSeconds = (finalTimeToStationSeconds - item.timeToStation).coerceAtLeast(0)
+        val finalExpectedArrivalIso = if (addedTurnaroundSeconds > 0 && !item.expectedArrival.isNullOrBlank()) {
+            try {
+                java.time.Instant.parse(item.expectedArrival)
+                    .plusSeconds(addedTurnaroundSeconds.toLong())
+                    .toString()
+            } catch (_: Exception) {
+                item.expectedArrival
+            }
+        } else {
+            item.expectedArrival
+        }
+
+        val rawDestStationId = item.destinationNaptanId?.takeIf { id ->
+            id.isNotBlank() &&
+                !id.equals(stationId, ignoreCase = true) &&
+                !id.equals(item.naptanId, ignoreCase = true)
+        }
+        val finalDestinationStationId = rawDestStationId
+            ?: if (!isBus) DestinationResolver.resolveDestinationNaptanId(resolvedDest, item.lineId) else null
 
         if (!item.vehicleId.isNullOrBlank()) {
             if (isTerminatingHere) {
@@ -89,7 +185,7 @@ object TflDepartureMapper {
 
         return Departure(
             id = item.id,
-            stationId = item.naptanId ?: stationId,
+            stationId = effectiveStationId,
             stationName = StationNameFormatter.clean(item.stationName ?: stationName),
             lineId = item.lineId ?: "transit",
             lineName = lineName,
@@ -98,12 +194,12 @@ object TflDepartureMapper {
             towards = cleanTowards,
             direction = resolvedDirection,
             timeToStationSeconds = finalTimeToStationSeconds,
-            expectedArrivalIso = item.expectedArrival,
+            expectedArrivalIso = finalExpectedArrivalIso,
             currentLocation = item.currentLocation?.takeIf { !it.trim().equals("null", ignoreCase = true) },
             modeName = item.modeName ?: if (isBus) TransitMode.BUS.id else TransitMode.TUBE.id,
             lineBadge = badge,
             vehicleId = item.vehicleId,
-            destinationStationId = item.destinationNaptanId
+            destinationStationId = finalDestinationStationId
         )
     }
 

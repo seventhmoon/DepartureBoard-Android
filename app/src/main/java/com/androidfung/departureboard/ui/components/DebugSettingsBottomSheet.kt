@@ -1,6 +1,5 @@
 package com.androidfung.departureboard.ui.components
 
-import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,9 +74,9 @@ fun DebugSettingsBottomSheet(
     onDismissRequest: () -> Unit,
     billingRepository: BillingDataSource,
     isPro: Boolean,
-    onTogglePro: () -> Unit = {},
     onResetStations: () -> Unit,
     modifier: Modifier = Modifier,
+    onTogglePro: () -> Unit = {},
     userPlan: com.androidfung.departureboard.billing.UserPlan = if (isPro) com.androidfung.departureboard.billing.UserPlan.PRO else com.androidfung.departureboard.billing.UserPlan.FREE,
     onSelectPlan: (com.androidfung.departureboard.billing.UserPlan) -> Unit = { onTogglePro() },
     selectedAiModel: AiModelType = AiModelType.DEFAULT,
@@ -128,8 +127,6 @@ fun DebugSettingsContent(
     sheetState: SheetState,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     var remainingAiQueries by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {

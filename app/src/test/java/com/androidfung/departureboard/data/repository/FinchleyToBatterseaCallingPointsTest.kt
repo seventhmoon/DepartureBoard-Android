@@ -370,4 +370,58 @@ class FinchleyToBatterseaCallingPointsTest {
         assertTrue(callingPoints.first().isCurrentStation)
         assertTrue(callingPoints.last().isDestination)
     }
+
+    @Test
+    fun millHillEast_shuttleToFinchleyCentral_resolvesTwoStopShuttleSequence() = runTest {
+        val mockSequence = TflRouteSequenceResponse(
+            lineId = "northern",
+            stopPointSequences = listOf(
+                TflStopPointSequence(
+                    branchId = 2,
+                    nextBranchIds = listOf(9),
+                    stopPoint = listOf(
+                        TflMatchedStop("940GZZLUMHL", "Mill Hill East Underground Station"),
+                        TflMatchedStop("940GZZLUFYC", "Finchley Central Underground Station")
+                    )
+                )
+            )
+        )
+
+        val fakeTflApi = com.androidfung.departureboard.test.FakeTflApiService(
+            routeSequenceResult = mockSequence
+        )
+
+        val repository = TransitRepositoryImpl(
+            apiService = fakeTflApi,
+            nrApiService = com.androidfung.departureboard.test.FakeNrApiService(),
+            dataStore = com.androidfung.departureboard.test.FakeStationPreferencesDataSource(emptyList(), null)
+        )
+
+        // Map from a raw terminating Mill Hill East arrival
+        val rawTerminating = com.androidfung.departureboard.data.model.TflArrivalPrediction(
+            id = "mhe_shuttle_1",
+            naptanId = "940GZZLUMHL",
+            stationName = "Mill Hill East Underground Station",
+            lineId = "northern",
+            lineName = "Northern",
+            platformName = "Northbound - Platform 1",
+            destinationNaptanId = "940GZZLUMHL",
+            destinationName = "Mill Hill East Underground Station",
+            timeToStation = 60,
+            modeName = "tube"
+        )
+        val departure = TflDepartureMapper.mapToDeparture(
+            item = rawTerminating,
+            stationId = "940GZZLUMHL",
+            stationName = "Mill Hill East"
+        )
+
+        val callingPoints = repository.getCallingPoints(departure)
+
+        assertEquals(2, callingPoints.size)
+        assertEquals("Mill Hill East", callingPoints[0].stationName)
+        assertTrue(callingPoints[0].isCurrentStation)
+        assertEquals("Finchley Central", callingPoints[1].stationName)
+        assertTrue(callingPoints[1].isDestination)
+    }
 }

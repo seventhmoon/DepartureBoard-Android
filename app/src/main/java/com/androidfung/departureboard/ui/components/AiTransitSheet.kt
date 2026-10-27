@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -69,6 +68,7 @@ import com.androidfung.departureboard.ai.TransitAiAssistant
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.repository.TransitRepository
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 /**
  * Intelligent Transit Assistant bottom sheet powered by Gemini / Natural Language Queries.
@@ -366,9 +366,18 @@ fun AiTransitSheet(
                             ) {
                                 androidx.compose.material3.OutlinedButton(
                                     onClick = {
-                                        val mapsUri = android.net.Uri.parse(
-                                            "https://www.google.com/maps/dir/?api=1&origin=${java.net.URLEncoder.encode("$orig London", "UTF-8")}&destination=${java.net.URLEncoder.encode("$dest London", "UTF-8")}&travelmode=transit"
-                                        )
+                                        val mapsUri =
+                                            "https://www.google.com/maps/dir/?api=1&origin=${
+                                                java.net.URLEncoder.encode(
+                                                    "$orig London",
+                                                    "UTF-8"
+                                                )
+                                            }&destination=${
+                                                java.net.URLEncoder.encode(
+                                                    "$dest London",
+                                                    "UTF-8"
+                                                )
+                                            }&travelmode=transit".toUri()
                                         val mapsIntent = Intent(Intent.ACTION_VIEW, mapsUri).apply {
                                             setPackage("com.google.android.apps.maps")
                                         }
@@ -386,9 +395,7 @@ fun AiTransitSheet(
 
                                 androidx.compose.material3.OutlinedButton(
                                     onClick = {
-                                        val tflUri = android.net.Uri.parse(
-                                            "https://tfl.gov.uk/plan-a-journey/results?InputFrom=${java.net.URLEncoder.encode(orig, "UTF-8")}&InputTo=${java.net.URLEncoder.encode(dest, "UTF-8")}"
-                                        )
+                                        val tflUri = "https://tfl.gov.uk/plan-a-journey/results?InputFrom=${java.net.URLEncoder.encode(orig, "UTF-8")}&InputTo=${java.net.URLEncoder.encode(dest, "UTF-8")}".toUri()
                                         context.startActivity(Intent(Intent.ACTION_VIEW, tflUri))
                                     },
                                     modifier = Modifier.weight(1f),

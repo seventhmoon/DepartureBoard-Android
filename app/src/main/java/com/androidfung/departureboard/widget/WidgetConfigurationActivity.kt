@@ -75,6 +75,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
+import androidx.core.content.edit
 
 class WidgetConfigurationActivity : ComponentActivity() {
 
@@ -153,24 +154,24 @@ class WidgetConfigurationActivity : ComponentActivity() {
     ) {
         // Fast synchronous persistence keyed ONLY to this appWidgetId
         val sp = applicationContext.getSharedPreferences("widget_config", MODE_PRIVATE)
-        sp.edit()
-            .putString("station_id_$appWidgetId", station.id)
-            .putString("station_name_$appWidgetId", station.displayName)
-            .apply {
-                if (lineBadge != null) {
-                    putString("filter_line_id_$appWidgetId", lineBadge.lineId)
-                    putString("filter_line_name_$appWidgetId", lineBadge.displayName)
-                } else {
-                    remove("filter_line_id_$appWidgetId")
-                    remove("filter_line_name_$appWidgetId")
+        sp.edit(commit = true) {
+            putString("station_id_$appWidgetId", station.id)
+                .putString("station_name_$appWidgetId", station.displayName)
+                .apply {
+                    if (lineBadge != null) {
+                        putString("filter_line_id_$appWidgetId", lineBadge.lineId)
+                        putString("filter_line_name_$appWidgetId", lineBadge.displayName)
+                    } else {
+                        remove("filter_line_id_$appWidgetId")
+                        remove("filter_line_name_$appWidgetId")
+                    }
+                    if (!direction.isNullOrBlank()) {
+                        putString("filter_direction_$appWidgetId", direction)
+                    } else {
+                        remove("filter_direction_$appWidgetId")
+                    }
                 }
-                if (!direction.isNullOrBlank()) {
-                    putString("filter_direction_$appWidgetId", direction)
-                } else {
-                    remove("filter_direction_$appWidgetId")
-                }
-            }
-            .commit() // Commit synchronously
+        } // Commit synchronously
 
         isFinalizing = true
 

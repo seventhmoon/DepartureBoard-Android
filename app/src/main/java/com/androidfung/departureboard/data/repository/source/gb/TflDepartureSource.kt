@@ -7,6 +7,9 @@ import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.network.TflApiService
 import com.androidfung.departureboard.data.repository.TflDepartureMapper
 import com.androidfung.departureboard.data.repository.TflStopPointUtils
+import com.androidfung.departureboard.data.repository.TimetableScheduleResolver
+import com.androidfung.departureboard.data.repository.TurnaroundTimeTracker
+import com.androidfung.departureboard.data.repository.direction.DestinationResolver
 import com.androidfung.departureboard.data.repository.source.DepartureSource
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -17,7 +20,8 @@ import kotlinx.coroutines.coroutineScope
  * Encapsulates TfL arrivals querying, hub child expansion, deduplication, and modal filtering.
  */
 class TflDepartureSource(
-    private val apiService: TflApiService
+    private val apiService: TflApiService,
+    private val timetableResolver: TimetableScheduleResolver = TimetableScheduleResolver(apiService)
 ) : DepartureSource {
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
@@ -45,15 +49,20 @@ class TflDepartureSource(
             }
 
             val tflDepartures = if (filteredRawArrivals.isNotEmpty()) {
-                val distinct = TflDepartureMapper.deduplicate(filteredRawArrivals)
+                val distinct = TflDepartureMapper.deduplicate(filteredRawArrivals, stationId, stationName)
 
                 // If any train is terminating at this station (e.g. at a terminus or shuttle branch),
                 // cross-check with Line Arrivals to see if TfL has published its return trip with exact vehicleId & destination!
                 val hasTerminatingTrains = distinct.any { arrival ->
-                    !arrival.destinationNaptanId.isNullOrBlank() && (
-                        arrival.destinationNaptanId.equals(stationId, ignoreCase = true) ||
-                        arrival.destinationNaptanId.equals(arrival.naptanId, ignoreCase = true)
-                    ) && !arrival.vehicleId.isNullOrBlank()
+                    !arrival.vehicleId.isNullOrBlank() &&
+                        DestinationResolver.isTerminatingAtStation(
+                            stationId = stationId,
+                            stationName = stationName,
+                            itemDestination = arrival.destinationName,
+                            itemTowards = arrival.towards,
+                            destinationNaptanId = arrival.destinationNaptanId,
+                            itemNaptanId = arrival.naptanId
+                        )
                 }
 
                 val lineArrivalsByVehicle = if (hasTerminatingTrains) {
@@ -70,26 +79,83 @@ class TflDepartureSource(
                 }
 
                 distinct.map { arrival ->
-                    val returnTrip = if (!arrival.vehicleId.isNullOrBlank()) {
-                        lineArrivalsByVehicle[arrival.vehicleId]?.firstOrNull { candidate ->
-                            candidate.id != arrival.id &&
-                            !candidate.destinationNaptanId.isNullOrBlank() &&
-                            !candidate.destinationNaptanId.equals(stationId, ignoreCase = true) &&
-                            !candidate.destinationNaptanId.equals(arrival.naptanId, ignoreCase = true)
-                        }
+                    val isTerminating = DestinationResolver.isTerminatingAtStation(
+                        stationId = stationId,
+                        stationName = stationName,
+                        itemDestination = arrival.destinationName,
+                        itemTowards = arrival.towards,
+                        destinationNaptanId = arrival.destinationNaptanId,
+                        itemNaptanId = arrival.naptanId
+                    )
+
+                    val returnTrip = if (isTerminating && !arrival.vehicleId.isNullOrBlank()) {
+                        lineArrivalsByVehicle[arrival.vehicleId]
+                            ?.filter { candidate ->
+                                candidate.id != arrival.id &&
+                                    !DestinationResolver.isTerminatingAtStation(
+                                        stationId = stationId,
+                                        stationName = stationName,
+                                        itemDestination = candidate.destinationName,
+                                        itemTowards = candidate.towards,
+                                        destinationNaptanId = candidate.destinationNaptanId,
+                                        itemNaptanId = arrival.naptanId
+                                    ) &&
+                                    (!candidate.destinationNaptanId.isNullOrBlank() || !candidate.destinationName.isNullOrBlank()) &&
+                                    candidate.timeToStation >= arrival.timeToStation
+                            }
+                            ?.minByOrNull { it.timeToStation }
                     } else null
 
-                    val enrichedArrival = if (returnTrip != null) {
-                        arrival.copy(
-                            destinationNaptanId = returnTrip.destinationNaptanId,
-                            destinationName = returnTrip.destinationName,
-                            towards = returnTrip.towards ?: arrival.towards
+                    // If terminating and vehicle matching did not find an outbound departure,
+                    // attempt secondary fallback to scheduled timetable destination before static fallback
+                    val scheduledMatch = if (returnTrip == null && isTerminating && !arrival.lineId.isNullOrBlank()) {
+                        val turnaroundSeconds = TurnaroundTimeTracker.getEstimatedTurnaroundSeconds(
+                            stationId.ifBlank { stationName },
+                            arrival.lineId
                         )
-                    } else {
-                        arrival
+                        val nowEpochSeconds = System.currentTimeMillis() / 1000L
+                        val arrivalEpochSeconds = nowEpochSeconds + arrival.timeToStation
+                        val estimatedDepartureSeconds = arrivalEpochSeconds + turnaroundSeconds
+                        timetableResolver.resolveScheduledDeparture(
+                            stationId = arrival.naptanId ?: stationId,
+                            lineId = arrival.lineId,
+                            departureEpochSeconds = estimatedDepartureSeconds,
+                            earliestDepartureEpochSeconds = arrivalEpochSeconds + minOf(turnaroundSeconds, 60)
+                        )
+                    } else null
+
+                    val isReturnTripAtOrigin = returnTrip != null && (
+                        returnTrip.naptanId.equals(stationId, ignoreCase = true) ||
+                        (!arrival.naptanId.isNullOrBlank() && returnTrip.naptanId.equals(arrival.naptanId, ignoreCase = true))
+                    )
+
+                    val enrichedArrival = when {
+                        returnTrip != null -> {
+                            arrival.copy(
+                                destinationNaptanId = returnTrip.destinationNaptanId,
+                                destinationName = returnTrip.destinationName,
+                                towards = returnTrip.towards ?: returnTrip.destinationName,
+                                timeToStation = if (isReturnTripAtOrigin) returnTrip.timeToStation else arrival.timeToStation,
+                                expectedArrival = if (isReturnTripAtOrigin) (returnTrip.expectedArrival ?: arrival.expectedArrival) else arrival.expectedArrival
+                            )
+                        }
+                        scheduledMatch != null -> {
+                            arrival.copy(
+                                destinationNaptanId = scheduledMatch.destinationNaptanId ?: arrival.destinationNaptanId,
+                                destinationName = scheduledMatch.destinationName,
+                                towards = scheduledMatch.destinationName
+                            )
+                        }
+                        else -> arrival
                     }
 
-                    TflDepartureMapper.mapToDeparture(enrichedArrival, stationId, stationName)
+                    TflDepartureMapper.mapToDeparture(
+                        item = enrichedArrival,
+                        stationId = stationId,
+                        stationName = stationName,
+                        wasTerminatingHere = isTerminating && !isReturnTripAtOrigin,
+                        scheduledDepartureEpochSeconds = scheduledMatch?.scheduledDepartureEpochSeconds
+                    )
                 }
             } else {
                 emptyList()

@@ -24,6 +24,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Foreground service that tracks an active train / bus departure and posts
@@ -41,6 +42,10 @@ class TrainTrackingService : Service() {
         const val NOTIFICATION_ID = 2001
         const val ALERT_NOTIFICATION_ID = 2002
 
+        // Precompiled regex patterns to avoid per-notification allocations
+        private val PLATFORM_LABEL_REGEX = Regex("""Platform\s+[A-Za-z0-9]+""", RegexOption.IGNORE_CASE)
+        private val STOP_LABEL_REGEX = Regex("""Stop\s+[A-Za-z0-9]+""", RegexOption.IGNORE_CASE)
+
         // Polling intervals in seconds
         private const val POLL_INTERVAL_LONG = 45L
         private const val POLL_INTERVAL_MEDIUM = 30L
@@ -54,6 +59,7 @@ class TrainTrackingService : Service() {
         const val EXTRA_STATION_ID = "extra_station_id"
         const val EXTRA_STATION_NAME = "extra_station_name"
         const val EXTRA_DESTINATION_NAME = "extra_destination_name"
+        const val EXTRA_DESTINATION_ID = "extra_destination_id"
         const val EXTRA_LINE_ID = "extra_line_id"
         const val EXTRA_LINE_NAME = "extra_line_name"
         const val EXTRA_PLATFORM = "extra_platform"
@@ -81,6 +87,7 @@ class TrainTrackingService : Service() {
                 putExtra(EXTRA_STATION_ID, departure.stationId)
                 putExtra(EXTRA_STATION_NAME, departure.stationName)
                 putExtra(EXTRA_DESTINATION_NAME, departure.destinationName)
+                putExtra(EXTRA_DESTINATION_ID, departure.destinationStationId)
                 putExtra(EXTRA_LINE_ID, departure.lineId)
                 putExtra(EXTRA_LINE_NAME, departure.lineName)
                 putExtra(EXTRA_PLATFORM, departure.platformName)
@@ -88,11 +95,7 @@ class TrainTrackingService : Service() {
                 putExtra(EXTRA_IS_BUS, isBus)
                 putExtra(EXTRA_INITIAL_LOCATION, departure.currentLocation)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.startForegroundService(intent)
         }
 
         fun stopTracking(context: Context) {
@@ -135,6 +138,8 @@ class TrainTrackingService : Service() {
                 val isBus = intent.getBooleanExtra(EXTRA_IS_BUS, false)
                 val initialLocation = intent.getStringExtra(EXTRA_INITIAL_LOCATION)
 
+                val destinationId = intent.getStringExtra(EXTRA_DESTINATION_ID)
+
                 currentlyTrackedDepartureId = departureId
 
                 // Base baseline (B to S): Initial total seconds captured at moment user clicked Track
@@ -175,6 +180,7 @@ class TrainTrackingService : Service() {
                     stationId = stationId,
                     stationName = stationName,
                     destination = destination,
+                    destinationId = destinationId,
                     lineId = lineId,
                     lineName = lineName,
                     platform = platform,
@@ -192,6 +198,7 @@ class TrainTrackingService : Service() {
         stationId: String,
         stationName: String,
         destination: String,
+        destinationId: String?,
         lineId: String,
         lineName: String,
         platform: String,
@@ -233,10 +240,14 @@ class TrainTrackingService : Service() {
                                 isCancelled = true
                             }
 
-                            // 2. Check for destination change
-                            if (target.destinationName.isNotBlank() &&
-                                !target.destinationName.equals(currentDestination, ignoreCase = true)
-                            ) {
+                            // 2. Check for destination change (matching by destinationStationId when available to avoid string sensitivity)
+                            val destinationChanged = if (!destinationId.isNullOrBlank() && !target.destinationStationId.isNullOrBlank()) {
+                                !target.destinationStationId.equals(destinationId, ignoreCase = true)
+                            } else {
+                                target.destinationName.isNotBlank() && !target.destinationName.equals(currentDestination, ignoreCase = true)
+                            }
+
+                            if (destinationChanged && target.destinationName.isNotBlank()) {
                                 val oldDest = currentDestination
                                 currentDestination = target.destinationName
                                 postDisruptionAlert(
@@ -389,7 +400,7 @@ class TrainTrackingService : Service() {
                     else -> POLL_INTERVAL_SHORT
                 }
 
-                delay(pollIntervalSeconds * 1000L)
+                delay((pollIntervalSeconds * 1000L).milliseconds)
             }
 
             // If cancelled, keep the notification visible so the user sees the cancellation status.
@@ -534,10 +545,10 @@ class TrainTrackingService : Service() {
         // Clean platform or stop name for D (Content Text)
         val shortPlatform = when {
             platform.contains("Platform", ignoreCase = true) -> {
-                Regex("""Platform\s+[A-Za-z0-9]+""", RegexOption.IGNORE_CASE).find(platform)?.value ?: platform
+                PLATFORM_LABEL_REGEX.find(platform)?.value ?: platform
             }
             platform.contains("Stop", ignoreCase = true) -> {
-                Regex("""Stop\s+[A-Za-z0-9]+""", RegexOption.IGNORE_CASE).find(platform)?.value ?: platform
+                STOP_LABEL_REGEX.find(platform)?.value ?: platform
             }
             platform.isNotBlank() -> platform
             else -> if (isBus) "Bus stop" else "Platform"
@@ -603,33 +614,31 @@ class TrainTrackingService : Service() {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                val liveChannel = NotificationChannel(
-                    CHANNEL_ID,
-                    "Live Train Tracking",
-                    NotificationManager.IMPORTANCE_HIGH
-                ).apply {
-                    description = "Shows live ongoing countdowns for tracked departures"
-                    setShowBadge(true)
-                }
-
-                val alertChannel = NotificationChannel(
-                    ALERT_CHANNEL_ID,
-                    "Train Tracking Alerts",
-                    NotificationManager.IMPORTANCE_HIGH
-                ).apply {
-                    description = "Alerts for cancelled or altered journeys"
-                    enableVibration(true)
-                    setShowBadge(true)
-                }
-
-                val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                nm.createNotificationChannel(liveChannel)
-                nm.createNotificationChannel(alertChannel)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to create notification channels", e)
+        try {
+            val liveChannel = NotificationChannel(
+                CHANNEL_ID,
+                "Live Train Tracking",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Shows live ongoing countdowns for tracked departures"
+                setShowBadge(true)
             }
+
+            val alertChannel = NotificationChannel(
+                ALERT_CHANNEL_ID,
+                "Train Tracking Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Alerts for cancelled or altered journeys"
+                enableVibration(true)
+                setShowBadge(true)
+            }
+
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(liveChannel)
+            nm.createNotificationChannel(alertChannel)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create notification channels", e)
         }
     }
 

@@ -149,6 +149,36 @@ object NationalRailDepartureMapper {
             else -> null
         }
 
+        val modeId = if (isElizabeth) TransitMode.ELIZABETH_LINE.id else if (isOverground) TransitMode.OVERGROUND.id else TransitMode.NATIONAL_RAIL.id
+
+        val subsequentPoints = service.subsequentCallingPoints?.firstOrNull()?.callingPoint?.map { cp ->
+            com.androidfung.departureboard.data.model.CallingPoint(
+                stationName = cp.locationName,
+                scheduledTime = cp.st,
+                estimatedTime = cp.et,
+                isCurrentStation = false,
+                isDestination = cp.locationName.equals(destination, ignoreCase = true),
+                stationId = cp.crs,
+                modes = listOf(modeId)
+            )
+        } ?: emptyList()
+
+        val fullCallingPoints = if (subsequentPoints.isNotEmpty()) {
+            listOf(
+                com.androidfung.departureboard.data.model.CallingPoint(
+                    stationName = stationName,
+                    scheduledTime = std,
+                    estimatedTime = etd,
+                    isCurrentStation = true,
+                    isDestination = false,
+                    stationId = stationId,
+                    modes = listOf(modeId)
+                )
+            ) + subsequentPoints
+        } else {
+            emptyList()
+        }
+
         return Departure(
             id = service.serviceId,
             stationId = stationId,
@@ -162,20 +192,10 @@ object NationalRailDepartureMapper {
             timeToStationSeconds = timeToStationSeconds,
             expectedArrivalIso = null,
             currentLocation = statusDescription,
-            modeName = if (isElizabeth) TransitMode.ELIZABETH_LINE.id else if (isOverground) TransitMode.OVERGROUND.id else TransitMode.NATIONAL_RAIL.id,
+            modeName = modeId,
             lineBadge = badge,
             destinationStationId = destCrs,
-            callingPoints = service.subsequentCallingPoints?.firstOrNull()?.callingPoint?.map { cp ->
-                com.androidfung.departureboard.data.model.CallingPoint(
-                    stationName = cp.locationName,
-                    scheduledTime = cp.st,
-                    estimatedTime = cp.et,
-                    isCurrentStation = false,
-                    isDestination = cp.locationName.equals(destination, ignoreCase = true),
-                    stationId = cp.crs,
-                    modes = listOf(if (isElizabeth) TransitMode.ELIZABETH_LINE.id else if (isOverground) TransitMode.OVERGROUND.id else TransitMode.NATIONAL_RAIL.id)
-                )
-            } ?: emptyList()
+            callingPoints = fullCallingPoints
         )
     }
 
