@@ -16,7 +16,8 @@ data class StationCardUiModel(
     val availableLineBadges: List<LineBadgeInfo> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val isExpanded: Boolean = true
+    val isExpanded: Boolean = true,
+    val distanceMeters: Double? = null
 ) {
     /**
      * Identifies available directions for a specific transit line serving this station.

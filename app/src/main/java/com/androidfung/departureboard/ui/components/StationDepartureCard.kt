@@ -45,9 +45,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -170,7 +170,10 @@ fun StationDepartureCard(
                     tint = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier
                         .size(28.dp)
-                        .scale(iconScale)
+                        .graphicsLayer {
+                            scaleX = iconScale
+                            scaleY = iconScale
+                        }
                 )
             }
         }
@@ -331,13 +334,14 @@ private fun StationHeaderSection(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    if (isNearest) {
+                    if (distanceMeters != null || isNearest) {
                         val distText = if (distanceMeters != null) {
                             val km = distanceMeters / 1000.0
-                            if (km < 1.0) "${distanceMeters.toInt()}m away" else "%.1f km away".format(km)
-                        } else "Nearby"
+                            val formatted = if (km < 1.0) "${distanceMeters.toInt()}m away" else "%.1f km away".format(km)
+                            if (isNearest) "📍 Nearest • $formatted" else "📍 $formatted"
+                        } else "📍 Nearest"
                         Text(
-                            text = "📍 $distText",
+                            text = distText,
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.primary
                         )

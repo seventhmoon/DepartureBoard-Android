@@ -22,7 +22,16 @@
 -keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver {
     <init>(...);
 }
+-keep class * implements androidx.glance.appwidget.action.ActionCallback {
+    public <init>();
+}
 
 # Suppress warnings for OkHttp internals
 -dontwarn okhttp3.internal.Util
+
+# Keep Dynamic Feature Module string title in base table
+-keepclassmembers class com.androidfung.departureboard.R$string {
+    public static final int title_ai_assistant;
+}
+
 

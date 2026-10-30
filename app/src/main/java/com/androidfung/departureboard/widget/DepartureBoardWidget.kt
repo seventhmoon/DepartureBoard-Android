@@ -43,20 +43,33 @@ import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.first
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.currentState
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
-import kotlinx.coroutines.flow.first
 import androidx.core.net.toUri
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 class DepartureBoardWidget : GlanceAppWidget() {
 
+    override val sizeMode: SizeMode = SizeMode.Exact
+
     override var stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+
+    override fun onCompositionError(
+        context: Context,
+        glanceId: GlanceId,
+        appWidgetId: Int,
+        throwable: Throwable
+    ) {
+        val remoteViews = android.widget.RemoteViews(context.packageName, android.R.layout.simple_list_item_1).apply {
+            setTextViewText(android.R.id.text1, "EkiBoard: Unable to load departures")
+        }
+        android.appwidget.AppWidgetManager.getInstance(context).updateAppWidget(appWidgetId, remoteViews)
+    }
 
     companion object {
         private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
@@ -306,8 +319,18 @@ class DepartureBoardWidget : GlanceAppWidget() {
                     )
                 }
             } else {
+                val currentSize = androidx.glance.LocalSize.current
+                val maxItems = when {
+                    currentSize.height < 140.dp -> 2
+                    currentSize.height < 220.dp -> 4
+                    currentSize.height < 320.dp -> 6
+                    else -> 10
+                }
                 LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-                    items(departures.take(5)) { departure ->
+                    items(
+                        items = departures.take(maxItems),
+                        itemId = { departure -> departure.id.hashCode().toLong() }
+                    ) { departure ->
                         WidgetDepartureRow(
                             departure = departure,
                             station = station

@@ -24,6 +24,9 @@ import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Extension
+import androidx.compose.material.icons.rounded.LayersClear
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.StarRate
@@ -551,6 +554,129 @@ fun DebugSettingsBody(
                         subtitle = "Clears first launch, open count & cooldown",
                         onClick = onResetInAppReviewData
                     )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+                    DebugActionItem(
+                        icon = Icons.Rounded.LayersClear,
+                        title = "Clear Offline HTTP Cache",
+                        subtitle = "Deletes cached TfL & transit API network responses",
+                        onClick = {
+                            val cacheDir = context.cacheDir
+                            val okHttpCacheDir = java.io.File(cacheDir, "tfl_http_cache")
+                            val deleted = if (okHttpCacheDir.exists()) {
+                                okHttpCacheDir.deleteRecursively()
+                            } else {
+                                true
+                            }
+                            if (deleted) {
+                                Toast.makeText(context, "Offline HTTP cache cleared", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Failed to clear cache", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Section 5: Play Dynamic Feature Modules
+            Text(
+                text = "DYNAMIC FEATURE MODULES",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val dynamicAiProvider = remember { com.androidfung.departureboard.ai.DynamicAiAssistantProvider(context) }
+            var isDynamicAiInstalled by remember { androidx.compose.runtime.mutableStateOf(dynamicAiProvider.isFeatureInstalled) }
+            var installStatusText by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+            var isInstallingModule by remember { androidx.compose.runtime.mutableStateOf(false) }
+
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Extension,
+                                contentDescription = null,
+                                tint = if (isDynamicAiInstalled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = ":features:ai_assistant",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (isDynamicAiInstalled) {
+                                        "Installed (On-Device LLM & LiteRT runtime ready)"
+                                    } else {
+                                        installStatusText ?: "Not installed (On-demand Play feature)"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (isDynamicAiInstalled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    if (!isDynamicAiInstalled) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+                        DebugActionItem(
+                            icon = Icons.Rounded.Download,
+                            title = if (isInstallingModule) "Downloading module..." else "Trigger Feature Delivery Install",
+                            subtitle = "Requests SplitInstallManager to download AI feature",
+                            onClick = {
+                                if (!isInstallingModule) {
+                                    isInstallingModule = true
+                                    installStatusText = "Initiating SplitInstall request..."
+                                    coroutineScope.launch {
+                                        dynamicAiProvider.requestInstall().collect { status ->
+                                            when (status) {
+                                                is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Downloading -> {
+                                                    val pct = (status.progress * 100).toInt()
+                                                    installStatusText = "Downloading: $pct%"
+                                                }
+                                                is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Installed -> {
+                                                    isDynamicAiInstalled = true
+                                                    isInstallingModule = false
+                                                    installStatusText = null
+                                                    Toast.makeText(context, "AI Feature Module installed successfully", Toast.LENGTH_SHORT).show()
+                                                }
+                                                is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Failed -> {
+                                                    isInstallingModule = false
+                                                    installStatusText = "Install failed: code ${status.errorCode}"
+                                                    Toast.makeText(context, "Install failed (code ${status.errorCode})", Toast.LENGTH_SHORT).show()
+                                                }
+                                                is com.androidfung.departureboard.ai.AiFeatureInstallStatus.NotInstalled -> {
+                                                    isInstallingModule = false
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
                 }
             }
 

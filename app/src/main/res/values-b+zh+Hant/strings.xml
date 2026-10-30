@@ -21,18 +21,9 @@
     <!-- UI Labels -->
     <string name="platform_label">%s 號月台</string>
     <string name="search_hint">搜尋車站、路線或巴士站…</string>
-    <string name="filter_all">全部</string>
-    <string name="filter_bus">巴士</string>
-    <string name="filter_rail">鐵路</string>
-    <string name="filter_metro">地鐵</string>
-    <string name="nearest_station_header">最近車站</string>
-    <string name="saved_stations_header">已儲存車站</string>
-    <string name="empty_saved_stations_title">未有已儲存車站</string>
-    <string name="empty_saved_stations_desc">搜尋並收藏您常用的車站，隨時查看即時班次預測。</string>
-
+    <string name="ad_badge_label">廣告</string>
     <!-- Debug & Settings -->
     <string name="debug_settings_title">開發者選項</string>
-    <string name="debug_enable_hk_title">啟用香港地區（實驗性）</string>
-    <string name="debug_enable_hk_subtitle">解鎖港鐵 (MTR) 及專營巴士 (九巴/城巴) 即時班次</string>
     <string name="switch_region_title">切換地區</string>
+    <string name="title_ai_assistant">裝置端 AI 助理</string>
 </resources>

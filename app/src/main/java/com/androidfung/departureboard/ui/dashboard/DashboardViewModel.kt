@@ -247,7 +247,8 @@ class DashboardViewModel @JvmOverloads constructor(
                                 } else {
                                     inferLineBadges(station)
                                 },
-                                isLoading = cachedDepartures.isEmpty()
+                                isLoading = cachedDepartures.isEmpty(),
+                                distanceMeters = existing?.distanceMeters
                             )
                         }
                     }
@@ -804,32 +805,30 @@ class DashboardViewModel @JvmOverloads constructor(
                         android.util.Log.d("LocationHelper", "Found true nearest station: ${nearestSt.name} (${distance}m away)")
                     } catch (_: Throwable) {}
 
-                    // Check if this nearest station is one of the saved dashboard cards
-                    val isSavedOnDashboard = savedStations.any { it.id == nearestSt.id }
-
                     _uiState.update { state ->
-                        val sortedCards = if (state.isAutoSortByLocation && state.stationCards.size > 1) {
-                            state.stationCards.sortedBy { card ->
-                                val stLat = card.station.lat
-                                val stLon = card.station.lon
-                                if (stLat != null && stLon != null) {
-                                    com.androidfung.departureboard.util.LocationHelper.calculateDistanceMeters(
-                                        location.latitude,
-                                        location.longitude,
-                                        stLat,
-                                        stLon
-                                    )
-                                } else {
-                                    Double.MAX_VALUE
-                                }
-                            }
+                        val updatedCardsWithDistance = state.stationCards.map { card ->
+                            val stLat = card.station.lat
+                            val stLon = card.station.lon
+                            val dist = if (stLat != null && stLon != null) {
+                                com.androidfung.departureboard.util.LocationHelper.calculateDistanceMeters(
+                                    location.latitude,
+                                    location.longitude,
+                                    stLat,
+                                    stLon
+                                )
+                            } else null
+                            card.copy(distanceMeters = dist)
+                        }
+
+                        val sortedCards = if (state.isAutoSortByLocation && updatedCardsWithDistance.size > 1) {
+                            updatedCardsWithDistance.sortedBy { it.distanceMeters ?: Double.MAX_VALUE }
                         } else {
-                            state.stationCards
+                            updatedCardsWithDistance
                         }
                         state.copy(
                             stationCards = sortedCards,
                             nearestStation = nearestSt,
-                            nearestStationId = if (isSavedOnDashboard) nearestSt.id else null,
+                            nearestStationId = nearestSt.id,
                             nearestStationDistanceMeters = distance,
                             nearbyStations = if (fetchApiNearby || state.nearbyStations.isEmpty()) nearbyList else state.nearbyStations
                         )

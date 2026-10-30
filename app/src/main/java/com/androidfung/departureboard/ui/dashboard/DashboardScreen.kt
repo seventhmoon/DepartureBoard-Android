@@ -478,13 +478,18 @@ fun DashboardContent(
                         items(
                             count = 4,
                             key = { "skeleton_$it" },
+                            contentType = { "skeleton_card" },
                             span = { StaggeredGridItemSpan.SingleLane }
                         ) {
                             com.androidfung.departureboard.ui.components.StationCardSkeleton()
                         }
                     } else if (uiState.stationCards.isEmpty()) {
                         // Empty state when all stations removed spanning full width
-                        item(key = "empty_state", span = StaggeredGridItemSpan.FullLine) {
+                        item(
+                            key = "empty_state",
+                            contentType = "empty_state",
+                            span = StaggeredGridItemSpan.FullLine
+                        ) {
                             EmptyDashboardState(
                                 onAddStationClick = onAddStationClick,
                                 modifier = Modifier.padding(top = 16.dp)
@@ -497,16 +502,18 @@ fun DashboardContent(
                             items(
                                 items = uiState.stationCards,
                                 key = { it.station.id + it.station.name },
+                                contentType = { "station_card" },
                                 span = { StaggeredGridItemSpan.SingleLane }
                             ) { cardModel ->
                                 val isNearest = uiState.nearestStationId == cardModel.station.id
+                                val cardDistance = cardModel.distanceMeters ?: (if (isNearest) uiState.nearestStationDistanceMeters else null)
                                 StationDepartureCard(
                                     cardModel = cardModel,
                                     onDismissStation = onDismissStation,
                                     onStationClick = onStationClick,
                                     onDepartureClick = onDepartureClick,
                                     isNearest = isNearest,
-                                    distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
+                                    distanceMeters = cardDistance,
                                     maxDepartureRows = uiState.departureRowsCount,
                                     modifier = Modifier
                                         .reorderableStaggeredItem(reorderState, cardModel.station.id)
@@ -517,16 +524,18 @@ fun DashboardContent(
                             items(
                                 items = firstChunk,
                                 key = { it.station.id + it.station.name },
+                                contentType = { "station_card" },
                                 span = { StaggeredGridItemSpan.SingleLane }
                             ) { cardModel ->
                                 val isNearest = uiState.nearestStationId == cardModel.station.id
+                                val cardDistance = cardModel.distanceMeters ?: (if (isNearest) uiState.nearestStationDistanceMeters else null)
                                 StationDepartureCard(
                                     cardModel = cardModel,
                                     onDismissStation = onDismissStation,
                                     onStationClick = onStationClick,
                                     onDepartureClick = onDepartureClick,
                                     isNearest = isNearest,
-                                    distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
+                                    distanceMeters = cardDistance,
                                     maxDepartureRows = uiState.departureRowsCount,
                                     modifier = Modifier
                                         .reorderableStaggeredItem(reorderState, cardModel.station.id)
@@ -535,7 +544,11 @@ fun DashboardContent(
                             }
 
                             // First Native Ad Card
-                            item(key = "native_ad_card_0", span = StaggeredGridItemSpan.SingleLane) {
+                            item(
+                                key = "native_ad_card_0",
+                                contentType = "native_ad_card",
+                                span = StaggeredGridItemSpan.SingleLane
+                            ) {
                                 com.androidfung.departureboard.ui.components.NativeAdViewContainer(
                                     style = com.androidfung.departureboard.ui.components.NativeAdStyle.CARD,
                                     modifier = Modifier.animateItem()
@@ -547,16 +560,18 @@ fun DashboardContent(
                                 items(
                                     items = chunk,
                                     key = { it.station.id + it.station.name },
+                                    contentType = { "station_card" },
                                     span = { StaggeredGridItemSpan.SingleLane }
                                 ) { cardModel ->
                                     val isNearest = uiState.nearestStationId == cardModel.station.id
+                                    val cardDistance = cardModel.distanceMeters ?: (if (isNearest) uiState.nearestStationDistanceMeters else null)
                                     StationDepartureCard(
                                         cardModel = cardModel,
                                         onDismissStation = onDismissStation,
                                         onStationClick = onStationClick,
                                         onDepartureClick = onDepartureClick,
                                         isNearest = isNearest,
-                                        distanceMeters = if (isNearest) uiState.nearestStationDistanceMeters else null,
+                                        distanceMeters = cardDistance,
                                         maxDepartureRows = uiState.departureRowsCount,
                                         modifier = Modifier
                                             .reorderableStaggeredItem(reorderState, cardModel.station.id)
@@ -564,7 +579,11 @@ fun DashboardContent(
                                     )
                                 }
 
-                                item(key = "native_ad_card_${chunkIndex + 1}", span = StaggeredGridItemSpan.SingleLane) {
+                                item(
+                                    key = "native_ad_card_${chunkIndex + 1}",
+                                    contentType = "native_ad_card",
+                                    span = StaggeredGridItemSpan.SingleLane
+                                ) {
                                     com.androidfung.departureboard.ui.components.NativeAdViewContainer(
                                         style = com.androidfung.departureboard.ui.components.NativeAdStyle.CARD,
                                         modifier = Modifier.animateItem()

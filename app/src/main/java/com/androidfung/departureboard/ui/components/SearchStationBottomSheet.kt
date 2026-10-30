@@ -368,7 +368,8 @@ fun SearchStationBottomSheet(
 
                             items(
                                 items = recentSearchedStations,
-                                key = { "recent_" + it.id }
+                                key = { "recent_" + it.id },
+                                contentType = { "station_row" }
                             ) { station ->
                                 val isAlreadySaved = savedStationIds.contains(station.id)
                                 Row(
@@ -431,7 +432,8 @@ fun SearchStationBottomSheet(
 
                             items(
                                 items = filteredNearby,
-                                key = { "nearby_" + it.first.id + it.first.name }
+                                key = { "nearby_" + it.first.id + it.first.name },
+                                contentType = { "station_row" }
                             ) { (station, distMeters) ->
                                 val isAlreadySaved = savedStationIds.contains(station.id)
                                 val distFormatted = if (distMeters < 1000) {
@@ -510,7 +512,8 @@ fun SearchStationBottomSheet(
 
                     items(
                         items = filteredResults,
-                        key = { it.id + it.name } // Combined id and name for uniqueness
+                        key = { it.id + it.name }, // Combined id and name for uniqueness
+                        contentType = { "station_row" }
                     ) { station ->
                         val isAlreadySaved = savedStationIds.contains(station.id)
                         StationSearchResultRow(

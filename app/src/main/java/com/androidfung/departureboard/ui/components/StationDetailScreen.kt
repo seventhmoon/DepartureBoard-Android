@@ -60,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -77,7 +78,7 @@ import androidx.core.net.toUri
 
 private sealed interface StationDetailListItem {
     data class DepartureItem(val departure: Departure, val index: Int) : StationDetailListItem
-    data class AdItem(val key: String) : StationDetailListItem
+    data class AdItem(val key: String, val style: NativeAdStyle = NativeAdStyle.ROW) : StationDetailListItem
 }
 
 @Composable
@@ -228,17 +229,33 @@ private fun StationDetailContent(
         )
     }
 
-    // Unified list items to ensure LazyColumn applies identical 8.dp item spacing to both departures and ads
-    val displayItems = remember(filteredDepartures, isPro) {
+    val configuration = LocalConfiguration.current
+    val screenHeightDp = configuration.screenHeightDp
+
+    // Dynamically calculate whether the departures fit with ample space for a rich media Card ad,
+    // or whether they fill/overflow the viewport, requiring in-stream compact ROW ads.
+    val displayItems = remember(filteredDepartures, isPro, screenHeightDp) {
         buildList<StationDetailListItem> {
-            filteredDepartures.forEachIndexed { index, departure ->
-                add(StationDetailListItem.DepartureItem(departure, index))
-                if (!isPro && (index == 2 || (index > 2 && (index - 2) % 6 == 0))) {
-                    add(StationDetailListItem.AdItem("ad_$index"))
+            val departureItemHeightDp = 72 // DepartureDetailItemRow height + 8dp spacing
+            val headerHeightEstimateDp = 220 // Top bar, station header, line chips, section title
+            val cardAdHeightDp = 240 // Height needed for a comfortable rich media card ad
+            val estimatedContentHeight = headerHeightEstimateDp + (filteredDepartures.size * departureItemHeightDp)
+            val hasRoomForBottomCardAd = (screenHeightDp - estimatedContentHeight) >= cardAdHeightDp
+
+            if (!isPro && filteredDepartures.isNotEmpty() && hasRoomForBottomCardAd) {
+                // Viewport has room below all departures: show uninterrupted departures + bottom rich card ad
+                filteredDepartures.forEachIndexed { index, departure ->
+                    add(StationDetailListItem.DepartureItem(departure, index))
                 }
-            }
-            if (!isPro && filteredDepartures.isNotEmpty() && filteredDepartures.size < 3) {
-                add(StationDetailListItem.AdItem("ad_bottom"))
+                add(StationDetailListItem.AdItem("ad_bottom_card", style = NativeAdStyle.CARD))
+            } else {
+                // List fills or overflows screen: interleave compact ROW ads so they don't dominate the content
+                filteredDepartures.forEachIndexed { index, departure ->
+                    add(StationDetailListItem.DepartureItem(departure, index))
+                    if (!isPro && (index == 2 || (index > 2 && (index - 2) % 6 == 0))) {
+                        add(StationDetailListItem.AdItem("ad_$index", style = NativeAdStyle.ROW))
+                    }
+                }
             }
         }
     }
@@ -840,6 +857,12 @@ private fun StationDetailContent(
                             }
                             is StationDetailListItem.AdItem -> item.key
                         }
+                    },
+                    contentType = { item ->
+                        when (item) {
+                            is StationDetailListItem.DepartureItem -> "departure_row"
+                            is StationDetailListItem.AdItem -> "native_ad"
+                        }
                     }
                 ) { item ->
                     when (item) {
@@ -854,7 +877,7 @@ private fun StationDetailContent(
                         }
                         is StationDetailListItem.AdItem -> {
                             NativeAdViewContainer(
-                                style = NativeAdStyle.ROW,
+                                style = item.style,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }

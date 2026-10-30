@@ -209,7 +209,11 @@ fun HelpFaqBottomSheet(
                     )
                 }
 
-                items(faqList) { item ->
+                items(
+                    items = faqList,
+                    key = { it.question },
+                    contentType = { "faq_item" }
+                ) { item ->
                     FaqAccordionCard(item = item)
                 }
 

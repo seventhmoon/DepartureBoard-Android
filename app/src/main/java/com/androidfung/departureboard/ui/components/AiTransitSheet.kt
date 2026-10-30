@@ -68,7 +68,6 @@ import com.androidfung.departureboard.ai.TransitAiAssistant
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.repository.TransitRepository
 import kotlinx.coroutines.launch
-import androidx.core.net.toUri
 
 /**
  * Intelligent Transit Assistant bottom sheet powered by Gemini / Natural Language Queries.
@@ -88,7 +87,35 @@ fun AiTransitSheet(
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val assistant = remember(repository) { TransitAiAssistant(repository) }
+    val localCtx = LocalContext.current
+    val assistant = remember(repository, localCtx) { TransitAiAssistant(repository, localCtx) }
+    val dynamicAiProvider = remember(localCtx) { com.androidfung.departureboard.ai.DynamicAiAssistantProvider(localCtx) }
+    var isInstallingModule by remember { mutableStateOf(false) }
+    var installProgress by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    var isFeatureInstalled by remember { mutableStateOf(dynamicAiProvider.isFeatureInstalled) }
+
+    fun installAiFeature() {
+        isInstallingModule = true
+        coroutineScope.launch {
+            dynamicAiProvider.requestInstall().collect { status ->
+                when (status) {
+                    is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Downloading -> {
+                        installProgress = status.progress
+                    }
+                    is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Installed -> {
+                        isInstallingModule = false
+                        isFeatureInstalled = true
+                        Toast.makeText(localCtx, "On-device AI Engine installed!", Toast.LENGTH_SHORT).show()
+                    }
+                    is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Failed -> {
+                        isInstallingModule = false
+                        Toast.makeText(localCtx, "AI installation failed or cancelled", Toast.LENGTH_SHORT).show()
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
 
     var queryText by remember { mutableStateOf("") }
     var isThinking by remember { mutableStateOf(false) }
@@ -97,17 +124,39 @@ fun AiTransitSheet(
     // Dynamic, location-aware & frequently asked suggestions
     val quickPrompts = remember(nearestStation, savedStations) {
         val prompts = mutableListOf<String>()
+        val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
 
-        // 1. True location-aware nearest station prompt
-        if (nearestStation != null) {
-            val nearestShortName = nearestStation.displayName.substringBefore("(").trim()
-            if (nearestStation.isBusOnly) {
-                prompts.add("Next bus from $nearestShortName")
-            } else {
-                prompts.add("Next train from $nearestShortName")
+        // 1. Time-of-day contextual prompts
+        when (currentHour) {
+            in 6..9 -> {
+                prompts.add("Morning commute status")
+                if (nearestStation != null) {
+                    val name = nearestStation.displayName.substringBefore("(").trim()
+                    prompts.add("Next train from $name")
+                } else {
+                    prompts.add("Next train near me")
+                }
             }
-        } else {
-            prompts.add("Next departure near me")
+            in 16..19 -> {
+                prompts.add("Evening commute disruptions")
+                prompts.add("Any delays heading home?")
+            }
+            in 22..23, in 0..4 -> {
+                prompts.add("Last Tube tonight")
+                prompts.add("Night bus services")
+            }
+            else -> {
+                if (nearestStation != null) {
+                    val shortName = nearestStation.displayName.substringBefore("(").trim()
+                    if (nearestStation.isBusOnly) {
+                        prompts.add("Next bus from $shortName")
+                    } else {
+                        prompts.add("Next train from $shortName")
+                    }
+                } else {
+                    prompts.add("Next departure near me")
+                }
+            }
         }
 
         // 2. Specific saved station prompt if available
@@ -117,11 +166,11 @@ fun AiTransitSheet(
             prompts.add("Next train from $shortName")
         }
 
-        // Popular frequent commuter London queries
+        // 3. High-frequency transit corridors
         prompts.add("Any Tube delays or disruptions?")
-        prompts.add("Next Central line train")
         prompts.add("Elizabeth line status")
-        prompts.take(4)
+        prompts.add("Central line vs Elizabeth line")
+        prompts.distinct().take(5)
     }
 
     var isQuotaExceeded by remember { mutableStateOf(false) }
@@ -259,7 +308,65 @@ fun AiTransitSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Dynamic On-Demand AI Module Banner (when Local AI is selected but module is not installed)
+            if (aiModelType == com.androidfung.departureboard.ai.AiModelType.LOCAL && !isFeatureInstalled) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.AutoAwesome,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary
+                            )
+                            Text(
+                                text = "On-Device Local AI Module",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Download on-device generative LiteRT reasoning module (~35 MB) for complete offline privacy.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        if (isInstallingModule) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                androidx.compose.material3.LinearProgressIndicator(
+                                    progress = { installProgress },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Text(
+                                    text = "Downloading AI module: ${(installProgress * 100).toInt()}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                        } else {
+                            Button(
+                                onClick = { installAiFeature() },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.tertiary,
+                                    contentColor = MaterialTheme.colorScheme.onTertiary
+                                )
+                            ) {
+                                Text("Download On-Demand AI (35 MB)")
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // AI Answer Bubble
             if (isThinking) {
@@ -286,125 +393,86 @@ fun AiTransitSheet(
                     }
                 }
             } else if (aiResult != null) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = aiResult!!.answer,
-                            style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 22.sp),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        if (isQuotaExceeded) {
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Button(
-                                onClick = onUpgradeClick,
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.WorkspacePremium,
-                                    contentDescription = null,
-                                    tint = Color(0xFFFFB300),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Upgrade to Pro for Unlimited AI",
-                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                                )
+                if (aiResult!!.a2uiResponse != null) {
+                    A2UiRenderer(
+                        response = aiResult!!.a2uiResponse!!,
+                        modifier = Modifier.fillMaxWidth(),
+                        onActionClick = { action ->
+                            if (action is com.androidfung.departureboard.ai.A2UiAction.QueryPrompt) {
+                                queryText = action.text
+                                submitQuery(action.text)
                             }
                         }
+                    )
+                } else {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = aiResult!!.answer,
+                                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 22.sp),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
 
-                        if (aiResult!!.matchedDepartures.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            aiResult!!.matchedDepartures.forEach { dep ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                            if (aiResult!!.matchedDepartures.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                aiResult!!.matchedDepartures.forEach { dep ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = dep.destinationName,
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = "${dep.lineName} • ${dep.platformName}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                         Text(
-                                            text = dep.destinationName,
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = "${dep.lineName} • ${dep.platformName}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            text = dep.formattedTimeToArrival,
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     }
-                                    Text(
-                                        text = dep.formattedTimeToArrival,
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
                                 }
                             }
                         }
+                    }
+                }
 
-                        // One-tap Action Chips for Trip Planning & Routing
-                        val orig = aiResult?.originQuery
-                        val dest = aiResult?.destinationQuery
-                        if (!orig.isNullOrBlank() && !dest.isNullOrBlank()) {
-                            val context = LocalContext.current
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                androidx.compose.material3.OutlinedButton(
-                                    onClick = {
-                                        val mapsUri =
-                                            "https://www.google.com/maps/dir/?api=1&origin=${
-                                                java.net.URLEncoder.encode(
-                                                    "$orig London",
-                                                    "UTF-8"
-                                                )
-                                            }&destination=${
-                                                java.net.URLEncoder.encode(
-                                                    "$dest London",
-                                                    "UTF-8"
-                                                )
-                                            }&travelmode=transit".toUri()
-                                        val mapsIntent = Intent(Intent.ACTION_VIEW, mapsUri).apply {
-                                            setPackage("com.google.android.apps.maps")
-                                        }
-                                        try {
-                                            context.startActivity(mapsIntent)
-                                        } catch (_: Exception) {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, mapsUri))
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("🗺️ Google Maps", fontSize = 12.sp, maxLines = 1)
-                                }
-
-                                androidx.compose.material3.OutlinedButton(
-                                    onClick = {
-                                        val tflUri = "https://tfl.gov.uk/plan-a-journey/results?InputFrom=${java.net.URLEncoder.encode(orig, "UTF-8")}&InputTo=${java.net.URLEncoder.encode(dest, "UTF-8")}".toUri()
-                                        context.startActivity(Intent(Intent.ACTION_VIEW, tflUri))
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("🚇 TfL Planner", fontSize = 12.sp, maxLines = 1)
-                                }
-                            }
-                        }
+                if (isQuotaExceeded) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Button(
+                        onClick = onUpgradeClick,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.WorkspacePremium,
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Upgrade to Pro for Unlimited AI",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                        )
                     }
                 }
             }

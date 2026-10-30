@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -48,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -60,7 +60,7 @@ import com.androidfung.departureboard.data.model.Departure
 
 private sealed interface JourneyTimelineListItem {
     data class CallingPointItem(val callingPoint: CallingPoint, val index: Int) : JourneyTimelineListItem
-    data class AdItem(val key: String) : JourneyTimelineListItem
+    data class AdItem(val key: String, val style: NativeAdStyle = NativeAdStyle.CARD) : JourneyTimelineListItem
 }
 
 @Composable
@@ -154,16 +154,25 @@ private fun TrainJourneyContent(
         }
     }
 
-    val timelineItems = remember(callingPoints, isPro) {
+    val configuration = LocalConfiguration.current
+    val screenHeightDp = configuration.screenHeightDp
+
+    val timelineItems = remember(callingPoints, isPro, screenHeightDp) {
         buildList<JourneyTimelineListItem> {
             callingPoints.forEachIndexed { index, cp ->
                 add(JourneyTimelineListItem.CallingPointItem(cp, index))
-                if (!isPro && callingPoints.size >= 4 && (index == 2 || (index > 2 && (index - 2) % 8 == 0))) {
-                    add(JourneyTimelineListItem.AdItem("ad_$index"))
-                }
             }
-            if (!isPro && callingPoints.size < 4) {
-                add(JourneyTimelineListItem.AdItem("ad_bottom"))
+            // Always place ad at the end of the journey timeline so the calling points sequence is never interrupted.
+            // If the route is short and leaves empty space on screen, use a large CARD ad; otherwise a compact ROW ad at the end.
+            if (!isPro && callingPoints.isNotEmpty()) {
+                val callingPointItemHeightDp = 52
+                val headerHeightEstimateDp = 220
+                val cardAdHeightDp = 240
+                val estimatedContentHeight = headerHeightEstimateDp + (callingPoints.size * callingPointItemHeightDp)
+                val hasRoomForCard = (screenHeightDp - estimatedContentHeight) >= cardAdHeightDp
+
+                val adStyle = if (hasRoomForCard) NativeAdStyle.CARD else NativeAdStyle.ROW
+                add(JourneyTimelineListItem.AdItem("ad_bottom", style = adStyle))
             }
         }
     }
@@ -463,6 +472,12 @@ private fun TrainJourneyContent(
                             is JourneyTimelineListItem.CallingPointItem -> "${item.callingPoint.stationName}_${item.index}"
                             is JourneyTimelineListItem.AdItem -> item.key
                         }
+                    },
+                    contentType = { item ->
+                        when (item) {
+                            is JourneyTimelineListItem.CallingPointItem -> "calling_point"
+                            is JourneyTimelineListItem.AdItem -> "native_ad"
+                        }
                     }
                 ) { item ->
                     when (item) {
@@ -479,9 +494,11 @@ private fun TrainJourneyContent(
                         }
                         is JourneyTimelineListItem.AdItem -> {
                             NativeAdViewContainer(
-                                style = NativeAdStyle.TIMELINE,
+                                style = item.style,
                                 accentColor = departure.lineBadge.backgroundColor,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 16.dp, bottom = 8.dp)
                             )
                         }
                     }

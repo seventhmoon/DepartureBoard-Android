@@ -16,14 +16,20 @@ android {
         version = release(37)
     }
 
+    dynamicFeatures += setOf(":features:ai_assistant")
+
     defaultConfig {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 34
-        versionName = "1.2.0-261025"
+        versionCode = 40
+        versionName = "1.3.0-261029"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters += setOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
 
         val props = Properties().apply {
             val propFile = project.rootProject.file("local.properties")
@@ -65,6 +71,7 @@ android {
     lint {
         warningsAsErrors = false
         abortOnError = false
+        disable += "InvalidFragmentVersionForActivityResult"
     }
     testOptions {
         unitTests {
@@ -93,8 +100,6 @@ ksp {
 dependencies {
     // Platform / BOMs
     implementation(platform(libs.androidx.compose.bom))
-    testImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.firebase.bom))
 
     // AndroidX & Core
@@ -138,9 +143,7 @@ dependencies {
 
     // Google Play Services & Billing
     implementation(libs.play.app.update.ktx)
-    implementation(libs.play.review)
     implementation(libs.play.review.ktx)
-    implementation(libs.play.billing)
     implementation(libs.play.billing.ktx)
     implementation(libs.play.services.ads)
     implementation(libs.play.services.location)
@@ -152,10 +155,15 @@ dependencies {
     implementation(libs.logging.interceptor)
     "ksp"(libs.moshi.kotlin.codegen)
     
-    // Utilities
+    // AppFunctions & ProfileInstaller
     implementation(libs.androidx.appfunctions)
     "ksp"(libs.androidx.appfunctions.compiler)
     implementation(libs.androidx.profileinstaller)
+
+    // Google Play Services LiteRT (0 KB native runtime bloat in base)
+    implementation(libs.play.services.litert)
+    implementation(libs.play.feature.delivery.ktx)
+
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.play.services)
@@ -166,7 +174,6 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.kxml2)
     testImplementation(libs.robolectric)
-    testImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

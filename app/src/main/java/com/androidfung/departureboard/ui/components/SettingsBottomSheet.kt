@@ -88,6 +88,7 @@ fun SettingsBottomSheet(
     isAutoSortByLocation: Boolean = false,
     onAutoSortByLocationChange: (Boolean) -> Unit = {},
     onRateApp: () -> Unit = {},
+    onOpenDebugSettings: (() -> Unit)? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val context = LocalContext.current
@@ -467,6 +468,20 @@ fun SettingsBottomSheet(
                         subtitle = "v${BuildConfig.VERSION_NAME} • TfL Open Data",
                         onClick = {}
                     )
+
+                    if (BuildConfig.DEBUG && onOpenDebugSettings != null) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+                        SettingsActionItem(
+                            icon = Icons.Rounded.Settings,
+                            title = "Developer Options",
+                            subtitle = "Debug toggles, AI engine, and testing tools",
+                            onClick = {
+                                onDismissRequest()
+                                onOpenDebugSettings()
+                            }
+                        )
+                    }
                 }
             }
 

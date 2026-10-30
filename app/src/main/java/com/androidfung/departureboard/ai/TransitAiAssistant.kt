@@ -17,7 +17,8 @@ data class AiTransitResult(
     val matchedStation: Station? = null,
     val matchedDepartures: List<Departure> = emptyList(),
     val originQuery: String? = null,
-    val destinationQuery: String? = null
+    val destinationQuery: String? = null,
+    val a2uiResponse: A2UiResponse? = null
 )
 
 /**
@@ -37,8 +38,21 @@ interface AiTransitAssistant {
  * real-time departure lookups across saved stations and TfL live lines.
  */
 class TransitAiAssistant(
-    private val repository: TransitRepository
+    private val repository: TransitRepository,
+    context: android.content.Context? = null
 ) : AiTransitAssistant {
+
+    private val classifier: LiteRtTransitClassifier? = context?.let {
+        runCatching { LiteRtTransitClassifier(it.applicationContext) }.getOrNull()
+    }
+
+    private val dynamicAiProvider: DynamicAiAssistantProvider? = context?.let {
+        DynamicAiAssistantProvider(it.applicationContext)
+    }
+
+    private val queryRouter: AiQueryRouter? = context?.let {
+        AiQueryRouter(it.applicationContext, dynamicAiProvider)
+    }
 
     /**
      * Answers queries such as:
@@ -53,14 +67,39 @@ class TransitAiAssistant(
         nearestStation: Station?,
         modelType: AiModelType
     ): AiTransitResult = withContext(Dispatchers.Default) {
+        val classified = classifier?.classifyIntent(query)
+        val executionTier = queryRouter?.routeQuery(query, classified?.intent, modelType)
+            ?: when (modelType) {
+                AiModelType.LOGIC_FALLBACK -> AiExecutionTier.INSTANT_DETERMINISTIC
+                AiModelType.LOCAL -> AiExecutionTier.ON_DEVICE_LLM
+                AiModelType.CLOUD -> AiExecutionTier.CLOUD_SYNTHESIS
+                AiModelType.DEFAULT -> AiExecutionTier.LITERT_LOCAL_CLASSIFIER
+            }
+
         val result = executeQueryInternal(query, savedStations, nearestStation)
-        val prefix = when (modelType) {
-            AiModelType.DEFAULT -> ""
-            AiModelType.LOCAL -> "🤖 [Local AI] "
-            AiModelType.CLOUD -> "☁️ [Cloud LLM] "
-            AiModelType.LOGIC_FALLBACK -> "⚡ [Rules] "
+
+        val finalAnswer = when (executionTier) {
+            AiExecutionTier.ON_DEVICE_LLM -> {
+                val engine = dynamicAiProvider?.loadDynamicEngine()
+                if (engine != null && engine.loadModel()) {
+                    var generated = ""
+                    val prompt = "Commuter asked: \"$query\". Transit context: \"${result.answer}\". Provide a friendly, concise response:"
+                    engine.streamReply(prompt).collect { chunk ->
+                        generated += chunk
+                    }
+                    if (generated.isNotBlank()) "🤖 [LiteRT-LM Dynamic] $generated" else "🤖 [Local AI] ${result.answer}"
+                } else if (dynamicAiProvider?.isFeatureInstalled == false) {
+                    "🤖 [Local AI] On-device generative module not installed. Download it in the banner above."
+                } else {
+                    "🤖 [Local AI] ${result.answer}"
+                }
+            }
+            AiExecutionTier.CLOUD_SYNTHESIS -> "☁️ [Cloud LLM] ${result.answer}"
+            AiExecutionTier.INSTANT_DETERMINISTIC -> "⚡ [Instant Rules] ${result.answer}"
+            AiExecutionTier.LITERT_LOCAL_CLASSIFIER -> result.answer
         }
-        result.copy(answer = "$prefix${result.answer}")
+
+        result.copy(answer = finalAnswer)
     }
 
     private suspend fun executeQueryInternal(
@@ -97,13 +136,18 @@ class TransitAiAssistant(
         // If query asks about trains ("train", "tube", "underground"), prioritize tube/rail stations over bus stops
         val isTrainQuery = cleanQuery.contains("train") || cleanQuery.contains("tube") || cleanQuery.contains("underground")
 
+        // 4. LiteRT-Runtime Intent Classification
+        val classified = classifier?.classifyIntent(query)
+        val isClassifiedStatus = classified?.intent == TransitQueryIntent.SERVICE_STATUS ||
+                classified?.intent == TransitQueryIntent.DISRUPTION_CHECK
+
         // 5. Named line recognition (e.g. "Central line", "Victoria", "Elizabeth line", "Northern")
         val namedLine = KNOWN_LINES.firstOrNull { alias ->
             alias.keywords.any { kw -> cleanQuery.contains(kw) }
         }
 
         // 6. Service-status intent (e.g. "Any Tube delays or disruptions?", "Elizabeth line status")
-        val isStatusQuery = STATUS_KEYWORDS.any { kw -> cleanQuery.contains(kw) }
+        val isStatusQuery = isClassifiedStatus || STATUS_KEYWORDS.any { kw -> cleanQuery.contains(kw) }
         if (isStatusQuery) {
             return answerStatusQuery(namedLine, defaultOrigin)
         }
@@ -184,10 +228,34 @@ class TransitAiAssistant(
 
             val answer = "$prefix next ${next.lineName} departure towards ${next.destinationName} leaves from ${next.stationName} (${next.platformName}) $nextMinutes$clockSuffix$subsequentText."
 
+            val targetStation = departureStation ?: defaultOrigin
+            val actions = mutableListOf<A2UiAction>()
+            if (targetStation != null) {
+                actions.add(A2UiAction.PinStation(targetStation))
+            }
+            actions.add(A2UiAction.TrackTrain(next))
+            if (explicitOriginName != null && targetDestinationName != null) {
+                actions.add(A2UiAction.OpenGoogleMaps(explicitOriginName, targetDestinationName))
+                actions.add(A2UiAction.OpenTflJourneyPlanner(explicitOriginName, targetDestinationName))
+            }
+
+            val blocks = mutableListOf<A2UiBlock>(
+                A2UiBlock.TextSummary(answer)
+            )
+            if (targetStation != null) {
+                blocks.add(A2UiBlock.LiveDeparturesCard(targetStation, matchingDepartures.take(4)))
+            }
+            if (actions.isNotEmpty()) {
+                blocks.add(A2UiBlock.ActionButtons(actions))
+            }
+
             AiTransitResult(
                 answer = answer,
-                matchedStation = departureStation ?: defaultOrigin,
-                matchedDepartures = matchingDepartures.take(4)
+                matchedStation = targetStation,
+                matchedDepartures = matchingDepartures.take(4),
+                originQuery = explicitOriginName,
+                destinationQuery = targetDestinationName,
+                a2uiResponse = A2UiResponse(blocks)
             )
         } else if (departuresByStation.isNotEmpty()) {
             val (bestStation, stationDepartures) = departuresByStation.first()
@@ -199,10 +267,20 @@ class TransitAiAssistant(
                     "At ${bestStation.displayName}, the"
                 }
                 val answer = "$prefix next upcoming service is ${next.lineName} to ${next.destinationName} (${next.formattedTimeToArrival})."
+                val actions = listOf(
+                    A2UiAction.PinStation(bestStation),
+                    A2UiAction.TrackTrain(next)
+                )
+                val blocks = listOf(
+                    A2UiBlock.TextSummary(answer),
+                    A2UiBlock.LiveDeparturesCard(bestStation, stationDepartures.take(3)),
+                    A2UiBlock.ActionButtons(actions)
+                )
                 AiTransitResult(
                     answer = answer,
                     matchedStation = bestStation,
-                    matchedDepartures = stationDepartures.take(3)
+                    matchedDepartures = stationDepartures.take(3),
+                    a2uiResponse = A2UiResponse(blocks)
                 )
             } else {
                 AiTransitResult(
@@ -250,35 +328,96 @@ class TransitAiAssistant(
             }
         }
 
+        val a2uiBlocks = mutableListOf<A2UiBlock>()
+
         val answer = when {
-            namedLine != null && relevant.isEmpty() ->
+            namedLine != null && relevant.isEmpty() -> {
+                a2uiBlocks.add(
+                    A2UiBlock.LineStatusBanner(
+                        lineName = namedLine.keywords.first().replaceFirstChar { it.uppercase() },
+                        statusDescription = "Status feed unavailable",
+                        severity = A2UiSeverity.WARNING
+                    )
+                )
                 "I couldn't check the live status of that line right now — the service status feed may be unavailable."
+            }
             namedLine != null -> {
                 val named = relevant.values.firstOrNull()
                 val detail = named?.lineStatuses?.firstOrNull()
                 if (named != null && detail != null && detail.statusSeverity != 10) {
                     val reason = detail.reason?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""
+                    a2uiBlocks.add(
+                        A2UiBlock.LineStatusBanner(
+                            lineName = named.name,
+                            statusDescription = detail.statusSeverityDescription,
+                            reason = detail.reason,
+                            severity = if (detail.statusSeverity <= 5) A2UiSeverity.DISRUPTION else A2UiSeverity.WARNING
+                        )
+                    )
                     "${named.name} is currently experiencing ${detail.statusSeverityDescription.lowercase()}$reason"
                 } else {
+                    a2uiBlocks.add(
+                        A2UiBlock.LineStatusBanner(
+                            lineName = named?.name ?: "Line",
+                            statusDescription = "Good Service",
+                            severity = A2UiSeverity.GOOD_SERVICE
+                        )
+                    )
                     "${named?.name ?: "The line"} is running with good service right now."
                 }
             }
             relevant.isEmpty() ->
                 "I couldn't check live line statuses right now — the service status feed may be unavailable."
-            disrupted.isEmpty() ->
+            disrupted.isEmpty() -> {
+                a2uiBlocks.add(
+                    A2UiBlock.LineStatusBanner(
+                        lineName = "All Lines",
+                        statusDescription = "Good Service Across Network",
+                        severity = A2UiSeverity.GOOD_SERVICE
+                    )
+                )
                 "Good service is currently reported across all monitored lines."
-            disrupted.size <= 4 ->
+            }
+            disrupted.size <= 4 -> {
+                relevant.values.filter { (it.lineStatuses.firstOrNull()?.statusSeverity ?: 10) != 10 }.forEach { lineItem ->
+                    val detail = lineItem.lineStatuses.firstOrNull()
+                    a2uiBlocks.add(
+                        A2UiBlock.LineStatusBanner(
+                            lineName = lineItem.name,
+                            statusDescription = detail?.statusSeverityDescription ?: "Disruption",
+                            reason = detail?.reason,
+                            severity = if ((detail?.statusSeverity ?: 10) <= 5) A2UiSeverity.DISRUPTION else A2UiSeverity.WARNING
+                        )
+                    )
+                }
                 "Delays currently reported on: " + disrupted.joinToString("; ") + "."
+            }
             else -> {
                 val topIssues = disrupted.take(4).joinToString("; ")
                 val remainingCount = disrupted.size - 4
+                relevant.values.filter { (it.lineStatuses.firstOrNull()?.statusSeverity ?: 10) != 10 }.take(4).forEach { lineItem ->
+                    val detail = lineItem.lineStatuses.firstOrNull()
+                    a2uiBlocks.add(
+                        A2UiBlock.LineStatusBanner(
+                            lineName = lineItem.name,
+                            statusDescription = detail?.statusSeverityDescription ?: "Disruption",
+                            reason = detail?.reason,
+                            severity = if ((detail?.statusSeverity ?: 10) <= 5) A2UiSeverity.DISRUPTION else A2UiSeverity.WARNING
+                        )
+                    )
+                }
                 "Delays currently reported on: $topIssues, and $remainingCount other lines."
             }
         }
 
+        if (a2uiBlocks.isEmpty() || a2uiBlocks.none { it is A2UiBlock.TextSummary }) {
+            a2uiBlocks.add(0, A2UiBlock.TextSummary(answer))
+        }
+
         AiTransitResult(
             answer = answer,
-            matchedStation = contextStation
+            matchedStation = contextStation,
+            a2uiResponse = A2UiResponse(a2uiBlocks)
         )
     }
 

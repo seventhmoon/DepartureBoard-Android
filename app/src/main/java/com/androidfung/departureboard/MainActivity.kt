@@ -15,7 +15,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -239,10 +238,10 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // Re-run the nearest-station lookup whenever permission is granted (or re-granted).
-                    // Uses local candidate stations at startup without firing extra HTTP queries.
+                    // Fetches actual live nearby stations within radius so nearest is accurate even if unsaved.
                     LaunchedEffect(hasLocationPermission) {
                         if (hasLocationPermission) {
-                            viewModel.updateNearestStation(fetchApiNearby = false)
+                            viewModel.updateNearestStation(fetchApiNearby = true)
                         }
                     }
 
@@ -313,7 +312,12 @@ class MainActivity : ComponentActivity() {
                                             onDepartureClick = { departure ->
                                                 viewModel.openTrainJourney(departure)
                                             },
-                                            onAiAssistantClick = { showAiSheet = true },
+                                            onAiAssistantClick = {
+                                                if (hasLocationPermission) {
+                                                    viewModel.updateNearestStation(fetchApiNearby = true)
+                                                }
+                                                showAiSheet = true
+                                            },
                                             onUpgradeClick = { viewModel.showPaywall("Unlock EkiBoard Pro") },
                                             onOpenLineStatus = {
                                                 viewModel.refreshLineStatuses()
@@ -417,6 +421,7 @@ class MainActivity : ComponentActivity() {
 
                     if (showAiSheet) {
                         val nearest = uiState.nearestStation
+                            ?: uiState.nearbyStations.firstOrNull()?.first
                             ?: uiState.stationCards.firstOrNull { it.station.id == uiState.nearestStationId }?.station
                         com.androidfung.departureboard.ui.components.AiTransitSheet(
                             onDismissRequest = { showAiSheet = false },
@@ -540,6 +545,9 @@ class MainActivity : ComponentActivity() {
                             isPro = uiState.isPro,
                             billingRepository = viewModel.billingRepository,
                             onOpenHelpFaq = { showHelpSheet = true },
+                            onOpenDebugSettings = {
+                                showDebugSheet = true
+                            },
                             onUpgradeClick = {
                                 showSettingsSheet = false
                                 viewModel.showPaywall("Unlock EkiBoard Pro")

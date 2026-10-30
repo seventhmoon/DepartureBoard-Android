@@ -352,7 +352,7 @@ private fun createCardNativeAdView(
     }
 
     val adBadge = TextView(context).apply {
-        text = "AD"
+        setText(com.androidfung.departureboard.R.string.ad_badge_label)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
         typeface = Typeface.DEFAULT_BOLD
         setTextColor(onSurfaceVariantColor)
@@ -563,20 +563,20 @@ private fun createRowNativeAdView(
         )
     }
 
-    // Left vertical colored bar indicator (matches DepartureLineRouteIndicator for train/metro: 4.5dp width, 34dp height, 3dp rounded corners)
-    val indicatorBar = View(context).apply {
-        val barBg = GradientDrawable().apply {
+    // App/Ad Icon on the left (or fallback subtle rounded icon) instead of a colored line bar
+    val iconView = ImageView(context).apply {
+        id = View.generateViewId()
+        val size = dpToPx(context, 36)
+        layoutParams = LinearLayout.LayoutParams(size, size).apply {
+            marginEnd = dpToPx(context, 10)
+        }
+        val iconBg = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(context, 3).toFloat()
-            setColor(primaryColor)
+            cornerRadius = dpToPx(context, 8).toFloat()
+            setColor(AndroidColor.argb(20, AndroidColor.red(onSurfaceVariantColor), AndroidColor.green(onSurfaceVariantColor), AndroidColor.blue(onSurfaceVariantColor)))
         }
-        background = barBg
-        layoutParams = LinearLayout.LayoutParams(
-            dpToPx(context, 5),
-            dpToPx(context, 34)
-        ).apply {
-            marginEnd = dpToPx(context, 12) // Exactly matches MaterialTheme.dimensions.paddingLarge (12dp)
-        }
+        background = iconBg
+        clipToOutline = true
     }
 
     // Middle text: Headline (with inline [AD] badge) & Subtitle/Body (matches Destination and Platform details)
@@ -598,7 +598,7 @@ private fun createRowNativeAdView(
     }
 
     val adBadge = TextView(context).apply {
-        text = "AD"
+        setText(com.androidfung.departureboard.R.string.ad_badge_label)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
         typeface = Typeface.DEFAULT_BOLD
         setTextColor(onSurfaceVariantColor)
@@ -684,7 +684,7 @@ private fun createRowNativeAdView(
         }
     }
 
-    rootLayout.addView(indicatorBar)
+    rootLayout.addView(iconView)
     rootLayout.addView(textLayout)
     rootLayout.addView(ctaButton)
 
@@ -693,6 +693,7 @@ private fun createRowNativeAdView(
     nativeAdView.headlineView = headlineView
     nativeAdView.bodyView = bodyView
     nativeAdView.advertiserView = advertiserView
+    nativeAdView.iconView = iconView
     nativeAdView.callToActionView = ctaButton
 
     populateRowNativeAdView(nativeAdView, nativeAd, onSurfaceColor, onSurfaceVariantColor, primaryColor, onPrimaryColor)
@@ -710,10 +711,18 @@ private fun populateRowNativeAdView(
     val headline = nativeAdView.headlineView as? TextView
     val body = nativeAdView.bodyView as? TextView
     val advertiser = nativeAdView.advertiserView as? TextView
+    val icon = nativeAdView.iconView as? ImageView
     val cta = nativeAdView.callToActionView as? Button
 
     headline?.text = nativeAd.headline
     headline?.setTextColor(onSurfaceColor)
+
+    if (nativeAd.icon?.drawable != null) {
+        icon?.visibility = View.VISIBLE
+        icon?.setImageDrawable(nativeAd.icon?.drawable)
+    } else {
+        icon?.visibility = View.GONE
+    }
 
     if (!nativeAd.body.isNullOrBlank()) {
         body?.visibility = View.VISIBLE
@@ -798,7 +807,7 @@ private fun createTimelineNativeAdView(
     }
 
     val adBadge = TextView(context).apply {
-        text = "AD"
+        setText(com.androidfung.departureboard.R.string.ad_badge_label)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 8.5f)
         typeface = Typeface.DEFAULT_BOLD
         setTextColor(onSurfaceVariantColor)

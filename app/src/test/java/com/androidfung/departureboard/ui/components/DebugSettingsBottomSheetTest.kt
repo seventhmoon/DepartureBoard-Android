@@ -146,4 +146,28 @@ class DebugSettingsBottomSheetTest {
         composeTestRule.onNodeWithText("Reset Saved Stations").performScrollTo().performClick()
         assertTrue(resetClicked)
     }
+
+    @Test
+    fun testOfflineCacheAndDynamicModulesRendered() {
+        composeTestRule.setContent {
+            DebugSettingsBody(
+                onDismissRequest = {},
+                userPlan = UserPlan.FREE,
+                onSelectPlan = {},
+                selectedAiModel = com.androidfung.departureboard.ai.AiModelType.DEFAULT,
+                onSelectAiModel = {},
+                selectedRegion = TransitRegion.GB,
+                onSelectRegion = {},
+                isHkRegionEnabled = false,
+                onToggleHkRegionEnabled = {},
+                remainingAiQueries = 3,
+                onResetStations = {},
+                onTriggerInAppReview = {},
+                onResetInAppReviewData = {}
+            )
+        }
+
+        composeTestRule.onNodeWithText("Clear Offline HTTP Cache").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("DYNAMIC FEATURE MODULES").performScrollTo().assertIsDisplayed()
+    }
 }

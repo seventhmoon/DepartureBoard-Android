@@ -266,7 +266,8 @@ fun LineStatusBottomSheet(
             ) {
                 items(
                     items = filteredItems,
-                    key = { it.id }
+                    key = { it.id },
+                    contentType = { "line_status_card" }
                 ) { item ->
                     val isExpanded = expandedLineIds[item.id] == true
                     LineStatusCard(

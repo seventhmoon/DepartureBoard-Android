@@ -24,4 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "EkiBoard"
 include(":app")
+include(":features:ai_assistant")
  
