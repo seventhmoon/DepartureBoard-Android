@@ -10,7 +10,7 @@ object SubscriptionTier {
     // Free Tier Quota Limits (Option A: Balanced / Growth)
     const val FREE_MAX_STATIONS = 3
     const val FREE_MAX_WIDGETS = 2
-    const val FREE_MAX_DAILY_AI_QUERIES = 3
+    const val FREE_MAX_DAILY_AI_QUERIES = 10
 
     // Pro Tier Quota Limits (Option A: Capped to protect API rate limits & battery)
     const val PRO_MAX_STATIONS = 15
@@ -28,36 +28,41 @@ object SubscriptionTier {
     const val BASE_PLAN_MONTHLY = "monthly"
 
     // Backward-compatibility aliases
+    @Deprecated(
+        message = "Use PRODUCT_SUBSCRIPTION_ID instead",
+        replaceWith = ReplaceWith("PRODUCT_SUBSCRIPTION_ID"),
+    )
     const val PRODUCT_SUBS_ANNUAL = PRODUCT_SUBSCRIPTION_ID
+
+    @Deprecated(
+        message = "Use PRODUCT_SUBSCRIPTION_ID instead",
+        replaceWith = ReplaceWith("PRODUCT_SUBSCRIPTION_ID"),
+    )
     const val PRODUCT_SUBS_MONTHLY = PRODUCT_SUBSCRIPTION_ID
 }
 
-enum class UserPlan {
-    FREE,
-    PRO,
-    MAX;
+enum class UserPlan(
+    val maxStations: Int,
+    val maxWidgets: Int,
+    val maxDailyAiQueries: Int,
+) {
+    FREE(
+        maxStations = SubscriptionTier.FREE_MAX_STATIONS,
+        maxWidgets = SubscriptionTier.FREE_MAX_WIDGETS,
+        maxDailyAiQueries = SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES,
+    ),
+    PRO(
+        maxStations = SubscriptionTier.PRO_MAX_STATIONS,
+        maxWidgets = SubscriptionTier.PRO_MAX_WIDGETS,
+        maxDailyAiQueries = SubscriptionTier.PRO_MAX_DAILY_AI_QUERIES,
+    ),
+    MAX(
+        maxStations = SubscriptionTier.MAX_MAX_STATIONS,
+        maxWidgets = SubscriptionTier.MAX_MAX_WIDGETS,
+        maxDailyAiQueries = SubscriptionTier.MAX_MAX_DAILY_AI_QUERIES,
+    );
 
     val isPaidOrAbove: Boolean
-        get() = this == PRO || this == MAX
-
-    val maxStations: Int
-        get() = when (this) {
-            MAX -> SubscriptionTier.MAX_MAX_STATIONS
-            PRO -> SubscriptionTier.PRO_MAX_STATIONS
-            FREE -> SubscriptionTier.FREE_MAX_STATIONS
-        }
-
-    val maxWidgets: Int
-        get() = when (this) {
-            MAX -> SubscriptionTier.MAX_MAX_WIDGETS
-            PRO -> SubscriptionTier.PRO_MAX_WIDGETS
-            FREE -> SubscriptionTier.FREE_MAX_WIDGETS
-        }
-
-    val maxDailyAiQueries: Int
-        get() = when (this) {
-            MAX -> SubscriptionTier.MAX_MAX_DAILY_AI_QUERIES
-            PRO -> SubscriptionTier.PRO_MAX_DAILY_AI_QUERIES
-            FREE -> SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES
-        }
+        get() = ((this == PRO) || (this == MAX))
 }
+

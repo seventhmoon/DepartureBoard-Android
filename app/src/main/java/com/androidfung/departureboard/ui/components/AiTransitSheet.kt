@@ -84,6 +84,9 @@ fun AiTransitSheet(
     billingRepository: BillingDataSource? = null,
     aiModelType: com.androidfung.departureboard.ai.AiModelType = com.androidfung.departureboard.ai.AiModelType.DEFAULT,
     onUpgradeClick: () -> Unit = {},
+    hasLocationPermission: Boolean = false,
+    onRequestLocationPermission: (() -> Unit)? = null,
+    onRefreshNearestStation: (suspend () -> Station?)? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -194,8 +197,29 @@ fun AiTransitSheet(
                     return@launch
                 }
 
-                android.util.Log.d("AiTransitSheet", "submitting query: '$prompt', nearestStation=${nearestStation?.name}, model=$aiModelType")
-                val res = assistant.answerQuery(prompt, savedStations, nearestStation, aiModelType)
+                var effectiveNearest = nearestStation
+                val cleanPrompt = prompt.trim().lowercase()
+                val isLocationIntent = cleanPrompt.contains("near me") ||
+                        cleanPrompt.contains("nearby") ||
+                        cleanPrompt.contains("around me") ||
+                        cleanPrompt.contains("closest") ||
+                        cleanPrompt.contains("nearest") ||
+                        cleanPrompt.contains("here")
+
+                if (isLocationIntent) {
+                    if (!hasLocationPermission && onRequestLocationPermission != null) {
+                        onRequestLocationPermission.invoke()
+                    }
+                    if (onRefreshNearestStation != null) {
+                        val freshNearest = onRefreshNearestStation.invoke()
+                        if (freshNearest != null) {
+                            effectiveNearest = freshNearest
+                        }
+                    }
+                }
+
+                android.util.Log.d("AiTransitSheet", "submitting query: '$prompt', nearestStation=${effectiveNearest?.name}, model=$aiModelType")
+                val res = assistant.answerQuery(prompt, savedStations, effectiveNearest, aiModelType)
                 android.util.Log.d("AiTransitSheet", "got answer: ${res.answer}")
                 aiResult = res
             } catch (e: Exception) {
@@ -386,7 +410,7 @@ fun AiTransitSheet(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Checking live London transit network...",
+                            text = "Checking live transit network...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

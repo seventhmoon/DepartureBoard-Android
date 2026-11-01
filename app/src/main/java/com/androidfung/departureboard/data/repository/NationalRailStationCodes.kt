@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.data.repository
 
-import com.androidfung.departureboard.data.db.AppDatabase
-import com.androidfung.departureboard.data.db.StationCrsDao
+import com.androidfung.departureboard.data.db.gb.StationCrsDao
+import com.androidfung.departureboard.data.db.gb.UkStationDatabase
 
 /**
  * Facade for National Rail 3-letter CRS code resolution, delegating to the Room-backed
@@ -16,7 +16,7 @@ object NationalRailStationCodes {
         if (dataSource == null) {
             synchronized(this) {
                 if (dataSource == null) {
-                    val db = AppDatabase.getInstance(context.applicationContext)
+                    val db = UkStationDatabase.getInstance(context.applicationContext)
                     dataSource = StationCodeDataSourceImpl(db.stationCrsDao())
                 }
             }

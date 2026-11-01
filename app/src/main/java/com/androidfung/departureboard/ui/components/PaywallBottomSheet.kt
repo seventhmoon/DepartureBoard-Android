@@ -168,7 +168,7 @@ fun PaywallBottomSheet(
                 )
             } else {
                 Text(
-                    text = "Supercharge your London daily commute",
+                    text = "Supercharge your daily commute",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

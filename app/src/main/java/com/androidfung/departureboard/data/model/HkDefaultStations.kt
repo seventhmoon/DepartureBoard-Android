@@ -34,7 +34,7 @@ object HkDefaultStations {
             id = "HK_BUS_KMB_001554", // Cross Harbour Tunnel Toll Plaza
             name = "Cross Harbour Tunnel (海底隧道)",
             modes = listOf("bus"),
-            zone = "Kowloon",
+            zone = null,
             lat = 22.3034,
             lon = 114.1812,
             isFavorite = true,
@@ -51,7 +51,7 @@ object HkDefaultStations {
             id = "HK_BUS_KMB_001476",
             name = "Star Ferry TST (尖沙咀天星碼頭)",
             modes = listOf("bus"),
-            zone = "Kowloon",
+            zone = null,
             lat = 22.2938,
             lon = 114.1685,
             isFavorite = true,
@@ -67,46 +67,46 @@ object HkDefaultStations {
         Station(
             id = "HK_MTR_ISL_CEN",
             name = "Central (中環)",
-            modes = listOf("tube"),
-            zone = "HK Island",
+            modes = listOf("mtr"),
+            zone = null,
             lat = 22.2819,
             lon = 114.1582,
             isFavorite = true,
             lines = listOf(
-                StationLineInfo("ISL", "Island Line 港島綫", "tube"),
-                StationLineInfo("TWL", "Tsuen Wan Line 荃灣綫", "tube"),
-                StationLineInfo("TCL", "Tung Chung Line 東涌綫", "tube"),
-                StationLineInfo("AEL", "Airport Express 機場快綫", "tube")
+                StationLineInfo("ISL", "Island Line 港島綫", "mtr"),
+                StationLineInfo("TWL", "Tsuen Wan Line 荃灣綫", "mtr"),
+                StationLineInfo("TCL", "Tung Chung Line 東涌綫", "mtr"),
+                StationLineInfo("AEL", "Airport Express 機場快綫", "mtr")
             )
         ),
         // 4. Admiralty MTR Station (金鐘) - Mega 4-line interchange
         Station(
             id = "HK_MTR_ISL_ADM",
             name = "Admiralty (金鐘)",
-            modes = listOf("tube"),
-            zone = "HK Island",
+            modes = listOf("mtr"),
+            zone = null,
             lat = 22.2789,
             lon = 114.1652,
             isFavorite = true,
             lines = listOf(
-                StationLineInfo("ISL", "Island Line 港島綫", "tube"),
-                StationLineInfo("TWL", "Tsuen Wan Line 荃灣綫", "tube"),
-                StationLineInfo("EAL", "East Rail Line 東鐵綫", "tube"),
-                StationLineInfo("SIL", "South Island Line 南港島綫", "tube")
+                StationLineInfo("ISL", "Island Line 港島綫", "mtr"),
+                StationLineInfo("TWL", "Tsuen Wan Line 荃灣綫", "mtr"),
+                StationLineInfo("EAL", "East Rail Line 東鐵綫", "mtr"),
+                StationLineInfo("SIL", "South Island Line 南港島綫", "mtr")
             )
         ),
         // 5. Mong Kok MTR Station (旺角)
         Station(
             id = "HK_MTR_TWL_MOK",
             name = "Mong Kok (旺角)",
-            modes = listOf("tube"),
-            zone = "Kowloon",
+            modes = listOf("mtr"),
+            zone = null,
             lat = 22.3193,
             lon = 114.1694,
             isFavorite = true,
             lines = listOf(
-                StationLineInfo("TWL", "Tsuen Wan Line 荃灣綫", "tube"),
-                StationLineInfo("KTL", "Kwun Tong Line 觀塘綫", "tube")
+                StationLineInfo("TWL", "Tsuen Wan Line 荃灣綫", "mtr"),
+                StationLineInfo("KTL", "Kwun Tong Line 觀塘綫", "mtr")
             )
         ),
         // 6. Nathan Road Bank Centre Bus Stop (旺角銀行中心)
@@ -114,7 +114,7 @@ object HkDefaultStations {
             id = "HK_BUS_KMB_001614",
             name = "Mong Kok Bank Centre (旺角銀行中心)",
             modes = listOf("bus"),
-            zone = "Kowloon",
+            zone = null,
             lat = 22.3184,
             lon = 114.1699,
             isFavorite = false,
@@ -130,7 +130,7 @@ object HkDefaultStations {
             id = "HK_BUS_CTB_002436",
             name = "Causeway Bay Sogo (銅鑼灣崇光)",
             modes = listOf("bus"),
-            zone = "HK Island",
+            zone = null,
             lat = 22.2802,
             lon = 114.1843,
             isFavorite = false,
@@ -146,14 +146,130 @@ object HkDefaultStations {
         Station(
             id = "HK_MTR_TWL_TST",
             name = "Tsim Sha Tsui (尖沙咀)",
-            modes = listOf("tube"),
-            zone = "Kowloon",
+            modes = listOf("mtr"),
+            zone = null,
             lat = 22.2975,
             lon = 114.1722,
             isFavorite = false,
             lines = listOf(
-                StationLineInfo("TWL", "Tsuen Wan Line 荃灣綫", "tube"),
-                StationLineInfo("TML", "Tuen Ma Line 屯馬綫", "tube")
+                StationLineInfo("TWL", "Tsuen Wan Line 荃灣綫", "mtr"),
+                StationLineInfo("TML", "Tuen Ma Line 屯馬綫", "mtr")
+            )
+        ),
+        // 9. Sha Tin Central Bus Terminus (沙田市中心巴士總站)
+        Station(
+            id = "HK_BUS_KMB_001802",
+            name = "Sha Tin Central (沙田市中心)",
+            modes = listOf("bus"),
+            zone = null,
+            lat = 22.3817,
+            lon = 114.1887,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("KMB_89", "89", "bus"),
+                StationLineInfo("KMB_170", "170", "bus"),
+                StationLineInfo("KMB_280X", "280X", "bus"),
+                StationLineInfo("KMB_282", "282", "bus"),
+                StationLineInfo("KMB_288", "288", "bus")
+            )
+        ),
+        // 10. Tuen Mun Road Interchange (屯門公路轉車站) - Kowloon-bound
+        Station(
+            id = "HK_BUS_KMB_002772",
+            name = "Tuen Mun Road Interchange (屯門公路轉車站)",
+            modes = listOf("bus"),
+            zone = null,
+            lat = 22.3653,
+            lon = 114.0152,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("KMB_58M", "58M", "bus"),
+                StationLineInfo("KMB_59X", "59X", "bus"),
+                StationLineInfo("KMB_60X", "60X", "bus"),
+                StationLineInfo("KMB_67X", "67X", "bus"),
+                StationLineInfo("KMB_960", "960", "bus")
+            )
+        ),
+        // 11. Tai Lam Tunnel Interchange (大欖隧道轉車站)
+        Station(
+            id = "HK_BUS_KMB_002073",
+            name = "Tai Lam Tunnel Interchange (大欖隧道轉車站)",
+            modes = listOf("bus"),
+            zone = null,
+            lat = 22.4206,
+            lon = 114.0628,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("KMB_68M", "68M", "bus"),
+                StationLineInfo("KMB_68X", "68X", "bus"),
+                StationLineInfo("KMB_69X", "69X", "bus"),
+                StationLineInfo("KMB_268C", "268C", "bus"),
+                StationLineInfo("KMB_968", "968", "bus")
+            )
+        ),
+        // 12. Lam Tin Station Bus Terminus (藍田站巴士總站)
+        Station(
+            id = "HK_BUS_KMB_001676",
+            name = "Lam Tin Station PTI (藍田站公共運輸交匯處)",
+            modes = listOf("bus"),
+            zone = null,
+            lat = 22.3065,
+            lon = 114.2343,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("KMB_42C", "42C", "bus"),
+                StationLineInfo("KMB_89D", "89D", "bus"),
+                StationLineInfo("KMB_216M", "216M", "bus"),
+                StationLineInfo("KMB_606", "606", "bus")
+            )
+        ),
+        // 13. Tsuen Wan Station Bus Terminus (荃灣站巴士總站)
+        Station(
+            id = "HK_BUS_KMB_002015",
+            name = "Tsuen Wan Station (荃灣站總站)",
+            modes = listOf("bus"),
+            zone = null,
+            lat = 22.3739,
+            lon = 114.1172,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("KMB_41M", "41M", "bus"),
+                StationLineInfo("KMB_59M", "59M", "bus"),
+                StationLineInfo("KMB_66M", "66M", "bus"),
+                StationLineInfo("KMB_68M", "68M", "bus")
+            )
+        ),
+        // 14. Mei Foo Bus Terminus (美孚巴士總站)
+        Station(
+            id = "HK_BUS_KMB_001582",
+            name = "Mei Foo Bus Terminus (美孚巴士總站)",
+            modes = listOf("bus"),
+            zone = null,
+            lat = 22.3364,
+            lon = 114.1396,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("KMB_2A", "2A", "bus"),
+                StationLineInfo("KMB_6C", "6C", "bus"),
+                StationLineInfo("KMB_6D", "6D", "bus"),
+                StationLineInfo("KMB_102", "102", "bus")
+            )
+        ),
+        // 15. Central Exchange Square Bus Terminus (中環交易廣場巴士總站)
+        Station(
+            id = "HK_BUS_CTB_001089",
+            name = "Central Exchange Square (中環交易廣場)",
+            modes = listOf("bus"),
+            zone = null,
+            lat = 22.2838,
+            lon = 114.1583,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("CTB_2", "2", "bus"),
+                StationLineInfo("CTB_6", "6", "bus"),
+                StationLineInfo("CTB_70", "70", "bus"),
+                StationLineInfo("CTB_260", "260", "bus"),
+                StationLineInfo("CTB_962X", "962X", "bus")
             )
         )
     )
@@ -224,10 +340,11 @@ object HkDefaultStations {
                     platformName = "1",
                     destinationName = "Chai Wan 柴灣",
                     towards = "Chai Wan",
+                    direction = "Eastbound",
                     timeToStationSeconds = 120,
                     expectedArrivalIso = isoFormatter.format(now.plusSeconds(120)),
                     currentLocation = "Approaching",
-                    modeName = "tube",
+                    modeName = "mtr",
                     lineBadge = LineBadgeInfo("ISL", "Island 港島", ColorIslandLine, Color.White),
                     status = DepartureStatus.DUE
                 ),
@@ -240,10 +357,11 @@ object HkDefaultStations {
                     platformName = "2",
                     destinationName = "Tsuen Wan 荃灣",
                     towards = "Tsuen Wan",
+                    direction = "Northbound",
                     timeToStationSeconds = 240,
                     expectedArrivalIso = isoFormatter.format(now.plusSeconds(240)),
                     currentLocation = "In Transit",
-                    modeName = "tube",
+                    modeName = "mtr",
                     lineBadge = LineBadgeInfo("TWL", "Tsuen Wan 荃灣", ColorTsuenWanLine, Color.White),
                     status = DepartureStatus.ON_TIME
                 ),
@@ -256,10 +374,11 @@ object HkDefaultStations {
                     platformName = "3",
                     destinationName = "Kennedy Town 堅尼地城",
                     towards = "Kennedy Town",
+                    direction = "Westbound",
                     timeToStationSeconds = 360,
                     expectedArrivalIso = isoFormatter.format(now.plusSeconds(360)),
                     currentLocation = "In Transit",
-                    modeName = "tube",
+                    modeName = "mtr",
                     lineBadge = LineBadgeInfo("ISL", "Island 港島", ColorIslandLine, Color.White),
                     status = DepartureStatus.ON_TIME
                 )

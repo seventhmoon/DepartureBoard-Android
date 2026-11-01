@@ -113,7 +113,7 @@ fun HelpFaqBottomSheet(
             ),
             FaqItem(
                 question = "Where does the live transit data come from?",
-                answer = "All real-time arrival predictions, platform information, and service disruption alerts are powered directly by Transport for London (TfL) Unified API.",
+                answer = "All real-time arrival predictions, platform information, and service disruption alerts are powered directly by official transport open data (Transport for London TfL, UK BODS, National Rail, Hong Kong DATA.GOV.HK / MTR / KMB / Citybus).",
                 icon = Icons.Rounded.Info
             )
         )
@@ -376,7 +376,7 @@ private fun AppInfoCard(
             }
 
             Text(
-                text = "Open-source London transit companion built with Jetpack Compose & Material 3 Expressive. Powered by TfL Open Data.",
+                text = "Open-source transit companion built with Jetpack Compose & Material 3 Expressive. Powered by Official Open Data.",
                 style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

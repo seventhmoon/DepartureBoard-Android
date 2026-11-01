@@ -39,7 +39,10 @@ interface AiTransitAssistant {
  */
 class TransitAiAssistant(
     private val repository: TransitRepository,
-    context: android.content.Context? = null
+    context: android.content.Context? = null,
+    private val locationDataSource: com.androidfung.departureboard.util.LocationDataSource? = context?.let {
+        com.androidfung.departureboard.util.LocationDataSourceImpl(it.applicationContext)
+    }
 ) : AiTransitAssistant {
 
     private val classifier: LiteRtTransitClassifier? = context?.let {
@@ -125,8 +128,89 @@ class TransitAiAssistant(
             } ?: repository.searchStations(explicitOriginName).getOrNull()?.firstOrNull()
         }
 
+        // Check if user specifically requested departure near them / current location
+        val isExplicitNearMe = cleanQuery.contains("near me") ||
+                cleanQuery.contains("nearby") ||
+                cleanQuery.contains("around me") ||
+                cleanQuery.contains("closest") ||
+                cleanQuery.contains("nearest") ||
+                cleanQuery.contains("here")
+
+        // Dynamically resolve live nearest station via LocationDataSource if available and nearestStation is null or stale
+        var resolvedNearestStation = nearestStation
+
+        if (isExplicitNearMe) {
+            if (locationDataSource != null) {
+                val userCoords = locationDataSource.getCurrentCoordinates()
+                if (userCoords != null) {
+                    val apiNearby = runCatching {
+                        repository.getNearbyStationsFromApi(userCoords.latitude, userCoords.longitude, 2000)
+                    }.getOrDefault(emptyList())
+
+                    val candidates = (apiNearby + savedStations).distinctBy { it.id }
+                    val validCandidates = candidates.filter { it.lat != null && it.lon != null }
+                    var closestCandidate: Station? = null
+                    var minDistance = Double.MAX_VALUE
+
+                    for (cand in validCandidates) {
+                        val dist = com.androidfung.departureboard.util.LocationHelper.calculateDistanceMeters(
+                            userLat = userCoords.latitude,
+                            userLon = userCoords.longitude,
+                            stationLat = cand.lat!!,
+                            stationLon = cand.lon!!
+                        )
+                        if (dist < minDistance) {
+                            minDistance = dist
+                            closestCandidate = cand
+                        }
+                    }
+
+                    if (closestCandidate != null) {
+                        resolvedNearestStation = closestCandidate
+                    }
+                }
+            }
+        } else if (resolvedNearestStation == null && locationDataSource != null) {
+            val userCoords = locationDataSource.getCurrentCoordinates()
+            if (userCoords != null) {
+                val apiNearby = runCatching {
+                    repository.getNearbyStationsFromApi(userCoords.latitude, userCoords.longitude, 2000)
+                }.getOrDefault(emptyList())
+
+                val candidates = (apiNearby + savedStations).distinctBy { it.id }
+                val validCandidates = candidates.filter { it.lat != null && it.lon != null }
+                var closestCandidate: Station? = null
+                var minDistance = Double.MAX_VALUE
+
+                for (cand in validCandidates) {
+                    val dist = com.androidfung.departureboard.util.LocationHelper.calculateDistanceMeters(
+                        userLat = userCoords.latitude,
+                        userLon = userCoords.longitude,
+                        stationLat = cand.lat!!,
+                        stationLon = cand.lon!!
+                    )
+                    if (dist < minDistance) {
+                        minDistance = dist
+                        closestCandidate = cand
+                    }
+                }
+
+                if (closestCandidate != null) {
+                    resolvedNearestStation = closestCandidate
+                }
+            }
+        }
+
+        // If the user explicitly asked for departures "near me" or "closest", but device location cannot be determined,
+        // do not silently guess Oxford Circus or the first saved station. Inform the user clearly.
+        if (isExplicitNearMe && resolvedNearestStation == null) {
+            return AiTransitResult(
+                answer = "I couldn't detect your current location. Please ensure location permissions and GPS are enabled, or specify a station name (e.g. \"Next departure from King's Cross\")."
+            )
+        }
+
         // If no explicit origin is stated, context-aware routing prefers the user's nearest station
-        val defaultOrigin = originStation ?: nearestStation ?: savedStations.firstOrNull()
+        val defaultOrigin = originStation ?: resolvedNearestStation ?: savedStations.firstOrNull()
 
         // 3. Identify target destination station
         val toMatch = Regex("""\bto\s+([a-zA-Z0-9\s'.]+?)(?:\s+from|\?|$)""").find(cleanQuery)
@@ -153,9 +237,10 @@ class TransitAiAssistant(
         }
 
         // Candidate origins: prioritize user's physical nearest station first, followed by saved stations
+        val effectiveNearestStation = resolvedNearestStation
         val baseStationsToSearch = when {
             originStation != null -> listOf(originStation)
-            nearestStation != null -> listOf(nearestStation) + savedStations.filter { it.id != nearestStation.id }
+            effectiveNearestStation != null -> listOf(effectiveNearestStation) + savedStations.filter { it.id != effectiveNearestStation.id }
             else -> savedStations
         }
 
@@ -220,7 +305,7 @@ class TransitAiAssistant(
                 ", followed by another in ${subsequent.formattedTimeToArrival}"
             } else ""
 
-            val prefix = if (departureStation != null && nearestStation != null && departureStation.id == nearestStation.id) {
+            val prefix = if (departureStation != null && effectiveNearestStation != null && departureStation.id == effectiveNearestStation.id) {
                 "From ${departureStation.displayName} (your nearest station), the"
             } else {
                 "The"
@@ -261,7 +346,7 @@ class TransitAiAssistant(
             val (bestStation, stationDepartures) = departuresByStation.first()
             if (stationDepartures.isNotEmpty()) {
                 val next = stationDepartures.first()
-                val prefix = if (nearestStation != null && bestStation.id == nearestStation.id) {
+                val prefix = if (effectiveNearestStation != null && bestStation.id == effectiveNearestStation.id) {
                     "At your nearest station (${bestStation.displayName}), the"
                 } else {
                     "At ${bestStation.displayName}, the"

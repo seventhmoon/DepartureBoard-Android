@@ -13,7 +13,8 @@ object HkMtrRoutes {
         "ISL" to listOf("KET", "HKU", "SYP", "SHW", "CEN", "ADM", "WAC", "CAB", "TIH", "FOH", "NOP", "QUB", "TAK", "SWH", "SKW", "HFC", "CHW"),
         "TWL" to listOf("CEN", "ADM", "TST", "JOR", "YMT", "MOK", "PRE", "SSP", "CSW", "LCK", "MEF", "LAK", "KWF", "KWH", "TWH", "TSW"),
         "KTL" to listOf("WHA", "HOM", "YMT", "MOK", "PRE", "SKM", "KOT", "LOF", "WTS", "DIH", "CHH", "KOB", "NTK", "KWT", "LAT", "YAT", "TIK"),
-        "EAL" to listOf("ADM", "EXC", "HUH", "MKK", "KOT", "TAW", "SHT", "FOT", "RAC", "UNI", "TAP", "TWO", "FAN", "SHS", "LOW", "LMC"),
+        "EAL" to listOf("ADM", "EXC", "HUH", "MKK", "KOT", "TAW", "SHT", "FOT", "UNI", "TAP", "TWO", "FAN", "SHS", "LOW", "LMC"),
+        "EAL_RAC" to listOf("ADM", "EXC", "HUH", "MKK", "KOT", "TAW", "SHT", "RAC", "UNI", "TAP", "TWO", "FAN", "SHS", "LOW", "LMC"),
         "TML" to listOf("WKS", "MOS", "HEO", "TSH", "SHM", "CIO", "STW", "CKT", "TAW", "HIK", "DIH", "KAT", "SUW", "TKW", "HOM", "HUH", "ETS", "AUS", "NAC", "MEF", "TWW", "KSR", "YUL", "LOP", "TIS", "SIH", "TUM"),
         "TCL" to listOf("HOK", "KOW", "OLY", "NAC", "LAK", "TSY", "SUN", "TUC"),
         "AEL" to listOf("HOK", "KOW", "TSY", "AIR", "AWE"),
@@ -48,6 +49,30 @@ object HkMtrRoutes {
     )
 
     /**
+     * Resolves cardinal or line direction (e.g. "Eastbound" / "Westbound" / "Northbound" / "Southbound")
+     * for a train on a given MTR line travelling from origin station to destination station.
+     */
+    fun resolveDirection(lineCode: String, originSta: String, destSta: String): TransitDirection? {
+        val seq = LINE_SEQUENCES[lineCode] ?: return null
+        val originIdx = seq.indexOfFirst { it.equals(originSta, ignoreCase = true) }
+        val destIdx = seq.indexOfFirst { it.equals(destSta, ignoreCase = true) }
+        if (originIdx == -1 || destIdx == -1 || originIdx == destIdx) return null
+
+        val isForward = destIdx > originIdx
+        return when (lineCode.uppercase()) {
+            "ISL" -> if (isForward) TransitDirection.EASTBOUND else TransitDirection.WESTBOUND
+            "TWL" -> if (isForward) TransitDirection.NORTHBOUND else TransitDirection.SOUTHBOUND
+            "KTL" -> if (isForward) TransitDirection.EASTBOUND else TransitDirection.WESTBOUND
+            "EAL", "EAL_RAC" -> if (isForward) TransitDirection.NORTHBOUND else TransitDirection.SOUTHBOUND
+            "TML" -> if (isForward) TransitDirection.WESTBOUND else TransitDirection.EASTBOUND
+            "TCL", "AEL" -> if (isForward) TransitDirection.WESTBOUND else TransitDirection.EASTBOUND
+            "SIL" -> if (isForward) TransitDirection.SOUTHBOUND else TransitDirection.NORTHBOUND
+            "TKL" -> if (isForward) TransitDirection.EASTBOUND else TransitDirection.WESTBOUND
+            else -> if (isForward) TransitDirection.OUTBOUND else TransitDirection.INBOUND
+        }
+    }
+
+    /**
      * Resolves calling points from origin station code to destination station code on a given line.
      * Computes sequential estimated clock times based on average inter-station runtimes (120s per MTR stop)
      * when [departureEpochSeconds] is provided.
@@ -58,11 +83,21 @@ object HkMtrRoutes {
         destStaOrName: String,
         departureEpochSeconds: Long? = null
     ): List<CallingPoint> {
-        val seq = LINE_SEQUENCES[lineCode] ?: return emptyList()
+        val destClean = destStaOrName.trim().uppercase()
+        val servesRacecourse = originSta.equals("RAC", ignoreCase = true) ||
+                destClean.equals("RAC", ignoreCase = true) ||
+                destClean.contains("RACECOURSE") ||
+                destClean.contains("馬場")
+
+        val candidateKey = if (lineCode.equals("EAL", ignoreCase = true) && servesRacecourse) {
+            "EAL_RAC"
+        } else {
+            lineCode
+        }
+
+        val seq = LINE_SEQUENCES[candidateKey] ?: LINE_SEQUENCES[lineCode] ?: return emptyList()
         val originIdx = seq.indexOfFirst { it.equals(originSta, ignoreCase = true) }
         if (originIdx == -1) return emptyList()
-
-        val destClean = destStaOrName.trim().uppercase()
         val destIdx = seq.indexOfFirst { code ->
             code.equals(destClean, ignoreCase = true) ||
             destClean.contains(code) ||
@@ -101,8 +136,8 @@ object HkMtrRoutes {
                 estimatedTime = estBadge,
                 isCurrentStation = idx == 0,
                 isDestination = idx == range.lastIndex,
-                stationId = code,
-                modes = listOf(TransitMode.TUBE.id)
+                stationId = "HK_MTR_${lineCode}_$code",
+                modes = listOf("mtr")
             )
         }
     }

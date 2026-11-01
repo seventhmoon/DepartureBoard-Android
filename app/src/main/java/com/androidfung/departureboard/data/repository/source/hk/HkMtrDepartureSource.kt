@@ -34,7 +34,11 @@ class HkMtrDepartureSource(
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
         if (isBusStop) return false
+        val parts = stationId.removePrefix("HK_MTR_").split("_")
+        val sta = parts.getOrNull(1) ?: (if (parts.size == 1) parts[0] else "")
+        val isMtrCode = HkMtrStationRegistry.getStation(sta) != null || HkMtrStationRegistry.getStation(stationId) != null
         return stationId.isHkMtrStationId ||
+                isMtrCode ||
                 stationName.contains("港鐵") ||
                 stationName.contains("MTR")
     }
@@ -45,9 +49,9 @@ class HkMtrDepartureSource(
         isBusStop: Boolean
     ): Result<List<Departure>> = coroutineScope {
         try {
-            // e.g. "HK_MTR_ISL_CEN" -> line = "ISL", sta = "CEN"
+            // e.g. "HK_MTR_ISL_CEN" -> line = "ISL", sta = "CEN", or raw station code e.g. "CEN"
             val parts = stationId.removePrefix("HK_MTR_").split("_")
-            val defaultLine = parts.getOrNull(0) ?: "ISL"
+            val defaultLine = if (parts.size >= 2) parts[0] else "ISL"
             val sta = parts.getOrNull(1) ?: (if (parts.size == 1) parts[0] else "CEN")
 
             // Query ALL lines serving this station (e.g. for ADM query ISL, TWL, EAL, SIL)
@@ -96,6 +100,8 @@ class HkMtrDepartureSource(
                                 departureEpochSeconds = departureInstant.epochSecond
                             )
 
+                            val resolvedDir = HkMtrRoutes.resolveDirection(lineCode, sta, destCode)?.displayName
+
                             Departure(
                                 id = "HK_MTR_${lineCode}_${sta}_${rawPlat}_${departureInstant.epochSecond}_${item.seq ?: "0"}",
                                 stationId = stationId,
@@ -105,10 +111,11 @@ class HkMtrDepartureSource(
                                 platformName = formattedPlatform,
                                 destinationName = destName,
                                 towards = destName,
+                                direction = resolvedDir,
                                 timeToStationSeconds = timeToStation,
                                 expectedArrivalIso = DateTimeFormatter.ISO_INSTANT.format(departureInstant),
                                 currentLocation = if (timeToStation <= 60) "Approaching" else "In Transit",
-                                modeName = "tube",
+                                modeName = "mtr",
                                 lineBadge = lineBadge,
                                 callingPoints = callingPoints,
                                 status = if (timeToStation <= 45) DepartureStatus.DUE else DepartureStatus.ON_TIME,

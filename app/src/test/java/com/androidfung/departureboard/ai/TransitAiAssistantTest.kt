@@ -13,9 +13,11 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import com.androidfung.departureboard.data.model.DefaultStations
 
 /**
  * Verifies the natural-language routing in [TransitAiAssistant]: status/disruption
@@ -191,6 +193,72 @@ class TransitAiAssistantTest {
         assertTrue(
             "Expected fallback answer but got: ${result.answer}",
             result.answer.contains("couldn't find", ignoreCase = true)
+        )
+    }
+
+    @Test
+    fun `near me query dynamically resolves closest station using LocationDataSource`() = runTest {
+        val kingsCross = DefaultStations.POPULAR_STATIONS.first { it.name.contains("King's Cross", ignoreCase = true) }
+        val testDepartures = listOf(
+            departure("victoria", "Victoria", "Brixton", seconds = 60, stationId = kingsCross.id, stationName = kingsCross.name)
+        )
+        val repo = FakeTransitRepository(
+            departuresResult = { stationId, _ -> Result.success(testDepartures.filter { it.stationId == stationId }) },
+            nearbyStationsResult = { _, _, _ -> listOf(kingsCross) }
+        )
+
+        val fakeLocationDataSource = object : com.androidfung.departureboard.util.LocationDataSource {
+            override suspend fun getCurrentLocation(): android.location.Location? = null
+            override suspend fun getCurrentCoordinates(): com.androidfung.departureboard.util.DeviceCoordinates =
+                com.androidfung.departureboard.util.DeviceCoordinates(
+                    latitude = kingsCross.lat ?: 51.5308,
+                    longitude = kingsCross.lon ?: -0.1238
+                )
+        }
+
+        val assistant = TransitAiAssistant(
+            repository = repo,
+            context = null,
+            locationDataSource = fakeLocationDataSource
+        )
+
+        val result = assistant.answerQuery(
+            query = "next departure near me",
+            savedStations = listOf(oxfordCircus), // Saved station is Oxford Circus, but user is at King's Cross
+            nearestStation = null
+        )
+
+        assertTrue(
+            "Expected answer to reference King's Cross as nearest station, but got: ${result.answer}",
+            result.answer.contains("King's Cross", ignoreCase = true)
+        )
+        assertEquals(kingsCross.id, result.matchedStation?.id)
+    }
+
+    @Test
+    fun `near me query when location is unavailable returns clear guidance instead of guessing saved station`() = runTest {
+        val repo = FakeTransitRepository()
+        val emptyLocationDataSource = object : com.androidfung.departureboard.util.LocationDataSource {
+            override suspend fun getCurrentLocation(): android.location.Location? = null
+            override suspend fun getCurrentCoordinates(): com.androidfung.departureboard.util.DeviceCoordinates? = null
+        }
+
+        val assistant = TransitAiAssistant(
+            repository = repo,
+            context = null,
+            locationDataSource = emptyLocationDataSource
+        )
+
+        val result = assistant.answerQuery(
+            query = "next departure near me",
+            savedStations = listOf(oxfordCircus),
+            nearestStation = null
+        )
+
+        assertTrue(
+            "Expected location unavailable guidance but got: ${result.answer}",
+            result.answer.contains("couldn't detect your current location", ignoreCase = true) ||
+                result.answer.contains("location permissions", ignoreCase = true)
         )
     }
 }

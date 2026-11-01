@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.glance.appwidget.updateAll
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataSource
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataStore
-import com.androidfung.departureboard.data.db.AppDatabase
+import com.androidfung.departureboard.data.db.cache.DepartureCacheDatabase
 import com.androidfung.departureboard.data.db.CachedDepartureEntity
 import com.androidfung.departureboard.data.db.DepartureDao
 import com.androidfung.departureboard.data.model.DefaultStations
@@ -88,6 +88,7 @@ class TransitRepositoryImpl(
     private val hkMtrDepartureSource = com.androidfung.departureboard.data.repository.source.HkMtrDepartureSource()
     private val hkBusCallingPointsResolver = com.androidfung.departureboard.data.resolver.hk.HkBusCallingPointsResolver()
     private val hkMtrCallingPointsResolver = com.androidfung.departureboard.data.resolver.hk.HkMtrCallingPointsResolver()
+    private val hkBusSearchEngine = com.androidfung.departureboard.data.repository.search.HkBusSearchEngine()
     private val bodsCallingPointsResolver = com.androidfung.departureboard.data.resolver.gb.BodsCallingPointsResolver(bodsApiService)
     private val tflCallingPointsResolver = com.androidfung.departureboard.data.resolver.gb.TflCallingPointsResolver(apiService)
 
@@ -107,7 +108,10 @@ class TransitRepositoryImpl(
             bodsDepartureSource,
             tyneAndWearMetroSource,
             hkBusDepartureSource,
-            hkMtrDepartureSource
+            hkMtrDepartureSource,
+            com.androidfung.departureboard.data.repository.source.sg.SgDepartureSource(),
+            com.androidfung.departureboard.data.repository.source.au.AuDepartureSource(),
+            com.androidfung.departureboard.data.repository.source.jp.JpDepartureSource()
         )
     )
     private val stationSearchEngine = com.androidfung.departureboard.data.repository.search.StationSearchEngine(
@@ -121,7 +125,7 @@ class TransitRepositoryImpl(
         nrApiService = NationalRailNetworkClient.apiService,
         bodsApiService = com.androidfung.departureboard.data.network.BodsNetworkClient.apiService,
         dataStore = StationPreferencesDataStore(context.applicationContext),
-        departureDao = AppDatabase.getInstance(context.applicationContext).departureDao(),
+        departureDao = DepartureCacheDatabase.getInstance(context.applicationContext).departureDao(),
         context = context.applicationContext
     )
 
@@ -147,32 +151,109 @@ class TransitRepositoryImpl(
         } catch (_: Exception) {
             com.androidfung.departureboard.data.model.TransitRegion.GB
         }
-        if (currentRegion == com.androidfung.departureboard.data.model.TransitRegion.HK) {
-            Result.success(com.androidfung.departureboard.data.model.HkStationDirectory.searchHkStations(query))
-        } else {
-            stationSearchEngine.searchStations(query)
+        when (currentRegion) {
+            com.androidfung.departureboard.data.model.TransitRegion.HK -> {
+                val routeStops = if (hkBusSearchEngine.isRouteQuery(query)) {
+                    hkBusSearchEngine.searchRouteStops(query)
+                } else {
+                    emptyList()
+                }
+                val directoryBusStops = context?.let { ctx ->
+                    com.androidfung.departureboard.data.model.HkBusStopDirectory.searchStops(ctx, query)
+                }.orEmpty()
+                val dynamicBusStops = (routeStops + directoryBusStops).distinctBy { it.id }
+                Result.success(com.androidfung.departureboard.data.model.HkStationDirectory.searchHkStations(query, dynamicBusStops))
+            }
+            com.androidfung.departureboard.data.model.TransitRegion.SG -> {
+                Result.success(com.androidfung.departureboard.data.model.sg.SgStationDirectory.searchSgStations(query))
+            }
+            com.androidfung.departureboard.data.model.TransitRegion.AU -> {
+                Result.success(com.androidfung.departureboard.data.model.au.AuStationDirectory.searchAuStations(query))
+            }
+            com.androidfung.departureboard.data.model.TransitRegion.JP -> {
+                Result.success(com.androidfung.departureboard.data.model.jp.JpStationDirectory.searchJpStations(query))
+            }
+            com.androidfung.departureboard.data.model.TransitRegion.GB -> {
+                stationSearchEngine.searchStations(query)
+            }
         }
     }
 
     override suspend fun getStationById(stationId: String): Station? = withContext(Dispatchers.IO) {
-        // 1. Check HK stations if HK station ID
-        if (stationId.startsWith("HK_")) {
+        // 1. Check HK stations if HK station ID or HK MTR/Bus code
+        if (stationId.startsWith("HK_") || com.androidfung.departureboard.data.model.HkMtrStationRegistry.getStation(stationId) != null) {
             com.androidfung.departureboard.data.model.HkDefaultStations.POPULAR_STATIONS.firstOrNull {
                 it.id.equals(stationId, ignoreCase = true)
             }?.let { return@withContext it }
 
-            if (stationId.startsWith("HK_MTR_")) {
-                val parts = stationId.removePrefix("HK_MTR_").split("_")
-                val lineCode = parts.getOrNull(0)
-                val staCode = parts.getOrNull(1) ?: (if (parts.size == 1) parts[0] else "")
-                val mtrStation = com.androidfung.departureboard.data.model.HkMtrStationRegistry.getStation(staCode)
-                if (mtrStation != null) {
-                    return@withContext com.androidfung.departureboard.data.model.HkStationDirectory.mtrToStation(mtrStation, lineCode)
+            val cleanMtrId = if (stationId.startsWith("HK_MTR_")) stationId.removePrefix("HK_MTR_") else stationId
+            val parts = cleanMtrId.split("_")
+            val lineCode = if (parts.size >= 2) parts[0] else null
+            val staCode = parts.getOrNull(1) ?: (if (parts.size == 1) parts[0] else "")
+            val mtrStation = com.androidfung.departureboard.data.model.HkMtrStationRegistry.getStation(staCode)
+            if (mtrStation != null) {
+                return@withContext com.androidfung.departureboard.data.model.HkStationDirectory.mtrToStation(mtrStation, lineCode)
+            }
+
+            // If it's a dynamic HK bus stop ID, check local asset directory first, fallback to API
+            if (stationId.startsWith("HK_BUS_KMB_")) {
+                val rawStopId = com.androidfung.departureboard.data.model.extractRawHkBusStopId(stationId)
+                val localStop = context?.let {
+                    com.androidfung.departureboard.data.model.HkBusStopDirectory.findStopById(it, rawStopId)
+                }
+                if (localStop != null) {
+                    return@withContext localStop.toStation()
+                }
+
+                try {
+                    val detail = hkBusSearchEngine.fetchStopDetail(rawStopId)
+                    val nameTc = detail.nameTc.orEmpty().trim()
+                    val nameEn = detail.nameEn.orEmpty().trim()
+                    val displayName = when {
+                        nameTc.isNotBlank() && nameEn.isNotBlank() -> "$nameEn ($nameTc)"
+                        nameTc.isNotBlank() -> nameTc
+                        nameEn.isNotBlank() -> nameEn
+                        else -> "Bus Stop"
+                    }
+                    val lat = detail.lat?.toDoubleOrNull()
+                    val lon = detail.long?.toDoubleOrNull()
+                    return@withContext Station(
+                        id = stationId,
+                        name = displayName,
+                        modes = listOf(com.androidfung.departureboard.data.model.TransitMode.BUS.id),
+                        zone = null,
+                        lat = lat,
+                        lon = lon,
+                        isFavorite = false
+                    )
+                } catch (_: Exception) {
+                    // Fall through
                 }
             }
         }
 
-        // 2. Check local popular stations first
+        // 2. Check Singapore stations
+        if (stationId.startsWith("SG_")) {
+            com.androidfung.departureboard.data.model.sg.SgStationDirectory.ALL_STATIONS.firstOrNull {
+                it.toStation().id.equals(stationId, ignoreCase = true)
+            }?.let { return@withContext it.toStation() }
+        }
+
+        // 3. Check Sydney stations
+        if (stationId.startsWith("AU_") || stationId.startsWith("NSW_")) {
+            com.androidfung.departureboard.data.model.au.AuStationDirectory.ALL_STATIONS.firstOrNull {
+                it.toStation().id.equals(stationId, ignoreCase = true)
+            }?.let { return@withContext it.toStation() }
+        }
+
+        // 4. Check Tokyo stations
+        if (stationId.startsWith("JP_") || stationId.startsWith("TYO_")) {
+            com.androidfung.departureboard.data.model.jp.JpStationDirectory.ALL_STATIONS.firstOrNull {
+                it.toStation().id.equals(stationId, ignoreCase = true)
+            }?.let { return@withContext it.toStation() }
+        }
+
+        // 5. Check local popular stations first
         DefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(stationId, ignoreCase = true) }?.let {
             return@withContext it
         }
@@ -222,7 +303,7 @@ class TransitRepositoryImpl(
                                     Result.success(departures)
                                 },
                                 onFailure = { error ->
-                                    val exception = if (error is Exception) error else Exception(error)
+                                    val exception = error as? Exception ?: Exception(error)
                                     fallbackDepartures(stationId, exception)
                                 }
                             )

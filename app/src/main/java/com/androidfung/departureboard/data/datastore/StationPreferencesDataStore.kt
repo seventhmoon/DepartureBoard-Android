@@ -68,7 +68,14 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
     companion object {
         private val KEY_SAVED_STATIONS = stringPreferencesKey("saved_stations_json")
         private val KEY_SAVED_STATIONS_HK = stringPreferencesKey("saved_stations_json_hk")
+        private val KEY_SAVED_STATIONS_SG = stringPreferencesKey("saved_stations_json_sg")
+        private val KEY_SAVED_STATIONS_AU = stringPreferencesKey("saved_stations_json_au")
+        private val KEY_SAVED_STATIONS_JP = stringPreferencesKey("saved_stations_json_jp")
         private val KEY_RECENT_SEARCHED_STATIONS = stringPreferencesKey("recent_searched_stations_json")
+        private val KEY_RECENT_SEARCHED_STATIONS_HK = stringPreferencesKey("recent_searched_stations_json_hk")
+        private val KEY_RECENT_SEARCHED_STATIONS_SG = stringPreferencesKey("recent_searched_stations_json_sg")
+        private val KEY_RECENT_SEARCHED_STATIONS_AU = stringPreferencesKey("recent_searched_stations_json_au")
+        private val KEY_RECENT_SEARCHED_STATIONS_JP = stringPreferencesKey("recent_searched_stations_json_jp")
         private val KEY_RECENT_STATION_ID = stringPreferencesKey("recent_station_id")
         private val KEY_DEPARTURE_ROWS_COUNT = androidx.datastore.preferences.core.intPreferencesKey("departure_rows_count")
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
@@ -159,7 +166,7 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
     override suspend fun setHkRegionEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_HK_REGION_ENABLED] = enabled
-            if (!enabled && preferences[KEY_SELECTED_REGION] == TransitRegion.HK.id) {
+            if (!enabled && preferences[KEY_SELECTED_REGION] != TransitRegion.GB.id) {
                 preferences[KEY_SELECTED_REGION] = TransitRegion.GB.id
             }
         }
@@ -205,13 +212,29 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
     private fun getSavedStationsKey(region: TransitRegion): Preferences.Key<String> {
         return when (region) {
             TransitRegion.HK -> KEY_SAVED_STATIONS_HK
+            TransitRegion.SG -> KEY_SAVED_STATIONS_SG
+            TransitRegion.AU -> KEY_SAVED_STATIONS_AU
+            TransitRegion.JP -> KEY_SAVED_STATIONS_JP
             TransitRegion.GB -> KEY_SAVED_STATIONS
+        }
+    }
+
+    private fun getRecentSearchedStationsKey(region: TransitRegion): Preferences.Key<String> {
+        return when (region) {
+            TransitRegion.HK -> KEY_RECENT_SEARCHED_STATIONS_HK
+            TransitRegion.SG -> KEY_RECENT_SEARCHED_STATIONS_SG
+            TransitRegion.AU -> KEY_RECENT_SEARCHED_STATIONS_AU
+            TransitRegion.JP -> KEY_RECENT_SEARCHED_STATIONS_JP
+            TransitRegion.GB -> KEY_RECENT_SEARCHED_STATIONS
         }
     }
 
     private fun getDefaultStationsForRegion(region: TransitRegion): List<Station> {
         return when (region) {
             TransitRegion.HK -> HkDefaultStations.POPULAR_STATIONS
+            TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
+            TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
+            TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
             TransitRegion.GB -> DefaultStations.POPULAR_STATIONS
         }
     }
@@ -313,7 +336,9 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
             }
         }
         .map { preferences ->
-            val json = preferences[KEY_RECENT_SEARCHED_STATIONS]
+            val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
+            val key = getRecentSearchedStationsKey(region)
+            val json = preferences[key]
             if (json.isNullOrBlank()) {
                 emptyList()
             } else {
@@ -328,7 +353,10 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
 
     override suspend fun addRecentSearchedStation(station: Station) {
         context.dataStore.edit { preferences ->
-            val json = preferences[KEY_RECENT_SEARCHED_STATIONS]
+            // Route to station's region or selected region
+            val region = TransitRegion.fromStationId(station.id)
+            val key = getRecentSearchedStationsKey(region)
+            val json = preferences[key]
             val currentList = if (!json.isNullOrBlank()) {
                 try {
                     stationListAdapter.fromJson(json)?.toMutableList() ?: mutableListOf()
@@ -349,13 +377,15 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
                 currentList
             }
 
-            preferences[KEY_RECENT_SEARCHED_STATIONS] = stationListAdapter.toJson(trimmed)
+            preferences[key] = stationListAdapter.toJson(trimmed)
         }
     }
 
     override suspend fun removeRecentSearchedStation(stationId: String) {
         context.dataStore.edit { preferences ->
-            val json = preferences[KEY_RECENT_SEARCHED_STATIONS] ?: return@edit
+            val region = TransitRegion.fromStationId(stationId)
+            val key = getRecentSearchedStationsKey(region)
+            val json = preferences[key] ?: return@edit
             val currentList = try {
                 stationListAdapter.fromJson(json)?.toMutableList() ?: return@edit
             } catch (_: Exception) {
@@ -363,13 +393,15 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
             }
 
             currentList.removeAll { it.id == stationId }
-            preferences[KEY_RECENT_SEARCHED_STATIONS] = stationListAdapter.toJson(currentList)
+            preferences[key] = stationListAdapter.toJson(currentList)
         }
     }
 
     override suspend fun clearRecentSearchedStations() {
         context.dataStore.edit { preferences ->
-            preferences.remove(KEY_RECENT_SEARCHED_STATIONS)
+            val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
+            val key = getRecentSearchedStationsKey(region)
+            preferences.remove(key)
         }
     }
 

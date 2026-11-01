@@ -18,7 +18,7 @@ object TransitIconHelper {
     fun getTransitIconForMode(mode: String?): ImageVector {
         if (mode == null) return Icons.Rounded.DirectionsSubway
         return when (mode.lowercase().trim()) {
-            "tube", "underground" -> Icons.Rounded.DirectionsSubway
+            "tube", "underground", "mtr" -> Icons.Rounded.DirectionsSubway
             "bus" -> Icons.Rounded.DirectionsBus
             "national-rail", "overground", "elizabeth-line" -> Icons.Rounded.DirectionsRailway
             "dlr", "tram" -> Icons.Rounded.Tram

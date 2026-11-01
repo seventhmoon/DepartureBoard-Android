@@ -310,9 +310,9 @@ private fun StationHeaderSection(
                 // Prioritize Rail / Tube / Metro modes over Bus, or derive from active line badges if present
                 val badgeModes = lineBadges.map { it.mode.id }
                 val candidateModes = (badgeModes + station.modes).distinct()
-                val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram")
+                val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram", "mtr")
                     .firstOrNull { it in candidateModes }
-                    ?: station.modes.firstOrNull { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr", "tram", "bus") }
+                    ?: station.modes.firstOrNull { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr", "tram", "mtr", "bus") }
                     ?: station.modes.firstOrNull() ?: "tube"
                 val modeIcon = TransitIconHelper.getTransitIconForMode(primaryMode)
 

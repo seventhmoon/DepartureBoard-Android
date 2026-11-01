@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.data.repository.search
 
 import android.content.Context
-import com.androidfung.departureboard.data.db.AppDatabase
+import com.androidfung.departureboard.data.db.gb.UkStationDatabase
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitMode
@@ -70,7 +70,7 @@ class StationSearchEngine(
                 // Resolve CRS code(s) for the TfL stations via the station_crs_mappings database
                 // (first by stationId, with fallback to exact normalized station name)
                 // to cleanly deduplicate against localRailStations (where station.id is the 3-letter CRS code).
-                val dao = stationCrsDao ?: context?.let { AppDatabase.getInstance(it).stationCrsDao() }
+                val dao = stationCrsDao ?: context?.let { UkStationDatabase.getInstance(it).stationCrsDao() }
 
                 val tflCrsCodes = hydratedStations
                     .filter { station ->
@@ -79,9 +79,7 @@ class StationSearchEngine(
                     }
                     .flatMap { station ->
                         val byId = dao?.getCrsCodesForStationId(station.id).orEmpty()
-                        if (byId.isNotEmpty()) {
-                            byId
-                        } else {
+                        byId.ifEmpty {
                             val cleanName = StationNameFormatter.clean(station.name).lowercase()
                             dao?.getCrsCodesForExactName(cleanName).orEmpty()
                         }
@@ -184,7 +182,7 @@ class StationSearchEngine(
         if (query.length != 3 || !query.all { it.isLetter() }) return null
         return try {
             val crsEntity = (stationCrsDao ?: context?.let { ctx ->
-                AppDatabase.getInstance(ctx).stationCrsDao()
+                UkStationDatabase.getInstance(ctx).stationCrsDao()
             })?.getStationByCrsCode(query.uppercase()) ?: return null
 
             // Query TfL for this station name so we get proper coordinates/Naptan if available
@@ -221,7 +219,7 @@ class StationSearchEngine(
         if (query.length < 3) return emptyList()
         return try {
             val entities = (stationCrsDao ?: context?.let { ctx ->
-                AppDatabase.getInstance(ctx).stationCrsDao()
+                UkStationDatabase.getInstance(ctx).stationCrsDao()
             })?.getStationsByNameKeyword(query.trim().lowercase()) ?: emptyList()
 
             entities.map { entity ->

@@ -17,6 +17,23 @@ object StationIdPrefixes {
     const val ROUTE_KMB = "KMB_"
     const val ROUTE_CTB = "CTB_"
 
+    // Singapore prefixes
+    const val SG = "SG_"
+    const val SG_MRT = "SG_MRT_"
+    const val SG_BUS = "SG_BUS_"
+
+    // Sydney / Australia prefixes
+    const val AU = "AU_"
+    const val NSW = "NSW_"
+    const val AU_TRAIN = "AU_TRAIN_"
+    const val AU_METRO = "AU_METRO_"
+
+    // Tokyo / Japan prefixes
+    const val JP = "JP_"
+    const val TYO = "TYO_"
+    const val JP_METRO = "JP_METRO_"
+    const val JP_JR = "JP_JR_"
+
     // UK / GB prefixes
     const val BODS_LINE = "bods-"
     const val BODS = "BODS"
@@ -32,10 +49,32 @@ val String.isHkTransitId: Boolean
     get() = startsWith(StationIdPrefixes.HK, ignoreCase = true)
 
 /**
+ * Returns true if this string represents any Singapore station or transit identifier.
+ */
+val String.isSgTransitId: Boolean
+    get() = startsWith(StationIdPrefixes.SG, ignoreCase = true)
+
+/**
+ * Returns true if this string represents any Sydney / NSW station or transit identifier.
+ */
+val String.isAuTransitId: Boolean
+    get() = startsWith(StationIdPrefixes.AU, ignoreCase = true) ||
+            startsWith(StationIdPrefixes.NSW, ignoreCase = true)
+
+/**
+ * Returns true if this string represents any Tokyo / Japan station or transit identifier.
+ */
+val String.isJpTransitId: Boolean
+    get() = startsWith(StationIdPrefixes.JP, ignoreCase = true) ||
+            startsWith(StationIdPrefixes.TYO, ignoreCase = true)
+
+/**
  * Returns true if this station ID represents an MTR station.
  */
 val String.isHkMtrStationId: Boolean
-    get() = startsWith(StationIdPrefixes.HK_MTR, ignoreCase = true)
+    get() = startsWith(StationIdPrefixes.HK_MTR, ignoreCase = true) ||
+            HkMtrStationRegistry.getStation(this) != null ||
+            (startsWith(StationIdPrefixes.HK, ignoreCase = true) && !isHkBusStationId)
 
 /**
  * Returns true if this station ID represents a Hong Kong bus stop.
