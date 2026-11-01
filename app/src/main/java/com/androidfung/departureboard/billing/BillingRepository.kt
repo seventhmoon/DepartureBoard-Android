@@ -13,11 +13,15 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import com.android.billingclient.api.acknowledgePurchase
+import com.android.billingclient.api.queryProductDetails
+import com.android.billingclient.api.queryPurchasesAsync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -53,7 +57,7 @@ interface BillingDataSource {
  * Manages subscription status, product queries, purchases, and quota checks.
  */
 class BillingRepository(
-    private val context: Context
+    private val context: Context,
 ) : BillingDataSource, PurchasesUpdatedListener {
 
     companion object {
@@ -103,10 +107,12 @@ class BillingRepository(
     private var billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
         .enablePendingPurchases(
-            com.android.billingclient.api.PendingPurchasesParams.newBuilder()
+            PendingPurchasesParams.newBuilder()
                 .enableOneTimeProducts()
-                .build()
+                .enablePrepaidPlans()
+                .build(),
         )
+        .enableAutoServiceReconnection()
         .build()
 
     init {
@@ -114,21 +120,23 @@ class BillingRepository(
     }
 
     private fun startBillingConnection() {
-        billingClient.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(billingResult: BillingResult) {
-                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    queryAvailableProducts()
-                    refreshPurchases()
-                } else {
-                    android.util.Log.w("BillingRepository", "Setup failed: ${billingResult.debugMessage}")
+        billingClient.startConnection(
+            object : BillingClientStateListener {
+                override fun onBillingSetupFinished(billingResult: BillingResult) {
+                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                        queryAvailableProducts()
+                        refreshPurchases()
+                    } else {
+                        android.util.Log.w("BillingRepository", "Setup failed: ${billingResult.debugMessage}")
+                    }
                 }
-            }
 
-            override fun onBillingServiceDisconnected() {
-                // Play Billing 7+ automatically manages reconnections
-                android.util.Log.d("BillingRepository", "Billing service disconnected")
-            }
-        })
+                override fun onBillingServiceDisconnected() {
+                    // Play Billing 7+ automatically manages reconnections
+                    android.util.Log.d("BillingRepository", "Billing service disconnected")
+                }
+            },
+        )
     }
 
     override fun queryAvailableProducts() {
@@ -138,16 +146,21 @@ class BillingRepository(
             QueryProductDetailsParams.Product.newBuilder()
                 .setProductId(SubscriptionTier.PRODUCT_SUBSCRIPTION_ID)
                 .setProductType(BillingClient.ProductType.SUBS)
-                .build()
+                .build(),
         )
 
         val querySubsParams = QueryProductDetailsParams.newBuilder()
             .setProductList(subscriptionProductList)
             .build()
 
-        billingClient.queryProductDetailsAsync(querySubsParams) { result, detailsResult ->
-            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                _availableProducts.value = detailsResult.productDetailsList
+        scope.launch {
+            try {
+                val (billingResult, productDetailsList) = billingClient.queryProductDetails(querySubsParams)
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    _availableProducts.value = productDetailsList ?: emptyList()
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("BillingRepository", "Failed to query product details", e)
             }
         }
     }
@@ -166,39 +179,50 @@ class BillingRepository(
             .setProductType(BillingClient.ProductType.SUBS)
             .build()
 
-        billingClient.queryPurchasesAsync(subsParams) { result, purchases ->
-            var hasActivePro = false
-            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                for (p in purchases) {
-                    if (p.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                        hasActivePro = true
-                        acknowledgePurchaseIfNeeded(p)
+        scope.launch {
+            try {
+                val (result, purchases) = billingClient.queryPurchasesAsync(subsParams)
+
+                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                    var hasActivePro = false
+                    for (p in purchases) {
+                        if (p.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                            hasActivePro = true
+                            acknowledgePurchaseIfNeeded(p)
+                        }
                     }
-                }
-                updateProStatusLocally(hasActivePro)
-                if (hasActivePro) {
-                    onResult?.invoke(true, "Pro subscription restored successfully!")
+                    updateProStatusLocally(hasActivePro)
+                    if (hasActivePro) {
+                        onResult?.invoke(true, "Pro subscription restored successfully!")
+                    } else {
+                        onResult?.invoke(false, "No active subscription found for this Google Play account.")
+                    }
                 } else {
-                    onResult?.invoke(false, "No active subscription found for this Google Play account.")
+                    onResult?.invoke(false, "Failed to restore: ${result.debugMessage.ifBlank { "Error code ${result.responseCode}" }}")
                 }
-            } else {
-                onResult?.invoke(false, "Failed to restore: ${result.debugMessage.ifBlank { "Error code ${result.responseCode}" }}")
+            } catch (e: Exception) {
+                android.util.Log.w("BillingRepository", "Failed to query purchases", e)
+                onResult?.invoke(false, "Failed to restore purchases: ${e.localizedMessage ?: "Unknown error"}")
             }
         }
     }
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
-        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-            for (purchase in purchases) {
-                if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                    acknowledgePurchaseIfNeeded(purchase)
-                    updateProStatusLocally(true)
+        when (billingResult.responseCode) {
+            BillingClient.BillingResponseCode.OK -> {
+                purchases?.forEach { purchase ->
+                    if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                        acknowledgePurchaseIfNeeded(purchase)
+                        updateProStatusLocally(isPro = true)
+                    }
                 }
             }
-        } else if (billingResult.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
-            // User cancelled flow
-        } else {
-            _billingError.value = billingResult.debugMessage
+            BillingClient.BillingResponseCode.USER_CANCELED -> {
+                // User cancelled flow
+            }
+            else -> {
+                _billingError.value = billingResult.debugMessage
+            }
         }
     }
 
@@ -207,9 +231,14 @@ class BillingRepository(
             val params = AcknowledgePurchaseParams.newBuilder()
                 .setPurchaseToken(purchase.purchaseToken)
                 .build()
-            billingClient.acknowledgePurchase(params) { result ->
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    android.util.Log.d("BillingRepository", "Purchase acknowledged successfully")
+            scope.launch {
+                try {
+                    val result = billingClient.acknowledgePurchase(params)
+                    if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                        android.util.Log.d("BillingRepository", "Purchase acknowledged successfully")
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("BillingRepository", "Failed to acknowledge purchase", e)
                 }
             }
         }
@@ -250,7 +279,7 @@ class BillingRepository(
             BillingFlowParams.ProductDetailsParams.newBuilder()
                 .setProductDetails(productDetails)
                 .setOfferToken(offerToken)
-                .build()
+                .build(),
         )
 
         val flowParams = BillingFlowParams.newBuilder()

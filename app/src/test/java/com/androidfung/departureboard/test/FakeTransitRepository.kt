@@ -66,6 +66,7 @@ open class FakeTransitRepository(
 
     override suspend fun setSelectedRegion(region: com.androidfung.departureboard.data.model.TransitRegion) {
         selectedRegionStateFlow.value = region
+        updateRecentStateFlow()
     }
 
     override suspend fun setHkRegionEnabled(enabled: Boolean) {
@@ -129,18 +130,34 @@ open class FakeTransitRepository(
         recentStationIdStateFlow.value = stationId
     }
 
+    private val recentSearchedByRegion = mutableMapOf<com.androidfung.departureboard.data.model.TransitRegion, MutableList<Station>>()
+
+    private fun updateRecentStateFlow() {
+        val currentRegion = selectedRegionStateFlow.value
+        recentSearchedStationsStateFlow.value = recentSearchedByRegion[currentRegion]?.toList() ?: emptyList()
+    }
+
     override suspend fun addRecentSearchedStation(station: Station) {
-        val list = recentSearchedStationsStateFlow.value.filterNot { it.id == station.id }.toMutableList()
+        val region = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(station.id)
+        val list = recentSearchedByRegion.getOrPut(region) { mutableListOf() }
+        list.removeAll { it.id == station.id }
         list.add(0, station)
-        recentSearchedStationsStateFlow.value = list
+        updateRecentStateFlow()
     }
 
     override suspend fun removeRecentSearchedStation(stationId: String) {
-        recentSearchedStationsStateFlow.value = recentSearchedStationsStateFlow.value.filterNot { it.id == stationId }
+        val region = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(stationId)
+        val list = recentSearchedByRegion[region]
+        if (list != null) {
+            list.removeAll { it.id == stationId }
+            updateRecentStateFlow()
+        }
     }
 
     override suspend fun clearRecentSearchedStations() {
-        recentSearchedStationsStateFlow.value = emptyList()
+        val region = selectedRegionStateFlow.value
+        recentSearchedByRegion.remove(region)
+        updateRecentStateFlow()
     }
 
     override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> =

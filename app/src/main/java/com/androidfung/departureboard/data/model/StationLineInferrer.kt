@@ -177,6 +177,15 @@ object StationLineInferrer {
                         textColor = androidx.compose.ui.graphics.Color.White,
                         mode = TransitMode.BUS
                     )
+                } else if (station.id.isJpTransitId || com.androidfung.departureboard.data.model.jp.JpTokyoLine.fromCode(line.id) != null) {
+                    com.androidfung.departureboard.data.model.jp.JpTokyoLine.fromCode(line.id)?.toLineBadge()
+                        ?: TflLineColors.getLineBadge(line.id, line.name, mode)
+                } else if (station.id.isSgTransitId || com.androidfung.departureboard.data.model.sg.SgMrtLine.fromCode(line.id) != null) {
+                    com.androidfung.departureboard.data.model.sg.SgMrtLine.fromCode(line.id)?.toLineBadge()
+                        ?: TflLineColors.getLineBadge(line.id, line.name, mode)
+                } else if (station.id.isAuTransitId || com.androidfung.departureboard.data.model.au.AuSydneyLine.fromCode(line.id) != null) {
+                    com.androidfung.departureboard.data.model.au.AuSydneyLine.fromCode(line.id)?.toLineBadge()
+                        ?: TflLineColors.getLineBadge(line.id, line.name, mode)
                 } else {
                     TflLineColors.getLineBadge(line.id, line.name, mode)
                 }
@@ -213,16 +222,26 @@ object StationLineInferrer {
                 !(isKingsCrossOrStPancrasNR && mode == TransitMode.TUBE) && mode != TransitMode.OTHER
             }
             .map { mode ->
-                when (mode) {
-                    TransitMode.TUBE -> TflLineColors.getLineBadge("tube", "Underground", mode.id)
-                    TransitMode.ELIZABETH_LINE -> TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", mode.id)
-                    TransitMode.OVERGROUND -> TflLineColors.getLineBadge("overground", "Overground", mode.id)
-                    TransitMode.DLR -> TflLineColors.getLineBadge("dlr", "DLR", mode.id)
-                    TransitMode.TRAM -> TflLineColors.getLineBadge("tram", "Tram", mode.id)
-                    TransitMode.BUS -> TflLineColors.getLineBadge("bus", "Bus", mode.id)
-                    TransitMode.NATIONAL_RAIL -> TflLineColors.getLineBadge("national-rail", "National Rail", mode.id)
-                    TransitMode.CABLE_CAR -> TflLineColors.getLineBadge("cable-car", "IFS Cloud Cable Car", mode.id)
-                    TransitMode.OTHER -> TflLineColors.getLineBadge("transit", "Transit", mode.id)
+                if (station.isHkMtr && mode == TransitMode.TUBE) {
+                    LineBadgeInfo(
+                        lineId = "MTR",
+                        displayName = "MTR",
+                        backgroundColor = androidx.compose.ui.graphics.Color(0xFF007DC5),
+                        textColor = androidx.compose.ui.graphics.Color.White,
+                        mode = TransitMode.TUBE
+                    )
+                } else {
+                    when (mode) {
+                        TransitMode.TUBE -> TflLineColors.getLineBadge("tube", "Underground", mode.id)
+                        TransitMode.ELIZABETH_LINE -> TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", mode.id)
+                        TransitMode.OVERGROUND -> TflLineColors.getLineBadge("overground", "Overground", mode.id)
+                        TransitMode.DLR -> TflLineColors.getLineBadge("dlr", "DLR", mode.id)
+                        TransitMode.TRAM -> TflLineColors.getLineBadge("tram", "Tram", mode.id)
+                        TransitMode.BUS -> TflLineColors.getLineBadge("bus", "Bus", mode.id)
+                        TransitMode.NATIONAL_RAIL -> TflLineColors.getLineBadge("national-rail", "National Rail", mode.id)
+                        TransitMode.CABLE_CAR -> TflLineColors.getLineBadge("cable-car", "IFS Cloud Cable Car", mode.id)
+                        TransitMode.OTHER -> TflLineColors.getLineBadge("transit", "Transit", mode.id)
+                    }
                 }
             }
             .distinctBy { it.displayName }

@@ -15,21 +15,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.androidfung.departureboard.data.model.RegionTransitMode
 
 /**
- * Standard transit modes supported by the search filter chips.
- */
-val SEARCH_FILTER_MODES = listOf("All", "Tube", "Elizabeth line", "Overground", "DLR", "National Rail", "Tram", "Bus")
-
-/**
- * Horizontal scrolling row of transit mode filter chips (Tube, Elizabeth line, Overground, DLR, National Rail, Tram, Bus).
+ * Horizontal scrolling row of region-aware transit mode filter chips.
  */
 @Composable
 fun SearchFilterChipsRow(
-    selectedMode: String,
-    onModeSelected: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    modes: List<String> = SEARCH_FILTER_MODES
+    selectedMode: RegionTransitMode,
+    onModeSelected: (RegionTransitMode) -> Unit,
+    modes: List<RegionTransitMode>,
+    modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
@@ -38,14 +34,14 @@ fun SearchFilterChipsRow(
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        modes.forEach { mode ->
-            val isSelected = selectedMode == mode
+        modes.forEach { modeItem ->
+            val isSelected = selectedMode == modeItem
             FilterChip(
                 selected = isSelected,
-                onClick = { onModeSelected(mode) },
+                onClick = { onModeSelected(modeItem) },
                 label = {
                     Text(
-                        text = mode,
+                        text = modeItem.displayName,
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                         )

@@ -80,20 +80,35 @@ open class FakeStationPreferencesDataSource(
         _stations.value = _stations.value.filterNot { it.id == stationId }
     }
 
+    private val _recentSearchedByRegion = mutableMapOf<com.androidfung.departureboard.data.model.TransitRegion, MutableList<Station>>()
     private val _recentSearchedStations = MutableStateFlow<List<Station>>(emptyList())
-    override val recentSearchedStationsFlow: Flow<List<Station>> = _recentSearchedStations.asStateFlow()
+    override val recentSearchedStationsFlow: Flow<List<Station>> = kotlinx.coroutines.flow.combine(
+        _selectedRegion,
+        _recentSearchedStations
+    ) { region, _ ->
+        _recentSearchedByRegion[region]?.toList() ?: emptyList()
+    }
 
     override suspend fun addRecentSearchedStation(station: Station) {
-        val list = _recentSearchedStations.value.filterNot { it.id == station.id }.toMutableList()
+        val region = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(station.id)
+        val list = _recentSearchedByRegion.getOrPut(region) { mutableListOf() }
+        list.removeAll { it.id == station.id }
         list.add(0, station)
-        _recentSearchedStations.value = list
+        _recentSearchedStations.value = list.toList()
     }
 
     override suspend fun removeRecentSearchedStation(stationId: String) {
-        _recentSearchedStations.value = _recentSearchedStations.value.filterNot { it.id == stationId }
+        val region = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(stationId)
+        val list = _recentSearchedByRegion[region]
+        if (list != null) {
+            list.removeAll { it.id == stationId }
+            _recentSearchedStations.value = list.toList()
+        }
     }
 
     override suspend fun clearRecentSearchedStations() {
+        val region = _selectedRegion.value
+        _recentSearchedByRegion.remove(region)
         _recentSearchedStations.value = emptyList()
     }
 

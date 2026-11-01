@@ -315,6 +315,8 @@ class MainActivity : ComponentActivity() {
                                             onAiAssistantClick = {
                                                 if (hasLocationPermission) {
                                                     viewModel.updateNearestStation(fetchApiNearby = true)
+                                                } else {
+                                                    requestLocationWithRationale()
                                                 }
                                                 showAiSheet = true
                                             },
@@ -431,7 +433,12 @@ class MainActivity : ComponentActivity() {
                             initialTriggerSpeech = false,
                             billingRepository = viewModel.billingRepository,
                             aiModelType = uiState.aiModelType,
-                            onUpgradeClick = { viewModel.showPaywall("Unlock unlimited EkiBoard AI queries with Pro") }
+                            onUpgradeClick = { viewModel.showPaywall("Unlock unlimited EkiBoard AI queries with Pro") },
+                            hasLocationPermission = hasLocationPermission,
+                            onRequestLocationPermission = requestLocationWithRationale,
+                            onRefreshNearestStation = {
+                                viewModel.refreshNearestStationInternal(fetchApiNearby = true)
+                            }
                         )
                     }
 

@@ -673,6 +673,7 @@ class DashboardViewModel @JvmOverloads constructor(
     fun openStationDetailFromCallingPoint(callingPoint: com.androidfung.departureboard.data.model.CallingPoint, callingPoints: List<com.androidfung.departureboard.data.model.CallingPoint>) {
         val targetStationId = callingPoint.stationId ?: callingPoint.stationName
         viewModelScope.launch {
+            closeTrainJourney()
             val station = repository.getStationById(targetStationId) ?: Station(
                 id = targetStationId,
                 name = callingPoint.stationName,
@@ -682,7 +683,7 @@ class DashboardViewModel @JvmOverloads constructor(
             // Convert all calling points into Station instances for the context-aware swipe pager
             val callingStations = callingPoints.map { cp ->
                 val id = cp.stationId ?: cp.stationName
-                Station(
+                repository.getStationById(id) ?: Station(
                     id = id,
                     name = cp.stationName,
                     modes = cp.modes
@@ -708,6 +709,9 @@ class DashboardViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             val defaults = when (_uiState.value.selectedRegion) {
                 com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.HkDefaultStations.POPULAR_STATIONS
+                com.androidfung.departureboard.data.model.TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
+                com.androidfung.departureboard.data.model.TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
+                com.androidfung.departureboard.data.model.TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
                 com.androidfung.departureboard.data.model.TransitRegion.GB -> DefaultStations.POPULAR_STATIONS
             }
             repository.reorderStations(defaults)
@@ -771,8 +775,11 @@ class DashboardViewModel @JvmOverloads constructor(
         updateNearestStation(fetchApiNearby)
     }
 
-    fun updateNearestStation(fetchApiNearby: Boolean = false) {
-        viewModelScope.launch {
+    fun updateNearestStation(fetchApiNearby: Boolean = false) = viewModelScope.launch {
+        refreshNearestStationInternal(fetchApiNearby)
+    }
+
+    suspend fun refreshNearestStationInternal(fetchApiNearby: Boolean = false): Station? {
             val location = locationDataSource.getCurrentLocation()
             if (location != null) {
                 val apiNearbyStations = if (fetchApiNearby) {
@@ -786,6 +793,9 @@ class DashboardViewModel @JvmOverloads constructor(
                 val savedStations = _uiState.value.stationCards.map { it.station }
                 val regionDefaults = when (_uiState.value.selectedRegion) {
                     com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.HkDefaultStations.POPULAR_STATIONS + com.androidfung.departureboard.data.model.HkMtrStationRegistry.STATIONS.values.map { com.androidfung.departureboard.data.model.HkStationDirectory.mtrToStation(it) }
+                    com.androidfung.departureboard.data.model.TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
+                    com.androidfung.departureboard.data.model.TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
+                    com.androidfung.departureboard.data.model.TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
                     com.androidfung.departureboard.data.model.TransitRegion.GB -> DefaultStations.POPULAR_STATIONS
                 }
                 val allCandidateStations: List<Station> = (apiNearbyStations + savedStations + regionDefaults)
@@ -843,7 +853,34 @@ class DashboardViewModel @JvmOverloads constructor(
                     android.util.Log.w("LocationHelper", "Location was null")
                 } catch (_: Throwable) {}
             }
-        }
+
+            // Multi-tier region detection (GPS -> Telephony carrier -> System timezone -> Device locale)
+            val detectionResult = com.androidfung.departureboard.util.RegionDetectionHelper.detectRegion(
+                context = getApplication(),
+                location = location
+            )
+
+            _uiState.update { state ->
+                state.copy(
+                    detectedRegion = detectionResult.matchedRegion,
+                    detectedCountryCode = detectionResult.detectedCountryCode,
+                    isLocationUnsupported = detectionResult.isUnsupportedLocation
+                )
+            }
+
+            // Zero-Tap Default Auto-Switch:
+            // If experimental multi-region is enabled and user is physically in a supported region
+            // that is different from currently selected region, auto-switch to it.
+            if (_uiState.value.isHkRegionEnabled && detectionResult.matchedRegion != null) {
+                val matched = detectionResult.matchedRegion
+                if (matched != _uiState.value.selectedRegion) {
+                    try {
+                        android.util.Log.d("RegionDetection", "Auto-switching region to: ${matched.code} via ${detectionResult.detectionSource}")
+                    } catch (_: Throwable) {}
+                    repository.setSelectedRegion(matched)
+                }
+            }
+            return _uiState.value.nearestStation
     }
 
     /**

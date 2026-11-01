@@ -22,8 +22,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 40
-        versionName = "1.3.0-261029"
+        versionCode = 42
+        versionName = "1.3.0-261031"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -76,6 +76,7 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            isReturnDefaultValues = true
         }
     }
     packaging {

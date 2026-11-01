@@ -13,8 +13,16 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+data class DeviceCoordinates(
+    val latitude: Double,
+    val longitude: Double
+)
+
 interface LocationDataSource {
     suspend fun getCurrentLocation(): Location?
+    suspend fun getCurrentCoordinates(): DeviceCoordinates? = getCurrentLocation()?.let {
+        DeviceCoordinates(it.latitude, it.longitude)
+    }
 }
 
 class LocationDataSourceImpl(

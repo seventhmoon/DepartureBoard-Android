@@ -238,7 +238,7 @@ fun WidgetConfigurationContent(
     LaunchedEffect(Unit) {
         val glanceManager = GlanceAppWidgetManager(context)
         val existingGlanceIds = glanceManager.getGlanceIds(DepartureBoardWidget::class.java)
-        val isPro = billingRepository.isProFlow.first()
+        val userPlan = billingRepository.userPlanFlow.first()
 
         // Glance returns ALL registered instance IDs. For a new placement, the new appWidgetId
         // is already included in existingGlanceIds.size by the time this Activity starts.
@@ -248,10 +248,10 @@ fun WidgetConfigurationContent(
         // we just subtract 1 to account for the current widget being added.
         val activeCount = (existingGlanceIds.size - 1).coerceAtLeast(0)
 
-        if (!isPro && activeCount >= SubscriptionTier.FREE_MAX_WIDGETS) {
-            limitReachedReason = "Free plan includes up to ${SubscriptionTier.FREE_MAX_WIDGETS} home screen widgets. Upgrade to Pro for up to ${SubscriptionTier.PRO_MAX_WIDGETS} widgets."
-        } else if (isPro && activeCount >= SubscriptionTier.PRO_MAX_WIDGETS) {
-            limitReachedReason = "Maximum limit of ${SubscriptionTier.PRO_MAX_WIDGETS} widgets reached to protect battery and API limits."
+        if (!userPlan.isPaidOrAbove && activeCount >= userPlan.maxWidgets) {
+            limitReachedReason = "Free plan includes up to ${userPlan.maxWidgets} home screen widgets. Upgrade to Pro for up to ${SubscriptionTier.PRO_MAX_WIDGETS} widgets."
+        } else if (userPlan.isPaidOrAbove && activeCount >= userPlan.maxWidgets) {
+            limitReachedReason = "Maximum limit of ${userPlan.maxWidgets} widgets reached to protect battery and API limits."
         }
         isCheckingLimits = false
     }
@@ -491,7 +491,7 @@ fun WidgetStationPickerScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 val subtitleLabel = when {
-                                    station.id.startsWith("HK_") -> station.zone ?: "Hong Kong Transit"
+                                    station.id.startsWith("HK_") -> station.zone ?: "Hong Kong MTR"
                                     station.displayZone != null -> "Zone ${station.displayZone}"
                                     station.zone != null -> station.zone
                                     else -> "Transit Network"

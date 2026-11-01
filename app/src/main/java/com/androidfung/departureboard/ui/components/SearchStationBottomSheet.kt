@@ -90,12 +90,18 @@ fun SearchStationBottomSheet(
     val defaultStationsForRegion = remember(selectedRegion) {
         when (selectedRegion) {
             com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.HkDefaultStations.POPULAR_STATIONS
+            com.androidfung.departureboard.data.model.TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
+            com.androidfung.departureboard.data.model.TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
+            com.androidfung.departureboard.data.model.TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
             com.androidfung.departureboard.data.model.TransitRegion.GB -> DefaultStations.POPULAR_STATIONS
         }
     }
 
+    val availableModes = remember(selectedRegion) {
+        selectedRegion.supportedModes
+    }
     var searchQuery by remember { mutableStateOf("") }
-    var selectedModeFilter by remember { mutableStateOf("All") }
+    var selectedModeFilter by remember(selectedRegion) { mutableStateOf(availableModes.first()) }
     var searchResults by remember(defaultStationsForRegion) { mutableStateOf(defaultStationsForRegion) }
     var isSearching by remember { mutableStateOf(false) }
 
@@ -126,16 +132,13 @@ fun SearchStationBottomSheet(
 
     // Apply mode filtering on current search results
     val filteredResults = remember(searchResults, selectedModeFilter) {
-        if (selectedModeFilter == "All") {
+        val targetMode = selectedModeFilter.mode
+        if (targetMode == null) {
             searchResults
         } else {
-            val filterNormalized = selectedModeFilter.lowercase().replace(" ", "-")
             searchResults.filter { station ->
-                station.modes.any { mode ->
-                    mode.equals(filterNormalized, ignoreCase = true) ||
-                            (filterNormalized == "tube" && (mode.equals("underground", ignoreCase = true) || mode.equals("tube", ignoreCase = true))) ||
-                            (filterNormalized == "elizabeth-line" && mode.contains("elizabeth", ignoreCase = true)) ||
-                            (filterNormalized == "tram" && (mode.contains("tram", ignoreCase = true) || mode.equals("tram", ignoreCase = true)))
+                station.modes.any { rawMode ->
+                    com.androidfung.departureboard.data.model.TransitMode.fromModeString(rawMode) == targetMode
                 }
             }
         }
@@ -209,7 +212,11 @@ fun SearchStationBottomSheet(
                 }),
                 placeholder = {
                     Text(
-                        text = "Search station or bus route (e.g. 221, SL1)...",
+                        text = if (selectedRegion == com.androidfung.departureboard.data.model.TransitRegion.HK) {
+                            "Search station or bus route (e.g. Central, 1A, 104)..."
+                        } else {
+                            "Search station or bus route (e.g. 221, SL1)..."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -251,7 +258,8 @@ fun SearchStationBottomSheet(
             // Mode Filter Chips Row
             SearchFilterChipsRow(
                 selectedMode = selectedModeFilter,
-                onModeSelected = { selectedModeFilter = it }
+                onModeSelected = { selectedModeFilter = it },
+                modes = availableModes
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -297,7 +305,11 @@ fun SearchStationBottomSheet(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Try searching for Victoria, Waterloo, or King's Cross",
+                            text = if (selectedRegion == com.androidfung.departureboard.data.model.TransitRegion.HK) {
+                                "Try searching for Central, Mong Kok, or 104"
+                            } else {
+                                "Try searching for Victoria, Waterloo, or King's Cross"
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -306,15 +318,13 @@ fun SearchStationBottomSheet(
             } else {
                 // Filter nearby stations by selected mode if mode filter is applied
                 val filteredNearby = remember(nearbyStations, selectedModeFilter) {
-                    if (selectedModeFilter == "All") {
+                    val targetMode = selectedModeFilter.mode
+                    if (targetMode == null) {
                         nearbyStations
                     } else {
-                        val filterNormalized = selectedModeFilter.lowercase().replace(" ", "-")
                         nearbyStations.filter { (station, _) ->
-                            station.modes.any { mode ->
-                                mode.equals(filterNormalized, ignoreCase = true) ||
-                                        (filterNormalized == "tube" && mode.equals("underground", ignoreCase = true)) ||
-                                        (filterNormalized == "elizabeth-line" && mode.contains("elizabeth", ignoreCase = true))
+                            station.modes.any { rawMode ->
+                                com.androidfung.departureboard.data.model.TransitMode.fromModeString(rawMode) == targetMode
                             }
                         }
                     }

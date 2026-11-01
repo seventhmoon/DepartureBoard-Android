@@ -23,8 +23,8 @@ object HkStationDirectory {
         return Station(
             id = "HK_MTR_${primaryLine}_${station.code}",
             name = station.displayName,
-            modes = listOf("tube"),
-            zone = "Hong Kong",
+            modes = listOf("mtr"),
+            zone = null,
             lat = station.lat,
             lon = station.lon,
             isFavorite = false,
@@ -41,7 +41,7 @@ object HkStationDirectory {
     /**
      * Searches Hong Kong transit stations (MTR and popular bus hubs) by keyword.
      */
-    fun searchHkStations(query: String): List<Station> {
+    fun searchHkStations(query: String, dynamicBusStops: List<Station> = emptyList()): List<Station> {
         val trimmed = query.trim()
         if (trimmed.isBlank()) {
             return HkDefaultStations.POPULAR_STATIONS
@@ -53,13 +53,21 @@ object HkStationDirectory {
                     station.code.equals(trimmed, ignoreCase = true)
         }.map { mtrToStation(it) }
 
-        val busMatches = HkDefaultStations.POPULAR_STATIONS.filter { station ->
+        val busMatches = (HkDefaultStations.POPULAR_STATIONS.filter { station ->
             station.name.contains(trimmed, ignoreCase = true) ||
                     station.lines.any { it.name.contains(trimmed, ignoreCase = true) }
-        }
+        } + dynamicBusStops).distinctBy { it.id }
 
         val combined = (mtrMatches + busMatches).distinctBy { it.id }
         val q = trimmed.lowercase()
+
+        // Check if query is targeting a bus route (digits/bus codes) or bus terminus/interchange terms
+        val isLikelyBusQuery = q.any { it.isDigit() } ||
+                q.contains("bus") ||
+                q.contains("巴士") ||
+                q.contains("轉車站") ||
+                q.contains("總站") ||
+                q.contains("bbi")
 
         return combined.sortedWith(
             compareBy<Station> { station ->
@@ -76,8 +84,13 @@ object HkStationDirectory {
                     else -> 7
                 }
             }.thenBy { station ->
-                // MTR / Rail stations prioritized over bus stops
-                if (station.modes.contains("tube") || station.modes.contains("rail")) 0 else 1
+                val isRail = station.modes.contains("mtr") || station.modes.contains("tube") || station.modes.contains("rail")
+                // When query indicates bus or route number, prioritize bus results; otherwise prioritize rail
+                if (isLikelyBusQuery) {
+                    if (station.modes.contains("bus")) 0 else 1
+                } else {
+                    if (isRail) 0 else 1
+                }
             }.thenByDescending { station ->
                 station.lines.size
             }.thenBy { station ->

@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +39,7 @@ import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.isHkBus
 import com.androidfung.departureboard.data.model.isHkMtr
+import com.androidfung.departureboard.data.model.isHkStation
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 
 /**
@@ -51,7 +53,7 @@ fun StationSearchResultRow(
     modifier: Modifier = Modifier,
     distanceText: String? = null
 ) {
-    val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram")
+    val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram", "mtr")
         .firstOrNull { it in station.modes }
         ?: station.modes.firstOrNull() ?: "tube"
     val modeIcon = TransitIconHelper.getTransitIconForMode(primaryMode)
@@ -120,7 +122,7 @@ fun StationSearchResultRow(
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.align(Alignment.CenterVertically)
                             )
-                        } else if (station.displayZone != null) {
+                        } else if (station.displayZone != null && !station.isHkStation) {
                             Text(
                                 text = "Zone ${station.displayZone}",
                                 style = MaterialTheme.typography.labelSmall.copy(
@@ -131,43 +133,94 @@ fun StationSearchResultRow(
                             )
                         }
 
-                        // Filter modes: For rail/tube/interchange stations, omit the generic "bus" mode tag
-                        // (as bus departures are served at individual street stops like 490000138E, not inside the train station)
-                        val displayModes = if (!station.isBusOnly && station.modes.size > 1) {
-                            station.modes.filter { !it.equals("bus", ignoreCase = true) }
-                        } else {
-                            station.modes
+                        // Line badges: Prioritize inferred/declared station lines (e.g. TKL, TWL, ISL)
+                        // If lines are not present, fall back to mode badges with standardized terminology
+                        val lineBadges = remember(station) {
+                            com.androidfung.departureboard.data.model.StationLineInferrer.infer(station)
                         }
 
-                        // Mode badges with standardized official terminology and branding
-                        displayModes.take(3).forEach { modeStr ->
-                            val transitMode = TransitMode.fromModeString(modeStr)
-                            val badge = if (station.isHkMtr) {
-                                val primaryLine = station.lines.firstOrNull()?.id ?: "ISL"
-                                com.androidfung.departureboard.data.model.HkMtrLineRegistry.getLineBadge(primaryLine)
-                            } else if (station.isHkBus) {
-                                LineBadgeInfo("bus", "Bus", com.androidfung.departureboard.data.model.HkDefaultStations.ColorKmbRed, Color.White, TransitMode.BUS)
-                            } else {
-                                TflLineColors.getLineBadge(
-                                    lineId = transitMode.id,
-                                    lineName = transitMode.displayName,
-                                    modeName = transitMode.id
-                                )
+                        if (lineBadges.isNotEmpty()) {
+                            val maxVisibleBadges = 5
+                            val visibleBadges = lineBadges.take(maxVisibleBadges)
+                            val remainingCount = lineBadges.size - visibleBadges.size
+
+                            visibleBadges.forEach { badge ->
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(badge.backgroundColor.copy(alpha = 0.85f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = badge.displayName,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = badge.textColor
+                                    )
+                                }
                             }
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(badge.backgroundColor.copy(alpha = 0.85f))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = transitMode.displayName,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = badge.textColor
-                                )
+
+                            if (remainingCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "+$remainingCount",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else {
+                            // Filter modes: For rail/tube/interchange stations, omit the generic "bus" mode tag
+                            val displayModes = if (!station.isBusOnly && station.modes.size > 1) {
+                                station.modes.filter { !it.equals("bus", ignoreCase = true) }
+                            } else {
+                                station.modes
+                            }
+
+                            displayModes.take(3).forEach { modeStr ->
+                                val transitMode = TransitMode.fromModeString(modeStr)
+                                val badge = if (station.isHkMtr) {
+                                    val primaryLine = station.lines.firstOrNull()?.id ?: "ISL"
+                                    com.androidfung.departureboard.data.model.HkMtrLineRegistry.getLineBadge(primaryLine)
+                                } else if (station.isHkBus) {
+                                    LineBadgeInfo("bus", "Bus", com.androidfung.departureboard.data.model.HkDefaultStations.ColorKmbRed, Color.White, TransitMode.BUS)
+                                } else {
+                                    TflLineColors.getLineBadge(
+                                        lineId = transitMode.id,
+                                        lineName = transitMode.displayName,
+                                        modeName = transitMode.id
+                                    )
+                                }
+                                val displayBadgeName = if (station.isHkMtr && transitMode == TransitMode.TUBE) {
+                                    "MTR"
+                                } else {
+                                    transitMode.displayName
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(badge.backgroundColor.copy(alpha = 0.85f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = displayBadgeName,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = badge.textColor
+                                    )
+                                }
                             }
                         }
                     }

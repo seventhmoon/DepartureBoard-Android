@@ -30,7 +30,9 @@ class HkBusDepartureSource(
 ) : DepartureSource {
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
+        val isRawNumeric = stationId.matches(Regex("^[0-9]{6}$"))
         return stationId.isHkBusStationId ||
+                isRawNumeric ||
                 stationName.contains("海底隧道") ||
                 stationName.contains("轉車站") ||
                 stationName.contains("Cross Harbour Tunnel")

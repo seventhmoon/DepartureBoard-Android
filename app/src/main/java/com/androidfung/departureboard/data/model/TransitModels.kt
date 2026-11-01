@@ -201,8 +201,17 @@ enum class TransitMode(val id: String, val displayName: String) {
 
         fun fromModeString(modeStr: String?): TransitMode {
             if (modeStr == null) return OTHER
-            val normalized = modeStr.lowercase().trim()
-            return entries.firstOrNull { it.id == normalized } ?: OTHER
+            return when (val normalized = modeStr.lowercase().trim()) {
+                "tube", "underground", "mtr", "mrt", "subway", "metro" -> TUBE
+                "bus" -> BUS
+                "elizabeth", "elizabeth-line" -> ELIZABETH_LINE
+                "overground" -> OVERGROUND
+                "dlr" -> DLR
+                "national-rail", "rail", "train" -> NATIONAL_RAIL
+                "cable-car" -> CABLE_CAR
+                "tram", "light-rail", "lrt" -> TRAM
+                else -> entries.firstOrNull { it.id == normalized } ?: OTHER
+            }
         }
 
         fun fromModes(modes: List<String>): List<TransitMode> =

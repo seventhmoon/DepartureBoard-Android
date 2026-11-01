@@ -7,6 +7,9 @@
     <!-- Region Names -->
     <string name="region_uk">United Kingdom</string>
     <string name="region_hk">Hong Kong</string>
+    <string name="region_sg">Singapore</string>
+    <string name="region_au">Sydney</string>
+    <string name="region_jp">Tokyo</string>
 
     <!-- Transit Statuses -->
     <string name="status_due">Due</string>

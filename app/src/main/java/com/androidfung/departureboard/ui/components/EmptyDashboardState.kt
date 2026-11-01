@@ -90,7 +90,7 @@ fun EmptyDashboardState(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Add your regular Tube stations, Elizabeth line, Overground, DLR, or bus stops to see real-time departure countdowns.",
+                text = "Add your regular transit stations, MTR lines, or bus stops to see real-time departure countdowns.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
