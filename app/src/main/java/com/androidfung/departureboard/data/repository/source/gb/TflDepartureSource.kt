@@ -5,7 +5,7 @@ import com.androidfung.departureboard.data.model.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.network.TflApiService
-import com.androidfung.departureboard.data.repository.TflDepartureMapper
+import com.androidfung.departureboard.data.repository.mapper.TflDepartureMapper
 import com.androidfung.departureboard.data.repository.TflStopPointUtils
 import com.androidfung.departureboard.data.repository.TimetableScheduleResolver
 import com.androidfung.departureboard.data.repository.TurnaroundTimeTracker

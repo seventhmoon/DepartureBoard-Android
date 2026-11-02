@@ -1,6 +1,6 @@
 package com.androidfung.departureboard.data.repository
 
-import com.androidfung.departureboard.data.db.StationCrsDao
+import com.androidfung.departureboard.data.db.gb.StationCrsDao
 
 /**
  * Abstraction for resolving National Rail CRS codes from station IDs or names.

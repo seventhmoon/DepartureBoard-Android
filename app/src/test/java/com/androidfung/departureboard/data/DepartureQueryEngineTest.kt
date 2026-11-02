@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.repository.DepartureQueryEngine
+import com.androidfung.departureboard.data.repository.engine.DepartureQueryEngine
 import com.androidfung.departureboard.data.repository.source.DepartureSource
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

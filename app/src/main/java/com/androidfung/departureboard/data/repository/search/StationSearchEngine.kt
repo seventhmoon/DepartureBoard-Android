@@ -8,7 +8,7 @@ import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.network.BodsApiService
 import com.androidfung.departureboard.data.network.TflApiService
 import com.androidfung.departureboard.data.repository.StationNameFormatter
-import com.androidfung.departureboard.data.repository.TflStationMapper
+import com.androidfung.departureboard.data.repository.mapper.TflStationMapper
 import com.androidfung.departureboard.data.repository.TflStopPointUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -27,7 +27,7 @@ class StationSearchEngine(
     private val apiService: TflApiService,
     private val bodsApiService: BodsApiService,
     private val context: Context? = null,
-    private val stationCrsDao: com.androidfung.departureboard.data.db.StationCrsDao? = null
+    private val stationCrsDao: com.androidfung.departureboard.data.db.gb.StationCrsDao? = null
 ) {
 
     /**
