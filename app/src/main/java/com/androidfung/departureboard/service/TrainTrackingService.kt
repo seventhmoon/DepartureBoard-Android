@@ -13,15 +13,21 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.getSystemService
+import com.androidfung.departureboard.DepartureBoardApp
 import com.androidfung.departureboard.MainActivity
 import com.androidfung.departureboard.R
+import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.DepartureStatus
+import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -105,6 +111,12 @@ class TrainTrackingService : Service() {
             }
             context.startService(intent)
         }
+
+        fun getPollIntervalSeconds(remainingSeconds: Int): Long = when {
+            remainingSeconds > 300 -> POLL_INTERVAL_LONG
+            remainingSeconds > 120 -> POLL_INTERVAL_MEDIUM
+            else -> POLL_INTERVAL_SHORT
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -131,14 +143,13 @@ class TrainTrackingService : Service() {
                 val departureId = intent.getStringExtra(EXTRA_DEPARTURE_ID) ?: return START_NOT_STICKY
                 val stationId = intent.getStringExtra(EXTRA_STATION_ID) ?: ""
                 val stationName = intent.getStringExtra(EXTRA_STATION_NAME) ?: ""
-                val destination = intent.getStringExtra(EXTRA_DESTINATION_NAME) ?: "Destination"
-                val lineName = intent.getStringExtra(EXTRA_LINE_NAME) ?: "Train"
+                val destination = intent.getStringExtra(EXTRA_DESTINATION_NAME) ?: getString(R.string.tracking_default_destination)
+                val lineName = intent.getStringExtra(EXTRA_LINE_NAME) ?: getString(R.string.tracking_default_train)
                 val platform = intent.getStringExtra(EXTRA_PLATFORM) ?: ""
                 val initialSeconds = intent.getIntExtra(EXTRA_INITIAL_SECONDS, 180)
                 val lineId = intent.getStringExtra(EXTRA_LINE_ID) ?: ""
                 val isBus = intent.getBooleanExtra(EXTRA_IS_BUS, false)
                 val initialLocation = intent.getStringExtra(EXTRA_INITIAL_LOCATION)
-
                 val destinationId = intent.getStringExtra(EXTRA_DESTINATION_ID)
 
                 currentlyTrackedDepartureId = departureId
@@ -173,7 +184,8 @@ class TrainTrackingService : Service() {
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start foreground service", e)
-                    // Continue with service operation even if foreground setup fails
+                    stopSelf()
+                    return START_NOT_STICKY
                 }
 
                 startTrackingLoop(
@@ -207,9 +219,14 @@ class TrainTrackingService : Service() {
         isBus: Boolean,
         baselineSeconds: Int
     ) {
-        trackingJob?.cancel()
+        val previousJob = trackingJob
         trackingJob = serviceScope.launch {
-            val repository = (applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.repository
+            try {
+                previousJob?.cancelAndJoin()
+            } catch (_: CancellationException) {
+            }
+
+            val repository = (applicationContext as? DepartureBoardApp)?.repository
                 ?: TransitRepositoryImpl(applicationContext)
             var remainingSeconds = initialSeconds
             var currentDestination = destination
@@ -217,10 +234,10 @@ class TrainTrackingService : Service() {
             var baselineStops: Int? = null
             var missingCount = 0
             var isServiceCancelled = false
+            var cachedCallingPoints: List<CallingPoint>? = null
             val startTrackingTimeMillis = System.currentTimeMillis()
 
             while (isActive && remainingSeconds > 0 && (System.currentTimeMillis() - startTrackingTimeMillis) < MAX_TRACKING_DURATION_MS) {
-                // Poll live API periodically
                 var liveLocation: String? = null
                 var isCancelled = false
 
@@ -235,13 +252,13 @@ class TrainTrackingService : Service() {
                             liveLocation = target.currentLocation
 
                             // 1. Check for cancellation
-                            if (target.status == com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED ||
+                            if (target.status == DepartureStatus.CANCELLED ||
                                 target.currentLocation.equals("Cancelled", ignoreCase = true)
                             ) {
                                 isCancelled = true
                             }
 
-                            // 2. Check for destination change (matching by destinationStationId when available to avoid string sensitivity)
+                            // 2. Check for destination change
                             val destinationChanged = if (!destinationId.isNullOrBlank() && !target.destinationStationId.isNullOrBlank()) {
                                 !target.destinationStationId.equals(destinationId, ignoreCase = true)
                             } else {
@@ -252,8 +269,8 @@ class TrainTrackingService : Service() {
                                 val oldDest = currentDestination
                                 currentDestination = target.destinationName
                                 postDisruptionAlert(
-                                    title = "Destination Changed",
-                                    message = "$lineName to $oldDest is now terminating at $currentDestination",
+                                    title = getString(R.string.tracking_destination_changed_title),
+                                    message = getString(R.string.tracking_destination_changed_message, lineName, oldDest, currentDestination),
                                     stationId = stationId,
                                     stationName = stationName
                                 )
@@ -267,36 +284,34 @@ class TrainTrackingService : Service() {
                                 val oldPlatform = currentPlatform
                                 currentPlatform = target.platformName
                                 postDisruptionAlert(
-                                    title = "Platform Changed",
-                                    message = "$lineName to $currentDestination moved from $oldPlatform to $currentPlatform",
+                                    title = getString(R.string.tracking_platform_changed_title),
+                                    message = getString(R.string.tracking_platform_changed_message, lineName, currentDestination, oldPlatform, currentPlatform),
                                     stationId = stationId,
                                     stationName = stationName
                                 )
                             }
                         } else {
                             missingCount++
-                            // If train dropped off the prediction board prematurely (missing for 2 consecutive polls with >120s remaining)
+                            // If train dropped off the prediction board prematurely
                             if (missingCount >= 2 && remainingSeconds > 120) {
                                 isCancelled = true
                             } else {
-                                // If train no longer listed in arrivals, decrement by the elapsed interval
-                                val elapsedSeconds = if (remainingSeconds > 300) 45 else if (remainingSeconds > 120) 30 else 15
+                                val elapsedSeconds = getPollIntervalSeconds(remainingSeconds).toInt()
                                 remainingSeconds = (remainingSeconds - elapsedSeconds).coerceAtLeast(0)
                             }
                         }
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "API call failed for departure tracking", e)
-                    // Fallback to using last known time and gradually decrement
-                    val elapsedSeconds = if (remainingSeconds > 300) 45 else if (remainingSeconds > 120) 30 else 15
+                    val elapsedSeconds = getPollIntervalSeconds(remainingSeconds).toInt()
                     remainingSeconds = (remainingSeconds - elapsedSeconds).coerceAtLeast(0)
                 }
 
                 if (isCancelled) {
                     isServiceCancelled = true
                     postDisruptionAlert(
-                        title = "Service Cancelled",
-                        message = "Your $lineName to $currentDestination has been cancelled.",
+                        title = getString(R.string.tracking_service_cancelled_title),
+                        message = getString(R.string.tracking_service_cancelled_message, lineName, currentDestination),
                         stationId = stationId,
                         stationName = stationName
                     )
@@ -307,7 +322,7 @@ class TrainTrackingService : Service() {
                         lineName = lineName,
                         platform = currentPlatform,
                         timeToStationSeconds = remainingSeconds,
-                        currentLocation = "Cancelled",
+                        currentLocation = getString(R.string.status_cancelled),
                         isBus = isBus,
                         currentStopsAway = null,
                         baselineStops = null,
@@ -320,38 +335,41 @@ class TrainTrackingService : Service() {
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to update notification for cancellation", e)
                     }
-                    // Stop active polling once service is confirmed cancelled
                     break
                 }
 
-                // Calculate stops away if line route sequence is available
+                // Calculate stops away using cached calling points to prevent repeated API calls
                 val stopsAway = try {
                     if (liveLocation != null && lineId.isNotBlank()) {
-                        val fakeDeparture = Departure(
-                            id = departureId,
-                            stationId = stationId,
-                            stationName = stationName,
-                            lineId = lineId,
-                            lineName = lineName,
-                            platformName = currentPlatform,
-                            destinationName = currentDestination,
-                            towards = null,
-                            timeToStationSeconds = remainingSeconds,
-                            expectedArrivalIso = null,
-                            currentLocation = liveLocation,
-                            modeName = if (isBus) "bus" else "tube",
-                            lineBadge = com.androidfung.departureboard.data.model.LineBadgeInfo(
+                        if (cachedCallingPoints == null) {
+                            val sampleDeparture = Departure(
+                                id = departureId,
+                                stationId = stationId,
+                                stationName = stationName,
                                 lineId = lineId,
-                                displayName = lineName,
-                                backgroundColor = androidx.compose.ui.graphics.Color.Transparent
+                                lineName = lineName,
+                                platformName = currentPlatform,
+                                destinationName = currentDestination,
+                                towards = null,
+                                timeToStationSeconds = remainingSeconds,
+                                expectedArrivalIso = null,
+                                currentLocation = liveLocation,
+                                modeName = if (isBus) "bus" else "tube",
+                                lineBadge = LineBadgeInfo(
+                                    lineId = lineId,
+                                    displayName = lineName,
+                                    backgroundColor = androidx.compose.ui.graphics.Color.Transparent
+                                )
                             )
-                        )
-                        val callingPoints = repository.getCallingPoints(fakeDeparture)
-                        val curIdx = callingPoints.indexOfFirst { cp ->
+                            cachedCallingPoints = repository.getCallingPoints(sampleDeparture)
+                        }
+
+                        val points = cachedCallingPoints
+                        val curIdx = points.indexOfFirst { cp ->
                             liveLocation.contains(cp.stationName, ignoreCase = true) ||
                             cp.stationName.contains(liveLocation, ignoreCase = true)
                         }
-                        val userStationIdx = callingPoints.indexOfFirst { it.isCurrentStation }
+                        val userStationIdx = points.indexOfFirst { it.isCurrentStation }
                         if (curIdx != -1 && userStationIdx != -1 && userStationIdx > curIdx) {
                             val computedStops = userStationIdx - curIdx
                             val currentBase = baselineStops
@@ -391,23 +409,19 @@ class TrainTrackingService : Service() {
                     break
                 }
 
-                // Adaptive polling interval based on distance/time to station:
-                // - > 5 mins (long distance / many stops away): 45s (saves radio/battery & respects TfL CDN)
-                // - 2-5 mins (intermediate approach): 30s (matches TfL's 30-second edge cache window)
-                // - < 2 mins (final approach / platform arrival): 15s (high responsiveness when arriving)
-                val pollIntervalSeconds = when {
-                    remainingSeconds > 300 -> POLL_INTERVAL_LONG
-                    remainingSeconds > 120 -> POLL_INTERVAL_MEDIUM
-                    else -> POLL_INTERVAL_SHORT
-                }
-
+                val pollIntervalSeconds = getPollIntervalSeconds(remainingSeconds)
                 delay((pollIntervalSeconds * 1000L).milliseconds)
             }
 
-            // If cancelled, keep the notification visible so the user sees the cancellation status.
-            // When the train has departed (remainingSeconds <= 0) or user stopped tracking, clean up and auto-dismiss.
             if (isServiceCancelled) {
+                // Release foreground status so service can terminate, but retain non-ongoing cancellation notice
+                try {
+                    ServiceCompat.stopForeground(this@TrainTrackingService, ServiceCompat.STOP_FOREGROUND_DETACH)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error stopping foreground status on cancellation", e)
+                }
                 currentlyTrackedDepartureId = null
+                stopSelf()
             } else {
                 stopTrackingInternal()
                 stopSelf()
@@ -460,7 +474,6 @@ class TrainTrackingService : Service() {
             trackingJob?.cancel()
             trackingJob = null
             currentlyTrackedDepartureId = null
-            // Remove foreground status and dismiss the ongoing notification
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
             val nm = getSystemService<NotificationManager>()
             nm?.cancel(NOTIFICATION_ID)
@@ -510,25 +523,19 @@ class TrainTrackingService : Service() {
 
         val targetTimestamp = System.currentTimeMillis() + (timeToStationSeconds * 1000L)
 
-        // Continuous journey track from Base Point (B) to Destination Station (S)
-        // 0 = Base Point (when user hit Track), 100 = Arrived at station / Platform
         val progressVal: Int = if (isCancelled) {
             0
         } else if (timeToStationSeconds <= 30) {
             100
         } else if (currentStopsAway != null && baselineStops != null && baselineStops > 0) {
-            // High-precision station ratio: progress = (stops completed) / (total stops B->S)
             val stopsCompleted = (baselineStops - currentStopsAway).coerceAtLeast(0).toDouble()
             val stopFraction = stopsCompleted / baselineStops.toDouble()
-            // Map 0..baselineStops to 5..95%, hitting 100% when at platform
             (5 + (stopFraction * 90.0)).toInt().coerceIn(5, 95)
         } else {
-            // Distance/Time ratio fallback: progress = (seconds elapsed) / (initial total seconds B->S)
             val timeFraction = (1.0 - (timeToStationSeconds.toDouble() / baselineSeconds.toDouble())).coerceIn(0.0, 1.0)
             (timeFraction * 95.0).toInt().coerceIn(5, 95)
         }
 
-        // Milestone points mark the journey bounds (1 to 100) per NotificationCompat.ProgressStyle requirements
         val milestonePoints = listOf(
             NotificationCompat.ProgressStyle.Point(1),
             NotificationCompat.ProgressStyle.Point(100)
@@ -543,7 +550,6 @@ class TrainTrackingService : Service() {
             else -> (timeToStationSeconds / 120).coerceAtMost(10)
         }
 
-        // Clean platform or stop name for D (Content Text)
         val shortPlatform = when {
             platform.contains("Platform", ignoreCase = true) -> {
                 PLATFORM_LABEL_REGEX.find(platform)?.value ?: platform
@@ -552,25 +558,22 @@ class TrainTrackingService : Service() {
                 STOP_LABEL_REGEX.find(platform)?.value ?: platform
             }
             platform.isNotBlank() -> platform
-            else -> if (isBus) "Bus stop" else "Platform"
+            else -> if (isBus) getString(R.string.tracking_bus_stop_default) else getString(R.string.tracking_platform_default)
         }
 
-        // A. Header Subtext: Line + destination together (e.g. "221 to Edgware", "Victoria line to Walthamstow Central")
-        val headerSubText = "$lineName to $destination"
+        val headerSubText = getString(R.string.tracking_subtext_to, lineName, destination)
 
-        // C. Content Title: Primary status / milestone (e.g. "Cancelled", "2 stops away", "Approaching", "At platform • Boarding")
         val contentTitle = when {
-            isCancelled -> "Service Cancelled"
-            timeToStationSeconds <= 30 -> "At platform • Boarding"
-            timeToStationSeconds <= 90 -> "Approaching"
-            stopsCount == 1 -> "1 stop away"
-            stopsCount > 1 -> "$stopsCount stops away"
+            isCancelled -> getString(R.string.tracking_service_cancelled_title)
+            timeToStationSeconds <= 30 -> getString(R.string.tracking_at_platform_boarding)
+            timeToStationSeconds <= 90 -> getString(R.string.status_approaching)
+            stopsCount == 1 -> getString(R.string.tracking_stops_away_one)
+            stopsCount > 1 -> getString(R.string.tracking_stops_away_other, stopsCount)
             !currentLocation.isNullOrBlank() -> currentLocation
-            else -> "In transit"
+            else -> getString(R.string.status_in_transit)
         }
 
-        // D. Content Text: Platform number or stop name
-        val contentText = if (isCancelled) "This departure has been cancelled" else shortPlatform
+        val contentText = if (isCancelled) getString(R.string.tracking_service_cancelled_desc) else shortPlatform
 
         val trackerIconRes = if (isBus) R.drawable.ic_tracker_bus else R.drawable.ic_tracker_train
         val trackerIcon = androidx.core.graphics.drawable.IconCompat.createWithResource(this, trackerIconRes)
@@ -581,35 +584,35 @@ class TrainTrackingService : Service() {
             .setProgressTrackerIcon(trackerIcon)
             .setProgress(progressVal)
 
-        // Compute clear transit countdown representation for Android 16 status chip
         val minutesAway = (timeToStationSeconds / 60).coerceAtLeast(0)
         val shortChipText = statusChipOverride ?: when {
-            isCancelled -> "Cancelled"
-            timeToStationSeconds <= 30 -> "Due"
-            timeToStationSeconds <= 60 -> "1 min"
-            else -> "$minutesAway min"
+            isCancelled -> getString(R.string.status_cancelled)
+            timeToStationSeconds <= 30 -> getString(R.string.status_due)
+            timeToStationSeconds <= 60 -> getString(R.string.tracking_chip_min, 1)
+            else -> getString(R.string.tracking_chip_min, minutesAway)
         }
+
+        val actionButtonTitle = if (isCancelled) getString(R.string.tracking_action_dismiss) else getString(R.string.tracking_action_stop)
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setSubText(headerSubText)                     // A. Header Subtext: Line and destination (e.g. "221 to Edgware")
-            .setContentTitle(contentTitle)                 // C. Content Title: e.g. "2 stops away", "Approaching"
-            .setContentText(contentText)                   // D. Content Text: Platform number or stop name
-            .setStyle(progressStyle)                       // E. Progress Bar: Continuous track with train/bus icon
+            .setSubText(headerSubText)
+            .setContentTitle(contentTitle)
+            .setContentText(contentText)
+            .setStyle(progressStyle)
             .setOngoing(!isCancelled)
             .setOnlyAlertOnce(true)
             .setContentIntent(openAppPendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, if (isCancelled) "Dismiss" else "Stop Tracking", stopPendingIntent) // F. Action Button
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, actionButtonTitle, stopPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setWhen(targetTimestamp)                      // B. Expected arrival timestamp for the notification header
-            .setShowWhen(!isCancelled)                     // Shows clock arrival time (e.g. 20:53) in notification card header
-            .setUsesChronometer(false)                     // Avoid confusing MM:SS stopwatch timer (e.g. "08:45")
+            .setWhen(targetTimestamp)
+            .setShowWhen(!isCancelled)
+            .setUsesChronometer(false)
             .setChronometerCountDown(false)
 
-        // Android 16 Live Update Notification Promoted Ongoing request
         builder.setRequestPromotedOngoing(!isCancelled)
-        builder.setShortCriticalText(shortChipText)        // Glanceable status bar chip: "Due", "1 min", "8 min"
+        builder.setShortCriticalText(shortChipText)
 
         return builder.build()
     }
@@ -618,19 +621,19 @@ class TrainTrackingService : Service() {
         try {
             val liveChannel = NotificationChannel(
                 CHANNEL_ID,
-                "Live Train Tracking",
+                getString(R.string.notification_channel_live_tracking),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Shows live ongoing countdowns for tracked departures"
+                description = getString(R.string.notification_channel_live_tracking_desc)
                 setShowBadge(true)
             }
 
             val alertChannel = NotificationChannel(
                 ALERT_CHANNEL_ID,
-                "Train Tracking Alerts",
+                getString(R.string.notification_channel_alerts),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Alerts for cancelled or altered journeys"
+                description = getString(R.string.notification_channel_alerts_desc)
                 enableVibration(true)
                 setShowBadge(true)
             }
