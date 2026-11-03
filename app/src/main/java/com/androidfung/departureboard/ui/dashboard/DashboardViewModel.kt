@@ -82,6 +82,8 @@ class DashboardViewModel @JvmOverloads constructor(
     fun setSelectedRegion(region: com.androidfung.departureboard.data.model.TransitRegion) {
         viewModelScope.launch {
             repository.setSelectedRegion(region)
+            refreshDepartures()
+            updateNearestStation(fetchApiNearby = true)
         }
     }
 
@@ -781,8 +783,10 @@ class DashboardViewModel @JvmOverloads constructor(
 
     suspend fun refreshNearestStationInternal(fetchApiNearby: Boolean = false): Station? {
             val location = locationDataSource.getCurrentLocation()
+            val currentRegion = _uiState.value.selectedRegion
             if (location != null) {
-                val apiNearbyStations = if (fetchApiNearby) {
+                // Only query London TfL StopPoints API when in Great Britain (GB)
+                val apiNearbyStations = if (fetchApiNearby && currentRegion == com.androidfung.departureboard.data.model.TransitRegion.GB) {
                     repository.getNearbyStationsFromApi(
                         lat = location.latitude,
                         lon = location.longitude,
@@ -800,14 +804,24 @@ class DashboardViewModel @JvmOverloads constructor(
                 }
                 val allCandidateStations: List<Station> = (apiNearbyStations + savedStations + regionDefaults)
                     .distinctBy { it.id }
+                    .filter { com.androidfung.departureboard.data.model.TransitRegion.fromStationId(it.id) == currentRegion }
 
-                val nearest = com.androidfung.departureboard.util.LocationHelper.findNearestStation(location, allCandidateStations)
-                val nearbyList = com.androidfung.departureboard.util.LocationHelper.findNearbyStations(
-                    userLocation = location,
-                    stations = allCandidateStations,
-                    maxDistanceMeters = 5000.0,
-                    maxCount = 10
-                )
+                // Check whether user's location is in the selected region or within reasonable proximity (< 100km)
+                val isLocationInRegion = com.androidfung.departureboard.data.model.TransitRegion.fromCoordinates(location.latitude, location.longitude) == currentRegion
+
+                val nearest = if (isLocationInRegion) {
+                    com.androidfung.departureboard.util.LocationHelper.findNearestStation(location, allCandidateStations)
+                        ?.takeIf { it.second <= 100_000.0 }
+                } else null
+
+                val nearbyList = if (isLocationInRegion) {
+                    com.androidfung.departureboard.util.LocationHelper.findNearbyStations(
+                        userLocation = location,
+                        stations = allCandidateStations,
+                        maxDistanceMeters = 5000.0,
+                        maxCount = 10
+                    )
+                } else emptyList()
 
                 if (nearest != null) {
                     val (nearestSt, distance) = nearest
@@ -825,7 +839,7 @@ class DashboardViewModel @JvmOverloads constructor(
                                     location.longitude,
                                     stLat,
                                     stLon
-                                )
+                                ).takeIf { it <= 100_000.0 }
                             } else null
                             card.copy(distanceMeters = dist)
                         }
@@ -840,12 +854,21 @@ class DashboardViewModel @JvmOverloads constructor(
                             nearestStation = nearestSt,
                             nearestStationId = nearestSt.id,
                             nearestStationDistanceMeters = distance,
-                            nearbyStations = if (fetchApiNearby || state.nearbyStations.isEmpty()) nearbyList else state.nearbyStations
+                            nearbyStations = nearbyList
                         )
                     }
                 } else {
-                    _uiState.update {
-                        it.copy(nearbyStations = if (fetchApiNearby || it.nearbyStations.isEmpty()) nearbyList else it.nearbyStations)
+                    _uiState.update { state ->
+                        val updatedCardsWithoutDistance = state.stationCards.map { card ->
+                            card.copy(distanceMeters = null)
+                        }
+                        state.copy(
+                            stationCards = updatedCardsWithoutDistance,
+                            nearestStation = null,
+                            nearestStationId = null,
+                            nearestStationDistanceMeters = null,
+                            nearbyStations = nearbyList
+                        )
                     }
                 }
             } else {

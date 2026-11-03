@@ -438,6 +438,7 @@ class MainActivity : ComponentActivity() {
                             initialTriggerSpeech = false,
                             billingRepository = viewModel.billingRepository,
                             aiModelType = uiState.aiModelType,
+                            selectedRegion = uiState.selectedRegion,
                             onUpgradeClick = { viewModel.showPaywall("Unlock unlimited EkiBoard AI queries with Pro") },
                             hasLocationPermission = hasLocationPermission,
                             onRequestLocationPermission = requestLocationWithRationale,
