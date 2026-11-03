@@ -1,5 +1,7 @@
 package com.androidfung.departureboard.ui.dashboard
 
+import com.androidfung.departureboard.data.model.TransitRegion
+
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
@@ -90,6 +92,12 @@ class DashboardViewModel @JvmOverloads constructor(
     fun setHkRegionEnabled(enabled: Boolean) {
         viewModelScope.launch {
             repository.setHkRegionEnabled(enabled)
+            if (!enabled) {
+                repository.setSelectedRegion(TransitRegion.GB)
+                _uiState.update { it.copy(selectedRegion = TransitRegion.GB) }
+                refreshDepartures()
+                updateNearestStation(fetchApiNearby = true)
+            }
         }
     }
 

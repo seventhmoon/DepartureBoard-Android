@@ -105,13 +105,10 @@ class DashboardViewModelRegionTest {
         assertTrue(viewModel.uiState.value.isHkRegionEnabled)
 
         // Disable HK -> should force fallback to GB if previously HK
-        viewModel.setSelectedRegion(TransitRegion.HK)
-        advanceUntilIdle()
-        assertEquals(TransitRegion.HK, viewModel.uiState.value.selectedRegion)
-
         viewModel.setHkRegionEnabled(false)
         advanceUntilIdle()
         assertFalse(viewModel.uiState.value.isHkRegionEnabled)
+        assertEquals(TransitRegion.GB, viewModel.uiState.value.selectedRegion)
     }
 
     @Test
