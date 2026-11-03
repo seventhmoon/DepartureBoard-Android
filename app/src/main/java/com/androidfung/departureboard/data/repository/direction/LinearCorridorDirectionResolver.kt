@@ -22,14 +22,14 @@ abstract class LinearCorridorDirectionResolver(
 
     private val crsIndexMap: Map<String, Int> = buildMap {
         stationsOrder.forEachIndexed { index, entry ->
-            put(entry.crs.uppercase(), index)
+            entry.crs?.let { put(it.uppercase(), index) }
         }
     }
 
     private val naptanIndexMap: Map<String, Int> = buildMap {
         stationsOrder.forEachIndexed { index, entry ->
             entry.naptanId?.let { put(it.uppercase(), index) }
-            put(entry.crs.uppercase(), index)
+            entry.crs?.let { put(it.uppercase(), index) }
         }
     }
 
