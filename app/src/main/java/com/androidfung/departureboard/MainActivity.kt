@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavBackStack
@@ -157,14 +158,18 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // Register flexible in-app update listener and handle restart prompt via Snackbar
+                    val updateDownloadedText = stringResource(R.string.update_downloaded_message)
+                    val restartActionText = stringResource(R.string.update_restart_action)
+                    val undoActionText = stringResource(R.string.action_undo)
+
                     LaunchedEffect(Unit) {
                         val listener = InstallStateUpdatedListener { state ->
                             android.util.Log.d(TAG, "InstallState: status=${state.installStatus()}, errorCode=${state.installErrorCode()}")
                             if (state.installStatus() == InstallStatus.DOWNLOADED) {
                                 lifecycleScope.launch {
                                     val result = snackbarHostState.showSnackbar(
-                                        message = "An update has just been downloaded.",
-                                        actionLabel = "Restart",
+                                        message = updateDownloadedText,
+                                        actionLabel = restartActionText,
                                         duration = SnackbarDuration.Indefinite
                                     )
                                     if (result == SnackbarResult.ActionPerformed) {
@@ -183,7 +188,7 @@ class MainActivity : ComponentActivity() {
                         if (message != null) {
                             val result = snackbarHostState.showSnackbar(
                                 message = message,
-                                actionLabel = "Undo",
+                                actionLabel = undoActionText,
                                 duration = SnackbarDuration.Short
                             )
                             if (result == SnackbarResult.ActionPerformed) {

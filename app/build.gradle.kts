@@ -16,13 +16,17 @@ android {
         version = release(37)
     }
 
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     dynamicFeatures += setOf(":features:ai_assistant")
 
     defaultConfig {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 42
+        versionCode = 44
         versionName = "1.3.0-261031"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -105,6 +109,7 @@ dependencies {
 
     // AndroidX & Core
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

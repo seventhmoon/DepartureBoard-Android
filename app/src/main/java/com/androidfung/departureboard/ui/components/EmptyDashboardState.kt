@@ -26,11 +26,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 
 /**
@@ -78,7 +80,7 @@ fun EmptyDashboardState(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "No Saved Stations",
+                text = stringResource(R.string.empty_dashboard_title),
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp
@@ -90,7 +92,7 @@ fun EmptyDashboardState(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Add your regular transit stations, MTR lines, or bus stops to see real-time departure countdowns.",
+                text = stringResource(R.string.empty_dashboard_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -115,7 +117,7 @@ fun EmptyDashboardState(
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
-                    text = "Add Station",
+                    text = stringResource(R.string.empty_dashboard_add_station),
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
