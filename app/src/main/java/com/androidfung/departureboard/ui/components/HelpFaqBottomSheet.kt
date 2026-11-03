@@ -125,13 +125,8 @@ fun HelpFaqBottomSheet(
                 icon = Icons.Rounded.AutoAwesome
             ),
             FaqItem(
-<<<<<<< HEAD
                 question = qData,
                 answer = aData,
-=======
-                question = "Where does the live transit data come from?",
-                answer = "All real-time arrival predictions, platform information, and service disruption alerts are powered directly by official transport open data (Transport for London TfL, UK BODS, National Rail, Hong Kong DATA.GOV.HK / MTR / KMB / Citybus).",
->>>>>>> feature/languages-and-service-improvement
                 icon = Icons.Rounded.Info
             )
         )
@@ -398,11 +393,7 @@ private fun AppInfoCard(
             }
 
             Text(
-<<<<<<< HEAD
                 text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_app_description),
-=======
-                text = "Open-source transit companion built with Jetpack Compose & Material 3 Expressive. Powered by Official Open Data.",
->>>>>>> feature/languages-and-service-improvement
                 style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

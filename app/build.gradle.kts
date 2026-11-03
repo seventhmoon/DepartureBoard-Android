@@ -26,11 +26,7 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-<<<<<<< HEAD
         versionCode = 44
-=======
-        versionCode = 42
->>>>>>> feature/languages-and-service-improvement
         versionName = "1.3.0-261031"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
