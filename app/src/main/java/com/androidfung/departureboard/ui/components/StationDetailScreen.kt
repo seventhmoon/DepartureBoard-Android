@@ -283,18 +283,11 @@ private fun StationDetailContent(
             if (trackedDepartureId == dep.id) {
                 com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
             } else {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                    val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
-                        context,
-                        android.Manifest.permission.POST_NOTIFICATIONS
-                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-                    if (hasPermission) {
-                        com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, dep)
-                    } else {
-                        pendingTrackDeparture = dep
-                        notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                    }
+                if (com.androidfung.departureboard.util.NotificationHelper.areNotificationsEnabled(context)) {
+                    com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, dep)
+                } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    pendingTrackDeparture = dep
+                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                 } else {
                     com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, dep)
                 }

@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
+import androidx.core.content.getSystemService
 
 /**
  * Resolved execution strategy determining which AI layer handles the query.
@@ -91,19 +92,19 @@ class AiQueryRouter(
     }
 
     private fun isNetworkConnected(): Boolean {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+        val cm = context.getSystemService<ConnectivityManager>() ?: return false
         val network = cm.activeNetwork ?: return false
         val capabilities = cm.getNetworkCapabilities(network) ?: return false
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     private fun getBatteryPercentage(): Int {
-        val bm = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager ?: return 100
+        val bm = context.getSystemService<BatteryManager>() ?: return 100
         return bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
     }
 
     private fun isLowMemoryDevice(): Boolean {
-        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return false
+        val am = context.getSystemService<ActivityManager>() ?: return false
         val memInfo = ActivityManager.MemoryInfo()
         am.getMemoryInfo(memInfo)
         return memInfo.lowMemory || (memInfo.totalMem / (1024 * 1024 * 1024) < 4)
