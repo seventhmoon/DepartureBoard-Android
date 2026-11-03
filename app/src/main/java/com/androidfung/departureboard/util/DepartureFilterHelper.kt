@@ -2,7 +2,7 @@ package com.androidfung.departureboard.util
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.TransitDirection
-import com.androidfung.departureboard.ui.components.TransitIconHelper
+import com.androidfung.departureboard.data.model.TransitLineMatcher
 
 /**
  * Shared utility for extracting available transit directions and filtering
@@ -24,9 +24,12 @@ object DepartureFilterHelper {
         }
 
         if (!lineId.isNullOrBlank()) {
-            val matchesLine = TransitIconHelper.isSameLine(departure.lineId, lineId) ||
-                    TransitIconHelper.isSameLine(departure.lineBadge.lineId, lineId) ||
-                    departure.lineName.equals(lineId.removePrefix("bods-"), ignoreCase = true)
+            val matchesLine = TransitLineMatcher.matchesLine(
+                departureLineId = departure.lineId,
+                departureLineName = departure.lineName,
+                departureBadgeLineId = departure.lineBadge.lineId,
+                targetLineId = lineId
+            )
             if (!matchesLine) return false
         }
 
@@ -70,8 +73,6 @@ object DepartureFilterHelper {
             departures.filter { matches(it, lineId = lineId) }
         }
 
-        val isNorthernLine = lineId?.contains("northern", ignoreCase = true) == true
-
         return targetDepartures
             .asSequence()
             .mapNotNull { dep ->
@@ -79,15 +80,7 @@ object DepartureFilterHelper {
                 val resolvedFromPlatform = TransitDirection.entries.firstOrNull { dir ->
                     dep.platformName.contains(dir.displayName, ignoreCase = true)
                 }
-                val resolvedDirection = resolvedFromDirection ?: resolvedFromPlatform
-
-                val normalizedDirection = when {
-                    isNorthernLine && resolvedDirection == TransitDirection.INBOUND -> TransitDirection.NORTHBOUND
-                    isNorthernLine && resolvedDirection == TransitDirection.OUTBOUND -> TransitDirection.SOUTHBOUND
-                    else -> resolvedDirection
-                }
-
-                normalizedDirection?.displayName ?: dep.direction ?: dep.towards
+                (resolvedFromDirection ?: resolvedFromPlatform)?.displayName ?: dep.direction ?: dep.towards
             }
             .distinct()
             .toList()

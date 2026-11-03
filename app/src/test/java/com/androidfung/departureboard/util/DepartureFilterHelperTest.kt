@@ -73,12 +73,11 @@ class DepartureFilterHelperTest {
     @Test
     fun getAvailableDirections_extractsAndNormalizesDirections() {
         val departures = listOf(
-            createDeparture(id = "1", lineId = "northern", direction = "Inbound"),
-            createDeparture(id = "2", lineId = "northern", direction = "Outbound"),
+            createDeparture(id = "1", lineId = "northern", direction = "Northbound"),
+            createDeparture(id = "2", lineId = "northern", direction = "Southbound"),
             createDeparture(id = "3", lineId = "piccadilly", platformName = "Platform 3 - Westbound")
         )
 
-        // Northern line Inbound/Outbound mapped to Northbound/Southbound
         val northernDirections = DepartureFilterHelper.getAvailableDirections(departures, lineId = "northern")
         assertEquals(listOf("Northbound", "Southbound"), northernDirections)
 
