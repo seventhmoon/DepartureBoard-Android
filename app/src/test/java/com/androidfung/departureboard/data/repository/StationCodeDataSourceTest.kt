@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.data.repository
 
-import com.androidfung.departureboard.data.db.StationCrsDao
-import com.androidfung.departureboard.data.db.StationCrsEntity
+import com.androidfung.departureboard.data.db.gb.StationCrsDao
+import com.androidfung.departureboard.data.db.gb.StationCrsEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

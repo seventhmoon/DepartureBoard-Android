@@ -5,8 +5,8 @@ import androidx.glance.appwidget.updateAll
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataSource
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataStore
 import com.androidfung.departureboard.data.db.cache.DepartureCacheDatabase
-import com.androidfung.departureboard.data.db.CachedDepartureEntity
-import com.androidfung.departureboard.data.db.DepartureDao
+import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
+import com.androidfung.departureboard.data.db.cache.DepartureDao
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
@@ -15,6 +15,16 @@ import com.androidfung.departureboard.data.network.NationalRailApiService
 import com.androidfung.departureboard.data.network.NationalRailNetworkClient
 import com.androidfung.departureboard.data.network.TflApiService
 import com.androidfung.departureboard.data.network.TflNetworkClient
+import com.androidfung.departureboard.data.repository.engine.DepartureQueryEngine
+import com.androidfung.departureboard.data.repository.mapper.TflStationMapper
+import com.androidfung.departureboard.data.repository.source.DepartureSource
+import com.androidfung.departureboard.data.repository.source.gb.BodsDepartureSource
+import com.androidfung.departureboard.data.repository.source.gb.NationalRailDepartureSource
+import com.androidfung.departureboard.data.repository.source.gb.TflDepartureSource
+import com.androidfung.departureboard.data.repository.source.gb.TyneAndWearMetroSource
+import com.androidfung.departureboard.data.repository.source.hk.HkBusDepartureSource
+import com.androidfung.departureboard.data.repository.source.hk.HkMtrDepartureSource
+
 import com.androidfung.departureboard.ui.theme.AppThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -80,12 +90,12 @@ class TransitRepositoryImpl(
     private val context: Context? = null
 ) : TransitRepository {
 
-    private val tflDepartureSource = com.androidfung.departureboard.data.repository.source.TflDepartureSource(apiService)
-    private val nationalRailDepartureSource = com.androidfung.departureboard.data.repository.source.NationalRailDepartureSource(nrApiService)
-    private val bodsDepartureSource = com.androidfung.departureboard.data.repository.source.BodsDepartureSource(bodsApiService) { id -> getStationById(id) }
-    private val tyneAndWearMetroSource = com.androidfung.departureboard.data.repository.source.TyneAndWearMetroSource()
-    private val hkBusDepartureSource = com.androidfung.departureboard.data.repository.source.HkBusDepartureSource()
-    private val hkMtrDepartureSource = com.androidfung.departureboard.data.repository.source.HkMtrDepartureSource()
+    private val tflDepartureSource = TflDepartureSource(apiService)
+    private val nationalRailDepartureSource = NationalRailDepartureSource(nrApiService)
+    private val bodsDepartureSource = BodsDepartureSource(bodsApiService) { id -> getStationById(id) }
+    private val tyneAndWearMetroSource = TyneAndWearMetroSource()
+    private val hkBusDepartureSource = HkBusDepartureSource()
+    private val hkMtrDepartureSource = HkMtrDepartureSource()
     private val hkBusCallingPointsResolver = com.androidfung.departureboard.data.resolver.hk.HkBusCallingPointsResolver()
     private val hkMtrCallingPointsResolver = com.androidfung.departureboard.data.resolver.hk.HkMtrCallingPointsResolver()
     private val hkBusSearchEngine = com.androidfung.departureboard.data.repository.search.HkBusSearchEngine()

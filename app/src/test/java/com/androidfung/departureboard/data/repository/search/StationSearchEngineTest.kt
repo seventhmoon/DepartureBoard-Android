@@ -144,17 +144,17 @@ class StationSearchEngineTest {
             )
         )
 
-        val fakeDao = object : com.androidfung.departureboard.data.db.StationCrsDao {
+        val fakeDao = object : com.androidfung.departureboard.data.db.gb.StationCrsDao {
             override suspend fun getCrsCodesForStationId(stationId: String): List<String> {
                 return if (stationId == "910GSUTTON") listOf("SUO") else emptyList()
             }
             override suspend fun getCrsCodesForExactName(normalizedName: String): List<String> = emptyList()
             override suspend fun getCrsCodesForStationName(name: String): List<String> = emptyList()
             override suspend fun getCrsCodesForNameKeyword(keyword: String): List<String> = emptyList()
-            override suspend fun getStationsByNameKeyword(keyword: String): List<com.androidfung.departureboard.data.db.StationCrsEntity> {
+            override suspend fun getStationsByNameKeyword(keyword: String): List<com.androidfung.departureboard.data.db.gb.StationCrsEntity> {
                 return if ("sutton" in keyword) {
                     listOf(
-                        com.androidfung.departureboard.data.db.StationCrsEntity(
+                        com.androidfung.departureboard.data.db.gb.StationCrsEntity(
                             stationId = "SUO",
                             crsCode = "SUO",
                             stationName = "Sutton (London)",
@@ -164,9 +164,9 @@ class StationSearchEngineTest {
                     )
                 } else emptyList()
             }
-            override suspend fun getStationByCrsCode(crsCode: String): com.androidfung.departureboard.data.db.StationCrsEntity? = null
-            override suspend fun getStationByStationId(stationId: String): com.androidfung.departureboard.data.db.StationCrsEntity? = null
-            override suspend fun insertAll(mappings: List<com.androidfung.departureboard.data.db.StationCrsEntity>) {}
+            override suspend fun getStationByCrsCode(crsCode: String): com.androidfung.departureboard.data.db.gb.StationCrsEntity? = null
+            override suspend fun getStationByStationId(stationId: String): com.androidfung.departureboard.data.db.gb.StationCrsEntity? = null
+            override suspend fun insertAll(mappings: List<com.androidfung.departureboard.data.db.gb.StationCrsEntity>) {}
             override suspend fun getCount(): Int = 1
         }
 
@@ -205,17 +205,17 @@ class StationSearchEngineTest {
             )
         )
 
-        val fakeDao = object : com.androidfung.departureboard.data.db.StationCrsDao {
+        val fakeDao = object : com.androidfung.departureboard.data.db.gb.StationCrsDao {
             override suspend fun getCrsCodesForStationId(stationId: String): List<String> = emptyList() // ID lookup fails
             override suspend fun getCrsCodesForExactName(normalizedName: String): List<String> {
                 return if (normalizedName == "mill hill broadway") listOf("MIL") else emptyList()
             }
             override suspend fun getCrsCodesForStationName(name: String): List<String> = emptyList()
             override suspend fun getCrsCodesForNameKeyword(keyword: String): List<String> = emptyList()
-            override suspend fun getStationsByNameKeyword(keyword: String): List<com.androidfung.departureboard.data.db.StationCrsEntity> {
+            override suspend fun getStationsByNameKeyword(keyword: String): List<com.androidfung.departureboard.data.db.gb.StationCrsEntity> {
                 return if ("mill hill" in keyword) {
                     listOf(
-                        com.androidfung.departureboard.data.db.StationCrsEntity(
+                        com.androidfung.departureboard.data.db.gb.StationCrsEntity(
                             stationId = "MIL",
                             crsCode = "MIL",
                             stationName = "Mill Hill Broadway",
@@ -225,9 +225,9 @@ class StationSearchEngineTest {
                     )
                 } else emptyList()
             }
-            override suspend fun getStationByCrsCode(crsCode: String): com.androidfung.departureboard.data.db.StationCrsEntity? = null
-            override suspend fun getStationByStationId(stationId: String): com.androidfung.departureboard.data.db.StationCrsEntity? = null
-            override suspend fun insertAll(mappings: List<com.androidfung.departureboard.data.db.StationCrsEntity>) {}
+            override suspend fun getStationByCrsCode(crsCode: String): com.androidfung.departureboard.data.db.gb.StationCrsEntity? = null
+            override suspend fun getStationByStationId(stationId: String): com.androidfung.departureboard.data.db.gb.StationCrsEntity? = null
+            override suspend fun insertAll(mappings: List<com.androidfung.departureboard.data.db.gb.StationCrsEntity>) {}
             override suspend fun getCount(): Int = 1
         }
 

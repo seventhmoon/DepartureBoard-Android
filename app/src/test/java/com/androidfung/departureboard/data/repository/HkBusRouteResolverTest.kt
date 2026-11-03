@@ -1,5 +1,18 @@
 package com.androidfung.departureboard.data.repository
 
+import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
+import com.androidfung.departureboard.data.repository.direction.DestinationResolver
+import com.androidfung.departureboard.data.repository.direction.ElizabethLineDirectionResolver
+import com.androidfung.departureboard.data.repository.direction.LinearCorridorDirectionResolver
+import com.androidfung.departureboard.data.repository.direction.OvergroundLineResolver
+import com.androidfung.departureboard.data.repository.direction.ThameslinkDirectionResolver
+import com.androidfung.departureboard.data.repository.mapper.NationalRailDepartureMapper
+import com.androidfung.departureboard.data.repository.mapper.TflDepartureMapper
+import com.androidfung.departureboard.data.repository.source.hk.HkBusDepartureSource
+import com.androidfung.departureboard.data.repository.source.hk.HkMtrDepartureSource
+import com.androidfung.departureboard.data.resolver.hk.HkBusCallingPointsResolver
+
+
 import com.androidfung.departureboard.data.model.HkKmbRouteStopItem
 import com.androidfung.departureboard.data.model.HkKmbRouteStopResponse
 import com.androidfung.departureboard.data.model.HkKmbStopDetailItem
@@ -41,7 +54,7 @@ class HkBusRouteResolverTest {
             }
         }
 
-        val resolver = HkBusRouteResolver(apiService = fakeApi)
+        val resolver = HkBusCallingPointsResolver(apiService = fakeApi)
         val callingPoints = resolver.resolveCallingPoints("1A", "STOP_2", "outbound")
 
         assertEquals(2, callingPoints.size)
