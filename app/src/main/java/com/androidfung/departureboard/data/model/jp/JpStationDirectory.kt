@@ -1,12 +1,22 @@
 package com.androidfung.departureboard.data.model.jp
 
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.StationDirectory
 import com.androidfung.departureboard.data.model.StationLineInfo
 
 /**
  * Directory of Tokyo stations with Kanji, Hiragana, and English/Romaji search support.
  */
-object JpStationDirectory {
+object JpStationDirectory : StationDirectory {
+
+    override val defaultStations: List<Station>
+        get() = JpDefaultStations.POPULAR_STATIONS
+
+    override fun searchStations(query: String): List<Station> = searchJpStations(query)
+
+    override fun getStationById(stationId: String): Station? {
+        return ALL_STATIONS.find { it.toStation().id == stationId }?.toStation()
+    }
 
     data class JpStationEntry(
         val code: String,
