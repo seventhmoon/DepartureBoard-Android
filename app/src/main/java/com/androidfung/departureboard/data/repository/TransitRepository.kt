@@ -5,8 +5,13 @@ import androidx.glance.appwidget.updateAll
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataSource
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataStore
 import com.androidfung.departureboard.data.db.cache.DepartureCacheDatabase
+<<<<<<< HEAD
 import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
 import com.androidfung.departureboard.data.db.cache.DepartureDao
+=======
+import com.androidfung.departureboard.data.db.CachedDepartureEntity
+import com.androidfung.departureboard.data.db.DepartureDao
+>>>>>>> feature/languages-and-service-improvement
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station

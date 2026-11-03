@@ -171,7 +171,11 @@ fun PaywallBottomSheet(
                 )
             } else {
                 Text(
+<<<<<<< HEAD
                     text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_subtitle),
+=======
+                    text = "Supercharge your daily commute",
+>>>>>>> feature/languages-and-service-improvement
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

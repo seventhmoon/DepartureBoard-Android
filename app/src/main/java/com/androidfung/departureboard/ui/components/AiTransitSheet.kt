@@ -232,18 +232,26 @@ fun AiTransitSheet(
 
                 var effectiveNearest = nearestStation
                 val cleanPrompt = prompt.trim().lowercase()
+<<<<<<< HEAD
                 val isExplicitOrigin = cleanPrompt.contains("from ")
                 val isLocationIntent = !isExplicitOrigin && (cleanPrompt.contains("near me") ||
+=======
+                val isLocationIntent = cleanPrompt.contains("near me") ||
+>>>>>>> feature/languages-and-service-improvement
                         cleanPrompt.contains("nearby") ||
                         cleanPrompt.contains("around me") ||
                         cleanPrompt.contains("closest") ||
                         cleanPrompt.contains("nearest") ||
+<<<<<<< HEAD
                         cleanPrompt.contains("here") ||
                         cleanPrompt.contains("last tube") ||
                         cleanPrompt.contains("last train") ||
                         cleanPrompt.contains("next tube") ||
                         cleanPrompt.contains("next train") ||
                         cleanPrompt.contains("next bus"))
+=======
+                        cleanPrompt.contains("here")
+>>>>>>> feature/languages-and-service-improvement
 
                 if (isLocationIntent) {
                     if (!hasLocationPermission && onRequestLocationPermission != null) {

@@ -215,9 +215,15 @@ fun SearchStationBottomSheet(
                 placeholder = {
                     Text(
                         text = if (selectedRegion == com.androidfung.departureboard.data.model.TransitRegion.HK) {
+<<<<<<< HEAD
                             stringResource(R.string.search_stations_placeholder_hk)
                         } else {
                             stringResource(R.string.search_stations_placeholder_general)
+=======
+                            "Search station or bus route (e.g. Central, 1A, 104)..."
+                        } else {
+                            "Search station or bus route (e.g. 221, SL1)..."
+>>>>>>> feature/languages-and-service-improvement
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
@@ -314,7 +320,15 @@ fun SearchStationBottomSheet(
                             com.androidfung.departureboard.data.model.TransitRegion.GB -> stringResource(R.string.search_stations_not_found_hint_general)
                         }
                         Text(
+<<<<<<< HEAD
                             text = hintText,
+=======
+                            text = if (selectedRegion == com.androidfung.departureboard.data.model.TransitRegion.HK) {
+                                "Try searching for Central, Mong Kok, or 104"
+                            } else {
+                                "Try searching for Victoria, Waterloo, or King's Cross"
+                            },
+>>>>>>> feature/languages-and-service-improvement
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

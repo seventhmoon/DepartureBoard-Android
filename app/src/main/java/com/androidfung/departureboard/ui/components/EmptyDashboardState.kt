@@ -92,7 +92,11 @@ fun EmptyDashboardState(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
+<<<<<<< HEAD
                 text = stringResource(R.string.empty_dashboard_desc),
+=======
+                text = "Add your regular transit stations, MTR lines, or bus stops to see real-time departure countdowns.",
+>>>>>>> feature/languages-and-service-improvement
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
