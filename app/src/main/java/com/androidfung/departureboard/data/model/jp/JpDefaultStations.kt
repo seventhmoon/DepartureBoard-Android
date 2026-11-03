@@ -14,6 +14,28 @@ import java.time.format.DateTimeFormatter
  */
 object JpDefaultStations {
 
+    val DEFAULT_STATIONS: List<Station> = listOf(
+        Station(
+            id = "JP_METRO_M17_JY01",
+            name = "Tokyo (東京)",
+            modes = listOf("national-rail", "tube"),
+            lines = listOf(
+                StationLineInfo("M", "Marunouchi Line"),
+                StationLineInfo("JY", "Yamanote Line"),
+                StationLineInfo("JC", "Chuo Line")
+            )
+        ),
+        Station(
+            id = "JP_BUS_TYO_S",
+            name = "Tokyo Sta. Marunouchi South (東京駅丸の内南口)",
+            modes = listOf("bus"),
+            lines = listOf(
+                StationLineInfo("東98", "東98", "bus"),
+                StationLineInfo("都05", "都05", "bus")
+            )
+        )
+    )
+
     val POPULAR_STATIONS: List<Station> = listOf(
         Station(
             id = "JP_METRO_M17_JY01",

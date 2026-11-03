@@ -24,6 +24,43 @@ object HkDefaultStations {
     val ColorCitybusYellow = Color(0xFFFFD200)
 
     /**
+     * Default stations for Hong Kong demo/initial use: 1 Train (Central MTR) + 1 Bus (Cross Harbour Tunnel).
+     */
+    val DEFAULT_STATIONS: List<Station> = listOf(
+        Station(
+            id = "HK_MTR_ISL_CEN",
+            name = "Central (中環)",
+            modes = listOf("mtr"),
+            zone = null,
+            lat = 22.2819,
+            lon = 114.1582,
+            isFavorite = true,
+            lines = listOf(
+                StationLineInfo("ISL", "Island Line 港島綫", "mtr"),
+                StationLineInfo("TWL", "Tsuen Wan Line 荃灣綫", "mtr"),
+                StationLineInfo("TCL", "Tung Chung Line 東涌綫", "mtr"),
+                StationLineInfo("AEL", "Airport Express 機場快綫", "mtr")
+            )
+        ),
+        Station(
+            id = "HK_BUS_KMB_001554",
+            name = "Cross Harbour Tunnel (海底隧道)",
+            modes = listOf("bus"),
+            zone = null,
+            lat = 22.3034,
+            lon = 114.1812,
+            isFavorite = true,
+            lines = listOf(
+                StationLineInfo("KMB_101", "101", "bus"),
+                StationLineInfo("KMB_104", "104", "bus"),
+                StationLineInfo("KMB_111", "111", "bus"),
+                StationLineInfo("KMB_112", "112", "bus"),
+                StationLineInfo("KMB_116", "116", "bus")
+            )
+        )
+    )
+
+    /**
      * Default popular stations/interchanges for Hong Kong.
      * MTR station IDs use format "HK_MTR_{LINE}_{STATION_CODE}".
      * Bus stop IDs use format "HK_BUS_KMB_{STOP_ID}" or "HK_BUS_CTB_{STOP_ID}".
