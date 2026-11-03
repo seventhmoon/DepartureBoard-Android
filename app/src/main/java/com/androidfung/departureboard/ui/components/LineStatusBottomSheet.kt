@@ -54,6 +54,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.HkMtrLineRegistry
 import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TflLineStatusDetail
@@ -148,15 +150,15 @@ fun LineStatusBottomSheet(
                     )
                     Column {
                         Text(
-                            text = if (selectedRegion == TransitRegion.HK) "MTR Network Status" else "Live Network Status",
+                            text = if (selectedRegion == TransitRegion.HK) stringResource(R.string.line_status_title_mtr) else stringResource(R.string.line_status_title_live),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = if (selectedRegion == TransitRegion.HK) {
-                                "Hong Kong MTR Lines"
+                                stringResource(R.string.line_status_desc_hk)
                             } else {
-                                "Tube, Elizabeth line, Overground, DLR & Bus"
+                                stringResource(R.string.line_status_desc_general)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -167,13 +169,13 @@ fun LineStatusBottomSheet(
                     IconButton(onClick = onRefresh) {
                         Icon(
                             imageVector = Icons.Rounded.Refresh,
-                            contentDescription = "Refresh network status"
+                            contentDescription = stringResource(R.string.line_status_refresh_desc)
                         )
                     }
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Rounded.Close,
-                            contentDescription = "Close network status"
+                            contentDescription = stringResource(R.string.line_status_close_desc)
                         )
                     }
                 }
@@ -214,9 +216,11 @@ fun LineStatusBottomSheet(
                         )
                         Text(
                             text = if (disruptedCount == 0) {
-                                "Good service across all monitored lines"
+                                stringResource(R.string.line_status_good_service_all)
+                            } else if (disruptedCount == 1) {
+                                stringResource(R.string.line_status_disruptions_count_one)
                             } else {
-                                "$disruptedCount ${if (disruptedCount == 1) "line" else "lines"} reporting disruptions"
+                                stringResource(R.string.line_status_disruptions_count_many, disruptedCount)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
@@ -234,7 +238,7 @@ fun LineStatusBottomSheet(
                                 onClick = { filterToMyLinesOnly = !filterToMyLinesOnly },
                                 label = {
                                     Text(
-                                        text = "My Lines",
+                                        text = stringResource(R.string.line_status_filter_my_lines),
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                 }
@@ -247,7 +251,7 @@ fun LineStatusBottomSheet(
                                 onClick = { showDisruptedOnly = !showDisruptedOnly },
                                 label = {
                                     Text(
-                                        text = if (showDisruptedOnly) "Show All" else "Disrupted ($disruptedCount)",
+                                        text = if (showDisruptedOnly) stringResource(R.string.line_status_filter_show_all) else stringResource(R.string.line_status_filter_disrupted, disruptedCount),
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                 }
@@ -477,7 +481,7 @@ private fun LineStatusCard(
                     if (hasReason) {
                         Icon(
                             imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                            contentDescription = if (isExpanded) "Collapse details" else "Expand details",
+                            contentDescription = if (isExpanded) stringResource(R.string.line_status_collapse_desc) else stringResource(R.string.line_status_expand_desc),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )

@@ -54,6 +54,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
@@ -262,6 +264,11 @@ fun StationDepartureCard(
                             showLineBadge = showLineBadgeOnEntries,
                             isLoading = cardModel.isLoading,
                             errorMessage = cardModel.errorMessage,
+                            isFiltered = selectedLineId != null || selectedDirection != null,
+                            onClearFilter = {
+                                selectedLineId = null
+                                selectedDirection = null
+                            },
                             onDepartureClick = onDepartureClick,
                             maxRows = maxDepartureRows,
                             modifier = Modifier.padding(horizontal = 10.dp)
@@ -637,6 +644,8 @@ private fun StationDeparturesContainer(
     errorMessage: String?,
     modifier: Modifier = Modifier,
     showLineBadge: Boolean = false,
+    isFiltered: Boolean = false,
+    onClearFilter: (() -> Unit)? = null,
     onDepartureClick: ((Departure) -> Unit)? = null,
     maxRows: Int = 5
 ) {
@@ -688,7 +697,7 @@ private fun StationDeparturesContainer(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Loading live departures…",
+                        text = stringResource(R.string.departures_loading),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -713,11 +722,44 @@ private fun StationDeparturesContainer(
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "Pull down or tap to retry",
+                            text = stringResource(R.string.departures_retry_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
+                    }
+                }
+            }
+
+            isFiltered -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.departures_filter_no_match),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (onClearFilter != null) {
+                            Text(
+                                text = stringResource(R.string.departures_show_all),
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .clickable(onClick = onClearFilter)
+                                    .padding(vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -740,12 +782,12 @@ private fun StationDeparturesContainer(
                             modifier = Modifier.size(28.dp)
                         )
                         Text(
-                            text = "No upcoming departures",
+                            text = stringResource(R.string.departures_none_upcoming),
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Service may have ended for the day",
+                            text = stringResource(R.string.departures_service_ended),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                         )

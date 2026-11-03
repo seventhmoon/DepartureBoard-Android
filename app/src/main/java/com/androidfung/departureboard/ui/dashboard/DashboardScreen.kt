@@ -71,6 +71,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Station
@@ -210,7 +212,7 @@ fun DashboardContent(
                             IconButton(onClick = onOpenLineStatus) {
                                 Icon(
                                     imageVector = Icons.Rounded.Traffic,
-                                    contentDescription = "Live Network Status",
+                                    contentDescription = stringResource(R.string.dashboard_live_network_status),
                                     tint = if (disruptedCount > 0) {
                                         com.androidfung.departureboard.ui.theme.MinorDelaysAmber
                                     } else {
@@ -240,7 +242,7 @@ fun DashboardContent(
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.WorkspacePremium,
-                                    contentDescription = "Upgrade to Pro",
+                                    contentDescription = stringResource(R.string.dashboard_upgrade_to_pro),
                                     tint = Color(0xFFFFB300),
                                     modifier = Modifier.size(24.dp)
                                 )
@@ -251,7 +253,7 @@ fun DashboardContent(
                             IconButton(onClick = { showMenu = true }) {
                                 Icon(
                                     imageVector = Icons.Rounded.MoreVert,
-                                    contentDescription = "More options",
+                                    contentDescription = stringResource(R.string.dashboard_more_options),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -264,9 +266,9 @@ fun DashboardContent(
                                     text = {
                                         Text(
                                             if (disruptedCount > 0) {
-                                                "Network Status ($disruptedCount)"
+                                                stringResource(R.string.dashboard_menu_network_status_count, disruptedCount)
                                             } else {
-                                                "Network Status"
+                                                stringResource(R.string.dashboard_menu_network_status)
                                             }
                                         )
                                     },
@@ -288,7 +290,7 @@ fun DashboardContent(
                                 )
 
                                 DropdownMenuItem(
-                                    text = { Text("Settings") },
+                                    text = { Text(stringResource(R.string.dashboard_menu_settings)) },
                                     leadingIcon = {
                                         Icon(
                                             imageVector = Icons.Rounded.Settings,
@@ -303,7 +305,7 @@ fun DashboardContent(
                                 )
 
                                 DropdownMenuItem(
-                                    text = { Text("Help & FAQ") },
+                                    text = { Text(stringResource(R.string.dashboard_menu_help_faq)) },
                                     leadingIcon = {
                                         Icon(
                                             imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
@@ -319,7 +321,7 @@ fun DashboardContent(
 
                                 if (BuildConfig.DEBUG) {
                                     DropdownMenuItem(
-                                        text = { Text("Debug Settings") },
+                                        text = { Text(stringResource(R.string.dashboard_menu_debug_settings)) },
                                         leadingIcon = {
                                             Icon(
                                                 imageVector = Icons.Rounded.BugReport,
@@ -336,7 +338,7 @@ fun DashboardContent(
 
                                 if (!uiState.isPro) {
                                     DropdownMenuItem(
-                                        text = { Text("Upgrade to Pro") },
+                                        text = { Text(stringResource(R.string.dashboard_menu_upgrade_pro)) },
                                         leadingIcon = {
                                             Icon(
                                                 imageVector = Icons.Rounded.WorkspacePremium,
@@ -364,11 +366,11 @@ fun DashboardContent(
         floatingActionButton = {
             // Expressive Extended FAB for EkiBoard Transit AI Assistant
             ExtendedFloatingActionButton(
-                text = { Text("Ask AI") },
+                text = { Text(stringResource(R.string.dashboard_fab_ask_ai)) },
                 icon = {
                     Icon(
                         imageVector = Icons.Rounded.AutoAwesome,
-                        contentDescription = "Ask EkiBoard AI",
+                        contentDescription = stringResource(R.string.dashboard_fab_ask_ai_desc),
                         modifier = Modifier.size(24.dp)
                     )
                 },
@@ -464,7 +466,7 @@ fun DashboardContent(
                                         tint = MaterialTheme.colorScheme.error
                                     )
                                     Text(
-                                        text = "Offline • Showing cached departures",
+                                        text = stringResource(R.string.dashboard_offline_banner),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -643,12 +645,12 @@ fun DashboardSearchBar(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Search,
-                    contentDescription = "Search",
+                    contentDescription = stringResource(R.string.dashboard_search_desc),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp)
                 )
                 Text(
-                    text = "Search station, line, or bus stop…",
+                    text = stringResource(R.string.dashboard_search_bar_placeholder),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Normal,
                         fontSize = 15.sp

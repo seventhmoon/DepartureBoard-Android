@@ -57,6 +57,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TflLineColors
@@ -167,7 +169,7 @@ fun SearchStationBottomSheet(
             ) {
                 Column {
                     Text(
-                        text = "Search Stations",
+                        text = stringResource(R.string.search_stations_title),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 22.sp
@@ -175,7 +177,7 @@ fun SearchStationBottomSheet(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "View live departures & pin to your dashboard",
+                        text = stringResource(R.string.search_stations_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -190,7 +192,7 @@ fun SearchStationBottomSheet(
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close search",
+                        contentDescription = stringResource(R.string.search_stations_close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
@@ -213,9 +215,9 @@ fun SearchStationBottomSheet(
                 placeholder = {
                     Text(
                         text = if (selectedRegion == com.androidfung.departureboard.data.model.TransitRegion.HK) {
-                            "Search station or bus route (e.g. Central, 1A, 104)..."
+                            stringResource(R.string.search_stations_placeholder_hk)
                         } else {
-                            "Search station or bus route (e.g. 221, SL1)..."
+                            stringResource(R.string.search_stations_placeholder_general)
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
@@ -238,7 +240,7 @@ fun SearchStationBottomSheet(
                         }) {
                             Icon(
                                 imageVector = Icons.Rounded.Clear,
-                                contentDescription = "Clear search",
+                                contentDescription = stringResource(R.string.search_stations_clear),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -273,7 +275,7 @@ fun SearchStationBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (searchQuery.isBlank()) "Popular Stations" else "Search Results (${filteredResults.size})",
+                    text = if (searchQuery.isBlank()) stringResource(R.string.search_stations_popular) else stringResource(R.string.search_stations_results_count, filteredResults.size),
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
@@ -299,17 +301,20 @@ fun SearchStationBottomSheet(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "No stations found",
+                            text = stringResource(R.string.search_stations_not_found_title),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(4.dp))
+                        val hintText = when (selectedRegion) {
+                            com.androidfung.departureboard.data.model.TransitRegion.HK -> stringResource(R.string.search_stations_not_found_hint_hk)
+                            com.androidfung.departureboard.data.model.TransitRegion.SG -> stringResource(R.string.search_stations_not_found_hint_sg)
+                            com.androidfung.departureboard.data.model.TransitRegion.AU -> stringResource(R.string.search_stations_not_found_hint_au)
+                            com.androidfung.departureboard.data.model.TransitRegion.JP -> stringResource(R.string.search_stations_not_found_hint_jp)
+                            com.androidfung.departureboard.data.model.TransitRegion.GB -> stringResource(R.string.search_stations_not_found_hint_general)
+                        }
                         Text(
-                            text = if (selectedRegion == com.androidfung.departureboard.data.model.TransitRegion.HK) {
-                                "Try searching for Central, Mong Kok, or 104"
-                            } else {
-                                "Try searching for Victoria, Waterloo, or King's Cross"
-                            },
+                            text = hintText,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -355,7 +360,7 @@ fun SearchStationBottomSheet(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "Recent Searches",
+                                            text = stringResource(R.string.search_stations_recent_header),
                                             style = MaterialTheme.typography.labelLarge.copy(
                                                 fontWeight = FontWeight.Bold
                                             ),
@@ -368,7 +373,7 @@ fun SearchStationBottomSheet(
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                                     ) {
                                         Text(
-                                            text = "Clear",
+                                            text = stringResource(R.string.search_stations_clear_recent),
                                             style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.error
                                         )
@@ -390,7 +395,7 @@ fun SearchStationBottomSheet(
                                         StationSearchResultRow(
                                             station = station,
                                             isSaved = isAlreadySaved,
-                                            distanceText = "Recently viewed",
+                                            distanceText = stringResource(R.string.search_stations_recently_viewed),
                                             onAddClick = {
                                                 focusManager.clearFocus()
                                                 keyboardController?.hide()
@@ -406,7 +411,7 @@ fun SearchStationBottomSheet(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Rounded.Close,
-                                            contentDescription = "Remove from history",
+                                            contentDescription = stringResource(R.string.search_stations_remove_recent),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                             modifier = Modifier.size(16.dp)
                                         )
@@ -431,7 +436,7 @@ fun SearchStationBottomSheet(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Nearby Stations",
+                                        text = stringResource(R.string.search_stations_nearby_header),
                                         style = MaterialTheme.typography.labelLarge.copy(
                                             fontWeight = FontWeight.Bold
                                         ),
@@ -447,9 +452,9 @@ fun SearchStationBottomSheet(
                             ) { (station, distMeters) ->
                                 val isAlreadySaved = savedStationIds.contains(station.id)
                                 val distFormatted = if (distMeters < 1000) {
-                                    "${distMeters.toInt()}m away"
+                                    stringResource(R.string.search_stations_distance_meters, distMeters.toInt())
                                 } else {
-                                    "%.1f km away".format(java.util.Locale.UK, distMeters / 1000.0)
+                                    stringResource(R.string.search_stations_distance_km, distMeters / 1000.0)
                                 }
                                 StationSearchResultRow(
                                     station = station,
@@ -468,7 +473,7 @@ fun SearchStationBottomSheet(
                             item(key = "header_popular") {
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    text = "Popular Stations",
+                                    text = stringResource(R.string.search_stations_popular),
                                     style = MaterialTheme.typography.labelLarge.copy(
                                         fontWeight = FontWeight.SemiBold
                                     ),
@@ -501,14 +506,14 @@ fun SearchStationBottomSheet(
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = "Find stations near me",
+                                                text = stringResource(R.string.search_stations_find_near_me_title),
                                                 style = MaterialTheme.typography.bodyMedium.copy(
                                                     fontWeight = FontWeight.Bold
                                                 ),
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
                                             Text(
-                                                text = "Show stops and stations within walking distance",
+                                                text = stringResource(R.string.search_stations_find_near_me_desc),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )

@@ -57,6 +57,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.androidfung.departureboard.R
+import com.androidfung.departureboard.util.LocaleHelper
 import android.os.Build
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.Switch
@@ -130,12 +133,12 @@ fun SettingsBottomSheet(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Settings",
+                            text = stringResource(R.string.settings_title),
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Preferences & options",
+                            text = stringResource(R.string.settings_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -145,7 +148,7 @@ fun SettingsBottomSheet(
                 IconButton(onClick = onDismissRequest) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(R.string.settings_close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -155,7 +158,7 @@ fun SettingsBottomSheet(
 
             // Section 1: Display Options
             Text(
-                text = "DISPLAY PREFERENCES",
+                text = stringResource(R.string.settings_section_display),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
@@ -172,6 +175,72 @@ fun SettingsBottomSheet(
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
+                    // App Language Selector
+                    var currentLanguageTag by remember {
+                        mutableStateOf(LocaleHelper.getAppLocale()?.toLanguageTag().orEmpty())
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.settings_language_title),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_language_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            "" to stringResource(R.string.language_system),
+                            "en" to stringResource(R.string.language_en),
+                            "zh-Hant" to stringResource(R.string.language_zh_hant)
+                        ).forEach { (tag, label) ->
+                            val selected = if (tag.isEmpty()) {
+                                currentLanguageTag.isEmpty()
+                            } else {
+                                currentLanguageTag.startsWith(tag, ignoreCase = true)
+                            }
+                            FilterChip(
+                                selected = selected,
+                                onClick = {
+                                    currentLanguageTag = tag
+                                    LocaleHelper.setAppLanguage(tag.ifEmpty { null })
+                                },
+                                label = { Text(label) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -190,12 +259,12 @@ fun SettingsBottomSheet(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Rows Per Station Card",
+                                    text = stringResource(R.string.settings_rows_per_card_title),
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Max upcoming departures shown",
+                                    text = stringResource(R.string.settings_rows_per_card_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -242,12 +311,12 @@ fun SettingsBottomSheet(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "App Theme",
+                                text = stringResource(R.string.settings_theme_title),
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Choose system default, light, or dark theme",
+                                text = stringResource(R.string.settings_theme_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -261,9 +330,9 @@ fun SettingsBottomSheet(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         listOf(
-                            AppThemeMode.SYSTEM to "System",
-                            AppThemeMode.LIGHT to "Light",
-                            AppThemeMode.DARK to "Dark"
+                            AppThemeMode.SYSTEM to stringResource(R.string.settings_theme_system),
+                            AppThemeMode.LIGHT to stringResource(R.string.settings_theme_light),
+                            AppThemeMode.DARK to stringResource(R.string.settings_theme_dark)
                         ).forEach { (mode, label) ->
                             val selected = themeMode == mode
                             FilterChip(
@@ -292,12 +361,12 @@ fun SettingsBottomSheet(
                         ) {
                             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                                 Text(
-                                    text = "Dynamic Color (Monet)",
+                                    text = stringResource(R.string.settings_dynamic_color_title),
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Tint interface with your wallpaper colors",
+                                    text = stringResource(R.string.settings_dynamic_color_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -326,12 +395,12 @@ fun SettingsBottomSheet(
                     ) {
                         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                             Text(
-                                text = "Smart Location Auto-Sort",
+                                text = stringResource(R.string.settings_auto_sort_title),
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Automatically place your nearest saved station at the top",
+                                text = stringResource(R.string.settings_auto_sort_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -352,7 +421,7 @@ fun SettingsBottomSheet(
 
             // Section 2: Subscription & Account
             Text(
-                text = "SUBSCRIPTION & ACCOUNT",
+                text = stringResource(R.string.settings_section_subscription),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
@@ -368,8 +437,8 @@ fun SettingsBottomSheet(
                     SettingsActionItem(
                         icon = Icons.Rounded.WorkspacePremium,
                         iconTint = if (isPro) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        title = if (isPro) "EkiBoard Pro" else "Free Plan",
-                        subtitle = if (isPro) "Active plan • Tap to view benefits" else "Upgrade for unlimited stations, AI & no ads",
+                        title = if (isPro) stringResource(R.string.settings_plan_pro_title) else stringResource(R.string.settings_plan_free_title),
+                        subtitle = if (isPro) stringResource(R.string.settings_plan_pro_subtitle) else stringResource(R.string.settings_plan_free_subtitle),
                         onClick = onUpgradeClick
                     )
 
@@ -377,8 +446,8 @@ fun SettingsBottomSheet(
 
                     SettingsActionItem(
                         icon = Icons.AutoMirrored.Rounded.OpenInNew,
-                        title = "Manage / Cancel Subscription",
-                        subtitle = "Opens Google Play Subscriptions Center",
+                        title = stringResource(R.string.settings_manage_subscription_title),
+                        subtitle = stringResource(R.string.settings_manage_subscription_desc),
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
@@ -394,8 +463,8 @@ fun SettingsBottomSheet(
 
                     SettingsActionItem(
                         icon = Icons.Rounded.LockReset,
-                        title = if (isRestoring) "Checking Google Play..." else "Restore Purchases",
-                        subtitle = if (isRestoring) "Communicating with Google Play Store" else "Sync previous purchases from Google Play",
+                        title = if (isRestoring) stringResource(R.string.settings_restore_checking_title) else stringResource(R.string.settings_restore_title),
+                        subtitle = if (isRestoring) stringResource(R.string.settings_restore_checking_desc) else stringResource(R.string.settings_restore_desc),
                         onClick = {
                             if (!isRestoring) {
                                 isRestoring = true
@@ -413,7 +482,7 @@ fun SettingsBottomSheet(
 
             // Section 3: About & Help
             Text(
-                text = "ABOUT & HELP",
+                text = stringResource(R.string.settings_section_about),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
@@ -428,8 +497,8 @@ fun SettingsBottomSheet(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     SettingsActionItem(
                         icon = Icons.AutoMirrored.Rounded.HelpOutline,
-                        title = "Help & FAQ",
-                        subtitle = "Frequently asked questions & usage tips",
+                        title = stringResource(R.string.settings_help_faq_title),
+                        subtitle = stringResource(R.string.settings_help_faq_desc),
                         onClick = {
                             onDismissRequest()
                             onOpenHelpFaq()
@@ -440,8 +509,8 @@ fun SettingsBottomSheet(
 
                     SettingsActionItem(
                         icon = Icons.Rounded.StarRate,
-                        title = "Rate on Google Play",
-                        subtitle = "Share your review with other commuters",
+                        title = stringResource(R.string.settings_rate_app_title),
+                        subtitle = stringResource(R.string.settings_rate_app_desc),
                         onClick = onRateApp
                     )
 
@@ -449,8 +518,8 @@ fun SettingsBottomSheet(
 
                     SettingsActionItem(
                         icon = Icons.Rounded.Policy,
-                        title = "Privacy Policy",
-                        subtitle = "View privacy terms and data safety info",
+                        title = stringResource(R.string.settings_privacy_policy_title),
+                        subtitle = stringResource(R.string.settings_privacy_policy_desc),
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
@@ -464,8 +533,8 @@ fun SettingsBottomSheet(
 
                     SettingsActionItem(
                         icon = Icons.Rounded.Info,
-                        title = "App Version",
-                        subtitle = "v${BuildConfig.VERSION_NAME} • TfL Open Data",
+                        title = stringResource(R.string.settings_app_version_title),
+                        subtitle = stringResource(R.string.settings_app_version_desc, BuildConfig.VERSION_NAME),
                         onClick = {}
                     )
 
@@ -474,8 +543,8 @@ fun SettingsBottomSheet(
 
                         SettingsActionItem(
                             icon = Icons.Rounded.Settings,
-                            title = "Developer Options",
-                            subtitle = "Debug toggles, AI engine, and testing tools",
+                            title = stringResource(R.string.settings_developer_options_title),
+                            subtitle = stringResource(R.string.settings_developer_options_desc),
                             onClick = {
                                 onDismissRequest()
                                 onOpenDebugSettings()
