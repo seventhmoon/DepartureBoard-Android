@@ -1,9 +1,23 @@
 package com.androidfung.departureboard.data.model
 
+import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.StationDirectory
+
 /**
  * Directory of Hong Kong MTR stations and major franchised bus hubs/stops for local search.
  */
-object HkStationDirectory {
+object HkStationDirectory : StationDirectory {
+
+    override val defaultStations: List<Station>
+        get() = HkDefaultStations.POPULAR_STATIONS
+
+    override fun searchStations(query: String): List<Station> = searchHkStations(query)
+
+    override fun getStationById(stationId: String): Station? {
+        val code = stationId.substringAfterLast("_", "")
+        val mtr = HkMtrStationRegistry.getStation(code) ?: return null
+        return mtrToStation(mtr)
+    }
 
     /**
      * Converts MTR info into domain Station model with complete interchange lines.

@@ -1,4 +1,7 @@
-package com.androidfung.departureboard.data.model
+package com.androidfung.departureboard.data.model.jp
+
+import com.androidfung.departureboard.data.model.TransitDirection
+import com.androidfung.departureboard.data.model.TransitLineNetwork
 
 import com.androidfung.departureboard.data.repository.direction.DirectionResolver
 import com.androidfung.departureboard.data.routes.LoopRoute

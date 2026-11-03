@@ -1,12 +1,22 @@
 package com.androidfung.departureboard.data.model.au
 
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.StationDirectory
 import com.androidfung.departureboard.data.model.StationLineInfo
 
 /**
  * Directory of Sydney / NSW rail stations with search support.
  */
-object AuStationDirectory {
+object AuStationDirectory : StationDirectory {
+
+    override val defaultStations: List<Station>
+        get() = AuDefaultStations.POPULAR_STATIONS
+
+    override fun searchStations(query: String): List<Station> = searchAuStations(query)
+
+    override fun getStationById(stationId: String): Station? {
+        return ALL_STATIONS.find { it.toStation().id == stationId }?.toStation()
+    }
 
     data class AuStationEntry(
         val code: String,
