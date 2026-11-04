@@ -82,6 +82,8 @@ class DashboardViewModel @JvmOverloads constructor(
     fun setSelectedRegion(region: com.androidfung.departureboard.data.model.TransitRegion) {
         viewModelScope.launch {
             repository.setSelectedRegion(region)
+            refreshDepartures()
+            updateNearestStation(fetchApiNearby = true)
         }
     }
 
