@@ -3,6 +3,14 @@ package com.androidfung.departureboard.ui.components
 import android.content.Context
 import android.content.Intent
 import androidx.core.net.toUri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +36,7 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -82,11 +91,36 @@ fun A2UiRenderer(
                 }
 
                 is A2UiBlock.LiveDeparturesCard -> {
+                    val trackedDepartureId by TrainTrackingService.currentlyTrackedDepartureIdFlow.collectAsStateWithLifecycle()
+                    var pendingTrackDeparture by remember { mutableStateOf<Departure?>(null) }
+                    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.RequestPermission()
+                    ) { isGranted ->
+                        if (isGranted) {
+                            pendingTrackDeparture?.let { dep ->
+                                TrainTrackingService.startTracking(context, dep)
+                            }
+                        }
+                        pendingTrackDeparture = null
+                    }
+
                     DeparturesActionCard(
                         station = block.station,
                         departures = block.departures,
+                        trackedDepartureId = trackedDepartureId,
                         onTrackDeparture = { dep ->
-                            TrainTrackingService.startTracking(context, dep)
+                            if (trackedDepartureId == dep.id) {
+                                TrainTrackingService.stopTracking(context)
+                            } else {
+                                if (com.androidfung.departureboard.util.NotificationHelper.areNotificationsEnabled(context)) {
+                                    TrainTrackingService.startTracking(context, dep)
+                                } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    pendingTrackDeparture = dep
+                                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    TrainTrackingService.startTracking(context, dep)
+                                }
+                            }
                             onActionClick(A2UiAction.TrackTrain(dep))
                         }
                     )
@@ -177,6 +211,7 @@ private fun LineStatusCard(block: A2UiBlock.LineStatusBanner) {
 private fun DeparturesActionCard(
     station: Station,
     departures: List<Departure>,
+    trackedDepartureId: String?,
     onTrackDeparture: (Departure) -> Unit
 ) {
     Card(
@@ -243,18 +278,20 @@ private fun DeparturesActionCard(
                         }
 
                         // Track button
+                        val isTracked = trackedDepartureId == dep.id
                         AssistChip(
                             onClick = { onTrackDeparture(dep) },
-                            label = { Text("Track", fontSize = 11.sp) },
+                            label = { Text(if (isTracked) "Untrack" else "Track", fontSize = 11.sp) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Rounded.NotificationsActive,
                                     contentDescription = null,
+                                    tint = if (isTracked) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                                     modifier = Modifier.size(14.dp)
                                 )
                             },
                             colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.surface
+                                containerColor = if (isTracked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
                             )
                         )
                     }
