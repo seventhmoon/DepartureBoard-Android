@@ -39,6 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.TransitMode
@@ -108,7 +110,7 @@ fun DepartureRowItem(
                 val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
                 val isNarrow = windowWidthClass.isNarrow
 
-                val platformLabel = if (isNarrow && variant == DepartureRowVariant.COMPACT) {
+                val rawPlatformLabel = if (isNarrow && variant == DepartureRowVariant.COMPACT) {
                     departure.platformName
                         .replace("Northbound", "NB", ignoreCase = true)
                         .replace("Southbound", "SB", ignoreCase = true)
@@ -117,6 +119,16 @@ fun DepartureRowItem(
                 } else {
                     departure.platformName
                 }
+
+                val platformLabel = rawPlatformLabel
+                    .replace("Northbound", stringResource(R.string.dir_northbound), ignoreCase = true)
+                    .replace("Southbound", stringResource(R.string.dir_southbound), ignoreCase = true)
+                    .replace("Eastbound", stringResource(R.string.dir_eastbound), ignoreCase = true)
+                    .replace("Westbound", stringResource(R.string.dir_westbound), ignoreCase = true)
+                    .replace("Inbound", stringResource(R.string.dir_inbound), ignoreCase = true)
+                    .replace("Outbound", stringResource(R.string.dir_outbound), ignoreCase = true)
+                    .replace("Anti-Clockwise", stringResource(R.string.dir_anti_clockwise), ignoreCase = true)
+                    .replace("Clockwise", stringResource(R.string.dir_clockwise), ignoreCase = true)
 
                 val isPlatformTbd = platformLabel.contains("TBD", ignoreCase = true)
 
@@ -146,7 +158,7 @@ fun DepartureRowItem(
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
-                                text = "♿ Accessible",
+                                text = stringResource(R.string.status_accessible),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
@@ -156,9 +168,9 @@ fun DepartureRowItem(
 
                     if (!departure.occupancyStatus.isNullOrBlank()) {
                         val occupancyLabel = when (departure.occupancyStatus.lowercase()) {
-                            "seatsavailable" -> "Seats"
-                            "standingavailable" -> "Standing"
-                            "full" -> "Full"
+                            "seatsavailable", "seats" -> stringResource(R.string.status_seats)
+                            "standingavailable", "standing" -> stringResource(R.string.status_standing)
+                            "full" -> stringResource(R.string.status_full)
                             else -> departure.occupancyStatus
                         }
                         Surface(
@@ -246,7 +258,7 @@ fun UnifiedDepartureTimeBadge(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "CANCELLED",
+                    text = stringResource(R.string.status_cancelled).uppercase(),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.ExtraBold,
                         fontFamily = FontFamily.Monospace,
@@ -270,7 +282,7 @@ fun UnifiedDepartureTimeBadge(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "DUE",
+                        text = stringResource(R.string.status_due).uppercase(),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.ExtraBold,
                             fontFamily = FontFamily.Monospace,
@@ -322,7 +334,7 @@ fun UnifiedDepartureTimeBadge(
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                         Text(
-                            text = "min",
+                            text = stringResource(R.string.unit_min),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 11.sp
@@ -334,7 +346,7 @@ fun UnifiedDepartureTimeBadge(
                     if (isDelayed) {
                         Spacer(modifier = Modifier.height(1.dp))
                         Text(
-                            text = "Delayed",
+                            text = stringResource(R.string.status_delayed),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold

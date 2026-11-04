@@ -20,12 +20,34 @@
     <string name="status_at_platform">At Platform</string>
     <string name="status_at_stop">At Stop</string>
     <string name="status_in_transit">In Transit</string>
+    <string name="status_accessible">♿ Accessible</string>
+    <string name="status_seats">Seats</string>
+    <string name="status_standing">Standing</string>
+    <string name="status_full">Full</string>
+    <string name="unit_min">min</string>
+
+    <!-- Transit Directions -->
+    <string name="dir_northbound">Northbound</string>
+    <string name="dir_southbound">Southbound</string>
+    <string name="dir_eastbound">Eastbound</string>
+    <string name="dir_westbound">Westbound</string>
+    <string name="dir_inbound">Inbound</string>
+    <string name="dir_outbound">Outbound</string>
+    <string name="dir_clockwise">Clockwise</string>
+    <string name="dir_anti_clockwise">Anti-Clockwise</string>
+    <string name="dir_indicator_northbound">↑ NB</string>
+    <string name="dir_indicator_southbound">↓ SB</string>
+    <string name="dir_indicator_eastbound">→ EB</string>
+    <string name="dir_indicator_westbound">← WB</string>
+    <string name="dir_indicator_inbound">IN</string>
+    <string name="dir_indicator_outbound">OUT</string>
+    <string name="dir_indicator_clockwise">↻ CW</string>
+    <string name="dir_indicator_anti_clockwise">↺ CCW</string>
 
     <!-- UI Labels -->
     <string name="platform_label">Plat %s</string>
     <string name="search_hint">Search station, line, or stop…</string>
     <string name="ad_badge_label">AD</string>
-
     <!-- Tracking Notifications & Alerts -->
     <string name="notification_channel_live_tracking">Live Train Tracking</string>
     <string name="notification_channel_live_tracking_desc">Shows live ongoing countdowns for tracked departures</string>
@@ -34,17 +56,17 @@
     <string name="tracking_action_stop">Stop Tracking</string>
     <string name="tracking_action_dismiss">Dismiss</string>
     <string name="tracking_destination_changed_title">Destination Changed</string>
-    <string name="tracking_destination_changed_message">%1$s to %2$s is now terminating at %3$s</string>
+    <string name="tracking_destination_changed_message">%1 to %2 is now terminating at %3</string>
     <string name="tracking_platform_changed_title">Platform Changed</string>
-    <string name="tracking_platform_changed_message">%1$s to %2$s moved from %3$s to %4$s</string>
+    <string name="tracking_platform_changed_message">%1 to %2 moved from %3 to %4</string>
     <string name="tracking_service_cancelled_title">Service Cancelled</string>
-    <string name="tracking_service_cancelled_message">Your %1$s to %2$s has been cancelled.</string>
+    <string name="tracking_service_cancelled_message">Your %1 to %2 has been cancelled.</string>
     <string name="tracking_service_cancelled_desc">This departure has been cancelled</string>
     <string name="tracking_at_platform_boarding">At platform • Boarding</string>
-    <string name="tracking_subtext_to">%1$s to %2$s</string>
+    <string name="tracking_subtext_to">%1 to %2</string>
     <string name="tracking_stops_away_one">1 stop away</string>
-    <string name="tracking_stops_away_other">%1$d stops away</string>
-    <string name="tracking_chip_min">%1$d min</string>
+    <string name="tracking_stops_away_other">%1 stops away</string>
+    <string name="tracking_chip_min">%1 min</string>
     <string name="tracking_default_destination">Destination</string>
     <string name="tracking_default_train">Train</string>
     <string name="tracking_platform_default">Platform</string>
@@ -54,4 +76,268 @@
     <string name="debug_settings_title">Developer Options</string>
     <string name="switch_region_title">Switch Region</string>
     <string name="title_ai_assistant">On-Device AI Assistant</string>
+    <string name="settings_language_title">App Language</string>
+    <string name="settings_language_desc">Choose system default or a specific language</string>
+    <string name="language_system">System Default</string>
+    <string name="language_en">English</string>
+    <string name="language_zh_hant">中文</string>
+    <string name="language_ja">日本語</string>
+    <string name="language_ko">한국어</string>
+
+    <!-- Settings Bottom Sheet -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Preferences &amp; options</string>
+    <string name="settings_close">Close</string>
+    <string name="settings_section_display">DISPLAY PREFERENCES</string>
+    <string name="settings_section_region_language">REGION &amp; LANGUAGE</string>
+    <string name="settings_rows_per_card_title">Rows Per Station Card</string>
+    <string name="settings_rows_per_card_desc">Max upcoming departures shown</string>
+    <string name="settings_theme_title">App Theme</string>
+    <string name="settings_theme_desc">Choose system default, light, or dark theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_dynamic_color_title">Dynamic Color (Monet)</string>
+    <string name="settings_dynamic_color_desc">Tint interface with your wallpaper colors</string>
+    <string name="settings_hk_bilingual_title">Bilingual Station Names (Hong Kong)</string>
+    <string name="settings_hk_bilingual_desc">Display both English and Chinese names (e.g. Central / 中環)</string>
+    <string name="settings_auto_sort_title">Smart Location Auto-Sort</string>
+    <string name="settings_auto_sort_desc">Automatically place your nearest saved station at the top</string>
+    <string name="settings_section_subscription">SUBSCRIPTION &amp; ACCOUNT</string>
+    <string name="settings_plan_pro_title">EkiBoard Pro</string>
+    <string name="settings_plan_free_title">Free Plan</string>
+    <string name="settings_plan_pro_subtitle">Active plan • Tap to view benefits</string>
+    <string name="settings_plan_free_subtitle">Upgrade for more stations, widgets &amp; AI</string>
+    <string name="settings_manage_subscription_title">Manage / Cancel Subscription</string>
+    <string name="settings_manage_subscription_desc">Opens Google Play Subscriptions Center</string>
+    <string name="settings_restore_checking_title">Checking Google Play…</string>
+    <string name="settings_restore_title">Restore Purchases</string>
+    <string name="settings_restore_checking_desc">Communicating with Google Play Store</string>
+    <string name="settings_restore_desc">Sync previous purchases from Google Play</string>
+    <string name="settings_section_about">ABOUT &amp; HELP</string>
+    <string name="settings_help_faq_title">Help &amp; FAQ</string>
+    <string name="settings_help_faq_desc">Frequently asked questions &amp; usage tips</string>
+    <string name="settings_rate_app_title">Rate on Google Play</string>
+    <string name="settings_rate_app_desc">Share your review with other commuters</string>
+    <string name="settings_privacy_policy_title">Privacy Policy</string>
+    <string name="settings_privacy_policy_desc">View privacy terms and data safety info</string>
+    <string name="settings_app_version_title">App Version</string>
+    <string name="settings_app_version_desc">v%1$s • Official Open Transit Data</string>
+    <string name="settings_developer_options_title">Developer Options</string>
+    <string name="settings_developer_options_desc">Debug toggles, AI engine, and testing tools</string>
+
+    <!-- Empty Dashboard State -->
+    <string name="empty_dashboard_title">No Saved Stations</string>
+    <string name="empty_dashboard_desc">Add your regular transit stations, MTR lines, or bus stops to see real-time departure countdowns.</string>
+    <string name="empty_dashboard_add_station">Add Station</string>
+
+    <!-- Station Departure Card -->
+    <string name="delete_station">Delete station</string>
+    <string name="station_distance_meters_away">%1$dm away</string>
+    <string name="station_distance_km_away">%.1f km away</string>
+    <string name="station_nearest_with_distance">📍 Nearest • %1$s</string>
+    <string name="station_nearest">📍 Nearest</string>
+    <string name="station_distance_format">📍 %1$s</string>
+    <string name="station_bus_towards">towards %1$s</string>
+    <string name="disruption_status_delays">Delays</string>
+    <string name="disruption_view_alert_details">View travel alert details ↗</string>
+    <string name="disruption_more_details">More details ↗</string>
+    <string name="departures_loading">Loading live departures…</string>
+    <string name="departures_retry_hint">Pull down or tap to retry</string>
+    <string name="departures_filter_no_match">No departures match this filter</string>
+    <string name="departures_show_all">Show all departures</string>
+    <string name="departures_none_upcoming">No upcoming departures</string>
+    <string name="departures_service_ended">Service may have ended for the day</string>
+
+    <!-- Search Station Bottom Sheet -->
+    <string name="search_stations_title">Search Stations</string>
+    <string name="search_stations_subtitle">View live departures &amp; pin to your dashboard</string>
+    <string name="search_stations_close">Close search</string>
+    <string name="search_stations_placeholder_hk">Search station or bus route (e.g. Central, 1A, 104)…</string>
+    <string name="search_stations_placeholder_general">Search station or bus route (e.g. 221, SL1)…</string>
+    <string name="search_stations_clear">Clear search</string>
+    <string name="search_stations_popular">Popular Stations</string>
+    <string name="search_stations_results_count">Search Results (%1$d)</string>
+    <string name="search_stations_not_found_title">No stations found</string>
+    <string name="search_stations_not_found_hint_hk">Try searching for Central, Mong Kok, or 104</string>
+    <string name="search_stations_not_found_hint_sg">Try searching for Raffles Place, Orchard, or 143</string>
+    <string name="search_stations_not_found_hint_au">Try searching for Central, Town Hall, or 333</string>
+    <string name="search_stations_not_found_hint_jp">Try searching for Shinjuku, Shibuya, or Tokyo</string>
+    <string name="search_stations_not_found_hint_general">Try searching for Victoria, Waterloo, or King\'s Cross</string>
+    <string name="search_stations_recent_header">Recent Searches</string>
+    <string name="search_stations_clear_recent">Clear</string>
+    <string name="search_stations_recently_viewed">Recently viewed</string>
+    <string name="search_stations_remove_recent">Remove from history</string>
+    <string name="search_stations_nearby_header">Nearby Stations</string>
+    <string name="search_stations_distance_meters">%1$dm away</string>
+    <string name="search_stations_distance_km">%.1f km away</string>
+    <string name="search_stations_find_near_me_title">Find stations near me</string>
+    <string name="search_stations_find_near_me_desc">Show stops and stations within walking distance</string>
+
+    <!-- Dashboard Screen -->
+    <string name="dashboard_pro_badge">PRO</string>
+    <string name="dashboard_live_network_status">Live Network Status</string>
+    <string name="dashboard_upgrade_to_pro">Upgrade to Pro</string>
+    <string name="dashboard_more_options">More options</string>
+    <string name="dashboard_menu_network_status">Network Status</string>
+    <string name="dashboard_menu_network_status_count">Network Status (%1$d)</string>
+    <string name="dashboard_menu_switch_region">Switch Region</string>
+    <string name="dashboard_menu_settings">Settings</string>
+    <string name="dashboard_menu_help_faq">Help &amp; FAQ</string>
+    <string name="dashboard_menu_debug_settings">Debug Settings</string>
+    <string name="dashboard_menu_upgrade_pro">Upgrade to Pro</string>
+    <string name="dashboard_fab_ask_ai">Ask AI</string>
+    <string name="dashboard_fab_ask_ai_desc">Ask EkiBoard AI</string>
+    <string name="dashboard_offline_banner">Offline • Showing cached departures</string>
+    <string name="dashboard_search_bar_placeholder">Search station, line, or bus stop…</string>
+    <string name="dashboard_search_desc">Search</string>
+    <string name="dashboard_nearby_desc">Nearby stations</string>
+
+    <!-- Line Status Bottom Sheet -->
+    <string name="line_status_title_live">Live Network Status</string>
+    <string name="line_status_title_mtr">MTR Network Status</string>
+    <string name="line_status_desc_hk">Hong Kong MTR Lines</string>
+    <string name="line_status_desc_general">Tube, Elizabeth line, Overground, DLR &amp; Bus</string>
+    <string name="line_status_refresh_desc">Refresh network status</string>
+    <string name="line_status_close_desc">Close network status</string>
+    <string name="line_status_good_service_all">Good service across all monitored lines</string>
+    <string name="line_status_disruptions_count_one">1 line reporting disruptions</string>
+    <string name="line_status_disruptions_count_many">%1$d lines reporting disruptions</string>
+    <string name="line_status_filter_my_lines">My Lines</string>
+    <string name="line_status_filter_show_all">Show All</string>
+    <string name="line_status_filter_disrupted">Disrupted (%1$d)</string>
+    <string name="line_status_expand_desc">Expand details</string>
+    <string name="line_status_collapse_desc">Collapse details</string>
+    <string name="line_status_bus_name">Bus %1$s</string>
+
+    <!-- Station Detail Screen -->
+    <string name="station_detail_page_info">%1$d of %2$d</string>
+    <string name="station_detail_zone">Zone %1$s</string>
+    <string name="station_detail_open_maps">Open in Maps</string>
+    <string name="station_detail_refresh">Refresh Departures</string>
+    <string name="station_detail_pin">Pin to Home</string>
+    <string name="station_detail_unpin">Remove from Home</string>
+    <string name="station_detail_filter_all">All</string>
+    <string name="station_detail_disruptions_title">%1$d Line Disruptions</string>
+    <string name="station_detail_disruptions_expand">Expand Disruptions</string>
+    <string name="station_detail_disruptions_collapse">Collapse Disruptions</string>
+    <string name="station_detail_stops_stands_header">Stops / Stands:</string>
+    <string name="station_detail_live_departures">Live Departures</string>
+    <string name="station_detail_predictions_count">%1$d predictions</string>
+    <string name="station_detail_service_ended_title">🌙 Service Ended for Today</string>
+    <string name="station_detail_last_train">Last train departed at %1$s.</string>
+    <string name="station_detail_first_train">Morning service starts at ~%1$s.</string>
+    <string name="station_detail_last_bus_departed">Last bus has departed for the day.</string>
+    <string name="station_detail_empty_message">No departures currently available.\nTap the refresh icon above to check for updates.</string>
+
+    <!-- Train Journey Screen -->
+    <string name="journey_header_bus">Bus %1$s to %2$s</string>
+    <string name="journey_header_train">Train to %1$s</string>
+    <string name="journey_from_label">From</string>
+    <string name="journey_current_bus_location">CURRENT BUS LOCATION</string>
+    <string name="journey_current_train_location">CURRENT TRAIN LOCATION</string>
+    <string name="journey_service_cancelled_title">Service Cancelled</string>
+    <string name="journey_service_cancelled_desc">This service has been cancelled.</string>
+    <string name="journey_service_delayed_title">Service Delayed</string>
+    <string name="journey_service_delayed_desc">This service is experiencing delays.</string>
+    <string name="journey_calling_points_header">Calling Points</string>
+    <string name="journey_calling_points_count">%1$d stops</string>
+    <string name="journey_loading_calling_points">Loading calling points...</string>
+    <string name="journey_calling_points_unavailable">Calling points details not available for this service.</string>
+    <string name="journey_your_station">Your station</string>
+    <string name="journey_notify_stop">Stop Live Notification</string>
+    <string name="journey_notify_start">Notify with Live Updates</string>
+
+    <!-- Location Rationale Dialog -->
+    <string name="location_rationale_title">Find Nearby Stations</string>
+    <string name="location_rationale_intro">EkiBoard uses your approximate location to:</string>
+    <string name="location_rationale_bullet1">Show stops and stations within walking distance in Search.</string>
+    <string name="location_rationale_bullet2">Highlight nearest live departures and answer queries like \"Next bus from my stop\".</string>
+    <string name="location_rationale_privacy">Your location is processed directly on your device and is never shared or stored.</string>
+    <string name="location_rationale_continue">Continue</string>
+    <string name="location_rationale_not_now">Not now</string>
+
+    <!-- Paywall Bottom Sheet -->
+    <string name="paywall_title">Upgrade to Pro</string>
+    <string name="paywall_subtitle">Supercharge your daily commute</string>
+    <string name="paywall_feature_stations_title">Up to %1$d Saved Stations</string>
+    <string name="paywall_feature_stations_subtitle">Free tier is limited to %1$d stations</string>
+    <string name="paywall_feature_widgets_title">Up to %1$d Home Screen Widgets</string>
+    <string name="paywall_feature_widgets_subtitle">Track all your commute connections at a glance</string>
+    <string name="paywall_feature_ai_title">Unlimited AI Transit Assistant</string>
+    <string name="paywall_feature_ai_subtitle">Natural language queries &amp; live status updates</string>
+    <string name="paywall_plan_annual_title">Annual Plan</string>
+    <string name="paywall_plan_monthly_title">Monthly Plan</string>
+    <string name="paywall_continue_annual">Continue with Annual</string>
+    <string name="paywall_continue_monthly">Continue with Monthly</string>
+    <string name="paywall_restore_purchases">Restore Purchases</string>
+    <string name="paywall_checking_google_play">Checking Google Play...</string>
+    <string name="paywall_error_play_store">Unable to start Google Play purchase flow. Check Play Store connection.</string>
+    <string name="paywall_debug_pro_activated">Pro activated! (Google Play products not yet live in Console)</string>
+
+    <!-- Help & FAQ Bottom Sheet -->
+    <string name="help_faq_title">Help &amp; FAQ</string>
+    <string name="help_faq_subtitle">Guides, tips &amp; app info</string>
+    <string name="help_faq_section_faq">FREQUENTLY ASKED QUESTIONS</string>
+    <string name="help_faq_section_app_info">APP INFORMATION</string>
+    <string name="help_faq_q_filter">How do I filter train lines or directions?</string>
+    <string name="help_faq_a_filter">Tap on any colored line pill badge at the top of a station card. Tapping once filters by that line. Tapping again cycles through available directions (e.g., Eastbound / Westbound). Tapping once more clears the filter.</string>
+    <string name="help_faq_q_tracking">How does Live Train Tracking work?</string>
+    <string name="help_faq_a_tracking">Tap \'Track\' on any departure row or journey view to launch a persistent Live Update notification with dynamic countdowns. When the train arrives or countdown reaches 0, tracking automatically completes.</string>
+    <string name="help_faq_q_widgets">How do I add home screen widgets?</string>
+    <string name="help_faq_a_widgets">Touch and hold an empty space on your home screen, tap \'Widgets\', find EkiBoard, and drag it to your screen. You can configure each widget to show all lines or focus on a specific line or bus route.</string>
+    <string name="help_faq_q_reorder">How do I reorder or remove station cards?</string>
+    <string name="help_faq_a_reorder">To reorder: Long-press any station card on the dashboard and drag it to your desired position.\nTo delete: Swipe the station card left to remove it. An \'Undo\' snackbar appears at the bottom if removed by mistake.</string>
+    <string name="help_faq_q_ai">What is Transit AI Assistant?</string>
+    <string name="help_faq_a_ai">Tap the floating sparkle button on the bottom right to ask questions like \'Next train from Kings Cross to Waterloo\' or \'Is the Central line delayed?\'. It uses on-device Gemini Nano with cloud fallback.</string>
+    <string name="help_faq_q_data">Where does the live transit data come from?</string>
+    <string name="help_faq_a_data">All real-time arrival predictions, platform information, and service disruption alerts are powered directly by official transport open data (Transport for London TfL, UK BODS, National Rail, Hong Kong DATA.GOV.HK / MTR / KMB / Citybus, Singapore LTA DataMall, Transport for NSW, and Tokyo Metro Open Data).</string>
+    <string name="help_faq_app_description">Open-source transit companion built with Jetpack Compose &amp; Material 3 Expressive. Powered by Official Open Data.</string>
+
+    <!-- Region Picker Bottom Sheet -->
+    <string name="region_picker_subtitle">Choose your city or transit network</string>
+    <string name="region_picker_unsupported_title">EkiBoard isn\'t in %1$s yet</string>
+    <string name="region_picker_unsupported_desc">Explore live departures for any of our supported transit networks below.</string>
+    <string name="region_picker_nearby">NEARBY</string>
+    <string name="region_picker_supported_cities">SUPPORTED CITIES &amp; REGIONS</string>
+    <string name="region_picker_current">Current</string>
+    <string name="region_picker_area_fallback">your area</string>
+
+    <!-- Debug Settings Bottom Sheet -->
+    <string name="debug_settings_subtitle">Developer testing controls</string>
+    <string name="debug_section_subscription">SUBSCRIPTION PLAN</string>
+    <string name="debug_section_ai_engine">AI ENGINE SELECTION</string>
+    <string name="debug_section_region_testing">REGION TESTING (EXPERIMENTAL)</string>
+    <string name="debug_section_testing_actions">TESTING ACTIONS</string>
+    <string name="debug_section_dynamic_modules">DYNAMIC FEATURE MODULES</string>
+    <string name="debug_plan_title">%1$s Plan</string>
+    <string name="debug_plan_only">DEBUG ONLY</string>
+    <string name="debug_hk_enable_title">Enable Hong Kong (Experimental)</string>
+    <string name="debug_hk_enable_desc">Unlock MTR and KMB/Citybus departures</string>
+    <string name="debug_action_reset_stations_title">Reset Saved Stations</string>
+    <string name="debug_action_reset_stations_desc">Restores popular default stations for current region</string>
+    <string name="debug_action_reset_stations_toast">Saved stations reset to defaults</string>
+    <string name="debug_action_force_widget_title">Force Widget Update</string>
+    <string name="debug_action_force_widget_desc">Triggers Glance WidgetUpdateWorker now</string>
+    <string name="debug_action_force_widget_toast">Enqueued widget update work</string>
+    <string name="debug_action_in_app_review_title">Test In-App Review Flow</string>
+    <string name="debug_action_in_app_review_desc">Launches Google Play In-App Review dialog</string>
+    <string name="debug_action_reset_review_title">Reset In-App Review Tracker</string>
+    <string name="debug_action_reset_review_desc">Clears first launch, open count &amp; cooldown</string>
+    <string name="debug_action_clear_cache_title">Clear Offline HTTP Cache</string>
+    <string name="debug_action_clear_cache_desc">Deletes cached TfL &amp; transit API network responses</string>
+    <string name="debug_action_clear_cache_success">Offline HTTP cache cleared</string>
+    <string name="debug_action_clear_cache_fail">Failed to clear cache</string>
+    <string name="debug_module_installed">Installed (On-Device LLM &amp; LiteRT runtime ready)</string>
+    <string name="debug_module_not_installed">Not installed (On-demand Play feature)</string>
+    <string name="debug_module_downloading">Downloading module...</string>
+    <string name="debug_module_trigger_install">Trigger Feature Delivery Install</string>
+    <string name="debug_module_trigger_desc">Requests SplitInstallManager to download AI feature</string>
+    <string name="debug_module_status_downloading">Downloading: %1$d%%</string>
+    <string name="debug_module_status_initiating">Initiating SplitInstall request...</string>
+    <string name="debug_module_toast_success">AI Feature Module installed successfully</string>
+    <string name="debug_module_toast_fail">Install failed (code %1$d)</string>
+    <string name="update_downloaded_message">An update has just been downloaded.</string>
+    <string name="update_restart_action">Restart</string>
+    <string name="action_undo">Undo</string>
 </resources>

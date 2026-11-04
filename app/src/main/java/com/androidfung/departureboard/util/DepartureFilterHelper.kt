@@ -1,17 +1,14 @@
 package com.androidfung.departureboard.util
 
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.ui.components.TransitIconHelper
+import com.androidfung.departureboard.data.model.TransitDirection
+import com.androidfung.departureboard.data.model.TransitLineMatcher
 
 /**
  * Shared utility for extracting available transit directions and filtering
  * departures consistently across Dashboard, Station Details, and App Widgets.
  */
 object DepartureFilterHelper {
-
-    private val CARDINAL_DIRECTIONS = listOf(
-        "Eastbound", "Westbound", "Northbound", "Southbound", "Inbound", "Outbound"
-    )
 
     /**
      * Determines whether a given [Departure] matches the specified optional line and direction filters.
@@ -27,9 +24,12 @@ object DepartureFilterHelper {
         }
 
         if (!lineId.isNullOrBlank()) {
-            val matchesLine = TransitIconHelper.isSameLine(departure.lineId, lineId) ||
-                    TransitIconHelper.isSameLine(departure.lineBadge.lineId, lineId) ||
-                    departure.lineName.equals(lineId.removePrefix("bods-"), ignoreCase = true)
+            val matchesLine = TransitLineMatcher.matchesLine(
+                departureLineId = departure.lineId,
+                departureLineName = departure.lineName,
+                departureBadgeLineId = departure.lineBadge.lineId,
+                targetLineId = lineId
+            )
             if (!matchesLine) return false
         }
 
@@ -76,19 +76,11 @@ object DepartureFilterHelper {
         return targetDepartures
             .asSequence()
             .mapNotNull { dep ->
-                dep.direction ?: CARDINAL_DIRECTIONS.firstOrNull { d ->
-                    dep.platformName.contains(d, ignoreCase = true)
-                } ?: dep.towards
-            }
-            .distinct()
-            .map { dir ->
-                if (dir.equals("Inbound", ignoreCase = true) && lineId?.contains("northern", ignoreCase = true) == true) {
-                    "Northbound"
-                } else if (dir.equals("Outbound", ignoreCase = true) && lineId?.contains("northern", ignoreCase = true) == true) {
-                    "Southbound"
-                } else {
-                    dir
+                val resolvedFromDirection = TransitDirection.fromString(dep.direction)
+                val resolvedFromPlatform = TransitDirection.entries.firstOrNull { dir ->
+                    dep.platformName.contains(dir.displayName, ignoreCase = true)
                 }
+                (resolvedFromDirection ?: resolvedFromPlatform)?.displayName ?: dep.direction ?: dep.towards
             }
             .distinct()
             .toList()

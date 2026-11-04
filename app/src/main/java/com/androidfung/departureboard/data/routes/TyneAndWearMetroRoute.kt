@@ -11,25 +11,95 @@ import java.time.format.DateTimeFormatter
 
 /**
  * Station sequence routes for Tyne and Wear Metro (Green Line and Yellow Line).
- * Enables complete calling points timeline reconstruction and direction resolution
- * (including Clockwise / Anti-Clockwise for the Yellow Line loop).
+ * Fully migrated to generic [TransitRoute] with [RouteStation].
  */
-object TyneAndWearMetroRoute : MetroRoute<TyneAndWearMetroStation>, TransitLineNetwork {
+object TyneAndWearMetroRoute : TransitLineNetwork {
 
     private val UK_ZONE = ZoneId.of("Europe/London")
     private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
 
+    val GREEN_STATIONS = listOf(
+        RouteStation("South Hylton"),
+        RouteStation("Pallion"),
+        RouteStation("Millfield"),
+        RouteStation("University"),
+        RouteStation("Park Lane"),
+        RouteStation("Sunderland"),
+        RouteStation("St Peter's", aliases = listOf("st peter's", "st peters")),
+        RouteStation("Stadium of Light"),
+        RouteStation("Seaburn"),
+        RouteStation("East Boldon"),
+        RouteStation("Brockley Whins"),
+        RouteStation("Fellgate"),
+        RouteStation("Pelaw"),
+        RouteStation("Heworth"),
+        RouteStation("Felling"),
+        RouteStation("Gateshead Stadium"),
+        RouteStation("Gateshead"),
+        RouteStation("Central Station"),
+        RouteStation("Monument"),
+        RouteStation("Haymarket"),
+        RouteStation("Jesmond"),
+        RouteStation("West Jesmond"),
+        RouteStation("Ilford Road"),
+        RouteStation("South Gosforth"),
+        RouteStation("Regent Centre"),
+        RouteStation("Wansbeck Road"),
+        RouteStation("Fawdon"),
+        RouteStation("Kingston Park"),
+        RouteStation("Bank Foot"),
+        RouteStation("Callerton Parkway"),
+        RouteStation("Airport", aliases = listOf("airport", "newcastle airport"))
+    )
+
+    val YELLOW_STATIONS = listOf(
+        RouteStation("St James", aliases = listOf("st james", "st. james")),
+        RouteStation("Monument"),
+        RouteStation("Manors"),
+        RouteStation("Byker"),
+        RouteStation("Chillingham Road"),
+        RouteStation("Walkergate"),
+        RouteStation("Wallsend"),
+        RouteStation("Hadrian Road"),
+        RouteStation("Howdon"),
+        RouteStation("Percy Main"),
+        RouteStation("Meadow Well"),
+        RouteStation("North Shields"),
+        RouteStation("Tynemouth"),
+        RouteStation("Cullercoats"),
+        RouteStation("Whitley Bay"),
+        RouteStation("Monkseaton"),
+        RouteStation("West Monkseaton"),
+        RouteStation("Shiremoor"),
+        RouteStation("PalmersVILLE", aliases = listOf("palmersville")),
+        RouteStation("Northumberland Park"),
+        RouteStation("Benton"),
+        RouteStation("Four Lane Ends"),
+        RouteStation("Longbenton"),
+        RouteStation("South Gosforth"),
+        RouteStation("Ilford Road"),
+        RouteStation("West Jesmond"),
+        RouteStation("Jesmond"),
+        RouteStation("Haymarket"),
+        RouteStation("Monument"),
+        RouteStation("Central Station"),
+        RouteStation("Gateshead"),
+        RouteStation("Gateshead Stadium"),
+        RouteStation("Felling"),
+        RouteStation("Heworth"),
+        RouteStation("Pelaw"),
+        RouteStation("Hebburn"),
+        RouteStation("Jarrow"),
+        RouteStation("Bede"),
+        RouteStation("Simonside"),
+        RouteStation("Tyne Dock"),
+        RouteStation("Chichester"),
+        RouteStation("South Shields")
+    )
+
     private val greenRoute = LinearRoute(
         lineId = "metro-green",
-        stations = listOf(
-            "South Hylton", "Pallion", "Millfield", "University", "Park Lane",
-            "Sunderland", "St Peter's", "Stadium of Light", "Seaburn", "East Boldon",
-            "Brockley Whins", "Fellgate", "Pelaw", "Heworth", "Felling",
-            "Gateshead Stadium", "Gateshead", "Central Station", "Monument", "Haymarket",
-            "Jesmond", "West Jesmond", "Ilford Road", "South Gosforth", "Regent Centre",
-            "Wansbeck Road", "Fawdon", "Kingston Park", "Bank Foot", "Callerton Parkway",
-            "Airport"
-        ),
+        stations = GREEN_STATIONS,
         directionResolver = object : DirectionResolver {
             override fun resolve(
                 destinationName: String?, destinationCrs: String?, destinationNaptanId: String?,
@@ -44,16 +114,7 @@ object TyneAndWearMetroRoute : MetroRoute<TyneAndWearMetroStation>, TransitLineN
 
     private val yellowRoute = LoopRoute(
         lineId = "metro-yellow",
-        stations = listOf(
-            "St James", "Monument", "Manors", "Byker", "Chillingham Road", "Walkergate",
-            "Wallsend", "Hadrian Road", "Howdon", "Percy Main", "Meadow Well", "North Shields",
-            "Tynemouth", "Cullercoats", "Whitley Bay", "Monkseaton", "West Monkseaton",
-            "Shiremoor", "Palmersville", "Northumberland Park", "Benton", "Four Lane Ends",
-            "Longbenton", "South Gosforth", "Ilford Road", "West Jesmond", "Jesmond",
-            "Haymarket", "Monument", "Central Station", "Gateshead", "Gateshead Stadium",
-            "Felling", "Heworth", "Pelaw", "Hebburn", "Jarrow", "Bede", "Simonside",
-            "Tyne Dock", "Chichester", "South Shields"
-        ),
+        stations = YELLOW_STATIONS,
         directionResolver = object : DirectionResolver {
             override fun resolve(
                 destinationName: String?, destinationCrs: String?, destinationNaptanId: String?,
@@ -67,33 +128,33 @@ object TyneAndWearMetroRoute : MetroRoute<TyneAndWearMetroStation>, TransitLineN
     )
 
     override val routeConfigs: Map<String, TransitRoute<String>> = mapOf(
-        "metro-green" to greenRoute,
-        "metro-yellow" to yellowRoute
+        "metro-green" to LinearRoute(
+            lineId = "metro-green",
+            stations = GREEN_STATIONS.map { it.name },
+            directionResolver = greenRoute.directionResolver
+        ),
+        "metro-yellow" to LoopRoute(
+            lineId = "metro-yellow",
+            stations = YELLOW_STATIONS.map { it.name },
+            directionResolver = yellowRoute.directionResolver
+        )
     )
 
-    // Legacy overrides (for backward compatibility before full migration)
+    fun findStation(query: String?): RouteStation? {
+        if (query.isNullOrBlank()) return null
+        return (GREEN_STATIONS + YELLOW_STATIONS).firstOrNull { it.matches(query) }
+    }
 
-    val GREEN_LINE: List<TyneAndWearMetroStation>
-        get() = greenRoute.stations.mapNotNull { TyneAndWearMetroStation.fromString(it) }
-        
-    val YELLOW_LINE: List<TyneAndWearMetroStation>
-        get() = yellowRoute.stations.mapNotNull { TyneAndWearMetroStation.fromString(it) }
-
-    override val lineSequences: Map<String, List<TyneAndWearMetroStation>> = mapOf(
-        "metro-green" to GREEN_LINE,
-        "metro-yellow" to YELLOW_LINE
-    )
-
-    override fun resolveCallingPoints(
+    fun resolveCallingPoints(
         lineId: String,
         originName: String,
         destinationName: String,
-        departureSeconds: Int
+        departureSeconds: Int = 0
     ): List<CallingPoint> {
-        val route = routeConfigs[lineId.lowercase()] ?: return emptyList()
-        val originStation = TyneAndWearMetroStation.fromString(originName)?.stationName ?: originName
-        val destStation = TyneAndWearMetroStation.fromString(destinationName)?.stationName ?: destinationName
-        
+        val route = if (lineId.contains("green", ignoreCase = true)) greenRoute else yellowRoute
+        val originStation = route.stations.firstOrNull { it.matches(originName) } ?: RouteStation(originName)
+        val destStation = route.stations.firstOrNull { it.matches(destinationName) } ?: RouteStation(destinationName)
+
         val sliced = route.slice(originStation, destStation)
         if (sliced.isEmpty()) return emptyList()
 
@@ -108,7 +169,7 @@ object TyneAndWearMetroRoute : MetroRoute<TyneAndWearMetroStation>, TransitLineN
             }
 
             CallingPoint(
-                stationName = station,
+                stationName = station.name,
                 scheduledTime = clockTime,
                 estimatedTime = estBadge,
                 isCurrentStation = idx == 0,
@@ -118,25 +179,22 @@ object TyneAndWearMetroRoute : MetroRoute<TyneAndWearMetroStation>, TransitLineN
         }
     }
 
-    override fun resolveDirection(
+    fun resolveDirection(
         lineId: String,
         originName: String,
         destinationName: String,
-        platformName: String?
+        platformName: String? = null
     ): TransitDirection? {
-        val route = routeConfigs[lineId.lowercase()] ?: return null
-        val originStation = TyneAndWearMetroStation.fromString(originName)?.stationName ?: originName
-        val destStation = TyneAndWearMetroStation.fromString(destinationName)?.stationName ?: destinationName
+        val route = if (lineId.contains("green", ignoreCase = true)) greenRoute else yellowRoute
+        val originStation = route.stations.firstOrNull { it.matches(originName) } ?: return null
+        val destStation = route.stations.firstOrNull { it.matches(destinationName) } ?: return null
 
-        // Delegate to the route model's specific resolver
         val fromPlatform = route.directionResolver.resolve(platformName = platformName)
         if (fromPlatform != null) return fromPlatform
 
         val resolved = route.resolveDirection(originStation, destStation, platformName)
-        
-        // Map abstract Outbound/Inbound to Green Line's Northbound/Southbound if needed.
         if (lineId.contains("green", ignoreCase = true) && resolved != null) {
-             return if (resolved == TransitDirection.OUTBOUND) TransitDirection.NORTHBOUND else TransitDirection.SOUTHBOUND
+            return if (resolved == TransitDirection.OUTBOUND) TransitDirection.NORTHBOUND else TransitDirection.SOUTHBOUND
         }
         return resolved
     }

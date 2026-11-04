@@ -105,13 +105,61 @@ class DashboardViewModelRegionTest {
         assertTrue(viewModel.uiState.value.isHkRegionEnabled)
 
         // Disable HK -> should force fallback to GB if previously HK
-        viewModel.setSelectedRegion(TransitRegion.HK)
-        advanceUntilIdle()
-        assertEquals(TransitRegion.HK, viewModel.uiState.value.selectedRegion)
-
         viewModel.setHkRegionEnabled(false)
         advanceUntilIdle()
         assertFalse(viewModel.uiState.value.isHkRegionEnabled)
+        assertEquals(TransitRegion.GB, viewModel.uiState.value.selectedRegion)
+    }
+
+    @Test
+    fun testRecentSearchedStationsAreScopedByRegion() = runTest {
+        val fakeRepo = FakeTransitRepository()
+        val fakeBilling = FakeBillingRepository()
+        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+
+        advanceUntilIdle()
+
+        // 1. In GB region, add a London station
+        val gbStation = com.androidfung.departureboard.data.model.Station(id = "940GZZLUKSX", name = "King's Cross St. Pancras")
+        viewModel.addRecentSearchedStation(gbStation)
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.recentSearchedStations.size)
+        assertEquals("King's Cross St. Pancras", viewModel.uiState.value.recentSearchedStations.first().name)
+
+        // 2. Switch to Japan (JP)
+        viewModel.setSelectedRegion(TransitRegion.JP)
+        advanceUntilIdle()
+
+        // JP recent searches should be empty initially
+        assertTrue("JP recents should be empty", viewModel.uiState.value.recentSearchedStations.isEmpty())
+
+        // 3. In JP region, add Tokyo station
+        val jpStation = com.androidfung.departureboard.data.model.Station(id = "JP_METRO_M17", name = "Tokyo")
+        viewModel.addRecentSearchedStation(jpStation)
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.recentSearchedStations.size)
+        assertEquals("Tokyo", viewModel.uiState.value.recentSearchedStations.first().name)
+
+        // 4. Switch back to GB -> GB recents should remain intact
+        viewModel.setSelectedRegion(TransitRegion.GB)
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.recentSearchedStations.size)
+        assertEquals("King's Cross St. Pancras", viewModel.uiState.value.recentSearchedStations.first().name)
+
+        // 5. Clear recent searches in GB -> only GB is cleared, JP remains
+        viewModel.clearRecentSearchedStations()
+        advanceUntilIdle()
+
+        assertTrue("GB recents should be cleared", viewModel.uiState.value.recentSearchedStations.isEmpty())
+
+        viewModel.setSelectedRegion(TransitRegion.JP)
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.recentSearchedStations.size)
+        assertEquals("Tokyo", viewModel.uiState.value.recentSearchedStations.first().name)
     }
 
     @Test

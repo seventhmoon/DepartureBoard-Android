@@ -83,6 +83,7 @@ fun AiTransitSheet(
     initialTriggerSpeech: Boolean = false,
     billingRepository: BillingDataSource? = null,
     aiModelType: com.androidfung.departureboard.ai.AiModelType = com.androidfung.departureboard.ai.AiModelType.DEFAULT,
+    selectedRegion: com.androidfung.departureboard.data.model.TransitRegion = com.androidfung.departureboard.data.model.TransitRegion.GB,
     onUpgradeClick: () -> Unit = {},
     hasLocationPermission: Boolean = false,
     onRequestLocationPermission: (() -> Unit)? = null,
@@ -125,7 +126,7 @@ fun AiTransitSheet(
     var aiResult by remember { mutableStateOf<AiTransitResult?>(null) }
 
     // Dynamic, location-aware & frequently asked suggestions
-    val quickPrompts = remember(nearestStation, savedStations) {
+    val quickPrompts = remember(nearestStation, savedStations, selectedRegion) {
         val prompts = mutableListOf<String>()
         val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
 
@@ -145,8 +146,16 @@ fun AiTransitSheet(
                 prompts.add("Any delays heading home?")
             }
             in 22..23, in 0..4 -> {
-                prompts.add("Last Tube tonight")
-                prompts.add("Night bus services")
+                when (selectedRegion) {
+                    com.androidfung.departureboard.data.model.TransitRegion.HK -> prompts.add("Last MTR train tonight")
+                    com.androidfung.departureboard.data.model.TransitRegion.SG -> prompts.add("Last MRT train tonight")
+                    com.androidfung.departureboard.data.model.TransitRegion.JP -> prompts.add("Last train tonight")
+                    com.androidfung.departureboard.data.model.TransitRegion.AU -> prompts.add("Last train tonight")
+                    com.androidfung.departureboard.data.model.TransitRegion.GB -> {
+                        prompts.add("Last Tube tonight")
+                        prompts.add("Night bus services")
+                    }
+                }
             }
             else -> {
                 if (nearestStation != null) {
@@ -169,10 +178,34 @@ fun AiTransitSheet(
             prompts.add("Next train from $shortName")
         }
 
-        // 3. High-frequency transit corridors
-        prompts.add("Any Tube delays or disruptions?")
-        prompts.add("Elizabeth line status")
-        prompts.add("Central line vs Elizabeth line")
+        // 3. High-frequency transit corridors by region
+        when (selectedRegion) {
+            com.androidfung.departureboard.data.model.TransitRegion.HK -> {
+                prompts.add("MTR service status")
+                prompts.add("East Rail Line status")
+                prompts.add("Island Line status")
+            }
+            com.androidfung.departureboard.data.model.TransitRegion.SG -> {
+                prompts.add("MRT service disruptions")
+                prompts.add("East West Line status")
+                prompts.add("Downtown Line status")
+            }
+            com.androidfung.departureboard.data.model.TransitRegion.JP -> {
+                prompts.add("Yamanote Line status")
+                prompts.add("Tokyo Metro service status")
+                prompts.add("Chuo Line status")
+            }
+            com.androidfung.departureboard.data.model.TransitRegion.AU -> {
+                prompts.add("Sydney Trains service status")
+                prompts.add("T1 North Shore & Western Line")
+                prompts.add("B-Line bus status")
+            }
+            com.androidfung.departureboard.data.model.TransitRegion.GB -> {
+                prompts.add("Any Tube delays or disruptions?")
+                prompts.add("Elizabeth line status")
+                prompts.add("Central line vs Elizabeth line")
+            }
+        }
         prompts.distinct().take(5)
     }
 
@@ -199,12 +232,18 @@ fun AiTransitSheet(
 
                 var effectiveNearest = nearestStation
                 val cleanPrompt = prompt.trim().lowercase()
-                val isLocationIntent = cleanPrompt.contains("near me") ||
+                val isExplicitOrigin = cleanPrompt.contains("from ")
+                val isLocationIntent = !isExplicitOrigin && (cleanPrompt.contains("near me") ||
                         cleanPrompt.contains("nearby") ||
                         cleanPrompt.contains("around me") ||
                         cleanPrompt.contains("closest") ||
                         cleanPrompt.contains("nearest") ||
-                        cleanPrompt.contains("here")
+                        cleanPrompt.contains("here") ||
+                        cleanPrompt.contains("last tube") ||
+                        cleanPrompt.contains("last train") ||
+                        cleanPrompt.contains("next tube") ||
+                        cleanPrompt.contains("next train") ||
+                        cleanPrompt.contains("next bus"))
 
                 if (isLocationIntent) {
                     if (!hasLocationPermission && onRequestLocationPermission != null) {

@@ -6,6 +6,40 @@ package com.androidfung.departureboard.data.model
  */
 object DefaultStations {
 
+    val DEFAULT_STATIONS: List<Station> = listOf(
+        Station(
+            id = "940GZZLUKSX",
+            name = "King's Cross St. Pancras",
+            modes = listOf("tube"),
+            zone = "1",
+            lat = 51.5308,
+            lon = -0.1238,
+            isFavorite = true,
+            lines = listOf(
+                StationLineInfo("circle", "Circle", "tube"),
+                StationLineInfo("hammersmith-city", "Hammersmith & City", "tube"),
+                StationLineInfo("metropolitan", "Metropolitan", "tube"),
+                StationLineInfo("northern", "Northern", "tube"),
+                StationLineInfo("piccadilly", "Piccadilly", "tube"),
+                StationLineInfo("victoria", "Victoria", "tube")
+            )
+        ),
+        Station(
+            id = "490008660N",
+            name = "Tottenham Court Road",
+            modes = listOf("bus"),
+            zone = "1",
+            lat = 51.5165,
+            lon = -0.1310,
+            isFavorite = true,
+            lines = listOf(
+                StationLineInfo("73", "73", "bus"),
+                StationLineInfo("14", "14", "bus"),
+                StationLineInfo("390", "390", "bus")
+            )
+        )
+    )
+
     val POPULAR_STATIONS: List<Station> = listOf(
         Station(
             id = "940GZZLUOXC",

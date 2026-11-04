@@ -1,12 +1,22 @@
 package com.androidfung.departureboard.data.model.sg
 
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.StationDirectory
 import com.androidfung.departureboard.data.model.StationLineInfo
 
 /**
  * Directory of Singapore MRT stations with bilingual search support.
  */
-object SgStationDirectory {
+object SgStationDirectory : StationDirectory {
+
+    override val defaultStations: List<Station>
+        get() = SgDefaultStations.POPULAR_STATIONS
+
+    override fun searchStations(query: String): List<Station> = searchSgStations(query)
+
+    override fun getStationById(stationId: String): Station? {
+        return ALL_STATIONS.find { it.toStation().id == stationId }?.toStation()
+    }
 
     data class SgStationEntry(
         val code: String,

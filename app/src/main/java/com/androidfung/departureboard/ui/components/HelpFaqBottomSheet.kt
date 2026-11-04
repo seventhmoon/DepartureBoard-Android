@@ -84,36 +84,49 @@ fun HelpFaqBottomSheet(
 ) {
     val context = LocalContext.current
 
-    val faqList = remember {
+    val qFilter = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_q_filter)
+    val aFilter = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_a_filter)
+    val qTracking = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_q_tracking)
+    val aTracking = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_a_tracking)
+    val qWidgets = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_q_widgets)
+    val aWidgets = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_a_widgets)
+    val qReorder = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_q_reorder)
+    val aReorder = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_a_reorder)
+    val qAi = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_q_ai)
+    val aAi = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_a_ai)
+    val qData = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_q_data)
+    val aData = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_a_data)
+
+    val faqList = remember(qFilter, aFilter, qTracking, aTracking, qWidgets, aWidgets, qReorder, aReorder, qAi, aAi, qData, aData) {
         listOf(
             FaqItem(
-                question = "How do I filter train lines or directions?",
-                answer = "Tap on any colored line pill badge at the top of a station card. Tapping once filters by that line. Tapping again cycles through available directions (e.g., Eastbound / Westbound). Tapping once more clears the filter.",
+                question = qFilter,
+                answer = aFilter,
                 icon = Icons.Rounded.DirectionsTransit
             ),
             FaqItem(
-                question = "How does Live Train Tracking work?",
-                answer = "Tap 'Track' on any departure row or journey view to launch a persistent Live Update notification with dynamic countdowns. When the train arrives or countdown reaches 0, tracking automatically completes.",
+                question = qTracking,
+                answer = aTracking,
                 icon = Icons.Rounded.NotificationsActive
             ),
             FaqItem(
-                question = "How do I add home screen widgets?",
-                answer = "Touch and hold an empty space on your home screen, tap 'Widgets', find EkiBoard, and drag it to your screen. You can configure each widget to show all lines or focus on a specific line or bus route.",
+                question = qWidgets,
+                answer = aWidgets,
                 icon = Icons.Rounded.Widgets
             ),
             FaqItem(
-                question = "How do I reorder or remove station cards?",
-                answer = "To reorder: Long-press any station card on the dashboard and drag it to your desired position.\nTo delete: Swipe the station card left to remove it. An 'Undo' snackbar appears at the bottom if removed by mistake.",
+                question = qReorder,
+                answer = aReorder,
                 icon = Icons.Rounded.TouchApp
             ),
             FaqItem(
-                question = "What is Transit AI Assistant?",
-                answer = "Tap the floating sparkle button on the bottom right to ask questions like 'Next train from Kings Cross to Waterloo' or 'Is the Central line delayed?'. It uses on-device Gemini Nano with cloud fallback.",
+                question = qAi,
+                answer = aAi,
                 icon = Icons.Rounded.AutoAwesome
             ),
             FaqItem(
-                question = "Where does the live transit data come from?",
-                answer = "All real-time arrival predictions, platform information, and service disruption alerts are powered directly by official transport open data (Transport for London TfL, UK BODS, National Rail, Hong Kong DATA.GOV.HK / MTR / KMB / Citybus).",
+                question = qData,
+                answer = aData,
                 icon = Icons.Rounded.Info
             )
         )
@@ -160,7 +173,7 @@ fun HelpFaqBottomSheet(
                     }
                     Column {
                         Text(
-                            text = "Help & FAQ",
+                            text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_title),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 20.sp
@@ -168,7 +181,7 @@ fun HelpFaqBottomSheet(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Guides, tips & app info",
+                            text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -178,7 +191,7 @@ fun HelpFaqBottomSheet(
                 IconButton(onClick = onDismissRequest) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.settings_close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -199,7 +212,7 @@ fun HelpFaqBottomSheet(
             ) {
                 item {
                     Text(
-                        text = "FREQUENTLY ASKED QUESTIONS",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_section_faq),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
@@ -220,7 +233,7 @@ fun HelpFaqBottomSheet(
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "APP INFORMATION",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_section_app_info),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
@@ -305,7 +318,11 @@ private fun FaqAccordionCard(
 
                 Icon(
                     imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    contentDescription = if (expanded) {
+                        androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.line_status_collapse_desc)
+                    } else {
+                        androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.line_status_expand_desc)
+                    },
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -376,7 +393,7 @@ private fun AppInfoCard(
             }
 
             Text(
-                text = "Open-source transit companion built with Jetpack Compose & Material 3 Expressive. Powered by Official Open Data.",
+                text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.help_faq_app_description),
                 style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -403,7 +420,7 @@ private fun AppInfoCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Manage / Cancel Subscription",
+                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.settings_manage_subscription_title),
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -430,7 +447,7 @@ private fun AppInfoCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Rate on Google Play",
+                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.settings_rate_app_title),
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -451,7 +468,7 @@ private fun AppInfoCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "GitHub Repository & Source Code",
+                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.settings_privacy_policy_title),
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     color = MaterialTheme.colorScheme.primary
                 )

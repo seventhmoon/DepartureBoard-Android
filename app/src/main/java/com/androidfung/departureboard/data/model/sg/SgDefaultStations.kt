@@ -13,6 +13,28 @@ import java.time.format.DateTimeFormatter
  */
 object SgDefaultStations {
 
+    val DEFAULT_STATIONS: List<Station> = listOf(
+        Station(
+            id = "SG_MRT_NS22_TE14",
+            name = "Orchard",
+            modes = listOf("tube"),
+            lines = listOf(
+                StationLineInfo("NSL", "North-South Line"),
+                StationLineInfo("TEL", "Thomson-East Coast Line")
+            )
+        ),
+        Station(
+            id = "SG_BUS_09048",
+            name = "Orchard Stn/Lucky Plaza",
+            modes = listOf("bus"),
+            lines = listOf(
+                StationLineInfo("SG_BUS_65", "65", "bus"),
+                StationLineInfo("SG_BUS_143", "143", "bus"),
+                StationLineInfo("SG_BUS_190", "190", "bus")
+            )
+        )
+    )
+
     val POPULAR_STATIONS: List<Station> = listOf(
         Station(
             id = "SG_MRT_NS22_TE14",

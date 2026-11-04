@@ -18,18 +18,18 @@ abstract class LinearCorridorDirectionResolver(
     private val forwardDirection: TransitDirection,
     private val reverseDirection: TransitDirection,
     stationsOrder: List<RouteStation>
-) {
+) : DirectionResolver {
 
     private val crsIndexMap: Map<String, Int> = buildMap {
         stationsOrder.forEachIndexed { index, entry ->
-            put(entry.crs.uppercase(), index)
+            entry.crs?.let { put(it.uppercase(), index) }
         }
     }
 
     private val naptanIndexMap: Map<String, Int> = buildMap {
         stationsOrder.forEachIndexed { index, entry ->
             entry.naptanId?.let { put(it.uppercase(), index) }
-            put(entry.crs.uppercase(), index)
+            entry.crs?.let { put(it.uppercase(), index) }
         }
     }
 
@@ -40,14 +40,14 @@ abstract class LinearCorridorDirectionResolver(
     /**
      * Resolves cardinal direction by comparing relative position of stations along the route.
      */
-    fun resolve(
-        destinationName: String? = null,
-        destinationCrs: String? = null,
-        destinationNaptanId: String? = null,
-        currentStationId: String? = null,
-        currentStationName: String? = null,
-        platformName: String? = null,
-        apiDirection: String? = null
+    override fun resolve(
+        destinationName: String?,
+        destinationCrs: String?,
+        destinationNaptanId: String?,
+        currentStationId: String?,
+        currentStationName: String?,
+        platformName: String?,
+        apiDirection: String?
     ): TransitDirection? {
         val plat = platformName?.trim()?.lowercase().orEmpty()
 

@@ -72,13 +72,13 @@ class TyneAndWearMetroRouteTest {
     }
 
     @Test
-    fun stationEnum_matchesColloquialNames() {
-        val monument = TyneAndWearMetroStation.fromString("Monument Metro Station")
+    fun stationMatching_matchesColloquialNames() {
+        val monument = TyneAndWearMetroRoute.findStation("Monument Metro Station")
         assertNotNull(monument)
-        assertEquals(TyneAndWearMetroStation.MONUMENT, monument)
+        assertEquals("Monument", monument?.name)
 
-        val airport = TyneAndWearMetroStation.fromString("Newcastle Airport")
+        val airport = TyneAndWearMetroRoute.findStation("Newcastle Airport")
         assertNotNull(airport)
-        assertEquals(TyneAndWearMetroStation.AIRPORT, airport)
+        assertEquals("Airport", airport?.name)
     }
 }

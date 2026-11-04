@@ -61,7 +61,7 @@ fun LocationRationaleDialog(
         },
         title = {
             Text(
-                text = "Find Nearby Stations",
+                text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.location_rationale_title),
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
@@ -72,7 +72,7 @@ fun LocationRationaleDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "EkiBoard uses your approximate location to:",
+                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.location_rationale_intro),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -84,7 +84,7 @@ fun LocationRationaleDialog(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Show stops and stations within walking distance in Search.",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.location_rationale_bullet1),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -97,14 +97,14 @@ fun LocationRationaleDialog(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Highlight nearest live departures and answer queries like \"Next bus from my stop\".",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.location_rationale_bullet2),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Your location is processed directly on your device and is never shared or stored.",
+                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.location_rationale_privacy),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
@@ -115,12 +115,15 @@ fun LocationRationaleDialog(
                 onClick = onConfirm,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Continue", fontWeight = FontWeight.SemiBold)
+                Text(
+                    androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.location_rationale_continue),
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Not now")
+                Text(androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.location_rationale_not_now))
             }
         }
     )

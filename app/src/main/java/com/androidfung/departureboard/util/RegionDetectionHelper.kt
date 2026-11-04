@@ -3,6 +3,7 @@ package com.androidfung.departureboard.util
 import android.content.Context
 import android.location.Location
 import android.telephony.TelephonyManager
+import androidx.core.content.getSystemService
 import com.androidfung.departureboard.data.model.TransitRegion
 import java.time.ZoneId
 import java.util.Locale
@@ -58,7 +59,7 @@ object RegionDetectionHelper {
 
         // Tier 2 & 3: Telephony network and SIM country ISO
         val telephonyManager = try {
-            context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+            context.getSystemService<TelephonyManager>()
         } catch (_: Throwable) {
             null
         }
@@ -123,7 +124,8 @@ object RegionDetectionHelper {
         }
 
         // Tier 5: Device Locale Country
-        val localeCountry = Locale.getDefault().country.uppercase(Locale.ROOT)
+        val effectiveLocale = LocaleHelper.getAppLocale() ?: Locale.getDefault()
+        val localeCountry = effectiveLocale.country.uppercase(Locale.ROOT)
         if (localeCountry.isNotBlank()) {
             val localeRegion = TransitRegion.fromCountryCode(localeCountry)
             if (localeRegion != null) {

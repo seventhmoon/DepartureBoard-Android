@@ -13,6 +13,31 @@ import java.time.format.DateTimeFormatter
  */
 object AuDefaultStations {
 
+    val DEFAULT_STATIONS: List<Station> = listOf(
+        Station(
+            id = "AU_TRAIN_CENTRAL",
+            name = "Central",
+            modes = listOf("national-rail", "tube"),
+            lines = listOf(
+                StationLineInfo("M1", "Metro M1"),
+                StationLineInfo("T1", "T1 North Shore & Western"),
+                StationLineInfo("T2", "T2 Inner West"),
+                StationLineInfo("T4", "T4 Eastern Suburbs"),
+                StationLineInfo("T8", "T8 Airport & South")
+            )
+        ),
+        Station(
+            id = "AU_BUS_200060",
+            name = "Central Station, Eddy Ave",
+            modes = listOf("bus"),
+            lines = listOf(
+                StationLineInfo("374", "374", "bus"),
+                StationLineInfo("396", "396", "bus"),
+                StationLineInfo("440", "440", "bus")
+            )
+        )
+    )
+
     val POPULAR_STATIONS: List<Station> = listOf(
         Station(
             id = "AU_TRAIN_CENTRAL",

@@ -97,6 +97,9 @@ fun PaywallBottomSheet(
         calculateSubscriptionPricing(annualOffer, monthlyOffer)
     }
 
+    val errorPlayStoreText = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_error_play_store)
+    val debugProActivatedText = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_debug_pro_activated)
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -153,7 +156,7 @@ fun PaywallBottomSheet(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Upgrade to Pro",
+                text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_title),
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -168,7 +171,7 @@ fun PaywallBottomSheet(
                 )
             } else {
                 Text(
-                    text = "Supercharge your daily commute",
+                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -188,18 +191,33 @@ fun PaywallBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ProFeatureRow(
-                        title = "Up to ${SubscriptionTier.PRO_MAX_STATIONS} Saved Stations",
-                        subtitle = "Free tier is limited to ${SubscriptionTier.FREE_MAX_STATIONS} stations"
+                        title = androidx.compose.ui.res.stringResource(
+                            com.androidfung.departureboard.R.string.paywall_feature_stations_title,
+                            SubscriptionTier.PRO_MAX_STATIONS
+                        ),
+                        subtitle = androidx.compose.ui.res.stringResource(
+                            com.androidfung.departureboard.R.string.paywall_feature_stations_subtitle,
+                            SubscriptionTier.FREE_MAX_STATIONS
+                        )
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                     ProFeatureRow(
-                        title = "Up to ${SubscriptionTier.PRO_MAX_WIDGETS} Home Screen Widgets",
-                        subtitle = "Track all your commute connections at a glance"
+                        title = androidx.compose.ui.res.stringResource(
+                            com.androidfung.departureboard.R.string.paywall_feature_widgets_title,
+                            SubscriptionTier.PRO_MAX_WIDGETS
+                        ),
+                        subtitle = androidx.compose.ui.res.stringResource(
+                            com.androidfung.departureboard.R.string.paywall_feature_widgets_subtitle
+                        )
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                     ProFeatureRow(
-                        title = "Unlimited AI Transit Assistant",
-                        subtitle = "Natural language queries & live status updates"
+                        title = androidx.compose.ui.res.stringResource(
+                            com.androidfung.departureboard.R.string.paywall_feature_ai_title
+                        ),
+                        subtitle = androidx.compose.ui.res.stringResource(
+                            com.androidfung.departureboard.R.string.paywall_feature_ai_subtitle
+                        )
                     )
                 }
             }
@@ -213,7 +231,7 @@ fun PaywallBottomSheet(
             ) {
                 // Annual Plan (Featured)
                 PlanOptionCard(
-                    title = "Annual Plan",
+                    title = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_plan_annual_title),
                     subtitle = annualPlanPricing.subtitle,
                     price = annualPlanPricing.formattedPrice,
                     tag = annualPlanPricing.savingsTag,
@@ -223,7 +241,7 @@ fun PaywallBottomSheet(
 
                 // Monthly Plan
                 PlanOptionCard(
-                    title = "Monthly Plan",
+                    title = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_plan_monthly_title),
                     subtitle = monthlyPlanPricing.subtitle,
                     price = monthlyPlanPricing.formattedPrice,
                     isSelected = selectedPlanType == SubscriptionTier.BASE_PLAN_MONTHLY,
@@ -246,13 +264,21 @@ fun PaywallBottomSheet(
                     if (subProduct != null && act != null) {
                         val launched = billingRepository.launchPurchaseFlow(act, subProduct, targetBasePlan)
                         if (!launched) {
-                            Toast.makeText(context, "Unable to start Google Play purchase flow. Check Play Store connection.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                context,
+                                errorPlayStoreText,
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     } else {
                         // Product is not yet live/configured in Google Play Console (local dev/testing mode).
                         // Unlock Pro locally and confirm to developer.
                         billingRepository.setDebugPro(true)
-                        Toast.makeText(context, "Pro activated! (Google Play products not yet live in Console)", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            debugProActivatedText,
+                            Toast.LENGTH_SHORT
+                        ).show()
                         onDismissRequest()
                     }
                 },
@@ -266,7 +292,11 @@ fun PaywallBottomSheet(
                 )
             ) {
                 Text(
-                    text = "Continue with ${if (selectedPlanType == SubscriptionTier.BASE_PLAN_ANNUAL) "Annual" else "Monthly"}",
+                    text = if (selectedPlanType == SubscriptionTier.BASE_PLAN_ANNUAL) {
+                        androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_continue_annual)
+                    } else {
+                        androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_continue_monthly)
+                    },
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
@@ -299,7 +329,11 @@ fun PaywallBottomSheet(
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text(
-                    text = if (isRestoring) "Checking Google Play..." else "Restore Purchases",
+                    text = if (isRestoring) {
+                        androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_checking_google_play)
+                    } else {
+                        androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_restore_purchases)
+                    },
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.primary
                 )
