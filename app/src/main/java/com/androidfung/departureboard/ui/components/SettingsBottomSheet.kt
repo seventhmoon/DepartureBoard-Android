@@ -58,11 +58,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.os.Build
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.res.stringResource
 import com.androidfung.departureboard.BuildConfig
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.billing.BillingDataSource
+import com.androidfung.departureboard.data.model.TransitRegion
+import com.androidfung.departureboard.util.LocaleHelper
 import com.androidfung.departureboard.ui.theme.AppThemeMode
 import androidx.core.net.toUri
 
@@ -87,6 +93,8 @@ fun SettingsBottomSheet(
     onDynamicColorChange: (Boolean) -> Unit = {},
     isAutoSortByLocation: Boolean = false,
     onAutoSortByLocationChange: (Boolean) -> Unit = {},
+    selectedRegion: TransitRegion = TransitRegion.GB,
+    onOpenRegionPicker: (() -> Unit)? = null,
     onRateApp: () -> Unit = {},
     onOpenDebugSettings: (() -> Unit)? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -261,9 +269,9 @@ fun SettingsBottomSheet(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         listOf(
-                            AppThemeMode.SYSTEM to "System",
-                            AppThemeMode.LIGHT to "Light",
-                            AppThemeMode.DARK to "Dark"
+                            AppThemeMode.SYSTEM to stringResource(R.string.settings_theme_system),
+                            AppThemeMode.LIGHT to stringResource(R.string.settings_theme_light),
+                            AppThemeMode.DARK to stringResource(R.string.settings_theme_dark)
                         ).forEach { (mode, label) ->
                             val selected = themeMode == mode
                             FilterChip(
@@ -292,12 +300,12 @@ fun SettingsBottomSheet(
                         ) {
                             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                                 Text(
-                                    text = "Dynamic Color (Monet)",
+                                    text = stringResource(R.string.settings_dynamic_color_title),
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Tint interface with your wallpaper colors",
+                                    text = stringResource(R.string.settings_dynamic_color_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -350,9 +358,143 @@ fun SettingsBottomSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Section: Region & Language
+            Text(
+                text = stringResource(R.string.settings_section_region_language),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    // Region / Transit Network
+                    if (onOpenRegionPicker != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onDismissRequest()
+                                    onOpenRegionPicker()
+                                },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Public,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = stringResource(R.string.switch_region_title),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "${selectedRegion.flagEmoji} ${stringResource(selectedRegion.displayNameRes)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                    }
+
+                    // App Language Selector
+                    var currentLanguageTag by remember {
+                        mutableStateOf(LocaleHelper.getAppLocale()?.toLanguageTag().orEmpty())
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Language,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.settings_language_title),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_language_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            "" to stringResource(R.string.language_system),
+                            "en" to stringResource(R.string.language_en),
+                            "zh-Hant" to stringResource(R.string.language_zh_hant)
+                        ).forEach { (tag, label) ->
+                            val selected = if (tag.isEmpty()) {
+                                currentLanguageTag.isEmpty()
+                            } else {
+                                currentLanguageTag.startsWith(tag, ignoreCase = true)
+                            }
+                            FilterChip(
+                                selected = selected,
+                                onClick = {
+                                    currentLanguageTag = tag
+                                    LocaleHelper.setAppLanguage(tag.ifEmpty { null })
+                                },
+                                label = { Text(label) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             // Section 2: Subscription & Account
             Text(
-                text = "SUBSCRIPTION & ACCOUNT",
+                text = stringResource(R.string.settings_section_subscription),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )

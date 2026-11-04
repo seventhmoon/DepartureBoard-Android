@@ -130,6 +130,7 @@ class MainActivity : ComponentActivity() {
                     var showHelpSheet by rememberSaveable { mutableStateOf(false) }
                     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
                     var showLineStatusSheet by rememberSaveable { mutableStateOf(false) }
+                    var showRegionPickerSheet by rememberSaveable { mutableStateOf(false) }
 
                     LaunchedEffect(initialStation) {
                         if (initialStation != null) {
@@ -524,6 +525,20 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
+                    if (showRegionPickerSheet) {
+                        com.androidfung.departureboard.ui.components.RegionPickerBottomSheet(
+                            selectedRegion = uiState.selectedRegion,
+                            detectedRegion = uiState.detectedRegion,
+                            detectedCountryCode = uiState.detectedCountryCode,
+                            isLocationUnsupported = uiState.isLocationUnsupported,
+                            onSelectRegion = { region ->
+                                showRegionPickerSheet = false
+                                viewModel.setSelectedRegion(region)
+                            },
+                            onDismissRequest = { showRegionPickerSheet = false }
+                        )
+                    }
+
                     if (showLineStatusSheet) {
                         val relevantLineIds = remember(uiState.stationCards) {
                             uiState.stationCards.flatMap { card ->
@@ -554,6 +569,11 @@ class MainActivity : ComponentActivity() {
                                     requestLocationWithRationale()
                                 }
                                 viewModel.setAutoSortByLocation(enabled)
+                            },
+                            selectedRegion = uiState.selectedRegion,
+                            onOpenRegionPicker = {
+                                showSettingsSheet = false
+                                showRegionPickerSheet = true
                             },
                             isPro = uiState.isPro,
                             billingRepository = viewModel.billingRepository,

@@ -175,8 +175,8 @@ fun DashboardContent(
                             }
                         }
 
-                        // Debug Region Switcher Chip (Shown when HK experimental is enabled)
-                        if (uiState.isHkRegionEnabled) {
+                        // Debug Region Switcher Chip (Shown only in debug builds when HK experimental is enabled)
+                        if (BuildConfig.DEBUG && uiState.isHkRegionEnabled) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
