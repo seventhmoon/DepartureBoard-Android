@@ -1,42 +1,46 @@
 package com.androidfung.departureboard.data.model.au
 
-import com.androidfung.departureboard.data.model.TransitDirection
-import com.androidfung.departureboard.data.model.TransitLineNetwork
-
-import com.androidfung.departureboard.data.repository.direction.DirectionResolver
-import com.androidfung.departureboard.data.routes.LoopRoute
-import com.androidfung.departureboard.data.routes.TransitRoute
+import com.androidfung.departureboard.data.resolver.TransitLineNetwork
+import java.time.ZoneId
 
 /**
- * Defines the physical routing topology for Sydney Trains, particularly the T2 Inner West & Leppington Line
- * which forms a partial City Circle loop.
+ * Route network definitions for Sydney Trains & Metro.
  */
 object AuSydneyRoutes : TransitLineNetwork {
 
-    private val cityCircleRoute = LoopRoute(
-        lineId = "T2",
-        stations = listOf(
-            "Central", "Town Hall", "Wynyard", "Circular Quay", "St James", "Museum"
-        ),
-        directionResolver = object : DirectionResolver {
-            override fun resolve(
-                destinationName: String?, destinationCrs: String?, destinationNaptanId: String?,
-                currentStationId: String?, currentStationName: String?, platformName: String?, apiDirection: String?
-            ): TransitDirection? {
-                if (platformName?.contains("Inner") == true || apiDirection?.equals("inner", ignoreCase = true) == true) {
-                    return TransitDirection.ANTI_CLOCKWISE
-                }
-                if (platformName?.contains("Outer") == true || apiDirection?.equals("outer", ignoreCase = true) == true) {
-                    return TransitDirection.CLOCKWISE
-                }
-                return null
-            }
-        }
-    )
+    override val timeZone: ZoneId = ZoneId.of("Australia/Sydney")
+    override val defaultMode: String = "national-rail"
+    override val averageSecondsBetweenStops: Long = 150L
 
-    override val routeConfigs: Map<String, TransitRoute<String>> = mapOf(
-        "T2" to cityCircleRoute,
-        "T3" to cityCircleRoute,
-        "T8" to cityCircleRoute
+    override val lineSequences: Map<String, List<String>> = mapOf(
+        "T1" to listOf(
+            "Berowra", "Hornsby", "Gordon", "Chatswood", "North Sydney", "Wynyard", "Town Hall", "Central",
+            "Redfern", "Strathfield", "Lidcombe", "Granville", "Parramatta", "Blacktown", "Penrith", "Emu Plains"
+        ),
+        "T2" to listOf(
+            "City Circle", "Central", "Redfern", "Ashfield", "Burwood", "Strathfield", "Homebush",
+            "Lidcombe", "Auburn", "Granville", "Merrylands", "Fairfield", "Cabramatta", "Liverpool", "Leppington"
+        ),
+        "T3" to listOf(
+            "City Circle", "Central", "Redfern", "Sydenham", "Marrickville", "Dulwich Hill", "Canterbury",
+            "Bankstown", "Birrong", "Regents Park", "Lidcombe"
+        ),
+        "T4" to listOf(
+            "Bondi Junction", "Edgecliff", "Kings Cross", "Martin Place", "Town Hall", "Central",
+            "Redfern", "Sydenham", "Wolli Creek", "Hurstville", "Kogarah", "Rockdale", "Sutherland", "Cronulla", "Waterfall"
+        ),
+        "T8" to listOf(
+            "City Circle", "Museum", "St James", "Circular Quay", "Wynyard", "Town Hall", "Central",
+            "Green Square", "Mascot", "Domestic Airport", "International Airport", "Wolli Creek",
+            "Turrella", "Bardwell Park", "Bexley North", "Kingsgrove", "Beverly Hills", "Narwee",
+            "Riverwood", "Padstow", "Revesby", "Panania", "East Hills", "Holsworthy", "Glenfield",
+            "Campbelltown", "Macarthur"
+        ),
+        "M1" to listOf(
+            "Tallawong", "Rouse Hill", "Kellyville", "Bella Vista", "Norwest", "Hills Showground",
+            "Castle Hill", "Cherrybrook", "Epping", "Macquarie University", "Macquarie Park",
+            "North Ryde", "Chatswood", "Crows Nest", "Victoria Cross", "Barangaroo",
+            "Martin Place", "Gadigal", "Central", "Waterloo", "Sydenham"
+        )
     )
 }

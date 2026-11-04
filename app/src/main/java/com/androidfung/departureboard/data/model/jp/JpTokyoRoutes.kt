@@ -1,42 +1,48 @@
 package com.androidfung.departureboard.data.model.jp
 
-import com.androidfung.departureboard.data.model.TransitDirection
-import com.androidfung.departureboard.data.model.TransitLineNetwork
-
-import com.androidfung.departureboard.data.repository.direction.DirectionResolver
-import com.androidfung.departureboard.data.routes.LoopRoute
-import com.androidfung.departureboard.data.routes.TransitRoute
+import com.androidfung.departureboard.data.resolver.TransitLineNetwork
+import java.time.ZoneId
 
 /**
- * Defines the physical routing topology for Tokyo lines, primarily focusing on loops like the Yamanote.
+ * Route network definitions for Tokyo JR & Metro.
  */
 object JpTokyoRoutes : TransitLineNetwork {
 
-    // Yamanote Line is a Loop Route
-    private val yamanoteRoute = LoopRoute(
-        lineId = "JY",
-        stations = listOf(
-            "JY01", "JY02", "JY03", "JY04", "JY05", "JY06", "JY07", "JY08", "JY09", "JY10",
-            "JY11", "JY12", "JY13", "JY14", "JY15", "JY16", "JY17", "JY18", "JY19", "JY20",
-            "JY21", "JY22", "JY23", "JY24", "JY25", "JY26", "JY27", "JY28", "JY29", "JY30"
-        ),
-        directionResolver = object : DirectionResolver {
-            override fun resolve(
-                destinationName: String?, destinationCrs: String?, destinationNaptanId: String?,
-                currentStationId: String?, currentStationName: String?, platformName: String?, apiDirection: String?
-            ): TransitDirection? {
-                if (platformName?.contains("内回り") == true || apiDirection?.equals("inner", ignoreCase = true) == true) {
-                    return TransitDirection.ANTI_CLOCKWISE
-                }
-                if (platformName?.contains("外回り") == true || apiDirection?.equals("outer", ignoreCase = true) == true) {
-                    return TransitDirection.CLOCKWISE
-                }
-                return null
-            }
-        }
-    )
+    override val timeZone: ZoneId = ZoneId.of("Asia/Tokyo")
+    override val defaultMode: String = "tube"
+    override val averageSecondsBetweenStops: Long = 120L
 
-    override val routeConfigs: Map<String, TransitRoute<String>> = mapOf(
-        "JY" to yamanoteRoute
+    override val lineSequences: Map<String, List<String>> = mapOf(
+        "JY" to listOf(
+            "Tokyo", "Kanda", "Akihabara", "Okachimachi", "Ueno", "Uguisudani", "Nippori", "Nishi-Nippori",
+            "Tabata", "Komagome", "Sugamo", "Otsuka", "Ikebukuro", "Mejiro", "Takadanobaba", "Shin-Okubo",
+            "Shinjuku", "Yoyogi", "Harajuku", "Shibuya", "Ebisu", "Meguro", "Gotanda", "Osaki",
+            "Shinagawa", "Takanawa Gateway", "Tamachi", "Hamamatsucho", "Shimbashi", "Yurakucho", "Tokyo"
+        ),
+        "G" to listOf(
+            "Asakusa", "Tawaramachi", "Inaricho", "Ueno", "Ueno-hirokoji", "Suehirocho", "Kanda",
+            "Mitsukoshimae", "Nihombashi", "Kyobashi", "Ginza", "Shimbashi", "Toranomon",
+            "Tameike-sanno", "Akasaka-mitsuke", "Aoyama-itchome", "Gaiemmae", "Omote-sando", "Shibuya"
+        ),
+        "M" to listOf(
+            "Ogikubo", "Minami-Asagaya", "Shin-Koenji", "Higashi-Koenji", "Shin-Nakano", "Nakano-sakaue",
+            "Nishi-Shinjuku", "Shinjuku", "Shinjuku-sanchome", "Shinjuku-gyoemmae", "Yotsuya-sanchome",
+            "Yotsuya", "Akasaka-mitsuke", "Kokkai-gijidomae", "Kasumigaseki", "Ginza", "Tokyo",
+            "Otemachi", "Awajicho", "Ochanomizu", "Hongo-sanchome", "Korakuen", "Myogadani",
+            "Shin-Otsuka", "Ikebukuro"
+        ),
+        "JC" to listOf(
+            "Tokyo", "Kanda", "Ochanomizu", "Yotsuya", "Shinjuku", "Nakano", "Koenji", "Asagaya",
+            "Ogikubo", "Nishi-Ogikubo", "Kichijoji", "Mitaka", "Musashi-Sakai", "Higashi-Koganei",
+            "Musashi-Koganei", "Kokubunji", "Nishi-Kokubunji", "Kunitachi", "Tachikawa", "Hachioji", "Takao"
+        ),
+        "JB" to listOf(
+            "Chiba", "Nishi-Chiba", "Inage", "Shin-Kemigawa", "Makuhari", "Makuharihongo", "Tsudanuma",
+            "Higashi-Funabashi", "Funabashi", "Nishi-Funabashi", "Shimosa-Nakayama", "Moto-Yawata",
+            "Ichikawa", "Koiwa", "Shin-Koiwa", "Hirai", "Kameido", "Kinshicho", "Ryogoku", "Asakusabashi",
+            "Akihabara", "Ochanomizu", "Suidobashi", "Iidabashi", "Ichigaya", "Yotsuya", "Shinanomachi",
+            "Sendagaya", "Yoyogi", "Shinjuku", "Okubo", "Higashi-Nakano", "Nakano", "Koenji", "Asagaya",
+            "Ogikubo", "Nishi-Ogikubo", "Kichijoji", "Mitaka"
+        )
     )
 }

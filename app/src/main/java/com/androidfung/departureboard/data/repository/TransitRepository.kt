@@ -101,13 +101,19 @@ class TransitRepositoryImpl(
     private val hkBusSearchEngine = com.androidfung.departureboard.data.repository.search.HkBusSearchEngine()
     private val bodsCallingPointsResolver = com.androidfung.departureboard.data.resolver.gb.BodsCallingPointsResolver(bodsApiService)
     private val tflCallingPointsResolver = com.androidfung.departureboard.data.resolver.gb.TflCallingPointsResolver(apiService)
+    private val sgCallingPointsResolver = com.androidfung.departureboard.data.resolver.sg.SgCallingPointsResolver()
+    private val auCallingPointsResolver = com.androidfung.departureboard.data.resolver.au.AuCallingPointsResolver()
+    private val jpCallingPointsResolver = com.androidfung.departureboard.data.resolver.jp.JpCallingPointsResolver()
 
     private val callingPointsEngine = com.androidfung.departureboard.data.resolver.CallingPointsEngine(
         listOf(
             bodsCallingPointsResolver,
             hkMtrCallingPointsResolver,
             hkBusCallingPointsResolver,
-            tflCallingPointsResolver
+            tflCallingPointsResolver,
+            sgCallingPointsResolver,
+            auCallingPointsResolver,
+            jpCallingPointsResolver
         )
     )
 

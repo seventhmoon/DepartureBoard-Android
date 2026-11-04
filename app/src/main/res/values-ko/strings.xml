@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EkiBoard</string>
+    <string name="launcher_name">EkiBoard</string>
+    <string name="widget_name">EkiBoard</string>
+    <string name="widget_description">저장된 역의 실시간 출발 예측 및 운행 현황</string>
+
+    <!-- Region Names -->
+    <string name="region_uk">영국</string>
+    <string name="region_hk">홍콩</string>
+    <string name="region_sg">싱가포르</string>
+    <string name="region_au">시드니</string>
+    <string name="region_jp">도쿄</string>
+
+    <!-- Transit Statuses -->
+    <string name="status_due">곧 도착</string>
+    <string name="status_on_time">정시</string>
+    <string name="status_delayed">지연</string>
+    <string name="status_cancelled">취소</string>
+    <string name="status_approaching">접근 중</string>
+    <string name="status_at_platform">승강장 대기 중</string>
+    <string name="status_at_stop">정류장 대기 중</string>
+    <string name="status_in_transit">운행 중</string>
+    <string name="status_accessible">♿ 교통약자 배려석</string>
+    <string name="status_seats">좌석 여유</string>
+    <string name="status_standing">입석</string>
+    <string name="status_full">만석</string>
+    <string name="unit_min">분</string>
+
+    <!-- Transit Directions -->
+    <string name="dir_northbound">북행</string>
+    <string name="dir_southbound">남행</string>
+    <string name="dir_eastbound">동행</string>
+    <string name="dir_westbound">서행</string>
+    <string name="dir_inbound">상행</string>
+    <string name="dir_outbound">하행</string>
+    <string name="dir_clockwise">외선순환</string>
+    <string name="dir_anti_clockwise">내선순환</string>
+    <string name="dir_indicator_northbound">↑ 북행</string>
+    <string name="dir_indicator_southbound">↓ 남행</string>
+    <string name="dir_indicator_eastbound">→ 동행</string>
+    <string name="dir_indicator_westbound">← 서행</string>
+    <string name="dir_indicator_inbound">상행</string>
+    <string name="dir_indicator_outbound">하행</string>
+    <string name="dir_indicator_clockwise">↻ 외선</string>
+    <string name="dir_indicator_anti_clockwise">↺ 내선</string>
+
+    <!-- UI Labels -->
+    <string name="platform_label">%s번 승강장</string>
+    <string name="search_hint">역, 노선 또는 정류장 검색…</string>
+    <string name="ad_badge_label">광고</string>
+    <!-- Debug & Settings -->
+    <string name="debug_settings_title">개발자 옵션</string>
+    <string name="switch_region_title">지역 전환</string>
+    <string name="title_ai_assistant">온디바이스 AI 어시스턴트</string>
+    <string name="settings_language_title">앱 언어</string>
+    <string name="settings_language_desc">시스템 기본값 또는 특정 언어 선택</string>
+    <string name="language_system">시스템 기본값</string>
+    <string name="language_en">English</string>
+    <string name="language_zh_hant">中文</string>
+    <string name="language_ja">日本語</string>
+    <string name="language_ko">한국어</string>
+
+    <!-- Settings Bottom Sheet -->
+    <string name="settings_title">설정</string>
+    <string name="settings_subtitle">환경설정 및 옵션</string>
+    <string name="settings_close">닫기</string>
+    <string name="settings_section_display">화면 표시 설정</string>
+    <string name="settings_section_region_language">지역 및 언어</string>
+    <string name="settings_rows_per_card_title">역 카드당 표시 행 수</string>
+    <string name="settings_rows_per_card_desc">표시할 다음 출발 정보의 최대 개수</string>
+    <string name="settings_theme_title">테마</string>
+    <string name="settings_theme_desc">시스템 기본값, 라이트 또는 다크 테마 선택</string>
+    <string name="settings_theme_system">시스템</string>
+    <string name="settings_theme_light">라이트</string>
+    <string name="settings_theme_dark">다크</string>
+    <string name="settings_dynamic_color_title">다이내믹 컬러 (Monet)</string>
+    <string name="settings_dynamic_color_desc">배경화면 색상에 맞춰 인터페이스 색조 적용</string>
+    <string name="settings_hk_bilingual_title">이중 언어 역명 표시 (홍콩)</string>
+    <string name="settings_hk_bilingual_desc">영어와 중국어 역명 모두 표시 (예: Central / 中環)</string>
+    <string name="settings_auto_sort_title">스마트 위치 자동 정렬</string>
+    <string name="settings_auto_sort_desc">가장 가까운 저장된 역을 상단에 자동으로 정렬</string>
+    <string name="settings_section_subscription">구독 및 계정</string>
+    <string name="settings_plan_pro_title">EkiBoard Pro</string>
+    <string name="settings_plan_free_title">무료 플랜</string>
+    <string name="settings_plan_pro_subtitle">활성화된 플랜 • 혜택 확인</string>
+    <string name="settings_plan_free_subtitle">저장 가능한 역, 위젯 및 AI 기능 업그레이드</string>
+    <string name="settings_manage_subscription_title">구독 관리 / 취소</string>
+    <string name="settings_manage_subscription_desc">Google Play 정기 결제 관리 페이지 열기</string>
+    <string name="settings_restore_checking_title">Google Play 확인 중…</string>
+    <string name="settings_restore_title">구매 내역 복원</string>
+    <string name="settings_restore_checking_desc">Google Play 스토어와 연결 중</string>
+    <string name="settings_restore_desc">Google Play에서 이전 구매 내역 동기화</string>
+    <string name="settings_section_about">고객지원 및 정보</string>
+    <string name="settings_help_faq_title">도움말 &amp; 자주 묻는 질문</string>
+    <string name="settings_help_faq_desc">사용 가이드 및 FAQ</string>
+    <string name="settings_rate_app_title">Google Play 평가</string>
+    <string name="settings_rate_app_desc">다른 통근자들과 리뷰 공유하기</string>
+    <string name="settings_privacy_policy_title">개인정보 처리방침</string>
+    <string name="settings_privacy_policy_desc">개인정보 보호 약관 및 데이터 안전 정보</string>
+    <string name="settings_app_version_title">앱 버전</string>
+    <string name="settings_app_version_desc">v%1$s • 공식 오픈 교통 데이터 제공</string>
+    <string name="settings_developer_options_title">개발자 옵션</string>
+    <string name="settings_developer_options_desc">디버그 설정, AI 엔진 및 테스트 도구</string>
+
+    <!-- Empty Dashboard State -->
+    <string name="empty_dashboard_title">저장된 역이 없습니다</string>
+    <string name="empty_dashboard_desc">자주 이용하는 역이나 버스 정류장을 추가하면 실시간 출발 카운트다운을 확인할 수 있습니다.</string>
+    <string name="empty_dashboard_add_station">역 추가</string>
+
+    <!-- Station Departure Card -->
+    <string name="delete_station">역 삭제</string>
+    <string name="station_distance_meters_away">%1$dm</string>
+    <string name="station_distance_km_away">%.1fkm</string>
+    <string name="station_nearest_with_distance">📍 가장 가까운 역 • %1$s</string>
+    <string name="station_nearest">📍 가장 가까운 역</string>
+    <string name="station_distance_format">📍 %1$s</string>
+    <string name="station_bus_towards">%1$s 방면</string>
+    <string name="disruption_status_delays">지연</string>
+    <string name="disruption_view_alert_details">운행 정보 상세 보기 ↗</string>
+    <string name="disruption_more_details">자세히 ↗</string>
+    <string name="departures_loading">실시간 출발 정보 불러오는 중…</string>
+    <string name="departures_retry_hint">당겨서 새로고침하거나 탭하여 재시도</string>
+    <string name="departures_filter_no_match">조건에 일치하는 출발 정보가 없습니다</string>
+    <string name="departures_show_all">모든 출발 정보 표시</string>
+    <string name="departures_none_upcoming">예정된 출발 정보가 없습니다</string>
+    <string name="departures_service_ended">오늘의 운행이 종료되었습니다</string>
+
+    <!-- Search Station Bottom Sheet -->
+    <string name="search_stations_title">역 및 정류장 검색</string>
+    <string name="search_stations_subtitle">실시간 출발 정보를 확인하고 대시보드에 고정하세요</string>
+    <string name="search_stations_close">검색 닫기</string>
+    <string name="search_stations_placeholder_hk">역 이름 또는 버스 노선 검색 (예: Central, 1A, 104)…</string>
+    <string name="search_stations_placeholder_general">역 이름 또는 버스 노선 검색 (예: Shinjuku, 221, SL1)…</string>
+    <string name="search_stations_clear">검색어 지우기</string>
+    <string name="search_stations_popular">인기 역</string>
+    <string name="search_stations_results_count">검색 결과 (%1$d)</string>
+    <string name="search_stations_not_found_title">역을 찾을 수 없습니다</string>
+    <string name="search_stations_not_found_hint_hk">\'Central\', \'Mong Kok\', \'104\' 등을 검색해 보세요</string>
+    <string name="search_stations_not_found_hint_sg">\'Raffles Place\', \'Orchard\', \'143\' 등을 검색해 보세요</string>
+    <string name="search_stations_not_found_hint_au">\'Central\', \'Town Hall\', \'333\' 등을 검색해 보세요</string>
+    <string name="search_stations_not_found_hint_jp">\'Shinjuku\', \'Shibuya\', \'Tokyo\' 등을 검색해 보세요</string>
+    <string name="search_stations_not_found_hint_general">\'Victoria\', \'Waterloo\', \'King\'s Cross\' 등을 검색해 보세요</string>
+    <string name="search_stations_recent_header">최근 검색</string>
+    <string name="search_stations_clear_recent">지우기</string>
+    <string name="search_stations_recently_viewed">최근 본 역</string>
+    <string name="search_stations_remove_recent">기록에서 삭제</string>
+    <string name="search_stations_nearby_header">내 주변 역</string>
+    <string name="search_stations_distance_meters">%1$dm</string>
+    <string name="search_stations_distance_km">%.1fkm</string>
+    <string name="search_stations_find_near_me_title">내 주변 역 찾기</string>
+    <string name="search_stations_find_near_me_desc">도보 거리 내의 정류장 및 역 표시</string>
+
+    <!-- Dashboard Screen -->
+    <string name="dashboard_pro_badge">PRO</string>
+    <string name="dashboard_live_network_status">실시간 운행 현황</string>
+    <string name="dashboard_upgrade_to_pro">Pro로 업그레이드</string>
+    <string name="dashboard_more_options">더보기 옵션</string>
+    <string name="dashboard_menu_network_status">운행 현황</string>
+    <string name="dashboard_menu_network_status_count">운행 현황 (%1$d)</string>
+    <string name="dashboard_menu_switch_region">지역 전환</string>
+    <string name="dashboard_menu_settings">설정</string>
+    <string name="dashboard_menu_help_faq">도움말 &amp; 자주 묻는 질문</string>
+    <string name="dashboard_menu_debug_settings">개발자 설정</string>
+    <string name="dashboard_menu_upgrade_pro">Pro로 업그레이드</string>
+    <string name="dashboard_fab_ask_ai">AI 질문</string>
+    <string name="dashboard_fab_ask_ai_desc">EkiBoard AI에게 질문하기</string>
+    <string name="dashboard_offline_banner">오프라인 상태 • 캐시된 출발 정보 표시 중</string>
+    <string name="dashboard_search_bar_placeholder">역, 노선 또는 버스 정류장 검색…</string>
+    <string name="dashboard_search_desc">검색</string>
+    <string name="dashboard_nearby_desc">주변 역</string>
+
+    <!-- Line Status Bottom Sheet -->
+    <string name="line_status_title_live">실시간 운행 현황</string>
+    <string name="line_status_title_mtr">MTR 운행 현황</string>
+    <string name="line_status_desc_hk">홍콩 MTR 노선망</string>
+    <string name="line_status_desc_general">지하철, 기차 및 버스 노선망</string>
+    <string name="line_status_refresh_desc">운행 현황 새로고침</string>
+    <string name="line_status_close_desc">운행 현황 닫기</string>
+    <string name="line_status_good_service_all">모든 노선에서 정상 운행 중입니다</string>
+    <string name="line_status_disruptions_count_one">1개 노선에서 지연 및 이상 발생</string>
+    <string name="line_status_disruptions_count_many">%1$d개 노선에서 지연 및 이상 발생</string>
+    <string name="line_status_filter_my_lines">내 노선</string>
+    <string name="line_status_filter_show_all">전체 표시</string>
+    <string name="line_status_filter_disrupted">지연 노선 (%1$d)</string>
+    <string name="line_status_expand_desc">상세 정보 펼치기</string>
+    <string name="line_status_collapse_desc">상세 정보 접기</string>
+    <string name="line_status_bus_name">버스 %1$s</string>
+
+    <!-- Station Detail Screen -->
+    <string name="station_detail_page_info">%1$d / %2$d</string>
+    <string name="station_detail_zone">%1$s구역</string>
+    <string name="station_detail_open_maps">지도에서 열기</string>
+    <string name="station_detail_refresh">출발 정보 새로고침</string>
+    <string name="station_detail_pin">홈에 고정</string>
+    <string name="station_detail_unpin">홈에서 고정 해제</string>
+    <string name="station_detail_filter_all">전체</string>
+    <string name="station_detail_disruptions_title">%1$d개 노선 지연 정보</string>
+    <string name="station_detail_disruptions_expand">지연 정보 펼치기</string>
+    <string name="station_detail_disruptions_collapse">지연 정보 접기</string>
+    <string name="station_detail_stops_stands_header">승강장 / 정류장:</string>
+    <string name="station_detail_live_departures">실시간 출발 안내</string>
+    <string name="station_detail_predictions_count">%1$d개 예측 정보</string>
+    <string name="station_detail_service_ended_title">🌙 오늘의 운행이 종료되었습니다</string>
+    <string name="station_detail_last_train">막차는 %1$s에 출발했습니다.</string>
+    <string name="station_detail_first_train">첫차는 약 %1$s에 출발합니다.</string>
+    <string name="station_detail_last_bus_departed">오늘의 막차 버스가 출발했습니다.</string>
+    <string name="station_detail_empty_message">현재 이용 가능한 출발 정보가 없습니다.\n위의 새로고침 아이콘을 눌러 확인해 보세요.</string>
+
+    <!-- Train Journey Screen -->
+    <string name="journey_header_bus">%2$s 방면 버스 %1$s</string>
+    <string name="journey_header_train">%1$s 방면 열차</string>
+    <string name="journey_from_label">출발지</string>
+    <string name="journey_current_bus_location">버스 현재 위치</string>
+    <string name="journey_current_train_location">열차 현재 위치</string>
+    <string name="journey_service_cancelled_title">운행 취소</string>
+    <string name="journey_service_cancelled_desc">해당 운행이 취소되었습니다.</string>
+    <string name="journey_service_delayed_title">운행 지연</string>
+    <string name="journey_service_delayed_desc">해당 운행에 지연이 발생하고 있습니다.</string>
+    <string name="journey_calling_points_header">정차역</string>
+    <string name="journey_calling_points_count">%1$d개 역</string>
+    <string name="journey_loading_calling_points">정차역 불러오는 중…</string>
+    <string name="journey_calling_points_unavailable">이 운행의 정차역 상세 정보를 불러올 수 없습니다.</string>
+    <string name="journey_your_station">현재 역</string>
+    <string name="journey_notify_stop">알림 중지</string>
+    <string name="journey_notify_start">실시간 추적 알림 시작</string>
+
+    <!-- Location Rationale Dialog -->
+    <string name="location_rationale_title">주변 역 찾기</string>
+    <string name="location_rationale_intro">EkiBoard는 다음 목적으로 대략적인 위치 정보를 사용합니다:</string>
+    <string name="location_rationale_bullet1">검색 시 도보 거리 내의 정류장과 역을 표시합니다.</string>
+    <string name="location_rationale_bullet2">가장 가까운 역의 실시간 출발 정보를 강조하고 \'내 정류장에서 다음 버스는 언제 오나요?\' 등의 질문에 답변합니다.</string>
+    <string name="location_rationale_privacy">위치 정보는 기기 내에서만 처리되며 외부에 공유되거나 서버에 저장되지 않습니다.</string>
+    <string name="location_rationale_continue">계속</string>
+    <string name="location_rationale_not_now">나중에 하기</string>
+
+    <!-- Paywall Bottom Sheet -->
+    <string name="paywall_title">Pro로 업그레이드</string>
+    <string name="paywall_subtitle">매일의 통근 경험을 한 단계 업그레이드하세요</string>
+    <string name="paywall_feature_stations_title">최대 %1$d개 역 저장</string>
+    <string name="paywall_feature_stations_subtitle">무료 플랜은 %1$d개 역으로 제한됩니다</string>
+    <string name="paywall_feature_widgets_title">최대 %1$d개 홈 화면 위젯</string>
+    <string name="paywall_feature_widgets_subtitle">환승 및 출발 정보를 한눈에 확인하세요</string>
+    <string name="paywall_feature_ai_title">무제한 AI 통근 어시스턴트</string>
+    <string name="paywall_feature_ai_subtitle">자연어 질문 및 실시간 상태 안내</string>
+    <string name="paywall_plan_annual_title">연간 플랜</string>
+    <string name="paywall_plan_monthly_title">월간 플랜</string>
+    <string name="paywall_continue_annual">연간 플랜으로 계속</string>
+    <string name="paywall_continue_monthly">월간 플랜으로 계속</string>
+    <string name="paywall_restore_purchases">구매 내역 복원</string>
+    <string name="paywall_checking_google_play">Google Play 확인 중…</string>
+    <string name="paywall_error_play_store">Google Play 결제를 시작할 수 없습니다. Play 스토어 연결을 확인하세요.</string>
+    <string name="paywall_debug_pro_activated">Pro 활성화됨 (테스트 환경)</string>
+
+    <!-- Help & FAQ Bottom Sheet -->
+    <string name="help_faq_title">도움말 &amp; 자주 묻는 질문</string>
+    <string name="help_faq_subtitle">가이드, 팁 및 앱 정보</string>
+    <string name="help_faq_section_faq">자주 묻는 질문</string>
+    <string name="help_faq_section_app_info">앱 정보</string>
+    <string name="help_faq_q_filter">노선이나 운행 방향을 어떻게 필터링하나요?</string>
+    <string name="help_faq_a_filter">역 카드의 상단에 있는 컬러 노선 뱃지를 탭하세요. 한 번 탭하면 해당 노선으로 필터링되고, 다시 탭하면 방향(예: 동행 / 서행)이 전환되며, 한 번 더 탭하면 필터가 해제됩니다.</string>
+    <string name="help_faq_q_tracking">열차 실시간 추적은 어떻게 작동하나요?</string>
+    <string name="help_faq_a_tracking">출발 정보 행이나 여정 화면에서 \'추적\'을 탭하면 동적 카운트다운이 포함된 지속적인 알림이 시작됩니다. 열차가 도착하거나 카운트다운이 0에 도달하면 추적이 자동으로 완료됩니다.</string>
+    <string name="help_faq_q_widgets">홈 화면 위젯은 어떻게 추가하나요?</string>
+    <string name="help_faq_a_widgets">홈 화면의 빈 공간을 길게 누른 뒤 \'위젯\'을 누르고 EkiBoard를 찾아 화면으로 드래그하세요. 각 위젯을 전체 노선 표시 또는 특정 노선/버스로 설정할 수 있습니다.</string>
+    <string name="help_faq_q_reorder">역 카드의 순서를 변경하거나 삭제하려면 어떻게 하나요?</string>
+    <string name="help_faq_a_reorder">순서 변경: 대시보드에서 역 카드를 길게 누른 후 원하는 위치로 드래그하세요.\n삭제: 역 카드를 왼쪽으로 밀면 삭제됩니다. 실수로 삭제한 경우 하단에 \'실행 취소\' 안내가 표시됩니다.</string>
+    <string name="help_faq_q_ai">통근 AI 어시스턴트는 무엇인가요?</string>
+    <string name="help_faq_a_ai">오른쪽 하단의 반짝이는 버튼을 탭하여 \'신주쿠에서 도쿄까지 다음 열차\', \'중앙선 지연되었나요?\' 등의 질문을 해보세요. 온디바이스 Gemini Nano를 사용합니다.</string>
+    <string name="help_faq_q_data">실시간 교통 데이터는 어디서 제공되나요?</string>
+    <string name="help_faq_a_data">모든 실시간 도착 예측, 승강장 정보 및 운행 장애 정보는 공식 오픈 데이터(도쿄 메트로 오픈 데이터, TfL, 영국 BODS, National Rail, 홍콩 DATA.GOV.HK / MTR / KMB / Citybus, 싱가포르 LTA, Transport for NSW 등)에서 직접 제공됩니다.</string>
+    <string name="help_faq_app_description">Jetpack Compose 및 Material 3 Expressive로 제작된 오픈소스 대중교통 앱입니다. 공식 오픈 데이터를 기반으로 합니다.</string>
+
+    <!-- Region Picker Bottom Sheet -->
+    <string name="region_picker_subtitle">도시 또는 대중교통 네트워크 선택</string>
+    <string name="region_picker_unsupported_title">EkiBoard가 아직 %1$s에 지원되지 않습니다</string>
+    <string name="region_picker_unsupported_desc">현재 지원되는 아래 대중교통 네트워크를 둘러보세요.</string>
+    <string name="region_picker_nearby">주변 지역</string>
+    <string name="region_picker_supported_cities">지원되는 도시 및 지역</string>
+    <string name="region_picker_current">현재</string>
+    <string name="region_picker_area_fallback">현재 지역</string>
+
+    <!-- Debug Settings Bottom Sheet -->
+    <string name="debug_settings_subtitle">개발자 테스트 설정</string>
+    <string name="debug_section_subscription">구독 플랜</string>
+    <string name="debug_section_ai_engine">AI 엔진 선택</string>
+    <string name="debug_section_region_testing">지역 테스트 (실험적)</string>
+    <string name="debug_section_testing_actions">테스트 작업</string>
+    <string name="debug_section_dynamic_modules">다이내믹 기능 모듈</string>
+    <string name="debug_plan_title">%1$s 플랜</string>
+    <string name="debug_plan_only">디버그 전용</string>
+    <string name="debug_hk_enable_title">홍콩 활성화 (실험적)</string>
+    <string name="debug_hk_enable_desc">MTR 및 KMB/Citybus 운행 정보 활성화</string>
+    <string name="debug_action_reset_stations_title">저장된 역 초기화</string>
+    <string name="debug_action_reset_stations_desc">현재 지역의 인기 기본 역으로 복원</string>
+    <string name="debug_action_reset_stations_toast">저장된 역이 기본값으로 초기화되었습니다</string>
+    <string name="debug_action_force_widget_title">위젯 강제 업데이트</string>
+    <string name="debug_action_force_widget_desc">Glance WidgetUpdateWorker 즉시 실행</string>
+    <string name="debug_action_force_widget_toast">위젯 업데이트 작업이 등록되었습니다</string>
+    <string name="debug_action_in_app_review_title">인앱 리뷰 플로우 테스트</string>
+    <string name="debug_action_in_app_review_desc">Google Play 인앱 리뷰 대화상자를 실행합니다</string>
+    <string name="debug_action_reset_review_title">인앱 리뷰 추적기 초기화</string>
+    <string name="debug_action_reset_review_desc">최초 실행, 실행 횟수 및 쿨다운 초기화</string>
+    <string name="debug_action_clear_cache_title">오프라인 HTTP 캐시 삭제</string>
+    <string name="debug_action_clear_cache_desc">캐시된 TfL 및 교통 API 네트워크 응답 삭제</string>
+    <string name="debug_action_clear_cache_success">오프라인 HTTP 캐시가 삭제되었습니다</string>
+    <string name="debug_action_clear_cache_fail">캐시 삭제에 실패했습니다</string>
+    <string name="debug_module_installed">설치됨 (온디바이스 LLM 및 LiteRT 런타임 준비 완료)</string>
+    <string name="debug_module_not_installed">설치되지 않음 (주문형 Play 기능)</string>
+    <string name="debug_module_downloading">모듈 다운로드 중…</string>
+    <string name="debug_module_trigger_install">기능 전송 설치 실행</string>
+    <string name="debug_module_trigger_desc">SplitInstallManager에 AI 기능 다운로드 요청</string>
+    <string name="debug_module_status_downloading">다운로드 중: %1$d%%</string>
+    <string name="debug_module_status_initiating">SplitInstall 요청 시작 중…</string>
+    <string name="debug_module_toast_success">AI 기능 모듈이 성공적으로 설치되었습니다</string>
+    <string name="debug_module_toast_fail">설치 실패 (코드 %1$d)</string>
+</resources>
