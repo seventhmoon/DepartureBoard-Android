@@ -22,10 +22,10 @@ import com.androidfung.departureboard.data.model.sg.SgMrtLine
 import com.androidfung.departureboard.data.model.sg.SgMrtRoutes
 import com.androidfung.departureboard.data.model.sg.SgStationDirectory
 import com.androidfung.departureboard.data.model.transitMode
-import com.androidfung.departureboard.data.repository.region.AuRegionalTransitProvider
-import com.androidfung.departureboard.data.repository.region.HkRegionalTransitProvider
-import com.androidfung.departureboard.data.repository.region.JpRegionalTransitProvider
-import com.androidfung.departureboard.data.repository.region.SgRegionalTransitProvider
+import com.androidfung.departureboard.data.repository.region.au.AuRegionalTransitProvider
+import com.androidfung.departureboard.data.repository.region.hk.HkRegionalTransitProvider
+import com.androidfung.departureboard.data.repository.region.jp.JpRegionalTransitProvider
+import com.androidfung.departureboard.data.repository.region.sg.SgRegionalTransitProvider
 import com.androidfung.departureboard.data.resolver.jp.JpCallingPointsResolver
 import com.androidfung.departureboard.data.resolver.sg.SgCallingPointsResolver
 import com.androidfung.departureboard.util.CoalescingTimedCache

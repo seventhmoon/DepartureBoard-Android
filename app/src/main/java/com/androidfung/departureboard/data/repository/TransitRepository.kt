@@ -23,12 +23,12 @@ import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.network.gb.TflNetworkClient
 import com.androidfung.departureboard.data.repository.engine.DepartureQueryEngine
 import com.androidfung.departureboard.data.repository.mapper.TflStationMapper
-import com.androidfung.departureboard.data.repository.region.AuRegionalTransitProvider
-import com.androidfung.departureboard.data.repository.region.GbRegionalTransitProvider
-import com.androidfung.departureboard.data.repository.region.HkRegionalTransitProvider
-import com.androidfung.departureboard.data.repository.region.JpRegionalTransitProvider
+import com.androidfung.departureboard.data.repository.region.au.AuRegionalTransitProvider
+import com.androidfung.departureboard.data.repository.region.gb.GbRegionalTransitProvider
+import com.androidfung.departureboard.data.repository.region.hk.HkRegionalTransitProvider
+import com.androidfung.departureboard.data.repository.region.jp.JpRegionalTransitProvider
 import com.androidfung.departureboard.data.repository.region.RegionalTransitProvider
-import com.androidfung.departureboard.data.repository.region.SgRegionalTransitProvider
+import com.androidfung.departureboard.data.repository.region.sg.SgRegionalTransitProvider
 import com.androidfung.departureboard.data.repository.search.HkBusSearchEngine
 import com.androidfung.departureboard.data.repository.search.StationSearchEngine
 import com.androidfung.departureboard.data.repository.source.au.AuDepartureSource
