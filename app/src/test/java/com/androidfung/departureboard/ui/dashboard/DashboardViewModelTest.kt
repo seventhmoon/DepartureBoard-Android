@@ -5,12 +5,13 @@ import android.location.Location
 import androidx.lifecycle.SavedStateHandle
 import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.SubscriptionTier
-import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.gb.DefaultStations
 import com.androidfung.departureboard.data.repository.TransitRepository
 import com.androidfung.departureboard.test.FakeTransitRepository
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -31,7 +32,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModelTest {
@@ -347,12 +347,12 @@ class DashboardViewModelTest {
     fun testRefreshLineStatusesAndAutoSortPreference() = runTest {
         val fakeRepo = FakeTransitRepository().apply {
             lineStatuses = mapOf(
-                "victoria" to com.androidfung.departureboard.data.model.TflLineStatusItem(
+                "victoria" to com.androidfung.departureboard.data.model.gb.TflLineStatusItem(
                     id = "victoria",
                     name = "Victoria",
                     modeName = "tube",
                     lineStatuses = listOf(
-                        com.androidfung.departureboard.data.model.TflLineStatusDetail(
+                        com.androidfung.departureboard.data.model.gb.TflLineStatusDetail(
                             statusSeverity = 9,
                             statusSeverityDescription = "Minor Delays",
                             reason = "Signal failure at Brixton"

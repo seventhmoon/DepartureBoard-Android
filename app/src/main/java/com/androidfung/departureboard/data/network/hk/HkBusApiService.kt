@@ -1,7 +1,7 @@
-package com.androidfung.departureboard.data.network
+package com.androidfung.departureboard.data.network.hk
 
-import com.androidfung.departureboard.data.model.HkCitybusEtaResponse
-import com.androidfung.departureboard.data.model.HkKmbStopEtaResponse
+import com.androidfung.departureboard.data.model.hk.HkCitybusEtaResponse
+import com.androidfung.departureboard.data.model.hk.HkKmbStopEtaResponse
 import retrofit2.http.GET
 import retrofit2.http.Path
 
@@ -29,7 +29,7 @@ interface HkBusApiService {
         @Path("route") route: String,
         @Path("direction") direction: String,
         @Path("service_type") serviceType: String = "1"
-    ): com.androidfung.departureboard.data.model.HkKmbRouteStopResponse
+    ): com.androidfung.departureboard.data.model.hk.HkKmbRouteStopResponse
 
     /**
      * Retrieves stop name and coordinate details for a specific KMB stop ID.
@@ -38,7 +38,7 @@ interface HkBusApiService {
     @GET("v1/transport/kmb/stop/{stop_id}")
     suspend fun getKmbStopDetail(
         @Path("stop_id") stopId: String
-    ): com.androidfung.departureboard.data.model.HkKmbStopDetailResponse
+    ): com.androidfung.departureboard.data.model.hk.HkKmbStopDetailResponse
 
     /**
      * Retrieves live ETA predictions for a specific route and stop on Citybus.

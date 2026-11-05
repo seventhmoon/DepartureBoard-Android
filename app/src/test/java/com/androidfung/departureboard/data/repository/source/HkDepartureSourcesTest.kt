@@ -1,6 +1,17 @@
 package com.androidfung.departureboard.data.repository.source
 
 import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
+import com.androidfung.departureboard.data.model.DepartureStatus
+import com.androidfung.departureboard.data.model.hk.HkCitybusEtaResponse
+import com.androidfung.departureboard.data.model.hk.HkKmbEtaItem
+import com.androidfung.departureboard.data.model.hk.HkKmbStopEtaResponse
+import com.androidfung.departureboard.data.model.hk.HkMtrRoutes
+import com.androidfung.departureboard.data.model.hk.HkMtrScheduleResponse
+import com.androidfung.departureboard.data.model.hk.HkMtrStationScheduleData
+import com.androidfung.departureboard.data.model.hk.HkMtrTrainScheduleItem
+import com.androidfung.departureboard.data.model.hk.HkStationDirectory
+import com.androidfung.departureboard.data.network.hk.HkBusApiService
+import com.androidfung.departureboard.data.network.hk.HkMtrApiService
 import com.androidfung.departureboard.data.repository.direction.DestinationResolver
 import com.androidfung.departureboard.data.repository.direction.ElizabethLineDirectionResolver
 import com.androidfung.departureboard.data.repository.direction.LinearCorridorDirectionResolver
@@ -11,27 +22,14 @@ import com.androidfung.departureboard.data.repository.mapper.TflDepartureMapper
 import com.androidfung.departureboard.data.repository.source.hk.HkBusDepartureSource
 import com.androidfung.departureboard.data.repository.source.hk.HkMtrDepartureSource
 import com.androidfung.departureboard.data.resolver.hk.HkBusCallingPointsResolver
-
-
-import com.androidfung.departureboard.data.model.DepartureStatus
-import com.androidfung.departureboard.data.model.HkCitybusEtaResponse
-import com.androidfung.departureboard.data.model.HkKmbEtaItem
-import com.androidfung.departureboard.data.model.HkKmbStopEtaResponse
-import com.androidfung.departureboard.data.model.HkMtrRoutes
-import com.androidfung.departureboard.data.model.HkMtrScheduleResponse
-import com.androidfung.departureboard.data.model.HkMtrStationScheduleData
-import com.androidfung.departureboard.data.model.HkMtrTrainScheduleItem
-import com.androidfung.departureboard.data.model.HkStationDirectory
-import com.androidfung.departureboard.data.network.HkBusApiService
-import com.androidfung.departureboard.data.network.HkMtrApiService
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.OffsetDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 class HkDepartureSourcesTest {
 
@@ -133,7 +131,7 @@ class HkDepartureSourcesTest {
 
     @Test
     fun testInterchangeStation_hasCompleteLinesList() {
-        val admInfo = com.androidfung.departureboard.data.model.HkMtrStationRegistry.getStation("ADM")!!
+        val admInfo = com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry.getStation("ADM")!!
         val admStation = HkStationDirectory.mtrToStation(admInfo)
         val lineIds = admStation.lines.map { it.id }
 
@@ -143,7 +141,7 @@ class HkDepartureSourcesTest {
         assertTrue(lineIds.contains("EAL"))
         assertTrue(lineIds.contains("SIL"))
 
-        val cenInfo = com.androidfung.departureboard.data.model.HkMtrStationRegistry.getStation("CEN")!!
+        val cenInfo = com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry.getStation("CEN")!!
         val cenStation = HkStationDirectory.mtrToStation(cenInfo)
         val cenLineIds = cenStation.lines.map { it.id }
         assertTrue(cenLineIds.contains("ISL"))
@@ -167,11 +165,11 @@ class HkDepartureSourcesTest {
     ) : HkBusApiService {
         override suspend fun getKmbStopEta(stopId: String): HkKmbStopEtaResponse = kmbResponse
         override suspend fun getCitybusEta(companyId: String, stopId: String, route: String): HkCitybusEtaResponse = citybusResponse
-        override suspend fun getKmbRouteStops(route: String, direction: String, serviceType: String): com.androidfung.departureboard.data.model.HkKmbRouteStopResponse {
-            return com.androidfung.departureboard.data.model.HkKmbRouteStopResponse(data = emptyList())
+        override suspend fun getKmbRouteStops(route: String, direction: String, serviceType: String): com.androidfung.departureboard.data.model.hk.HkKmbRouteStopResponse {
+            return com.androidfung.departureboard.data.model.hk.HkKmbRouteStopResponse(data = emptyList())
         }
-        override suspend fun getKmbStopDetail(stopId: String): com.androidfung.departureboard.data.model.HkKmbStopDetailResponse {
-            return com.androidfung.departureboard.data.model.HkKmbStopDetailResponse()
+        override suspend fun getKmbStopDetail(stopId: String): com.androidfung.departureboard.data.model.hk.HkKmbStopDetailResponse {
+            return com.androidfung.departureboard.data.model.hk.HkKmbStopDetailResponse()
         }
     }
 

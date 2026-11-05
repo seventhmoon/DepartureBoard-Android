@@ -7,8 +7,8 @@ import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationLineInfo
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.network.TyneAndWearMetroApiService
-import com.androidfung.departureboard.data.network.TyneAndWearMetroNetworkClient
+import com.androidfung.departureboard.data.network.gb.TyneAndWearMetroApiService
+import com.androidfung.departureboard.data.network.gb.TyneAndWearMetroNetworkClient
 import com.androidfung.departureboard.data.repository.source.DepartureSource
 import com.androidfung.departureboard.data.routes.TyneAndWearMetroRoute
 import kotlinx.coroutines.async
@@ -127,7 +127,7 @@ class TyneAndWearMetroSource(
 
             val departures = mutableListOf<Departure>()
 
-            fun mapItems(items: List<com.androidfung.departureboard.data.network.NexusMetroDepartureItem>, platformNum: Int) {
+            fun mapItems(items: List<com.androidfung.departureboard.data.network.gb.NexusMetroDepartureItem>, platformNum: Int) {
                 items.forEach { item ->
                     val mins = item.dueIn.coerceAtLeast(0)
                     val seconds = mins * 60

@@ -32,23 +32,19 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsSubway
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import com.androidfung.departureboard.billing.BillingDataSource
-import com.androidfung.departureboard.billing.BillingRepository
-import com.androidfung.departureboard.billing.SubscriptionTier
-import com.androidfung.departureboard.ui.components.PaywallBottomSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,20 +58,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.Preferences.Key
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.Preferences.Key
-import com.androidfung.departureboard.data.model.DefaultStations
+import com.androidfung.departureboard.billing.BillingDataSource
+import com.androidfung.departureboard.billing.BillingRepository
+import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.gb.DefaultStations
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
+import com.androidfung.departureboard.ui.components.PaywallBottomSheet
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.milliseconds
-import androidx.core.content.edit
 
 class WidgetConfigurationActivity : ComponentActivity() {
 

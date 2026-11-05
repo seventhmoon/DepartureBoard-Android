@@ -1,7 +1,7 @@
 package com.androidfung.departureboard
 
 import android.app.Application
-import com.androidfung.departureboard.data.network.TflNetworkClient
+import com.androidfung.departureboard.data.network.gb.TflNetworkClient
 import com.androidfung.departureboard.data.repository.NationalRailStationCodes
 import com.androidfung.departureboard.data.repository.TransitRepository
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl

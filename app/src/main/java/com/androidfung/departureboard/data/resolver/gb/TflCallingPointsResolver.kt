@@ -2,20 +2,20 @@ package com.androidfung.departureboard.data.resolver.gb
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.TflArrivalPrediction
-import com.androidfung.departureboard.data.model.TflMatchedStop
-import com.androidfung.departureboard.data.model.TflRouteSequenceResponse
-import com.androidfung.departureboard.data.model.TflStationIds
-import com.androidfung.departureboard.data.network.TflApiService
+import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
+import com.androidfung.departureboard.data.model.gb.TflMatchedStop
+import com.androidfung.departureboard.data.model.gb.TflRouteSequenceResponse
+import com.androidfung.departureboard.data.model.gb.TflStationIds
+import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.StationNameFormatter
 import com.androidfung.departureboard.data.resolver.CallingPointsResolver
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Resolves journey calling points for Transport for London (TfL) Tube, Overground, Elizabeth Line, DLR, and Buses.

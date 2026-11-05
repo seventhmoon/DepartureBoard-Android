@@ -1,5 +1,6 @@
 package com.androidfung.departureboard.data.repository
 
+
 /**
  * Common utilities and heuristics for handling TfL and NaPTAN stop identifiers.
  */
@@ -30,8 +31,8 @@ internal object TflStopPointUtils {
         }
         val idUpper = stationId.uppercase()
         // 490... = London bus stop/pole, regional DfT ATCO bus stop codes, or BODS query identifiers
-        if (com.androidfung.departureboard.data.model.AtcoAreaRegistry.isLondonBusStop(idUpper) ||
-            com.androidfung.departureboard.data.model.AtcoAreaRegistry.isRegionalBusStop(idUpper)) {
+        if (com.androidfung.departureboard.data.model.gb.AtcoAreaRegistry.isLondonBusStop(idUpper) ||
+            com.androidfung.departureboard.data.model.gb.AtcoAreaRegistry.isRegionalBusStop(idUpper)) {
             return true
         }
         val nameLower = stationName.lowercase()

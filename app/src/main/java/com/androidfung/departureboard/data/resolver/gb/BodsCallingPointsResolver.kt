@@ -1,14 +1,13 @@
 package com.androidfung.departureboard.data.resolver.gb
 
-import com.androidfung.departureboard.data.model.BodsXmlParser
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.network.BodsApiService
+import com.androidfung.departureboard.data.model.gb.BodsXmlParser
+import com.androidfung.departureboard.data.model.isBods
+import com.androidfung.departureboard.data.network.gb.BodsApiService
 import com.androidfung.departureboard.data.resolver.CallingPointsResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-import com.androidfung.departureboard.data.model.isBods
 
 /**
  * Resolves calling points for UK Department for Transport BODS bus services.

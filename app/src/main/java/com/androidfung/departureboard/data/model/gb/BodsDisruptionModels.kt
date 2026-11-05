@@ -1,8 +1,8 @@
-package com.androidfung.departureboard.data.model
+package com.androidfung.departureboard.data.model.gb
 
+import java.io.StringReader
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
-import java.io.StringReader
 
 /**
  * Domain representation of a DfT BODS SIRI-SX Disruption or situation alert.

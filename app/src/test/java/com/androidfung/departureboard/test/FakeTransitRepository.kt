@@ -1,11 +1,11 @@
 package com.androidfung.departureboard.test
 
 import com.androidfung.departureboard.data.model.CallingPoint
-import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.StationServiceHoursInfo
-import com.androidfung.departureboard.data.model.TflLineStatusItem
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
+import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.data.repository.TransitRepository
 import com.androidfung.departureboard.ui.theme.AppThemeMode
 import kotlinx.coroutines.flow.Flow

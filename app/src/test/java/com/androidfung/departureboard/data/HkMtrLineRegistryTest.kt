@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.data
 
 import androidx.compose.ui.graphics.Color
-import com.androidfung.departureboard.data.model.HkMtrLineRegistry
+import com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

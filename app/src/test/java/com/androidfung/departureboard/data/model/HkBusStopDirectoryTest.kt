@@ -1,5 +1,6 @@
 package com.androidfung.departureboard.data.model
 
+import com.androidfung.departureboard.data.model.hk.HkBusStopDirectory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before

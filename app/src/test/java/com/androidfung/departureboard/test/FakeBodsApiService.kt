@@ -1,6 +1,6 @@
 package com.androidfung.departureboard.test
 
-import com.androidfung.departureboard.data.network.BodsApiService
+import com.androidfung.departureboard.data.network.gb.BodsApiService
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.ResponseBody
 import okhttp3.ResponseBody.Companion.toResponseBody

@@ -2,7 +2,7 @@ package com.androidfung.departureboard.data.db
 
 import com.androidfung.departureboard.data.db.hk.HkBusStopDao
 import com.androidfung.departureboard.data.db.hk.HkBusStopEntity
-import com.androidfung.departureboard.data.model.HkBusStopDirectory
+import com.androidfung.departureboard.data.model.hk.HkBusStopDirectory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

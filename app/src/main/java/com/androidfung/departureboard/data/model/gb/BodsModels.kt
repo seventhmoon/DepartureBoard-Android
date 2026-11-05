@@ -1,7 +1,7 @@
-package com.androidfung.departureboard.data.model
+package com.androidfung.departureboard.data.model.gb
 
-import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserFactory
+import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.DepartureStatus
 import java.io.StringReader
 import java.time.Instant
 import java.time.format.DateTimeFormatter
@@ -9,6 +9,8 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import org.xmlpull.v1.XmlPullParser
+import org.xmlpull.v1.XmlPullParserFactory
 
 /**
  * Parsed vehicle activity from BODS SIRI-VM live vehicle monitoring datafeed.

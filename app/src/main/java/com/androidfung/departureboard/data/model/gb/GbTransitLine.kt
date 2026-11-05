@@ -2,7 +2,6 @@ package com.androidfung.departureboard.data.model.gb
 
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.LineBadgeInfo
-import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TransitLineDefinition
 import com.androidfung.departureboard.data.model.TransitLineRegistry
 import com.androidfung.departureboard.data.model.TransitMode

@@ -4,13 +4,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,7 +27,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -35,10 +38,6 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.androidfung.departureboard.billing.BillingRepository
 import com.androidfung.departureboard.data.model.Station
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import android.content.pm.PackageManager
 import com.androidfung.departureboard.ui.components.ListDetailScene
 import com.androidfung.departureboard.ui.components.SearchStationBottomSheet
 import com.androidfung.departureboard.ui.components.StationDetailScreen
@@ -54,8 +53,9 @@ import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
-import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
 @Serializable
 data object DashboardListRoute : NavKey
@@ -695,7 +695,7 @@ class MainActivity : ComponentActivity() {
             // Reuse full metadata (modes/zone/lines) for known popular stations so a
             // deep-linked card shows correct branding — previously every deep link was
             // hard-coded as a "tube" station, which was wrong for National Rail hubs.
-            val known = com.androidfung.departureboard.data.model.DefaultStations.POPULAR_STATIONS
+            val known = com.androidfung.departureboard.data.model.gb.DefaultStations.POPULAR_STATIONS
                 .firstOrNull { (id) -> id == stationId }
             if (known != null) {
                 initialStation = known.copy(

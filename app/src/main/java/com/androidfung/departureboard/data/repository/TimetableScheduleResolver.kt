@@ -1,10 +1,10 @@
 package com.androidfung.departureboard.data.repository
 
-import com.androidfung.departureboard.data.model.StationServiceHoursInfo
-import com.androidfung.departureboard.data.model.TflKnownJourney
-import com.androidfung.departureboard.data.model.TflTimetableResponse
-import com.androidfung.departureboard.data.model.TflTimetableRoute
-import com.androidfung.departureboard.data.network.TflApiService
+import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
+import com.androidfung.departureboard.data.model.gb.TflKnownJourney
+import com.androidfung.departureboard.data.model.gb.TflTimetableResponse
+import com.androidfung.departureboard.data.model.gb.TflTimetableRoute
+import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.direction.DestinationResolver
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -212,7 +212,7 @@ class TimetableScheduleResolver(
             val terminalStationName = timetable.stations.firstOrNull {
                 it.id.equals(terminalStopId, ignoreCase = true)
             }?.name?.let { StationNameFormatter.clean(it) }
-                ?: com.androidfung.departureboard.data.model.TflStationIds.CANONICAL_NAMES_BY_ID[terminalStopId.uppercase()]
+                ?: com.androidfung.departureboard.data.model.gb.TflStationIds.CANONICAL_NAMES_BY_ID[terminalStopId.uppercase()]
                 ?: return null
 
             val stops = intervals.map { it.stopId }

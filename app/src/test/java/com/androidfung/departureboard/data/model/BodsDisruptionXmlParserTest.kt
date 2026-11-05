@@ -1,5 +1,6 @@
 package com.androidfung.departureboard.data.model
 
+import com.androidfung.departureboard.data.model.gb.BodsDisruptionXmlParser
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

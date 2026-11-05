@@ -1,12 +1,12 @@
-package com.androidfung.departureboard.data.network
+package com.androidfung.departureboard.data.network.gb
 
-import com.androidfung.departureboard.data.model.TflArrivalPrediction
-import com.androidfung.departureboard.data.model.TflLineRouteResponse
-import com.androidfung.departureboard.data.model.TflLineStatusItem
-import com.androidfung.departureboard.data.model.TflRouteSequenceResponse
-import com.androidfung.departureboard.data.model.TflSearchResponse
-import com.androidfung.departureboard.data.model.TflStopPointChild
-import com.androidfung.departureboard.data.model.TflStopPointDetail
+import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
+import com.androidfung.departureboard.data.model.gb.TflLineRouteResponse
+import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
+import com.androidfung.departureboard.data.model.gb.TflRouteSequenceResponse
+import com.androidfung.departureboard.data.model.gb.TflSearchResponse
+import com.androidfung.departureboard.data.model.gb.TflStopPointChild
+import com.androidfung.departureboard.data.model.gb.TflStopPointDetail
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -38,7 +38,7 @@ interface TflApiService {
         @Query("stopTypes") stopTypes: String = "NaptanMetroStation,NaptanRailStation,NaptanPublicBusCoachTram",
         @Query("radius") radiusMeters: Int = 1500,
         @Query("useStopPointHierarchy") useHierarchy: Boolean = true
-    ): com.androidfung.departureboard.data.model.TflStopPointsResponse
+    ): com.androidfung.departureboard.data.model.gb.TflStopPointsResponse
 
     /**
      * Fetches live arrival countdown predictions for a specific stop or station.
@@ -105,5 +105,5 @@ interface TflApiService {
     suspend fun getLineTimetable(
         @Path("id") lineId: String,
         @Path("fromStopPointId") fromStopPointId: String
-    ): com.androidfung.departureboard.data.model.TflTimetableResponse
+    ): com.androidfung.departureboard.data.model.gb.TflTimetableResponse
 }

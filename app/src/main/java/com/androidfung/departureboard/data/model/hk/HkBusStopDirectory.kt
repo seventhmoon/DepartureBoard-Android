@@ -1,8 +1,12 @@
-package com.androidfung.departureboard.data.model
+package com.androidfung.departureboard.data.model.hk
 
 import android.content.Context
 import com.androidfung.departureboard.data.db.hk.HkBusStopDao
 import com.androidfung.departureboard.data.db.hk.HkStationDatabase
+import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.StationLineInfo
+import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.extractRawHkBusStopId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

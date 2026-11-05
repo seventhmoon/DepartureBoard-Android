@@ -1,5 +1,6 @@
-package com.androidfung.departureboard.data.model
+package com.androidfung.departureboard.data.model.gb
 
+import com.androidfung.departureboard.data.model.Station
 /**
  * Canonical TfL / NaPTAN station identifiers across Tube, DLR, and Elizabeth Line.
  * Provides a single source of truth for station IDs, eliminating brittle hardcoded string literals

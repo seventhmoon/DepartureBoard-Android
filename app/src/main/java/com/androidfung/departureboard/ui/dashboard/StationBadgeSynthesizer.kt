@@ -4,9 +4,9 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationLineInferrer
-import com.androidfung.departureboard.data.model.TflLineColors
-import com.androidfung.departureboard.data.model.TflLineStatusItem
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.TflLineColors
+import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.data.repository.TflStopPointUtils
 
 /**

@@ -71,10 +71,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
-import androidx.core.net.toUri
 
 private sealed interface StationDetailListItem {
     data class DepartureItem(val departure: Departure, val index: Int) : StationDetailListItem
@@ -93,7 +93,7 @@ fun StationDetailScreen(
     onToggleSaveStation: (Station) -> Unit = {},
     initialSelectedLineId: String? = null,
     onDepartureClick: ((departure: Departure, contextDepartures: List<Departure>) -> Unit)? = null,
-    serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo? = null,
+    serviceHoursInfo: com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo? = null,
     isPro: Boolean = false,
     stations: List<Station> = listOf(station),
     onStationChange: ((Station) -> Unit)? = null
@@ -185,7 +185,7 @@ private fun StationDetailContent(
     onToggleSaveStation: (Station) -> Unit = {},
     initialSelectedLineId: String? = null,
     onDepartureClick: ((departure: Departure, contextDepartures: List<Departure>) -> Unit)? = null,
-    serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo? = null,
+    serviceHoursInfo: com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo? = null,
     isPro: Boolean = false,
     pageInfo: String? = null
 ) {

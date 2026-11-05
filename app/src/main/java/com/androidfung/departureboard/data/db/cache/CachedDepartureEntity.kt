@@ -7,10 +7,10 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
-import com.androidfung.departureboard.data.model.HkMtrLineRegistry
 import com.androidfung.departureboard.data.model.LineBadgeInfo
-import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.TflLineColors
+import com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 

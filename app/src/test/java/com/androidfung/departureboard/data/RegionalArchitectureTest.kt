@@ -1,17 +1,17 @@
 package com.androidfung.departureboard.data
 
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.HkMtrLineRegistry
-import com.androidfung.departureboard.data.model.HkMtrRoutes
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationSearchRanker
-import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TransitLineRegistry
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.au.AuStationDirectory
 import com.androidfung.departureboard.data.model.au.AuSydneyLine
 import com.androidfung.departureboard.data.model.gb.GbTransitLine
 import com.androidfung.departureboard.data.model.gb.GbTransitRoutes
+import com.androidfung.departureboard.data.model.gb.TflLineColors
+import com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry
+import com.androidfung.departureboard.data.model.hk.HkMtrRoutes
 import com.androidfung.departureboard.data.model.isBus
 import com.androidfung.departureboard.data.model.jp.JpStationDirectory
 import com.androidfung.departureboard.data.model.jp.JpTokyoLine
@@ -30,6 +30,7 @@ import com.androidfung.departureboard.data.resolver.jp.JpCallingPointsResolver
 import com.androidfung.departureboard.data.resolver.sg.SgCallingPointsResolver
 import com.androidfung.departureboard.util.CoalescingTimedCache
 import com.androidfung.departureboard.util.runSuspendCatching
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -41,7 +42,6 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.util.concurrent.atomic.AtomicInteger
 
 class RegionalArchitectureTest {
 

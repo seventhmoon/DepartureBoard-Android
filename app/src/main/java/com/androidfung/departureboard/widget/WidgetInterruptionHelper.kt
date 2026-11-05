@@ -3,7 +3,7 @@ package com.androidfung.departureboard.widget
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.TflLineStatusItem
+import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.ui.components.TransitIconHelper
 import com.androidfung.departureboard.ui.dashboard.StationBadgeSynthesizer
 

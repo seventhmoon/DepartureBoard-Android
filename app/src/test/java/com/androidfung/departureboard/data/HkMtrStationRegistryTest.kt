@@ -1,6 +1,6 @@
 package com.androidfung.departureboard.data
 
-import com.androidfung.departureboard.data.model.HkMtrStationRegistry
+import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.network
+package com.androidfung.departureboard.data.network.gb
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass

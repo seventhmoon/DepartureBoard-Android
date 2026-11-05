@@ -1,5 +1,7 @@
 package com.androidfung.departureboard.data.model
 
+import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
+
 /**
  * Common prefixes and utility functions for transit station and line identifiers across jurisdictions.
  */

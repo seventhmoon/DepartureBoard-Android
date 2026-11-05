@@ -66,13 +66,13 @@ data class DashboardUiState(
     val departureRowsCount: Int = 5,
     val themeMode: com.androidfung.departureboard.ui.theme.AppThemeMode = com.androidfung.departureboard.ui.theme.AppThemeMode.SYSTEM,
     val isDynamicColor: Boolean = true,
-    val serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo? = null,
+    val serviceHoursInfo: com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo? = null,
     val isOnline: Boolean = true,
     val selectedRegion: com.androidfung.departureboard.data.model.TransitRegion = com.androidfung.departureboard.data.model.TransitRegion.GB,
     val detectedRegion: com.androidfung.departureboard.data.model.TransitRegion? = null,
     val detectedCountryCode: String? = null,
     val isLocationUnsupported: Boolean = false,
     val isHkRegionEnabled: Boolean = false,
-    val lineStatuses: Map<String, com.androidfung.departureboard.data.model.TflLineStatusItem> = emptyMap(),
+    val lineStatuses: Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = emptyMap(),
     val isAutoSortByLocation: Boolean = false
 )

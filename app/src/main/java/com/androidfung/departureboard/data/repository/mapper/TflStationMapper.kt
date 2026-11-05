@@ -1,9 +1,9 @@
 package com.androidfung.departureboard.data.repository.mapper
 
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.TflStopPointChild
-import com.androidfung.departureboard.data.model.TflStopPointMatch
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.TflStopPointChild
+import com.androidfung.departureboard.data.model.gb.TflStopPointMatch
 import com.androidfung.departureboard.data.repository.StationNameFormatter
 import com.androidfung.departureboard.data.repository.TflStopPointUtils
 
@@ -125,7 +125,7 @@ object TflStationMapper {
     /**
      * Extracts served line metadata from [TflStopPointDetail] (including lineModeGroups).
      */
-    fun extractLines(detail: com.androidfung.departureboard.data.model.TflStopPointDetail): List<com.androidfung.departureboard.data.model.StationLineInfo> {
+    fun extractLines(detail: com.androidfung.departureboard.data.model.gb.TflStopPointDetail): List<com.androidfung.departureboard.data.model.StationLineInfo> {
         val modeMap = mutableMapOf<String, String>()
         for ((modeName1, lineIdentifier) in detail.lineModeGroups) {
             val modeName = modeName1 ?: continue

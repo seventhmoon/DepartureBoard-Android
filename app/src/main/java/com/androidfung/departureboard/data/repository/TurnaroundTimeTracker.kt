@@ -1,6 +1,6 @@
 package com.androidfung.departureboard.data.repository
 
-import com.androidfung.departureboard.data.model.TflStationIds
+import com.androidfung.departureboard.data.model.gb.TflStationIds
 import java.util.concurrent.ConcurrentHashMap
 
 /**

@@ -1,6 +1,11 @@
-package com.androidfung.departureboard.data.model
+package com.androidfung.departureboard.data.model.hk
 
 import androidx.compose.ui.graphics.Color
+import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.DepartureStatus
+import com.androidfung.departureboard.data.model.LineBadgeInfo
+import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.StationLineInfo
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 

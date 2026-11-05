@@ -2,18 +2,18 @@ package com.androidfung.departureboard.data.resolver.hk
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.isHkBus
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.model.HkKmbStopDetailItem
-import com.androidfung.departureboard.data.network.HkBusApiService
-import com.androidfung.departureboard.data.network.HkBusNetworkClient
+import com.androidfung.departureboard.data.model.hk.HkKmbStopDetailItem
+import com.androidfung.departureboard.data.model.isHkBus
+import com.androidfung.departureboard.data.network.hk.HkBusApiService
+import com.androidfung.departureboard.data.network.hk.HkBusNetworkClient
 import com.androidfung.departureboard.data.resolver.CallingPointsResolver
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Resolves calling points for Hong Kong franchised buses (KMB / Citybus).

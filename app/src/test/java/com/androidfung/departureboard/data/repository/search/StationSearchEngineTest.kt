@@ -1,8 +1,8 @@
 package com.androidfung.departureboard.data.repository.search
 
-import com.androidfung.departureboard.data.model.DefaultStations
-import com.androidfung.departureboard.data.model.TflSearchResponse
-import com.androidfung.departureboard.data.model.TflStopPointMatch
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.TflSearchResponse
+import com.androidfung.departureboard.data.model.gb.TflStopPointMatch
 import com.androidfung.departureboard.test.FakeBodsApiService
 import com.androidfung.departureboard.test.FakeTflApiService
 import kotlinx.coroutines.test.runTest

@@ -1,6 +1,14 @@
 package com.androidfung.departureboard.data.repository
 
 import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
+import com.androidfung.departureboard.data.model.CallingPoint
+import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.LineBadgeInfo
+import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.NrCallingPoint
+import com.androidfung.departureboard.data.model.gb.NrCallingPointList
+import com.androidfung.departureboard.data.model.gb.NrLocation
+import com.androidfung.departureboard.data.model.gb.NrTrainService
 import com.androidfung.departureboard.data.repository.direction.DestinationResolver
 import com.androidfung.departureboard.data.repository.direction.ElizabethLineDirectionResolver
 import com.androidfung.departureboard.data.repository.direction.LinearCorridorDirectionResolver
@@ -11,16 +19,6 @@ import com.androidfung.departureboard.data.repository.mapper.TflDepartureMapper
 import com.androidfung.departureboard.data.repository.source.hk.HkBusDepartureSource
 import com.androidfung.departureboard.data.repository.source.hk.HkMtrDepartureSource
 import com.androidfung.departureboard.data.resolver.hk.HkBusCallingPointsResolver
-
-
-import com.androidfung.departureboard.data.model.CallingPoint
-import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.LineBadgeInfo
-import com.androidfung.departureboard.data.model.NrCallingPoint
-import com.androidfung.departureboard.data.model.NrCallingPointList
-import com.androidfung.departureboard.data.model.NrLocation
-import com.androidfung.departureboard.data.model.NrTrainService
-import com.androidfung.departureboard.data.model.TransitMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

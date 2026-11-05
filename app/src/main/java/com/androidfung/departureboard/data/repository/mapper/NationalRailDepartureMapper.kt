@@ -3,8 +3,8 @@ package com.androidfung.departureboard.data.repository.mapper
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
-import com.androidfung.departureboard.data.model.NrTrainService
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.NrTrainService
 import com.androidfung.departureboard.data.repository.StationNameFormatter
 import com.androidfung.departureboard.data.repository.direction.ElizabethLineDirectionResolver
 import com.androidfung.departureboard.data.repository.direction.OvergroundLineResolver
@@ -83,7 +83,7 @@ object NationalRailDepartureMapper {
 
         val (resolvedLineId, resolvedLineName, badge) = when {
             isElizabeth -> {
-                Triple("elizabeth-line", "Elizabeth line", com.androidfung.departureboard.data.model.TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
+                Triple("elizabeth-line", "Elizabeth line", com.androidfung.departureboard.data.model.gb.TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line"))
             }
             isOverground -> {
                 val destLocation = service.destination.firstOrNull()
@@ -96,7 +96,7 @@ object NationalRailDepartureMapper {
                 Triple(
                     resolvedLine.id,
                     resolvedLine.name,
-                    com.androidfung.departureboard.data.model.TflLineColors.getLineBadge(
+                    com.androidfung.departureboard.data.model.gb.TflLineColors.getLineBadge(
                         resolvedLine.id,
                         resolvedLine.name,
                         "overground"
@@ -104,7 +104,7 @@ object NationalRailDepartureMapper {
                 )
             }
             isThameslink -> {
-                Triple("thameslink", "Thameslink", com.androidfung.departureboard.data.model.TflLineColors.getLineBadge("thameslink", "Thameslink", "national-rail"))
+                Triple("thameslink", "Thameslink", com.androidfung.departureboard.data.model.gb.TflLineColors.getLineBadge("thameslink", "Thameslink", "national-rail"))
             }
             else -> {
                 val badgeColor = OPERATOR_COLORS[operatorName] ?: OPERATOR_COLORS[operatorCode] ?: Color(0xFF1E3561)

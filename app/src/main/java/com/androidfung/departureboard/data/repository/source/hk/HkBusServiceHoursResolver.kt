@@ -1,6 +1,6 @@
 package com.androidfung.departureboard.data.repository.source.hk
 
-import com.androidfung.departureboard.data.model.StationServiceHoursInfo
+import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.isHkBusStationId
 import java.time.ZoneId
 import java.time.ZonedDateTime

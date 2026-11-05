@@ -3,9 +3,9 @@ package com.androidfung.departureboard.ui.dashboard
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.TflLineStatusDetail
-import com.androidfung.departureboard.data.model.TflLineStatusItem
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.TflLineStatusDetail
+import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.test.TestFixtures
 import org.junit.Assert.assertEquals
 import org.junit.Test

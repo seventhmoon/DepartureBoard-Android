@@ -7,19 +7,18 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TransitRegion
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.hk.HkDefaultStations
+import com.androidfung.departureboard.ui.theme.AppThemeMode
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
-import com.androidfung.departureboard.ui.theme.AppThemeMode
+import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
-import java.io.IOException
-
-import com.androidfung.departureboard.data.model.TransitRegion
-import com.androidfung.departureboard.data.model.HkDefaultStations
 
 internal val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "station_preferences")
 

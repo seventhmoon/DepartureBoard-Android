@@ -1,17 +1,17 @@
 package com.androidfung.departureboard.data.repository.search
 
-import com.androidfung.departureboard.data.model.HkKmbStopDetailItem
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationLineInfo
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.network.HkBusApiService
-import com.androidfung.departureboard.data.network.HkBusNetworkClient
+import com.androidfung.departureboard.data.model.hk.HkKmbStopDetailItem
+import com.androidfung.departureboard.data.network.hk.HkBusApiService
+import com.androidfung.departureboard.data.network.hk.HkBusNetworkClient
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Coordinates dynamic route-stop searches for Hong Kong franchised buses (KMB/LWB/Citybus).

@@ -1,9 +1,9 @@
 package com.androidfung.departureboard.data
 
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.DefaultStations
-import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.TflLineColors
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

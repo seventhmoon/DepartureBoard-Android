@@ -3,9 +3,9 @@ package com.androidfung.departureboard.data.db.hk
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.androidfung.departureboard.data.model.HkBusStopDirectory
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationLineInfo
+import com.androidfung.departureboard.data.model.hk.HkBusStopDirectory
 
 /**
  * Pre-populated indexed Hong Kong bus stop entity.

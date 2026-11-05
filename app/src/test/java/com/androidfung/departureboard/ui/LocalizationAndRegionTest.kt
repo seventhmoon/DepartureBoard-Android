@@ -4,10 +4,14 @@ import android.content.Context
 import android.content.res.Configuration
 import androidx.test.core.app.ApplicationProvider
 import com.androidfung.departureboard.R
-import com.androidfung.departureboard.data.model.DefaultStations
-import com.androidfung.departureboard.data.model.HkDefaultStations
 import com.androidfung.departureboard.data.model.TransitRegion
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import com.androidfung.departureboard.test.TestFixtures
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -15,10 +19,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.Instant
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])

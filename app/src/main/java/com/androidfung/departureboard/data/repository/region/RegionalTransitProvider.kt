@@ -1,17 +1,17 @@
 package com.androidfung.departureboard.data.repository.region
 
 import android.content.Context
-import com.androidfung.departureboard.data.model.DefaultStations
-import com.androidfung.departureboard.data.model.HkBusStopDirectory
-import com.androidfung.departureboard.data.model.HkDefaultStations
-import com.androidfung.departureboard.data.model.HkMtrStationRegistry
-import com.androidfung.departureboard.data.model.HkStationDirectory
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.au.AuStationDirectory
 import com.androidfung.departureboard.data.model.extractRawHkBusStopId
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
+import com.androidfung.departureboard.data.model.hk.HkBusStopDirectory
+import com.androidfung.departureboard.data.model.hk.HkDefaultStations
+import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
+import com.androidfung.departureboard.data.model.hk.HkStationDirectory
 import com.androidfung.departureboard.data.model.isAuTransitId
 import com.androidfung.departureboard.data.model.isHkBusStationId
 import com.androidfung.departureboard.data.model.isHkTransitId
@@ -20,7 +20,7 @@ import com.androidfung.departureboard.data.model.isSgTransitId
 import com.androidfung.departureboard.data.model.jp.JpStationDirectory
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
 import com.androidfung.departureboard.data.model.sg.SgStationDirectory
-import com.androidfung.departureboard.data.network.TflApiService
+import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.StationNameFormatter
 import com.androidfung.departureboard.data.repository.TimetableScheduleResolver
 import com.androidfung.departureboard.data.repository.mapper.TflStationMapper

@@ -1,6 +1,6 @@
-package com.androidfung.departureboard.data.network
+package com.androidfung.departureboard.data.network.hk
 
-import com.androidfung.departureboard.data.model.HkMtrScheduleResponse
+import com.androidfung.departureboard.data.model.hk.HkMtrScheduleResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 

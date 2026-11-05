@@ -1,5 +1,8 @@
 package com.androidfung.departureboard.data.model
 
+import com.androidfung.departureboard.data.model.gb.AtcoArea
+import com.androidfung.departureboard.data.model.gb.AtcoAreaRegistry
+import com.androidfung.departureboard.data.model.gb.AtcoRegion
 import com.androidfung.departureboard.data.repository.TflStopPointUtils
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

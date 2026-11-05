@@ -1,5 +1,10 @@
-package com.androidfung.departureboard.data.model
+package com.androidfung.departureboard.data.model.hk
 
+import com.androidfung.departureboard.data.model.CallingPoint
+import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TransitDirection
+import com.androidfung.departureboard.data.model.isHkMtr
 import com.androidfung.departureboard.data.resolver.LinearRouteCallingPointsResolver
 import com.androidfung.departureboard.data.resolver.TransitLineNetwork
 import java.time.ZoneId

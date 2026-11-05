@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.model
+package com.androidfung.departureboard.data.model.gb
 
 /**
  * Geographic macro-regions for NaPTAN ATCO Local Transport Authorities.

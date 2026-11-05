@@ -1,6 +1,11 @@
 package com.androidfung.departureboard.data.repository
 
 import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
+import com.androidfung.departureboard.data.model.LineBadgeInfo
+import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.TflMatchedStop
+import com.androidfung.departureboard.data.model.gb.TflRouteSequenceResponse
+import com.androidfung.departureboard.data.model.gb.TflStopPointSequence
 import com.androidfung.departureboard.data.repository.direction.DestinationResolver
 import com.androidfung.departureboard.data.repository.direction.ElizabethLineDirectionResolver
 import com.androidfung.departureboard.data.repository.direction.LinearCorridorDirectionResolver
@@ -11,13 +16,6 @@ import com.androidfung.departureboard.data.repository.mapper.TflDepartureMapper
 import com.androidfung.departureboard.data.repository.source.hk.HkBusDepartureSource
 import com.androidfung.departureboard.data.repository.source.hk.HkMtrDepartureSource
 import com.androidfung.departureboard.data.resolver.hk.HkBusCallingPointsResolver
-
-
-import com.androidfung.departureboard.data.model.LineBadgeInfo
-import com.androidfung.departureboard.data.model.TflMatchedStop
-import com.androidfung.departureboard.data.model.TflRouteSequenceResponse
-import com.androidfung.departureboard.data.model.TflStopPointSequence
-import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.test.TestFixtures
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -144,21 +142,21 @@ class FinchleyToBatterseaCallingPointsTest {
             routeSequenceResult = mockSequence,
             lineArrivalsResult = listOf(
                 // Inbound leg predictions before reaching Mill Hill East:
-                com.androidfung.departureboard.data.model.TflArrivalPrediction(
+                com.androidfung.departureboard.data.model.gb.TflArrivalPrediction(
                     id = "arr1",
                     vehicleId = inboundVehicleId,
                     naptanId = "940GZZLUCTN",
                     stationName = "Camden Town Underground Station",
                     timeToStation = 300 // 5 mins (inbound)
                 ),
-                com.androidfung.departureboard.data.model.TflArrivalPrediction(
+                com.androidfung.departureboard.data.model.gb.TflArrivalPrediction(
                     id = "arr2",
                     vehicleId = inboundVehicleId,
                     naptanId = "940GZZLUFYC",
                     stationName = "Finchley Central Underground Station",
                     timeToStation = 1000 // ~17 mins (inbound)
                 ),
-                com.androidfung.departureboard.data.model.TflArrivalPrediction(
+                com.androidfung.departureboard.data.model.gb.TflArrivalPrediction(
                     id = "arr3",
                     vehicleId = inboundVehicleId,
                     naptanId = "940GZZLUMHL",
@@ -411,7 +409,7 @@ class FinchleyToBatterseaCallingPointsTest {
         )
 
         // Map from a raw terminating Mill Hill East arrival
-        val rawTerminating = com.androidfung.departureboard.data.model.TflArrivalPrediction(
+        val rawTerminating = com.androidfung.departureboard.data.model.gb.TflArrivalPrediction(
             id = "mhe_shuttle_1",
             naptanId = "940GZZLUMHL",
             stationName = "Mill Hill East Underground Station",

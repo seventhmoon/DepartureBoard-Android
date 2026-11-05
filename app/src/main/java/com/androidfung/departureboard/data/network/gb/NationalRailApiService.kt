@@ -1,6 +1,6 @@
-package com.androidfung.departureboard.data.network
+package com.androidfung.departureboard.data.network.gb
 
-import com.androidfung.departureboard.data.model.NrBoardResponse
+import com.androidfung.departureboard.data.model.gb.NrBoardResponse
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query

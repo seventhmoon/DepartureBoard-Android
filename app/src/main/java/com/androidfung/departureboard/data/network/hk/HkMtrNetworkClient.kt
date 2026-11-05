@@ -1,5 +1,6 @@
-package com.androidfung.departureboard.data.network
+package com.androidfung.departureboard.data.network.hk
 
+import com.androidfung.departureboard.data.network.SharedNetworkConfig
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.create

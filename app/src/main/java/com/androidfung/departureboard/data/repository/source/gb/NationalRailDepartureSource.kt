@@ -1,10 +1,10 @@
 package com.androidfung.departureboard.data.repository.source.gb
 
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.NrTrainService
-import com.androidfung.departureboard.data.network.NationalRailApiService
-import com.androidfung.departureboard.data.repository.mapper.NationalRailDepartureMapper
+import com.androidfung.departureboard.data.model.gb.NrTrainService
+import com.androidfung.departureboard.data.network.gb.NationalRailApiService
 import com.androidfung.departureboard.data.repository.NationalRailStationCodes
+import com.androidfung.departureboard.data.repository.mapper.NationalRailDepartureMapper
 import com.androidfung.departureboard.data.repository.source.DepartureSource
 
 /**

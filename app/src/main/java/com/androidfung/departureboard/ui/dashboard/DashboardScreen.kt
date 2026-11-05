@@ -22,9 +22,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.androidfung.departureboard.ui.components.rememberReorderableStaggeredGridState
-import com.androidfung.departureboard.ui.components.reorderableStaggeredGrid
-import com.androidfung.departureboard.ui.components.reorderableStaggeredItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -37,16 +34,9 @@ import androidx.compose.material.icons.rounded.Traffic
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Surface
-import com.androidfung.departureboard.BuildConfig
-import com.androidfung.departureboard.ui.theme.LocalWindowWidthClass
-import com.androidfung.departureboard.ui.theme.WindowWidthClass
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -54,7 +44,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -67,19 +60,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
+import com.androidfung.departureboard.BuildConfig
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.TflLineColors
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.ui.components.EmptyDashboardState
 import com.androidfung.departureboard.ui.components.StationDepartureCard
+import com.androidfung.departureboard.ui.components.rememberReorderableStaggeredGridState
+import com.androidfung.departureboard.ui.components.reorderableStaggeredGrid
+import com.androidfung.departureboard.ui.components.reorderableStaggeredItem
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
+import com.androidfung.departureboard.ui.theme.LocalWindowWidthClass
+import com.androidfung.departureboard.ui.theme.WindowWidthClass
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

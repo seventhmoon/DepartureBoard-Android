@@ -2,16 +2,16 @@ package com.androidfung.departureboard.data.repository.search
 
 import android.content.Context
 import com.androidfung.departureboard.data.db.gb.UkStationDatabase
-import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationSearchRanker
 import com.androidfung.departureboard.data.model.TransitMode
-import kotlinx.coroutines.CancellationException
-import com.androidfung.departureboard.data.network.BodsApiService
-import com.androidfung.departureboard.data.network.TflApiService
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.network.gb.BodsApiService
+import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.StationNameFormatter
-import com.androidfung.departureboard.data.repository.mapper.TflStationMapper
 import com.androidfung.departureboard.data.repository.TflStopPointUtils
+import com.androidfung.departureboard.data.repository.mapper.TflStationMapper
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -251,7 +251,7 @@ class StationSearchEngine(
         return try {
             val responseBody = bodsApiService.getVehicleDatafeedByLine(lineRef = query.uppercase())
             val xmlString = responseBody.string()
-            val activities = com.androidfung.departureboard.data.model.BodsXmlParser.parse(xmlString)
+            val activities = com.androidfung.departureboard.data.model.gb.BodsXmlParser.parse(xmlString)
 
             activities.flatMap { act ->
                 listOfNotNull(
@@ -293,7 +293,7 @@ class StationSearchEngine(
         if (!naptanAtcoRegex.matches(query)) return emptyList()
 
         val cleanQuery = query.uppercase()
-        val areaName = com.androidfung.departureboard.data.model.AtcoAreaRegistry.getAreaName(cleanQuery)
+        val areaName = com.androidfung.departureboard.data.model.gb.AtcoAreaRegistry.getAreaName(cleanQuery)
         val displayName = if (areaName != null) {
             "Bus Stop ($cleanQuery) • $areaName"
         } else {

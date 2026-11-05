@@ -1,8 +1,8 @@
 package com.androidfung.departureboard.test
 
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataSource
-import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.gb.DefaultStations
 import com.androidfung.departureboard.ui.theme.AppThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

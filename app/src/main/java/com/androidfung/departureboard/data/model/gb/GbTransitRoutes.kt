@@ -2,7 +2,6 @@ package com.androidfung.departureboard.data.model.gb
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.TflStationIds
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.resolver.LinearRouteCallingPointsResolver
 import com.androidfung.departureboard.data.resolver.TransitLineNetwork

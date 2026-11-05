@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.model
+package com.androidfung.departureboard.data.model.hk
 
 import com.androidfung.departureboard.data.i18n.LocalizedNameProvider
 

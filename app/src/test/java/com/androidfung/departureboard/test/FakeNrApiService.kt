@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.test
 
-import com.androidfung.departureboard.data.model.NrBoardResponse
-import com.androidfung.departureboard.data.network.NationalRailApiService
+import com.androidfung.departureboard.data.model.gb.NrBoardResponse
+import com.androidfung.departureboard.data.network.gb.NationalRailApiService
 import java.io.IOException
 
 /**

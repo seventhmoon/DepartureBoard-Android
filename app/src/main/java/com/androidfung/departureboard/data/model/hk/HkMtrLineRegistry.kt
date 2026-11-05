@@ -1,7 +1,11 @@
-package com.androidfung.departureboard.data.model
+package com.androidfung.departureboard.data.model.hk
 
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.i18n.LocalizedNameProvider
+import com.androidfung.departureboard.data.model.LineBadgeInfo
+import com.androidfung.departureboard.data.model.TransitLineDefinition
+import com.androidfung.departureboard.data.model.TransitLineRegistry
+import com.androidfung.departureboard.data.model.gb.TflLineColors
 
 /**
  * Definition of an individual MTR line with code, bilingual names, badge colors, and route sequence.

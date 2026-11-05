@@ -1,7 +1,5 @@
 package com.androidfung.departureboard.ui.dashboard
 
-import com.androidfung.departureboard.data.model.TransitRegion
-
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
@@ -9,13 +7,15 @@ import androidx.lifecycle.viewModelScope
 import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.BillingRepository
 import com.androidfung.departureboard.billing.SubscriptionTier
-import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.TflLineColors
+import com.androidfung.departureboard.data.model.TransitRegion
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.repository.TransitRepository
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -27,7 +27,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * ViewModel for the Departure Board Dashboard.
@@ -718,7 +717,7 @@ class DashboardViewModel @JvmOverloads constructor(
     fun resetSavedStationsToDefaults() {
         viewModelScope.launch {
             val defaults = when (_uiState.value.selectedRegion) {
-                com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.HkDefaultStations.POPULAR_STATIONS
+                com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.hk.HkDefaultStations.POPULAR_STATIONS
                 com.androidfung.departureboard.data.model.TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
                 com.androidfung.departureboard.data.model.TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
                 com.androidfung.departureboard.data.model.TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
@@ -804,7 +803,7 @@ class DashboardViewModel @JvmOverloads constructor(
 
                 val savedStations = _uiState.value.stationCards.map { it.station }
                 val regionDefaults = when (_uiState.value.selectedRegion) {
-                    com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.HkDefaultStations.POPULAR_STATIONS + com.androidfung.departureboard.data.model.HkMtrStationRegistry.STATIONS.values.map { com.androidfung.departureboard.data.model.HkStationDirectory.mtrToStation(it) }
+                    com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.hk.HkDefaultStations.POPULAR_STATIONS + com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry.STATIONS.values.map { com.androidfung.departureboard.data.model.hk.HkStationDirectory.mtrToStation(it) }
                     com.androidfung.departureboard.data.model.TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
                     com.androidfung.departureboard.data.model.TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
                     com.androidfung.departureboard.data.model.TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS

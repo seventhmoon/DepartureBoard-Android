@@ -1,8 +1,8 @@
 package com.androidfung.departureboard.data.repository.engine
 
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.repository.TflStopPointUtils
 import com.androidfung.departureboard.data.repository.source.DepartureSource
 import kotlinx.coroutines.async

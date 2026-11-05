@@ -3,23 +3,23 @@ package com.androidfung.departureboard.data.repository.source.hk
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
-import com.androidfung.departureboard.data.model.HkDefaultStations
-import com.androidfung.departureboard.data.model.HkKmbEtaItem
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.StationIdPrefixes
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.extractRawHkBusStopId
+import com.androidfung.departureboard.data.model.hk.HkDefaultStations
+import com.androidfung.departureboard.data.model.hk.HkKmbEtaItem
 import com.androidfung.departureboard.data.model.isHkBusStationId
-import com.androidfung.departureboard.data.network.HkBusApiService
-import com.androidfung.departureboard.data.network.HkBusNetworkClient
+import com.androidfung.departureboard.data.network.hk.HkBusApiService
+import com.androidfung.departureboard.data.network.hk.HkBusNetworkClient
 import com.androidfung.departureboard.data.repository.source.DepartureSource
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.math.max
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 /**
  * Departure source for Hong Kong franchised buses (KMB / LWB and Citybus via data.gov.hk).
@@ -192,7 +192,7 @@ class HkBusDepartureSource(
     companion object {
         private val HK_ZONE = java.time.ZoneId.of("Asia/Hong_Kong")
 
-        fun checkStationServiceHours(stationId: String, stationName: String? = null): com.androidfung.departureboard.data.model.StationServiceHoursInfo? {
+        fun checkStationServiceHours(stationId: String, stationName: String? = null): com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo? {
             if (!stationId.isHkBusStationId && (stationName?.contains("海底隧道") != true) && (stationName?.contains("轉車站") != true)) {
                 return null
             }
@@ -204,7 +204,7 @@ class HkBusDepartureSource(
             val isLateNight = (hour == 1 && minute >= 15) || (hour in 2..4) || (hour == 5 && minute < 15)
 
             return if (isLateNight) {
-                com.androidfung.departureboard.data.model.StationServiceHoursInfo(
+                com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo(
                     isClosedForNight = true,
                     lastTrainTime = "01:00",
                     firstTrainTime = "05:30",

@@ -2,24 +2,24 @@ package com.androidfung.departureboard.data.repository.source.hk
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
-import com.androidfung.departureboard.data.model.HkDefaultStations
+import com.androidfung.departureboard.data.model.hk.HkDefaultStations
+import com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry
+import com.androidfung.departureboard.data.model.hk.HkMtrRoutes
+import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
 import com.androidfung.departureboard.data.model.isHkMtrStationId
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
-import com.androidfung.departureboard.data.model.HkMtrLineRegistry
-import com.androidfung.departureboard.data.model.HkMtrRoutes
-import com.androidfung.departureboard.data.model.HkMtrStationRegistry
-import com.androidfung.departureboard.data.network.HkMtrApiService
-import com.androidfung.departureboard.data.network.HkMtrNetworkClient
+import com.androidfung.departureboard.data.network.hk.HkMtrApiService
+import com.androidfung.departureboard.data.network.hk.HkMtrNetworkClient
 import com.androidfung.departureboard.data.repository.source.DepartureSource
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.math.max
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 /**
  * Departure source for Hong Kong MTR heavy rail via data.gov.hk (getSchedule.php).

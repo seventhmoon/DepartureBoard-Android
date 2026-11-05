@@ -1,6 +1,7 @@
-package com.androidfung.departureboard.data.network
+package com.androidfung.departureboard.data.network.gb
 
 import android.content.Context
+import com.androidfung.departureboard.data.network.SharedNetworkConfig
 import com.squareup.moshi.Moshi
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit

@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.data
 
-import com.androidfung.departureboard.data.model.HkDefaultStations
 import com.androidfung.departureboard.data.model.TransitRegion
+import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

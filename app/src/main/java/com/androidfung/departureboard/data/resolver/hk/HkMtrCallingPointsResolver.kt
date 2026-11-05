@@ -2,7 +2,7 @@ package com.androidfung.departureboard.data.resolver.hk
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.HkMtrRoutes
+import com.androidfung.departureboard.data.model.hk.HkMtrRoutes
 import com.androidfung.departureboard.data.model.isHkMtr
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
 import com.androidfung.departureboard.data.resolver.LinearRouteCallingPointsResolver

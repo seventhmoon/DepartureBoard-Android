@@ -1,15 +1,15 @@
 package com.androidfung.departureboard.test
 
-import com.androidfung.departureboard.data.model.TflArrivalPrediction
-import com.androidfung.departureboard.data.model.TflLineRouteResponse
-import com.androidfung.departureboard.data.model.TflLineStatusItem
-import com.androidfung.departureboard.data.model.TflRouteSequenceResponse
-import com.androidfung.departureboard.data.model.TflSearchResponse
-import com.androidfung.departureboard.data.model.TflStopPointChild
-import com.androidfung.departureboard.data.model.TflStopPointDetail
-import com.androidfung.departureboard.data.model.TflStopPointsResponse
-import com.androidfung.departureboard.data.model.TflTimetableResponse
-import com.androidfung.departureboard.data.network.TflApiService
+import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
+import com.androidfung.departureboard.data.model.gb.TflLineRouteResponse
+import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
+import com.androidfung.departureboard.data.model.gb.TflRouteSequenceResponse
+import com.androidfung.departureboard.data.model.gb.TflSearchResponse
+import com.androidfung.departureboard.data.model.gb.TflStopPointChild
+import com.androidfung.departureboard.data.model.gb.TflStopPointDetail
+import com.androidfung.departureboard.data.model.gb.TflStopPointsResponse
+import com.androidfung.departureboard.data.model.gb.TflTimetableResponse
+import com.androidfung.departureboard.data.network.gb.TflApiService
 import java.io.IOException
 
 /**

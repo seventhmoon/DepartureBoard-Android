@@ -32,11 +32,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.isHkBus
 import com.androidfung.departureboard.data.model.isHkMtr
 import com.androidfung.departureboard.data.model.isHkStation
@@ -191,9 +191,9 @@ fun StationSearchResultRow(
                                 val transitMode = TransitMode.fromModeString(modeStr)
                                 val badge = if (station.isHkMtr) {
                                     val primaryLine = station.lines.firstOrNull()?.id ?: "ISL"
-                                    com.androidfung.departureboard.data.model.HkMtrLineRegistry.getLineBadge(primaryLine)
+                                    com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry.getLineBadge(primaryLine)
                                 } else if (station.isHkBus) {
-                                    LineBadgeInfo("bus", "Bus", com.androidfung.departureboard.data.model.HkDefaultStations.ColorKmbRed, Color.White, TransitMode.BUS)
+                                    LineBadgeInfo("bus", "Bus", com.androidfung.departureboard.data.model.hk.HkDefaultStations.ColorKmbRed, Color.White, TransitMode.BUS)
                                 } else {
                                     TflLineColors.getLineBadge(
                                         lineId = transitMode.id,

@@ -1,6 +1,15 @@
 package com.androidfung.departureboard.data.db
 
+import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
+import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.DepartureStatus
+import com.androidfung.departureboard.data.model.LineBadgeInfo
+import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.TransitRegion
+import com.androidfung.departureboard.data.model.gb.TflLineStatusDetail
+import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
+import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import com.androidfung.departureboard.data.repository.direction.DestinationResolver
 import com.androidfung.departureboard.data.repository.direction.ElizabethLineDirectionResolver
 import com.androidfung.departureboard.data.repository.direction.LinearCorridorDirectionResolver
@@ -8,21 +17,10 @@ import com.androidfung.departureboard.data.repository.direction.OvergroundLineRe
 import com.androidfung.departureboard.data.repository.direction.ThameslinkDirectionResolver
 import com.androidfung.departureboard.data.repository.mapper.NationalRailDepartureMapper
 import com.androidfung.departureboard.data.repository.mapper.TflDepartureMapper
+import com.androidfung.departureboard.data.repository.source.gb.TyneAndWearMetroSource
 import com.androidfung.departureboard.data.repository.source.hk.HkBusDepartureSource
 import com.androidfung.departureboard.data.repository.source.hk.HkMtrDepartureSource
 import com.androidfung.departureboard.data.resolver.hk.HkBusCallingPointsResolver
-
-
-import androidx.compose.ui.graphics.Color
-import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.DepartureStatus
-import com.androidfung.departureboard.data.model.HkDefaultStations
-import com.androidfung.departureboard.data.model.LineBadgeInfo
-import com.androidfung.departureboard.data.model.TflLineStatusDetail
-import com.androidfung.departureboard.data.model.TflLineStatusItem
-import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.model.TransitRegion
-import com.androidfung.departureboard.data.repository.source.gb.TyneAndWearMetroSource
 import com.androidfung.departureboard.ui.components.buildDisplayLineStatusItems
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

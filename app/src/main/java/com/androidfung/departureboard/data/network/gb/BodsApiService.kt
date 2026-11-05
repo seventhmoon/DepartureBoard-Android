@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.network
+package com.androidfung.departureboard.data.network.gb
 
 import okhttp3.ResponseBody
 import retrofit2.http.GET

@@ -1,11 +1,11 @@
 package com.androidfung.departureboard.data.repository.mapper
 
-import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.TflArrivalPrediction
-import com.androidfung.departureboard.data.model.TflLineColors
 import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
+import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.repository.PlatformFormatter
 import com.androidfung.departureboard.data.repository.StationNameFormatter
 import com.androidfung.departureboard.data.repository.TurnaroundTimeTracker

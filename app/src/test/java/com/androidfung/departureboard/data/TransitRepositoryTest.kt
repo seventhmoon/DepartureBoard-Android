@@ -1,21 +1,21 @@
 package com.androidfung.departureboard.data
 
-import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.TflArrivalPrediction
-import com.androidfung.departureboard.data.model.TflSearchResponse
-import com.androidfung.departureboard.data.model.TflStopPointMatch
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
+import com.androidfung.departureboard.data.model.gb.TflSearchResponse
+import com.androidfung.departureboard.data.model.gb.TflStopPointMatch
 import com.androidfung.departureboard.data.repository.NationalRailStationCodes
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
 import com.androidfung.departureboard.test.FakeNrApiService
 import com.androidfung.departureboard.test.FakeStationPreferencesDataSource
 import com.androidfung.departureboard.test.FakeTflApiService
+import java.io.IOException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.IOException
 
 class TransitRepositoryTest {
 
@@ -128,11 +128,11 @@ class TransitRepositoryTest {
     fun testGetDepartures_includesNationalRailServices() = runTest {
         val fakeApi = FakeTflApiService(arrivalsResult = emptyList())
         val fakeNrApi = FakeNrApiService(
-            boardResponse = com.androidfung.departureboard.data.model.NrBoardResponse(
+            boardResponse = com.androidfung.departureboard.data.model.gb.NrBoardResponse(
                 locationName = "London Kings Cross",
                 crs = "KGX",
                 trainServices = listOf(
-                    com.androidfung.departureboard.data.model.NrTrainService(
+                    com.androidfung.departureboard.data.model.gb.NrTrainService(
                         serviceId = "nr_1",
                         operator = "LNER",
                         operatorCode = "GR",
@@ -140,7 +140,7 @@ class TransitRepositoryTest {
                         etd = "On time",
                         platform = "1",
                         destination = listOf(
-                            com.androidfung.departureboard.data.model.NrLocation(
+                            com.androidfung.departureboard.data.model.gb.NrLocation(
                                 locationName = "Edinburgh",
                                 crs = "EDB"
                             )

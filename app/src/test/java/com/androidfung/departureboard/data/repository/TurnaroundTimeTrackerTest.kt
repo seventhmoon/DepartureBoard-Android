@@ -1,6 +1,7 @@
 package com.androidfung.departureboard.data.repository
 
 import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
+import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
 import com.androidfung.departureboard.data.repository.direction.DestinationResolver
 import com.androidfung.departureboard.data.repository.direction.ElizabethLineDirectionResolver
 import com.androidfung.departureboard.data.repository.direction.LinearCorridorDirectionResolver
@@ -11,9 +12,6 @@ import com.androidfung.departureboard.data.repository.mapper.TflDepartureMapper
 import com.androidfung.departureboard.data.repository.source.hk.HkBusDepartureSource
 import com.androidfung.departureboard.data.repository.source.hk.HkMtrDepartureSource
 import com.androidfung.departureboard.data.resolver.hk.HkBusCallingPointsResolver
-
-
-import com.androidfung.departureboard.data.model.TflArrivalPrediction
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

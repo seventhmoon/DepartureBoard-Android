@@ -4,7 +4,8 @@ import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.TflLineStatusItem
+import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.test.FakeTransitRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -17,7 +18,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import com.androidfung.departureboard.data.model.DefaultStations
 
 /**
  * Verifies the natural-language routing in [TransitAiAssistant]: status/disruption
@@ -81,7 +81,7 @@ class TransitAiAssistantTest {
                     name = "Central line",
                     modeName = "tube",
                     lineStatuses = listOf(
-                        com.androidfung.departureboard.data.model.TflLineStatusDetail(
+                        com.androidfung.departureboard.data.model.gb.TflLineStatusDetail(
                             statusSeverity = 10,
                             statusSeverityDescription = "Good Service"
                         )
@@ -110,7 +110,7 @@ class TransitAiAssistantTest {
                     name = "Elizabeth line",
                     modeName = "elizabeth-line",
                     lineStatuses = listOf(
-                        com.androidfung.departureboard.data.model.TflLineStatusDetail(
+                        com.androidfung.departureboard.data.model.gb.TflLineStatusDetail(
                             // TfL real-world scale: 10 = good service, 3 = part suspended, 6 = severe delays, 9 = minor delays
                             statusSeverity = 3,
                             statusSeverityDescription = "Part Suspended",
