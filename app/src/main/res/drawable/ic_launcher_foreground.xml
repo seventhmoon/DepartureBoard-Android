@@ -5,153 +5,210 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Soft Depth Ambient Shadow behind departure board casing (56x56 frame) -->
+    <!-- ==================== OVERHEAD CANOPY SUSPENSION RODS ==================== -->
+    <!-- Left Suspension Strut Shadow & Rod -->
     <path
-        android:fillColor="#60000000"
-        android:pathData="M38,29L70,29A13,13 0 0,1 83,42L83,72A13,13 0 0,1 70,85L38,85A13,13 0 0,1 25,72L25,42A13,13 0 0,1 38,29Z" />
-
-    <!-- Outer Sleek Aerospace Bezel / Board Chassis -->
-    <path android:pathData="M38,26L70,26A13,13 0 0,1 83,39L83,69A13,13 0 0,1 70,82L38,82A13,13 0 0,1 25,69L25,39A13,13 0 0,1 38,26Z">
+        android:fillColor="#50000000"
+        android:pathData="M36.5,12L40.5,12L40.5,32L36.5,32Z" />
+    <path android:pathData="M35.5,12L39.5,12L39.5,31L35.5,31Z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:startX="25"
-                android:startY="26"
-                android:endX="83"
-                android:endY="82"
+                android:startX="35.5"
+                android:startY="12"
+                android:endX="39.5"
+                android:endY="31"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#3B4868" />
-                <item android:offset="0.5" android:color="#252F47" />
-                <item android:offset="1.0" android:color="#141B2D" />
+                <item android:offset="0.0" android:color="#64748B" />
+                <item android:offset="0.5" android:color="#475569" />
+                <item android:offset="1.0" android:color="#1E293B" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Left Mounting Collar -->
+    <path
+        android:fillColor="#475569"
+        android:pathData="M34.8,27.5L40.2,27.5A1.3,1.3 0 0,1 41.5,28.8L41.5,31.2L33.5,31.2L33.5,28.8A1.3,1.3 0 0,1 34.8,27.5Z" />
+
+    <!-- Right Suspension Strut Shadow & Rod -->
+    <path
+        android:fillColor="#50000000"
+        android:pathData="M69.5,12L73.5,12L73.5,32L69.5,32Z" />
+    <path android:pathData="M68.5,12L72.5,12L72.5,31L68.5,31Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="68.5"
+                android:startY="12"
+                android:endX="72.5"
+                android:endY="31"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#64748B" />
+                <item android:offset="0.5" android:color="#475569" />
+                <item android:offset="1.0" android:color="#1E293B" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Right Mounting Collar -->
+    <path
+        android:fillColor="#475569"
+        android:pathData="M67.8,27.5L73.2,27.5A1.3,1.3 0 0,1 74.5,28.8L74.5,31.2L66.5,31.2L66.5,28.8A1.3,1.3 0 0,1 67.8,27.5Z" />
+
+    <!-- ==================== WIDE SUSPENDED LED SIGN CHASSIS ==================== -->
+    <!-- Soft Depth Drop Shadow behind the Suspended Sign (66dp wide, within safe zone) -->
+    <path
+        android:fillColor="#66000000"
+        android:pathData="M31,33L77,33A10,10 0 0,1 87,43L87,71A10,10 0 0,1 77,81L31,81A10,10 0 0,1 21,71L21,43A10,10 0 0,1 31,33Z" />
+
+    <!-- Brushed Gunmetal / Titanium Sign Enclosure (X: 21..87, Y: 30..78) -->
+    <path android:pathData="M31,30L77,30A10,10 0 0,1 87,40L87,68A10,10 0 0,1 77,78L31,78A10,10 0 0,1 21,68L21,40A10,10 0 0,1 31,30Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="21"
+                android:startY="30"
+                android:endX="87"
+                android:endY="78"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#43526E" />
+                <item android:offset="0.45" android:color="#273248" />
+                <item android:offset="1.0" android:color="#131926" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Top Metallic Chamfer Highlight -->
+    <!-- Top Metallic Bezel Specular Highlight -->
     <path
-        android:pathData="M38,26.6L70,26.6A12.4,12.4 0 0,1 82.4,39"
+        android:pathData="M31,30.7L77,30.7A9.3,9.3 0 0,1 86.3,40"
         android:strokeWidth="0.8"
-        android:strokeColor="#44FFFFFF" />
+        android:strokeColor="#48FFFFFF" />
 
-    <!-- Display Screen Recessed Bed -->
+    <!-- Recessed Pitch-Black LED Matrix Display Screen (X: 24..84, Y: 33..75) -->
     <path
-        android:fillColor="#090D17"
-        android:pathData="M38,28L70,28A11,11 0 0,1 81,39L81,69A11,11 0 0,1 70,80L38,80A11,11 0 0,1 27,69L27,39A11,11 0 0,1 38,28Z" />
+        android:fillColor="#05070C"
+        android:pathData="M31.5,33L76.5,33A7.5,7.5 0 0,1 84,40.5L84,67.5A7.5,7.5 0 0,1 76.5,75L31.5,75A7.5,7.5 0 0,1 24,67.5L24,40.5A7.5,7.5 0 0,1 31.5,33Z" />
 
-    <!-- Header Glass / Enamel Banner in TfL Royal Corporate Blue -->
-    <path android:pathData="M38,28L70,28A11,11 0 0,1 81,39L81,45.5L27,45.5L27,39A11,11 0 0,1 38,28Z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:startX="27"
-                android:startY="28"
-                android:endX="81"
-                android:endY="45.5"
-                android:type="linear">
-                <item android:offset="0.0" android:color="#0035B8" />
-                <item android:offset="1.0" android:color="#001594" />
-            </gradient>
-        </aapt:attr>
-    </path>
+    <!-- ==================== SIGN TOP STATUS BAR (Y: 33..43.5) ==================== -->
+    <path
+        android:fillColor="#0B111E"
+        android:pathData="M31.5,33L76.5,33A7.5,7.5 0 0,1 84,40.5L84,43.5L24,43.5L24,40.5A7.5,7.5 0 0,1 31.5,33Z" />
 
-    <!-- Header Top Glass Sheen -->
+    <!-- Header Bottom Amber Accent Hairline -->
     <path
-        android:pathData="M38,28.7L70,28.7A10.3,10.3 0 0,1 80.3,39"
-        android:strokeWidth="0.6"
-        android:strokeColor="#33FFFFFF" />
+        android:fillColor="#55FFB300"
+        android:pathData="M24,43.2L84,43.2L84,44.0L24,44.0Z" />
 
-    <!-- Header Bottom Vibrant Accent Line (Underground Red / Central Line) -->
+    <!-- Glowing Emerald "LIVE" Beacon Dot (Left of Header) -->
     <path
-        android:fillColor="#E32017"
-        android:pathData="M27,45L81,45L81,46.2L27,46.2Z" />
-
-    <!-- ==================== ICONIC ROUNDEL IN HEADER ==================== -->
-    <!-- Roundel Halo / Glow for crisp high-contrast icon legibility -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M38.5,37m-5.4,0a5.4,5.4 0 1,1 10.8,0a5.4,5.4 0 1,1 -10.8,0" />
-    <!-- Roundel Outer Red Ring -->
-    <path
-        android:fillColor="#E32017"
-        android:pathData="M38.5,37m-4.5,0a4.5,4.5 0 1,1 9.0,0a4.5,4.5 0 1,1 -9.0,0" />
-    <!-- Roundel Inner Eye / Cutout in Corporate Blue -->
-    <path
-        android:fillColor="#00229E"
-        android:pathData="M38.5,37m-2.4,0a2.4,2.4 0 1,1 4.8,0a2.4,2.4 0 1,1 -4.8,0" />
-    <!-- Roundel Horizontal Crossbar with Soft Rounded Ends -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M32.5,35.8L44.5,35.8A1.2,1.2 0 0,1 45.7,37A1.2,1.2 0 0,1 44.5,38.2L32.5,38.2A1.2,1.2 0 0,1 31.3,37A1.2,1.2 0 0,1 32.5,35.8Z" />
-
-    <!-- Header Station Title Bar (Capsule) & Live Status Indicator Dot -->
-    <path
-        android:fillColor="#F1F5F9"
-        android:pathData="M49,35.2L68,35.2A1.8,1.8 0 0,1 69.8,37A1.8,1.8 0 0,1 68,38.8L49,38.8A1.8,1.8 0 0,1 47.2,37A1.8,1.8 0 0,1 49,35.2Z" />
-    <!-- Glowing Emerald "Live Service" Dot -->
+        android:fillColor="#3300E676"
+        android:pathData="M30.5,38.5m-3.3,0a3.3,3.3 0 1,1 6.6,0a3.3,3.3 0 1,1 -6.6,0" />
     <path
         android:fillColor="#00E676"
-        android:pathData="M75,37m-2.2,0a2.2,2.2 0 1,1 4.4,0a2.2,2.2 0 1,1 -4.4,0" />
+        android:pathData="M30.5,38.5m-1.9,0a1.9,1.9 0 1,1 3.8,0a1.9,1.9 0 1,1 -3.8,0" />
 
-    <!-- ==================== DEPARTURE ROW 1 (Y: 49.5 to 61) ==================== -->
-    <!-- Recessed Split-Flap Slot 1 -->
+    <!-- Platform / Station Header Label Pill -->
     <path
-        android:fillColor="#131B2C"
-        android:pathData="M34,49.5L74,49.5A3.5,3.5 0 0,1 77.5,53L77.5,57.5A3.5,3.5 0 0,1 74,61L34,61A3.5,3.5 0 0,1 30.5,57.5L30.5,53A3.5,3.5 0 0,1 34,49.5Z" />
+        android:fillColor="#94A3B8"
+        android:pathData="M37.5,36.9L56.5,36.9A1.6,1.6 0 0,1 58.1,38.5A1.6,1.6 0 0,1 56.5,40.1L37.5,40.1A1.6,1.6 0 0,1 35.9,38.5A1.6,1.6 0 0,1 37.5,36.9Z" />
 
-    <!-- Line 1 Colour Identifier Pill (Central Red) -->
+    <!-- Digital Clock Amber Readout Pill (Right of Header) -->
+    <path
+        android:fillColor="#FFCA28"
+        android:pathData="M70,36.9L77.5,36.9A1.6,1.6 0 0,1 79.1,38.5A1.6,1.6 0 0,1 77.5,40.1L70,40.1A1.6,1.6 0 0,1 68.4,38.5A1.6,1.6 0 0,1 70,36.9Z" />
+
+    <!-- ==================== LED MATRIX ROW 1: DUE TRAIN (Y: 46.5..58) ==================== -->
+    <!-- Recessed Row 1 Matrix Track -->
+    <path
+        android:fillColor="#0D1424"
+        android:pathData="M30,46.5L78,46.5A3.2,3.2 0 0,1 81.2,49.7L81.2,54.8A3.2,3.2 0 0,1 78,58L30,58A3.2,3.2 0 0,1 26.8,54.8L26.8,49.7A3.2,3.2 0 0,1 30,46.5Z" />
+
+    <!-- Row 1 Line Colour Pill (Central / Tsuen Wan Red) -->
     <path
         android:fillColor="#E32017"
-        android:pathData="M34.5,52L34.5,52A1.4,1.4 0 0,1 35.9,53.4L35.9,57.1A1.4,1.4 0 0,1 34.5,58.5A1.4,1.4 0 0,1 33.1,57.1L33.1,53.4A1.4,1.4 0 0,1 34.5,52Z" />
+        android:pathData="M31,48.8A1.4,1.4 0 0,1 32.4,50.2L32.4,54.3A1.4,1.4 0 0,1 31,55.7A1.4,1.4 0 0,1 29.6,54.3L29.6,50.2A1.4,1.4 0 0,1 31,48.8Z" />
 
-    <!-- Primary Destination Text Representation Bar (Bold White Pill) -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M39.5,53.2L58.5,53.2A2.0,2.0 0 0,1 60.5,55.2A2.0,2.0 0 0,1 58.5,57.2L39.5,57.2A2.0,2.0 0 0,1 37.5,55.2A2.0,2.0 0 0,1 39.5,53.2Z" />
-
-    <!-- Glowing Amber Live Countdown Badge 1 ("Due / 2 min") -->
-    <path android:pathData="M65.5,51.8L73.5,51.8A2.6,2.6 0 0,1 76.1,54.4L76.1,56.1A2.6,2.6 0 0,1 73.5,58.7L65.5,58.7A2.6,2.6 0 0,1 62.9,56.1L62.9,54.4A2.6,2.6 0 0,1 65.5,51.8Z">
+    <!-- Row 1 Glowing Amber-Gold LED Destination Bar -->
+    <path android:pathData="M37,50.0L58.5,50.0A2.25,2.25 0 0,1 60.75,52.25A2.25,2.25 0 0,1 58.5,54.5L37,54.5A2.25,2.25 0 0,1 34.75,52.25A2.25,2.25 0 0,1 37,50.0Z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:startX="62.9"
-                android:startY="51.8"
-                android:endX="76.1"
-                android:endY="58.7"
+                android:startX="34.75"
+                android:startY="50.0"
+                android:endX="60.75"
+                android:endY="54.5"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FFE082" />
+                <item android:offset="0.5" android:color="#FFCA28" />
+                <item android:offset="1.0" android:color="#FFA000" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Subtle LED Matrix Character Segmentation Ticks on Row 1 -->
+    <path
+        android:pathData="M41.5,50.0L41.5,54.5M48.0,50.0L48.0,54.5M54.5,50.0L54.5,54.5"
+        android:strokeWidth="0.7"
+        android:strokeColor="#3805070C" />
+
+    <!-- Row 1 Glowing Emerald Green "DUE" Indicator Badge -->
+    <path
+        android:fillColor="#2E00E676"
+        android:pathData="M66.2,48.4L76.2,48.4A3.0,3.0 0 0,1 79.2,51.4L79.2,53.1A3.0,3.0 0 0,1 76.2,56.1L66.2,56.1A3.0,3.0 0 0,1 63.2,53.1L63.2,51.4A3.0,3.0 0 0,1 66.2,48.4Z" />
+    <path android:pathData="M66.8,49.5L75.6,49.5A2.2,2.2 0 0,1 77.8,51.7L77.8,52.8A2.2,2.2 0 0,1 75.6,55.0L66.8,55.0A2.2,2.2 0 0,1 64.6,52.8L64.6,51.7A2.2,2.2 0 0,1 66.8,49.5Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="64.6"
+                android:startY="49.5"
+                android:endX="77.8"
+                android:endY="55.0"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#69F0AE" />
+                <item android:offset="1.0" android:color="#00C853" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- ==================== LED MATRIX ROW 2: NEXT TRAIN (Y: 60.5..72) ==================== -->
+    <!-- Recessed Row 2 Matrix Track -->
+    <path
+        android:fillColor="#0D1424"
+        android:pathData="M30,60.5L78,60.5A3.2,3.2 0 0,1 81.2,63.7L81.2,68.8A3.2,3.2 0 0,1 78,72L30,72A3.2,3.2 0 0,1 26.8,68.8L26.8,63.7A3.2,3.2 0 0,1 30,60.5Z" />
+
+    <!-- Row 2 Line Colour Pill (Victoria / Island Blue) -->
+    <path
+        android:fillColor="#0098D4"
+        android:pathData="M31,62.8A1.4,1.4 0 0,1 32.4,64.2L32.4,68.3A1.4,1.4 0 0,1 31,69.7A1.4,1.4 0 0,1 29.6,68.3L29.6,64.2A1.4,1.4 0 0,1 31,62.8Z" />
+
+    <!-- Row 2 Glowing Amber LED Destination Bar -->
+    <path android:pathData="M37,64.0L54.0,64.0A2.25,2.25 0 0,1 56.25,66.25A2.25,2.25 0 0,1 54.0,68.5L37,68.5A2.25,2.25 0 0,1 34.75,66.25A2.25,2.25 0 0,1 37,64.0Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="34.75"
+                android:startY="64.0"
+                android:endX="56.25"
+                android:endY="68.5"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FFD54F" />
+                <item android:offset="1.0" android:color="#FF8F00" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Subtle LED Matrix Character Segmentation Ticks on Row 2 -->
+    <path
+        android:pathData="M41.5,64.0L41.5,68.5M48.0,64.0L48.0,68.5"
+        android:strokeWidth="0.7"
+        android:strokeColor="#3805070C" />
+
+    <!-- Row 2 Glowing Amber Countdown Badge ("4 min") -->
+    <path
+        android:fillColor="#2EFFB300"
+        android:pathData="M66.2,62.4L76.2,62.4A3.0,3.0 0 0,1 79.2,65.4L79.2,67.1A3.0,3.0 0 0,1 76.2,70.1L66.2,70.1A3.0,3.0 0 0,1 63.2,67.1L63.2,65.4A3.0,3.0 0 0,1 66.2,62.4Z" />
+    <path android:pathData="M66.8,63.5L75.6,63.5A2.2,2.2 0 0,1 77.8,65.7L77.8,66.8A2.2,2.2 0 0,1 75.6,69.0L66.8,69.0A2.2,2.2 0 0,1 64.6,66.8L64.6,65.7A2.2,2.2 0 0,1 66.8,63.5Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="64.6"
+                android:startY="63.5"
+                android:endX="77.8"
+                android:endY="69.0"
                 android:type="linear">
                 <item android:offset="0.0" android:color="#FFE082" />
                 <item android:offset="1.0" android:color="#FF8F00" />
             </gradient>
         </aapt:attr>
     </path>
-
-    <!-- Split-flap Horizontal Center Seam across Row 1 -->
-    <path
-        android:fillColor="#22000000"
-        android:pathData="M30.5,55L77.5,55L77.5,55.6L30.5,55.6Z" />
-
-    <!-- ==================== DEPARTURE ROW 2 (Y: 64 to 75.5) ==================== -->
-    <!-- Recessed Split-Flap Slot 2 -->
-    <path
-        android:fillColor="#131B2C"
-        android:pathData="M34,64L74,64A3.5,3.5 0 0,1 77.5,67.5L77.5,72A3.5,3.5 0 0,1 74,75.5L34,75.5A3.5,3.5 0 0,1 30.5,72L30.5,67.5A3.5,3.5 0 0,1 34,64Z" />
-
-    <!-- Line 2 Colour Identifier Pill (Elizabeth / Victoria Cyan/Purple) -->
-    <path
-        android:fillColor="#0098D4"
-        android:pathData="M34.5,66.5L34.5,66.5A1.4,1.4 0 0,1 35.9,67.9L35.9,71.6A1.4,1.4 0 0,1 34.5,73A1.4,1.4 0 0,1 33.1,71.6L33.1,67.9A1.4,1.4 0 0,1 34.5,66.5Z" />
-
-    <!-- Secondary Destination Text Representation Bar (Clean Slate Pill) -->
-    <path
-        android:fillColor="#CBD5E1"
-        android:pathData="M39.5,67.7L54.5,67.7A2.0,2.0 0 0,1 56.5,69.7A2.0,2.0 0 0,1 54.5,71.7L39.5,71.7A2.0,2.0 0 0,1 37.5,69.7A2.0,2.0 0 0,1 39.5,67.7Z" />
-
-    <!-- Countdown Amber Digit Frame & Pill 2 -->
-    <path
-        android:fillColor="#2BFFB300"
-        android:pathData="M65.5,66.3L73.5,66.3A2.6,2.6 0 0,1 76.1,68.9L76.1,70.6A2.6,2.6 0 0,1 73.5,73.2L65.5,73.2A2.6,2.6 0 0,1 62.9,70.6L62.9,68.9A2.6,2.6 0 0,1 65.5,66.3Z" />
-    <path
-        android:fillColor="#FFA000"
-        android:pathData="M66.5,68.1L72.5,68.1A1.6,1.6 0 0,1 74.1,69.7A1.6,1.6 0 0,1 72.5,71.3L66.5,71.3A1.6,1.6 0 0,1 64.9,69.7A1.6,1.6 0 0,1 66.5,68.1Z" />
-
-    <!-- Split-flap Horizontal Center Seam across Row 2 -->
-    <path
-        android:fillColor="#22000000"
-        android:pathData="M30.5,69.5L77.5,69.5L77.5,70.1L30.5,70.1Z" />
 </vector>
