@@ -69,8 +69,13 @@ import androidx.compose.material.icons.rounded.Public
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.res.stringResource
 import com.androidfung.departureboard.R
-import com.androidfung.departureboard.util.LocaleHelper
 import com.androidfung.departureboard.billing.SubscriptionTier
+import com.androidfung.departureboard.ui.theme.DebugAccentPink
+import com.androidfung.departureboard.ui.theme.FeatureInstalledGreen
+import com.androidfung.departureboard.ui.theme.TierMaxPurple
+import com.androidfung.departureboard.ui.theme.TierProAmber
+import com.androidfung.departureboard.ui.theme.dimensions
+import com.androidfung.departureboard.util.LocaleHelper
 import com.androidfung.departureboard.widget.WidgetUpdateWorker
 import kotlinx.coroutines.launch
 
@@ -192,11 +197,13 @@ fun DebugSettingsBody(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
+    val dimensions = MaterialTheme.dimensions
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(scrollState)
-            .padding(horizontal = 24.dp, vertical = 8.dp)
+            .padding(horizontal = dimensions.paddingScreenEdge, vertical = dimensions.paddingMedium)
     ) {
             // Header
             Row(
@@ -207,19 +214,19 @@ fun DebugSettingsBody(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(dimensions.iconContainerSize)
                             .clip(CircleShape)
-                            .background(Color(0xFFE91E63).copy(alpha = 0.15f)),
+                            .background(DebugAccentPink.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.BugReport,
                             contentDescription = null,
-                            tint = Color(0xFFE91E63),
-                            modifier = Modifier.size(22.dp)
+                            tint = DebugAccentPink,
+                            modifier = Modifier.size(dimensions.iconMedium)
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(dimensions.paddingLarge))
                     Column {
                         Text(
                             text = "Debug Settings",
@@ -243,7 +250,7 @@ fun DebugSettingsBody(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(dimensions.cornerRadiusExtraLarge))
 
             // Section 1: Monetization / Tier Switch
             Text(
@@ -252,10 +259,10 @@ fun DebugSettingsBody(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(dimensions.paddingMedium))
 
             Card(
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(dimensions.cardRadius),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -264,8 +271,8 @@ fun DebugSettingsBody(
                         val isSelected = userPlan == plan
                         val planColor = when (plan) {
                             com.androidfung.departureboard.billing.UserPlan.FREE -> MaterialTheme.colorScheme.onSurfaceVariant
-                            com.androidfung.departureboard.billing.UserPlan.PRO -> Color(0xFFFFB300)
-                            com.androidfung.departureboard.billing.UserPlan.MAX -> Color(0xFF9C27B0)
+                            com.androidfung.departureboard.billing.UserPlan.PRO -> TierProAmber
+                            com.androidfung.departureboard.billing.UserPlan.MAX -> TierMaxPurple
                         }
                         val desc = when (plan) {
                             com.androidfung.departureboard.billing.UserPlan.FREE ->
@@ -280,7 +287,7 @@ fun DebugSettingsBody(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onSelectPlan(plan) }
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                                .padding(horizontal = dimensions.paddingExtraLarge, vertical = dimensions.paddingLarge),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -292,9 +299,9 @@ fun DebugSettingsBody(
                                     imageVector = Icons.Rounded.WorkspacePremium,
                                     contentDescription = null,
                                     tint = if (isSelected) planColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(dimensions.iconStandard)
                                 )
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(dimensions.paddingLarge))
                                 Column {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
@@ -303,20 +310,19 @@ fun DebugSettingsBody(
                                             color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         if (plan == com.androidfung.departureboard.billing.UserPlan.MAX) {
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Spacer(modifier = Modifier.width(dimensions.paddingMedium - dimensions.paddingTiny))
                                             Box(
                                                 modifier = Modifier
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(Color(0xFF9C27B0).copy(alpha = 0.2f))
-                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    .clip(RoundedCornerShape(dimensions.paddingSmall))
+                                                    .background(TierMaxPurple.copy(alpha = 0.2f))
+                                                    .padding(horizontal = dimensions.paddingSmall, vertical = dimensions.paddingTiny)
                                             ) {
                                                 Text(
                                                     text = "DEBUG ONLY",
                                                     style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontSize = 9.sp,
                                                         fontWeight = FontWeight.Bold
                                                     ),
-                                                    color = Color(0xFF9C27B0)
+                                                    color = TierMaxPurple
                                                 )
                                             }
                                         }
@@ -338,14 +344,14 @@ fun DebugSettingsBody(
                         if (index < com.androidfung.departureboard.billing.UserPlan.entries.size - 1) {
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                modifier = Modifier.padding(horizontal = dimensions.paddingExtraLarge)
                             )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(dimensions.cornerRadiusExtraLarge))
 
             // Section 2: AI Model Selection (Local vs Cloud vs Logic Fallback)
             Text(
@@ -354,10 +360,10 @@ fun DebugSettingsBody(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(dimensions.paddingMedium))
 
             Card(
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(dimensions.cardRadius),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -375,7 +381,7 @@ fun DebugSettingsBody(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onSelectAiModel(model) }
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                                .padding(horizontal = dimensions.paddingExtraLarge, vertical = dimensions.paddingLarge),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -387,9 +393,9 @@ fun DebugSettingsBody(
                                     imageVector = modelIcon,
                                     contentDescription = null,
                                     tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(dimensions.iconStandard)
                                 )
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(dimensions.paddingLarge))
                                 Column {
                                     Text(
                                         text = model.title,
@@ -425,17 +431,17 @@ fun DebugSettingsBody(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(dimensions.paddingMedium))
 
             Card(
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(dimensions.cardRadius),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(dimensions.paddingExtraLarge)
                 ) {
                     // Region / Transit Network
                     if (onOpenRegionPicker != null) {
@@ -457,9 +463,9 @@ fun DebugSettingsBody(
                                     imageVector = Icons.Rounded.Public,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(dimensions.iconStandard)
                                 )
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(dimensions.paddingLarge))
                                 Column {
                                     Text(
                                         text = stringResource(R.string.switch_region_title),
@@ -477,13 +483,13 @@ fun DebugSettingsBody(
                                 imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(dimensions.cornerRadiusExtraLarge)
                             )
                         }
 
                         HorizontalDivider(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                            modifier = Modifier.padding(vertical = 16.dp)
+                            modifier = Modifier.padding(vertical = dimensions.paddingExtraLarge)
                         )
                     }
 
@@ -495,16 +501,16 @@ fun DebugSettingsBody(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { showLanguagePicker = true }
-                            .padding(vertical = 12.dp),
+                            .padding(vertical = dimensions.paddingLarge),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Language,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(dimensions.iconStandard)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(dimensions.paddingLarge))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = stringResource(R.string.settings_language_title),
@@ -525,7 +531,7 @@ fun DebugSettingsBody(
                             imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(dimensions.cornerRadiusExtraLarge)
                         )
                     }
 
@@ -543,7 +549,7 @@ fun DebugSettingsBody(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(dimensions.cornerRadiusExtraLarge))
 
             // Section 4: Quick Action Triggers
             Text(
@@ -552,10 +558,10 @@ fun DebugSettingsBody(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(dimensions.paddingMedium))
 
             Card(
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(dimensions.cardRadius),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -624,7 +630,7 @@ fun DebugSettingsBody(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(dimensions.cornerRadiusExtraLarge))
 
             // Section 5: Play Dynamic Feature Modules
             Text(
@@ -633,7 +639,7 @@ fun DebugSettingsBody(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(dimensions.paddingMedium))
 
             val dynamicAiProvider = remember { com.androidfung.departureboard.ai.DynamicAiAssistantProvider(context) }
             var isDynamicAiInstalled by remember { androidx.compose.runtime.mutableStateOf(dynamicAiProvider.isFeatureInstalled) }
@@ -641,7 +647,7 @@ fun DebugSettingsBody(
             var isInstallingModule by remember { androidx.compose.runtime.mutableStateOf(false) }
 
             Card(
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(dimensions.cardRadius),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -649,7 +655,7 @@ fun DebugSettingsBody(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                            .padding(horizontal = dimensions.paddingExtraLarge, vertical = dimensions.paddingLarge),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -660,10 +666,10 @@ fun DebugSettingsBody(
                             Icon(
                                 imageVector = Icons.Rounded.Extension,
                                 contentDescription = null,
-                                tint = if (isDynamicAiInstalled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
+                                tint = if (isDynamicAiInstalled) FeatureInstalledGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(dimensions.iconStandard)
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(dimensions.paddingLarge))
                             Column {
                                 Text(
                                     text = ":features:ai_assistant",
@@ -677,7 +683,7 @@ fun DebugSettingsBody(
                                         installStatusText ?: "Not installed (On-demand Play feature)"
                                     },
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = if (isDynamicAiInstalled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (isDynamicAiInstalled) FeatureInstalledGreen else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -725,7 +731,7 @@ fun DebugSettingsBody(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(dimensions.paddingScreenEdge))
         }
 }
 
@@ -736,20 +742,21 @@ private fun DebugActionItem(
     subtitle: String,
     onClick: () -> Unit
 ) {
+    val dimensions = MaterialTheme.dimensions
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = dimensions.paddingExtraLarge, vertical = dimensions.paddingLarge),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(dimensions.iconMedium)
         )
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(dimensions.paddingLarge))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,

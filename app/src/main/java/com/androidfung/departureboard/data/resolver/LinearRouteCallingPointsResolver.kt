@@ -56,15 +56,25 @@ abstract class LinearRouteCallingPointsResolver(
                 resolved.contains(cleanOrigin, ignoreCase = true)
         }
 
-        val destIdx = seq.indexOfFirst {
-            val resolved = network.resolveStationName(it)
+        fun matchesDestination(codeOrName: String): Boolean {
+            val resolved = network.resolveStationName(codeOrName)
             val resolvedClean = resolved.replace(Regex("\\s*\\(.*\\)"), "").trim()
-            it.equals(cleanDest, ignoreCase = true) ||
+            return codeOrName.equals(cleanDest, ignoreCase = true) ||
                 resolved.equals(cleanDest, ignoreCase = true) ||
                 resolvedClean.equals(cleanDest, ignoreCase = true) ||
-                cleanDest.contains(it, ignoreCase = true) ||
+                cleanDest.contains(codeOrName, ignoreCase = true) ||
                 cleanDest.contains(resolved, ignoreCase = true) ||
                 resolved.contains(cleanDest, ignoreCase = true)
+        }
+
+        // Prefer a downstream match (indexOfLast > originIdx) so spiral lines like London's Circle line
+        // (where Edgware Road is both an intermediate stop and the final terminus) slice forward to the terminus.
+        val lastDestIdx = seq.indexOfLast { matchesDestination(it) }
+        val firstDestIdx = seq.indexOfFirst { matchesDestination(it) }
+        val destIdx = if (!isLoop && originIdx != -1 && lastDestIdx > originIdx) {
+            lastDestIdx
+        } else {
+            firstDestIdx
         }
 
         if (originIdx == -1) {

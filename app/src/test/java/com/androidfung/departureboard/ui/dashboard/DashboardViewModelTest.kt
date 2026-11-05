@@ -1,10 +1,13 @@
 package com.androidfung.departureboard.ui.dashboard
 
 import android.app.Application
+import android.location.Location
+import androidx.lifecycle.SavedStateHandle
 import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.repository.TransitRepository
 import com.androidfung.departureboard.test.FakeTransitRepository
@@ -24,9 +27,11 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModelTest {

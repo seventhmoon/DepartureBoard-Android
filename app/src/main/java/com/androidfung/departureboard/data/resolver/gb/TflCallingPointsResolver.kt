@@ -281,7 +281,13 @@ class TflCallingPointsResolver(
                 }
             }
         } catch (_: Exception) {
-            // Fall through to fallback
+            // Fall through to local GbTransitRoutes fallback
+        }
+
+        // Local static topology fallback via GbTransitRoutes before returning minimal 2-stop fallback
+        val localRoutePoints = com.androidfung.departureboard.data.model.gb.GbTransitRoutes.resolveLocalCallingPoints(departure)
+        if (localRoutePoints.size > 2) {
+            return@withContext localRoutePoints
         }
 
         // Minimal fallback: [Current Station] -> [Destination Station]

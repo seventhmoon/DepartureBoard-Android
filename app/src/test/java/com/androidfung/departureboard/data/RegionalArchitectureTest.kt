@@ -10,6 +10,8 @@ import com.androidfung.departureboard.data.model.TransitLineRegistry
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.au.AuStationDirectory
 import com.androidfung.departureboard.data.model.au.AuSydneyLine
+import com.androidfung.departureboard.data.model.gb.GbTransitLine
+import com.androidfung.departureboard.data.model.gb.GbTransitRoutes
 import com.androidfung.departureboard.data.model.isBus
 import com.androidfung.departureboard.data.model.jp.JpStationDirectory
 import com.androidfung.departureboard.data.model.jp.JpTokyoLine
@@ -17,6 +19,7 @@ import com.androidfung.departureboard.data.model.jp.JpTokyoRoutes
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
 import com.androidfung.departureboard.data.model.primaryTransitMode
 import com.androidfung.departureboard.data.model.sg.SgMrtLine
+import com.androidfung.departureboard.data.model.sg.SgMrtRoutes
 import com.androidfung.departureboard.data.model.sg.SgStationDirectory
 import com.androidfung.departureboard.data.model.transitMode
 import com.androidfung.departureboard.data.repository.region.AuRegionalTransitProvider
@@ -24,6 +27,7 @@ import com.androidfung.departureboard.data.repository.region.HkRegionalTransitPr
 import com.androidfung.departureboard.data.repository.region.JpRegionalTransitProvider
 import com.androidfung.departureboard.data.repository.region.SgRegionalTransitProvider
 import com.androidfung.departureboard.data.resolver.jp.JpCallingPointsResolver
+import com.androidfung.departureboard.data.resolver.sg.SgCallingPointsResolver
 import com.androidfung.departureboard.util.CoalescingTimedCache
 import com.androidfung.departureboard.util.runSuspendCatching
 import kotlinx.coroutines.CancellationException
@@ -139,14 +143,23 @@ class RegionalArchitectureTest {
     }
 
     @Test
-    fun `TransitLineRegistry resolves line badges across HK, SG, AU, and JP`() {
+    fun `TransitLineRegistry resolves line badges across GB, HK, SG, AU, and JP`() {
         val registries: List<TransitLineRegistry> = listOf(
+            GbTransitLine,
             HkMtrLineRegistry,
             SgMrtLine,
             AuSydneyLine,
             JpTokyoLine
         )
-        assertEquals(4, registries.size)
+        assertEquals(5, registries.size)
+
+        val gbTubeBadge = GbTransitLine.getLineBadge("northern")
+        assertEquals("northern", gbTubeBadge.lineId)
+        assertEquals("NOR", gbTubeBadge.lineCode)
+
+        val gbOvergroundBadge = GbTransitLine.getLineBadge("windrush")
+        assertEquals("windrush", gbOvergroundBadge.lineId)
+        assertEquals(TransitMode.OVERGROUND, gbOvergroundBadge.mode)
 
         val hkBadge = HkMtrLineRegistry.getLineBadge("TWL")
         assertEquals("TWL", hkBadge.lineCode)
@@ -233,5 +246,54 @@ class RegionalArchitectureTest {
         assertNotNull(SgRegionalTransitProvider.getStationById("SG_MRT_EW13_NS25"))
         assertNotNull(AuRegionalTransitProvider.getStationById("AU_TRAIN_CENTRAL"))
         assertNotNull(JpRegionalTransitProvider.getStationById("JP_METRO_M17_JY01"))
+    }
+
+    @Test
+    fun `GbTransitRoutes models London Circle line as spiral linear route not a continuous loop`() {
+        assertFalse(GbTransitRoutes.loopLineCodes.contains("CIRCLE"))
+        assertTrue(GbTransitRoutes.loopLineCodes.contains("METRO-YELLOW"))
+
+        val circleDep = Departure(
+            id = "cir_1",
+            stationId = "940GZZLUKSX",
+            stationName = "King's Cross St. Pancras",
+            lineId = "circle",
+            lineName = "Circle",
+            platformName = "Eastbound - Platform 1",
+            destinationName = "Edgware Road",
+            towards = "Edgware Road via Victoria",
+            direction = "inbound",
+            timeToStationSeconds = 120,
+            expectedArrivalIso = null,
+            currentLocation = null,
+            modeName = "tube",
+            lineBadge = GbTransitLine.CIRCLE.toLineBadge()
+        )
+
+        val callingPoints = GbTransitRoutes.resolveLocalCallingPoints(circleDep)
+        assertEquals("King's Cross St. Pancras", callingPoints.first().stationName)
+        assertEquals("Edgware Road", callingPoints.last().stationName)
+        assertTrue(callingPoints.any { it.stationName == "Victoria" })
+        assertTrue(callingPoints.any { it.stationName == "High Street Kensington" })
+    }
+
+    @Test
+    fun `SgMrtRoutes and JpTokyoRoutes resolve station codes and canonical stationIds`() {
+        // Singapore MRT stores station codes (NS1..NS28, EW1..EW33, CG1..CG2)
+        assertTrue(SgMrtRoutes.lineSequences["NSL"]!!.contains("NS25"))
+        assertEquals("City Hall", SgMrtRoutes.resolveStationName("NS25"))
+
+        val sgResolver = SgCallingPointsResolver()
+        val changiPoints = sgResolver.resolveCallingPointsForTrip(
+            lineCode = "EWL",
+            originStationIdentifier = "EW4",
+            destStationIdentifier = "CG2"
+        )
+        assertEquals(listOf("Tanah Merah", "Expo", "Changi Airport"), changiPoints.map { it.stationName })
+        assertEquals("SG_MRT_CG2", changiPoints.last().stationId)
+
+        // Tokyo stores station numbering codes (JY01..JY30, G01..G19, M01..M25)
+        assertTrue(JpTokyoRoutes.lineSequences["JY"]!!.contains("JY01"))
+        assertEquals("Tokyo", JpTokyoRoutes.resolveStationName("JY01"))
     }
 }
