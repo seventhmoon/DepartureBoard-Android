@@ -4,8 +4,8 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
-import com.androidfung.departureboard.ui.components.TransitIconHelper
 import com.androidfung.departureboard.ui.dashboard.StationBadgeSynthesizer
+import com.androidfung.departureboard.ui.designsystem.TransitIconHelper
 
 /**
  * Resolves transit service interruptions and delays for glanceable widget displays,

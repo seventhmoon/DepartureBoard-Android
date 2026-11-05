@@ -70,7 +70,7 @@ import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
-import com.androidfung.departureboard.ui.components.PaywallBottomSheet
+import com.androidfung.departureboard.ui.feature.paywall.PaywallBottomSheet
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
@@ -475,7 +475,7 @@ fun WidgetStationPickerScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = com.androidfung.departureboard.ui.components.TransitIconHelper.getTransitIconForMode(station.modes.firstOrNull()),
+                                    imageVector = com.androidfung.departureboard.ui.designsystem.TransitIconHelper.getTransitIconForMode(station.modes.firstOrNull()),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.size(22.dp)

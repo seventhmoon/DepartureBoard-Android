@@ -21,7 +21,7 @@ import com.androidfung.departureboard.data.repository.region.gb.TyneAndWearMetro
 import com.androidfung.departureboard.data.repository.region.hk.HkBusCallingPointsResolver
 import com.androidfung.departureboard.data.repository.region.hk.HkBusDepartureSource
 import com.androidfung.departureboard.data.repository.region.hk.HkMtrDepartureSource
-import com.androidfung.departureboard.ui.components.buildDisplayLineStatusItems
+import com.androidfung.departureboard.ui.feature.settings.buildDisplayLineStatusItems
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
