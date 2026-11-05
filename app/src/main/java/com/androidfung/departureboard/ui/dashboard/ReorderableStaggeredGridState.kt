@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.dashboard
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter

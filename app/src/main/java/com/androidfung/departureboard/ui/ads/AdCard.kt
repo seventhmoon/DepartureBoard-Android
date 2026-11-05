@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.ads
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

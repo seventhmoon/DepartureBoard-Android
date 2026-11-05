@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.feature.detail
 
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -75,7 +75,12 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.ui.detail.DetailPaneScaffold
+import com.androidfung.departureboard.ui.ads.NativeAdStyle
+import com.androidfung.departureboard.ui.ads.NativeAdViewContainer
+import com.androidfung.departureboard.ui.dashboard.LineDisruptionBanner
+import com.androidfung.departureboard.ui.designsystem.DepartureRowItem
+import com.androidfung.departureboard.ui.designsystem.DepartureRowVariant
+import com.androidfung.departureboard.ui.designsystem.TransitIconHelper
 
 private sealed interface StationDetailListItem {
     data class DepartureItem(val departure: Departure, val index: Int) : StationDetailListItem

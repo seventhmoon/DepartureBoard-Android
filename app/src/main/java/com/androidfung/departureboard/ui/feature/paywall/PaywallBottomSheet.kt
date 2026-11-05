@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.feature.paywall
 
 import android.app.Activity
 import android.content.Context

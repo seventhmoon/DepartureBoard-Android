@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.feature.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +40,7 @@ import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.isHkBus
 import com.androidfung.departureboard.data.model.isHkMtr
 import com.androidfung.departureboard.data.model.isHkStation
+import com.androidfung.departureboard.ui.designsystem.TransitIconHelper
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 
 /**
@@ -201,8 +202,10 @@ fun StationSearchResultRow(
                                         modeName = transitMode.id
                                     )
                                 }
-                                val displayBadgeName = if (station.isHkMtr && transitMode == TransitMode.TUBE) {
+                                val displayBadgeName = if (station.isHkMtr && transitMode == TransitMode.METRO) {
                                     "MTR"
+                                } else if (station.id.startsWith("SG_", ignoreCase = true) && transitMode == TransitMode.METRO) {
+                                    "MRT"
                                 } else {
                                     transitMode.displayName
                                 }

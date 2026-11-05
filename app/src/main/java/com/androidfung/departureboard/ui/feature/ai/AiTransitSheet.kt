@@ -1,5 +1,9 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.feature.ai
 
+import android.app.Activity
+import android.content.Intent
+import android.speech.RecognizerIntent
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -28,8 +32,6 @@ import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import com.androidfung.departureboard.billing.BillingDataSource
-import com.androidfung.departureboard.billing.SubscriptionTier
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,15 +58,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import android.app.Activity
-import android.content.Intent
-import android.speech.RecognizerIntent
-import android.widget.Toast
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.androidfung.departureboard.ai.AiTransitResult
 import com.androidfung.departureboard.ai.TransitAiAssistant
+import com.androidfung.departureboard.billing.BillingDataSource
+import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.repository.TransitRepository
 import kotlinx.coroutines.launch

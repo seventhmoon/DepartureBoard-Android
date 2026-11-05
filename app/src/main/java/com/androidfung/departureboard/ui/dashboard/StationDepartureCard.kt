@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.dashboard
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -65,6 +65,8 @@ import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.ui.dashboard.StationCardUiModel
+import com.androidfung.departureboard.ui.designsystem.DepartureRowItem
+import com.androidfung.departureboard.ui.designsystem.TransitIconHelper
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 
 /**

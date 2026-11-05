@@ -6,8 +6,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.ui.dashboard.StationCardUiModel
 import com.androidfung.departureboard.test.TestFixtures
+import com.androidfung.departureboard.ui.dashboard.StationCardUiModel
+import com.androidfung.departureboard.ui.dashboard.StationDepartureCard
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Rule

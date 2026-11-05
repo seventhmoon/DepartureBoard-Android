@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performScrollTo
 import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.UserPlan
 import com.androidfung.departureboard.data.model.TransitRegion
+import com.androidfung.departureboard.ui.feature.settings.DebugSettingsBody
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

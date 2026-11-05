@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.ads
 
 import android.content.Context
 import android.graphics.Color as AndroidColor
@@ -48,6 +48,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.androidfung.departureboard.BuildConfig
+import com.androidfung.departureboard.ui.dashboard.StationDepartureCard
+import com.androidfung.departureboard.ui.designsystem.UnifiedDepartureTimeBadge
+import com.androidfung.departureboard.ui.feature.detail.DepartureDetailItemRow
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest

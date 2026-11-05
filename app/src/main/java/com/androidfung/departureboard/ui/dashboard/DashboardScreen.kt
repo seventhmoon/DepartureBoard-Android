@@ -72,11 +72,7 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflLineColors
-import com.androidfung.departureboard.ui.components.EmptyDashboardState
-import com.androidfung.departureboard.ui.components.StationDepartureCard
-import com.androidfung.departureboard.ui.components.rememberReorderableStaggeredGridState
-import com.androidfung.departureboard.ui.components.reorderableStaggeredGrid
-import com.androidfung.departureboard.ui.components.reorderableStaggeredItem
+import com.androidfung.departureboard.ui.designsystem.EmptyDashboardState
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 import com.androidfung.departureboard.ui.theme.LocalWindowWidthClass
 import com.androidfung.departureboard.ui.theme.WindowWidthClass
@@ -127,7 +123,7 @@ fun DashboardContent(
             TopAppBar(
                 title = {
                     val windowWidthClass = LocalWindowWidthClass.current
-                    val isTwoPane = com.androidfung.departureboard.ui.components.LocalIsTwoPaneMode.current
+                    val isTwoPane = com.androidfung.departureboard.ui.feature.detail.LocalIsTwoPaneMode.current
                     val (titleFontSize, titleLineHeight) = when {
                         isTwoPane -> 20.sp to 24.sp
                         windowWidthClass == WindowWidthClass.NARROW -> 20.sp to 24.sp
@@ -198,7 +194,7 @@ fun DashboardContent(
                 actions = {
                     var showMenu by remember { mutableStateOf(false) }
                     val disruptedCount = remember(uiState.lineStatuses, uiState.selectedRegion) {
-                        com.androidfung.departureboard.ui.components.buildDisplayLineStatusItems(
+                        com.androidfung.departureboard.ui.feature.settings.buildDisplayLineStatusItems(
                             uiState.lineStatuses,
                             uiState.selectedRegion
                         ).count { it.isDisrupted }
@@ -384,8 +380,8 @@ fun DashboardContent(
         }
     ) { innerPadding ->
         val windowWidthClass = LocalWindowWidthClass.current
-        val isTwoPane = com.androidfung.departureboard.ui.components.LocalIsTwoPaneMode.current
-        val isThreePane = com.androidfung.departureboard.ui.components.LocalIsThreePaneMode.current
+        val isTwoPane = com.androidfung.departureboard.ui.feature.detail.LocalIsTwoPaneMode.current
+        val isThreePane = com.androidfung.departureboard.ui.feature.detail.LocalIsThreePaneMode.current
         val gridColumns = when {
             isThreePane -> StaggeredGridCells.Fixed(1)
             isTwoPane && windowWidthClass == WindowWidthClass.EXTRA_LARGE -> StaggeredGridCells.Fixed(2)
@@ -483,7 +479,7 @@ fun DashboardContent(
                             contentType = { "skeleton_card" },
                             span = { StaggeredGridItemSpan.SingleLane }
                         ) {
-                            com.androidfung.departureboard.ui.components.StationCardSkeleton()
+                            com.androidfung.departureboard.ui.designsystem.StationCardSkeleton()
                         }
                     } else if (uiState.stationCards.isEmpty()) {
                         // Empty state when all stations removed spanning full width
@@ -551,8 +547,8 @@ fun DashboardContent(
                                 contentType = "native_ad_card",
                                 span = StaggeredGridItemSpan.SingleLane
                             ) {
-                                com.androidfung.departureboard.ui.components.NativeAdViewContainer(
-                                    style = com.androidfung.departureboard.ui.components.NativeAdStyle.CARD,
+                                com.androidfung.departureboard.ui.ads.NativeAdViewContainer(
+                                    style = com.androidfung.departureboard.ui.ads.NativeAdStyle.CARD,
                                     modifier = Modifier.animateItem()
                                 )
                             }
@@ -586,8 +582,8 @@ fun DashboardContent(
                                     contentType = "native_ad_card",
                                     span = StaggeredGridItemSpan.SingleLane
                                 ) {
-                                    com.androidfung.departureboard.ui.components.NativeAdViewContainer(
-                                        style = com.androidfung.departureboard.ui.components.NativeAdStyle.CARD,
+                                    com.androidfung.departureboard.ui.ads.NativeAdViewContainer(
+                                        style = com.androidfung.departureboard.ui.ads.NativeAdStyle.CARD,
                                         modifier = Modifier.animateItem()
                                     )
                                 }

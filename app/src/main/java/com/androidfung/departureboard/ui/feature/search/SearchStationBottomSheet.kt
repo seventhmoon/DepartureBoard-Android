@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.feature.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

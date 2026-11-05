@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.feature.settings
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically

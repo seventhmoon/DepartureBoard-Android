@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.feature.settings
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.BugReport
@@ -26,7 +27,9 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Extension
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LayersClear
+import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.StarRate
@@ -44,12 +47,12 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import com.androidfung.departureboard.ai.AiModelType
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -59,16 +62,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.androidfung.departureboard.billing.BillingDataSource
-import androidx.compose.material.icons.automirrored.rounded.OpenInNew
-import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.Public
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.res.stringResource
 import com.androidfung.departureboard.R
+import com.androidfung.departureboard.ai.AiModelType
+import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.ui.theme.DebugAccentPink
 import com.androidfung.departureboard.ui.theme.FeatureInstalledGreen

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.feature.detail
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInHorizontally

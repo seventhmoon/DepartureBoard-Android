@@ -38,13 +38,13 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.androidfung.departureboard.billing.BillingRepository
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.ui.components.ListDetailScene
-import com.androidfung.departureboard.ui.components.SearchStationBottomSheet
-import com.androidfung.departureboard.ui.components.StationDetailScreen
-import com.androidfung.departureboard.ui.components.TrainJourneyScreen
-import com.androidfung.departureboard.ui.components.rememberListDetailSceneStrategy
 import com.androidfung.departureboard.ui.dashboard.DashboardContent
 import com.androidfung.departureboard.ui.dashboard.DashboardViewModel
+import com.androidfung.departureboard.ui.feature.detail.ListDetailScene
+import com.androidfung.departureboard.ui.feature.detail.StationDetailScreen
+import com.androidfung.departureboard.ui.feature.detail.TrainJourneyScreen
+import com.androidfung.departureboard.ui.feature.detail.rememberListDetailSceneStrategy
+import com.androidfung.departureboard.ui.feature.search.SearchStationBottomSheet
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
@@ -431,7 +431,7 @@ class MainActivity : ComponentActivity() {
                         val nearest = uiState.nearestStation
                             ?: uiState.nearbyStations.firstOrNull()?.first
                             ?: uiState.stationCards.firstOrNull { it.station.id == uiState.nearestStationId }?.station
-                        com.androidfung.departureboard.ui.components.AiTransitSheet(
+                        com.androidfung.departureboard.ui.feature.ai.AiTransitSheet(
                             onDismissRequest = { showAiSheet = false },
                             repository = viewModel.repository,
                             savedStations = uiState.stationCards.map { it.station },
@@ -450,7 +450,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (showLocationRationale) {
-                        com.androidfung.departureboard.ui.components.LocationRationaleDialog(
+                        com.androidfung.departureboard.ui.designsystem.LocationRationaleDialog(
                             onConfirm = {
                                 showLocationRationale = false
                                 locationPermissionLauncher.launch(
@@ -467,7 +467,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (uiState.paywallPromptReason != null) {
-                        com.androidfung.departureboard.ui.components.PaywallBottomSheet(
+                        com.androidfung.departureboard.ui.feature.paywall.PaywallBottomSheet(
                             onDismissRequest = { viewModel.dismissPaywall() },
                             billingRepository = viewModel.billingRepository,
                             reasonMessage = uiState.paywallPromptReason
@@ -475,7 +475,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (showDebugSheet && BuildConfig.DEBUG) {
-                        com.androidfung.departureboard.ui.components.DebugSettingsBottomSheet(
+                        com.androidfung.departureboard.ui.feature.settings.DebugSettingsBottomSheet(
                             onDismissRequest = { showDebugSheet = false },
                             billingRepository = viewModel.billingRepository,
                             isPro = uiState.isPro,
@@ -514,7 +514,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (showHelpSheet) {
-                        com.androidfung.departureboard.ui.components.HelpFaqBottomSheet(
+                        com.androidfung.departureboard.ui.feature.settings.HelpFaqBottomSheet(
                             onDismissRequest = { showHelpSheet = false },
                             onRateApp = {
                                 lifecycleScope.launch {
@@ -530,7 +530,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (showRegionPickerSheet) {
-                        com.androidfung.departureboard.ui.components.RegionPickerBottomSheet(
+                        com.androidfung.departureboard.ui.feature.settings.RegionPickerBottomSheet(
                             selectedRegion = uiState.selectedRegion,
                             detectedRegion = uiState.detectedRegion,
                             detectedCountryCode = uiState.detectedCountryCode,
@@ -549,7 +549,7 @@ class MainActivity : ComponentActivity() {
                                 card.availableLineBadges.map { it.lineId.lowercase() }
                             }.toSet()
                         }
-                        com.androidfung.departureboard.ui.components.LineStatusBottomSheet(
+                        com.androidfung.departureboard.ui.feature.settings.LineStatusBottomSheet(
                             lineStatuses = uiState.lineStatuses,
                             selectedRegion = uiState.selectedRegion,
                             relevantLineIds = relevantLineIds,
@@ -559,7 +559,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (showSettingsSheet) {
-                        com.androidfung.departureboard.ui.components.SettingsBottomSheet(
+                        com.androidfung.departureboard.ui.feature.settings.SettingsBottomSheet(
                             onDismissRequest = { showSettingsSheet = false },
                             departureRowsCount = uiState.departureRowsCount,
                             onDepartureRowsChange = { count -> viewModel.setDepartureRowsCount(count) },

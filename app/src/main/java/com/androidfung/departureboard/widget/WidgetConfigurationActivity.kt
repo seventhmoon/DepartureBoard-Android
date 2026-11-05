@@ -64,13 +64,14 @@ import androidx.datastore.preferences.core.Preferences.Key
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.BillingRepository
 import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
-import com.androidfung.departureboard.ui.components.PaywallBottomSheet
+import com.androidfung.departureboard.ui.feature.paywall.PaywallBottomSheet
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
@@ -123,7 +124,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
                             ) {
                                 CircularProgressIndicator(strokeWidth = 3.dp)
                                 Text(
-                                    text = "Setting up your board…",
+                                    text = androidx.compose.ui.platform.LocalContext.current.getString(R.string.widget_config_setting_up),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -249,9 +250,9 @@ fun WidgetConfigurationContent(
         val activeCount = (existingGlanceIds.size - 1).coerceAtLeast(0)
 
         if (!userPlan.isPaidOrAbove && activeCount >= userPlan.maxWidgets) {
-            limitReachedReason = "Free plan includes up to ${userPlan.maxWidgets} home screen widgets. Upgrade to Pro for up to ${SubscriptionTier.PRO_MAX_WIDGETS} widgets."
+            limitReachedReason = context.getString(R.string.widget_config_limit_free, userPlan.maxWidgets, SubscriptionTier.PRO_MAX_WIDGETS)
         } else if (userPlan.isPaidOrAbove && activeCount >= userPlan.maxWidgets) {
-            limitReachedReason = "Maximum limit of ${userPlan.maxWidgets} widgets reached to protect battery and API limits."
+            limitReachedReason = context.getString(R.string.widget_config_limit_max, userPlan.maxWidgets)
         }
         isCheckingLimits = false
     }
@@ -265,7 +266,7 @@ fun WidgetConfigurationContent(
             onDismissRequest = onCancel,
             title = {
                 Text(
-                    text = "Widget Limit Reached",
+                    text = context.getString(R.string.widget_config_limit_title),
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
             },
@@ -279,12 +280,12 @@ fun WidgetConfigurationContent(
                 Button(
                     onClick = { showPaywall = true }
                 ) {
-                    Text("Upgrade to Pro")
+                    Text(context.getString(R.string.widget_config_upgrade_pro))
                 }
             },
             dismissButton = {
                 TextButton(onClick = onCancel) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.widget_config_cancel))
                 }
             }
         )
@@ -381,12 +382,12 @@ fun WidgetStationPickerScreen(
         ) {
             Column {
                 Text(
-                    text = "Select Station",
+                    text = context.getString(R.string.widget_config_select_station),
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Choose which station and line this widget shows",
+                    text = context.getString(R.string.widget_config_select_station_desc),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -401,7 +402,7 @@ fun WidgetStationPickerScreen(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
-                    contentDescription = "Cancel",
+                    contentDescription = context.getString(R.string.widget_config_cancel),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -412,7 +413,7 @@ fun WidgetStationPickerScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Search stations, lines, or bus stops...") },
+            placeholder = { Text(context.getString(R.string.widget_config_search_hint)) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Rounded.Search,
@@ -475,7 +476,7 @@ fun WidgetStationPickerScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = com.androidfung.departureboard.ui.components.TransitIconHelper.getTransitIconForMode(station.modes.firstOrNull()),
+                                    imageVector = com.androidfung.departureboard.ui.designsystem.TransitIconHelper.getTransitIconForMode(station.modes.firstOrNull()),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.size(22.dp)
@@ -491,10 +492,10 @@ fun WidgetStationPickerScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 val subtitleLabel = when {
-                                    station.id.startsWith("HK_") -> station.zone ?: "Hong Kong MTR"
-                                    station.displayZone != null -> "Zone ${station.displayZone}"
+                                    station.id.startsWith("HK_") -> station.zone ?: context.getString(R.string.widget_config_hk_mtr)
+                                    station.displayZone != null -> context.getString(R.string.widget_config_zone, station.displayZone)
                                     station.zone != null -> station.zone
-                                    else -> "Transit Network"
+                                    else -> context.getString(R.string.widget_config_network)
                                 }
                                 Text(
                                     text = subtitleLabel,
@@ -540,7 +541,7 @@ fun WidgetStationPickerScreen(
                         .padding(vertical = 8.dp)
                 ) {
                     Text(
-                        text = "Customize route & direction filters for this widget:",
+                        text = context.getString(R.string.widget_config_customize),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -574,7 +575,7 @@ fun WidgetStationPickerScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "All Lines",
+                                text = context.getString(R.string.widget_config_all_lines),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
@@ -617,12 +618,12 @@ fun WidgetStationPickerScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                            Text("Loading station routes & directions...", style = MaterialTheme.typography.bodySmall)
+                            Text(context.getString(R.string.widget_config_loading_routes), style = MaterialTheme.typography.bodySmall)
                         }
                     } else if (availableDirections.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "2. Select Direction (Optional):",
+                            text = context.getString(R.string.widget_config_select_direction),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -644,7 +645,7 @@ fun WidgetStationPickerScreen(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Text(
-                                    text = "All Directions (Default)",
+                                    text = context.getString(R.string.widget_config_all_directions),
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -679,7 +680,7 @@ fun WidgetStationPickerScreen(
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Save Widget")
+                            Text(context.getString(R.string.widget_config_save))
                         }
                     }
                 }
@@ -687,7 +688,7 @@ fun WidgetStationPickerScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { selectedStationForLines = null }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.widget_config_cancel))
                 }
             }
         )

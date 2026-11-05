@@ -1,11 +1,13 @@
 package com.androidfung.departureboard.widget
 
+import android.content.Context
+import com.androidfung.departureboard.R as AppR
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
-import com.androidfung.departureboard.ui.components.TransitIconHelper
 import com.androidfung.departureboard.ui.dashboard.StationBadgeSynthesizer
+import com.androidfung.departureboard.ui.designsystem.TransitIconHelper
 
 /**
  * Resolves transit service interruptions and delays for glanceable widget displays,
@@ -30,7 +32,8 @@ object WidgetInterruptionHelper {
         filteredDepartures: List<Departure>,
         lineStatuses: Map<String, TflLineStatusItem>,
         filterLineId: String?,
-        filterLineName: String?
+        filterLineName: String?,
+        context: Context? = null
     ): InterruptionInfo {
         val badges = StationBadgeSynthesizer.buildStationLineBadges(station, departures, lineStatuses)
 
@@ -59,15 +62,19 @@ object WidgetInterruptionHelper {
                     desc.contains("severe") || desc.contains("suspended") || desc.contains("closure") || desc.contains("closed")
                 }
 
+            val delaysLabel = context?.getString(AppR.string.widget_interruption_delays) ?: "Delays"
             val statusText = if (!filterLineId.isNullOrBlank() || disruptedBadges.size == 1) {
                 val badge = disruptedBadges.first()
+                val description = badge.statusDescription ?: delaysLabel
                 if (!filterLineId.isNullOrBlank()) {
-                    badge.statusDescription ?: "Delays"
+                    description
                 } else {
-                    "${badge.displayName}: ${badge.statusDescription ?: "Delays"}"
+                    context?.getString(AppR.string.widget_interruption_line_with_desc, badge.displayName, description)
+                        ?: "${badge.displayName}: $description"
                 }
             } else {
-                "${disruptedBadges.size} lines disrupted"
+                context?.getString(AppR.string.widget_interruption_lines_disrupted, disruptedBadges.size)
+                    ?: "${disruptedBadges.size} lines disrupted"
             }
 
             return InterruptionInfo(
@@ -80,14 +87,14 @@ object WidgetInterruptionHelper {
         if (hasCancelled) {
             return InterruptionInfo(
                 level = InterruptionLevel.SEVERE,
-                statusText = "Cancellations"
+                statusText = context?.getString(AppR.string.widget_interruption_cancellations) ?: "Cancellations"
             )
         }
 
         if (hasDelayed) {
             return InterruptionInfo(
                 level = InterruptionLevel.WARNING,
-                statusText = "Delays"
+                statusText = context?.getString(AppR.string.widget_interruption_delays) ?: "Delays"
             )
         }
 

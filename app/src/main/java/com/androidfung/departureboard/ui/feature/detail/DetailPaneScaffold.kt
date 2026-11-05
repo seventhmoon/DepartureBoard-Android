@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.detail
+package com.androidfung.departureboard.ui.feature.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,7 +28,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.androidfung.departureboard.ui.components.LocalBackButtonVisibility
 
 /**
  * Reusable detail pane scaffold that standardizes:

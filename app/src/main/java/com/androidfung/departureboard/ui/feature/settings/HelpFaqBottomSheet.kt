@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.feature.settings
 
 import android.content.Intent
 import android.net.Uri
@@ -62,8 +62,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.androidfung.departureboard.BuildConfig
 import androidx.core.net.toUri
+import com.androidfung.departureboard.BuildConfig
 
 data class FaqItem(
     val question: String,

@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.ui.components
+package com.androidfung.departureboard.ui.feature.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,7 +57,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.ui.detail.DetailPaneScaffold
+import com.androidfung.departureboard.ui.ads.NativeAdStyle
+import com.androidfung.departureboard.ui.ads.NativeAdViewContainer
+import com.androidfung.departureboard.ui.dashboard.LineDisruptionBanner
+import com.androidfung.departureboard.ui.designsystem.UnifiedDepartureTimeBadge
 
 private sealed interface JourneyTimelineListItem {
     data class CallingPointItem(val callingPoint: CallingPoint, val index: Int) : JourneyTimelineListItem
