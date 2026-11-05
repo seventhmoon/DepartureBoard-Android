@@ -9,15 +9,21 @@ import com.androidfung.departureboard.data.db.cache.DepartureCacheDatabase
 import com.androidfung.departureboard.data.db.cache.DepartureDao
 import com.androidfung.departureboard.data.db.gb.GbStationDatabase
 import com.androidfung.departureboard.data.db.gb.StationCrsDao
+import com.androidfung.departureboard.data.db.hk.HkBusStopDao
+import com.androidfung.departureboard.data.db.hk.HkStationDatabase
 import com.androidfung.departureboard.data.network.gb.BodsApiService
 import com.androidfung.departureboard.data.network.gb.BodsNetworkClient
 import com.androidfung.departureboard.data.network.gb.NationalRailApiService
 import com.androidfung.departureboard.data.network.gb.NationalRailNetworkClient
 import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.network.gb.TflNetworkClient
-import com.androidfung.departureboard.data.repository.NationalRailStationCodes
+import com.androidfung.departureboard.data.network.hk.HkBusApiService
+import com.androidfung.departureboard.data.network.hk.HkBusNetworkClient
+import com.androidfung.departureboard.data.network.hk.HkMtrApiService
+import com.androidfung.departureboard.data.network.hk.HkMtrNetworkClient
 import com.androidfung.departureboard.data.repository.TransitRepository
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
+import com.androidfung.departureboard.data.repository.region.gb.NationalRailStationCodes
 
 /**
  * Lightweight, centralized dependency container for the application.
@@ -30,9 +36,13 @@ interface AppContainer {
     val tflApiService: TflApiService
     val nationalRailApiService: NationalRailApiService
     val bodsApiService: BodsApiService
+    val hkMtrApiService: HkMtrApiService
+    val kmbBusApiService: HkBusApiService
+    val citybusApiService: HkBusApiService
     val stationPreferencesDataSource: StationPreferencesDataSource
     val departureDao: DepartureDao
     val stationCrsDao: StationCrsDao
+    val hkBusStopDao: HkBusStopDao
     val transitRepository: TransitRepository
     val billingRepository: BillingDataSource
 }
@@ -59,6 +69,18 @@ class DefaultAppContainer(
         BodsNetworkClient.apiService
     }
 
+    override val hkMtrApiService: HkMtrApiService by lazy {
+        HkMtrNetworkClient.apiService
+    }
+
+    override val kmbBusApiService: HkBusApiService by lazy {
+        HkBusNetworkClient.kmbApiService
+    }
+
+    override val citybusApiService: HkBusApiService by lazy {
+        HkBusNetworkClient.citybusApiService
+    }
+
     override val stationPreferencesDataSource: StationPreferencesDataSource by lazy {
         StationPreferencesDataStore(applicationContext)
     }
@@ -69,6 +91,10 @@ class DefaultAppContainer(
 
     override val stationCrsDao: StationCrsDao by lazy {
         GbStationDatabase.getInstance(applicationContext).stationCrsDao()
+    }
+
+    override val hkBusStopDao: HkBusStopDao by lazy {
+        HkStationDatabase.getInstance(applicationContext).hkBusStopDao()
     }
 
     override val transitRepository: TransitRepository by lazy {

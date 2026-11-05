@@ -16,7 +16,7 @@ import com.androidfung.departureboard.data.model.isHkTransitId
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
 import com.androidfung.departureboard.data.repository.DepartureSource
 import com.androidfung.departureboard.data.repository.region.RegionalTransitProvider
-import com.androidfung.departureboard.data.repository.search.HkBusSearchEngine
+import com.androidfung.departureboard.data.repository.region.hk.search.HkBusSearchEngine
 import com.androidfung.departureboard.data.topology.CallingPointsResolver
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -130,8 +130,9 @@ class HkRegionalTransitProvider(
             )
         }
 
-        if (merged.isEmpty() && lastError != null) {
-            Result.failure(lastError!!)
+        val err = lastError
+        if (merged.isEmpty() && err != null) {
+            Result.failure(err)
         } else {
             Result.success(merged.sortedBy { it.timeToStationSeconds })
         }

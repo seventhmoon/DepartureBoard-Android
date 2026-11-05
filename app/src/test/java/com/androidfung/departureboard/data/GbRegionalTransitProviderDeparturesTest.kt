@@ -1,9 +1,9 @@
 package com.androidfung.departureboard.data
 
-import com.androidfung.departureboard.data.repository.TimetableScheduleResolver
+import com.androidfung.departureboard.data.repository.region.gb.TimetableScheduleResolver
 import com.androidfung.departureboard.data.repository.region.gb.GbFeedReconciliationEngine
 import com.androidfung.departureboard.data.repository.region.gb.GbRegionalTransitProvider
-import com.androidfung.departureboard.data.repository.search.StationSearchEngine
+import com.androidfung.departureboard.data.repository.region.gb.search.GbStationSearchEngine
 import com.androidfung.departureboard.test.FakeBodsApiService
 import com.androidfung.departureboard.test.FakeNrApiService
 import com.androidfung.departureboard.test.FakeTflApiService
@@ -20,7 +20,7 @@ class GbRegionalTransitProviderDeparturesTest {
         val fakeTfl = FakeTflApiService()
         val fakeNr = FakeNrApiService()
         val fakeBods = FakeBodsApiService()
-        val searchEngine = StationSearchEngine(fakeTfl, fakeBods)
+        val searchEngine = GbStationSearchEngine(fakeTfl, fakeBods)
         val timetableResolver = TimetableScheduleResolver(fakeTfl)
 
         val provider = GbRegionalTransitProvider(

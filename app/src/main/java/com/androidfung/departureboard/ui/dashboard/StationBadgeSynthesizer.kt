@@ -7,7 +7,7 @@ import com.androidfung.departureboard.data.model.StationLineInferrer
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
-import com.androidfung.departureboard.data.repository.TflStopPointUtils
+import com.androidfung.departureboard.data.repository.region.gb.TflStopPointUtils
 
 /**
  * Pure helper object responsible for resolving, filtering, sorting, and hydrating line badges

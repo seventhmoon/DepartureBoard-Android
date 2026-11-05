@@ -15,11 +15,9 @@ import com.androidfung.departureboard.data.network.gb.NationalRailApiService
 import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.DepartureSource
 import com.androidfung.departureboard.data.repository.StationNameFormatter
-import com.androidfung.departureboard.data.repository.TflStopPointUtils
-import com.androidfung.departureboard.data.repository.TimetableScheduleResolver
-import com.androidfung.departureboard.data.repository.mapper.TflStationMapper
 import com.androidfung.departureboard.data.repository.region.RegionalTransitProvider
-import com.androidfung.departureboard.data.repository.search.StationSearchEngine
+import com.androidfung.departureboard.data.repository.region.gb.mapper.TflStationMapper
+import com.androidfung.departureboard.data.repository.region.gb.search.GbStationSearchEngine
 import com.androidfung.departureboard.data.topology.CallingPointsResolver
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -34,7 +32,7 @@ class GbRegionalTransitProvider(
     private val apiService: TflApiService,
     private val nrApiService: NationalRailApiService,
     private val bodsApiService: BodsApiService,
-    private val stationSearchEngine: StationSearchEngine,
+    private val stationSearchEngine: GbStationSearchEngine,
     private val timetableScheduleResolver: TimetableScheduleResolver,
     private val stationLookup: (String) -> Station? = { null }
 ) : RegionalTransitProvider {
@@ -145,8 +143,9 @@ class GbRegionalTransitProvider(
             }
             .sortedBy { it.timeToStationSeconds }
 
-        if (processedDepartures.isEmpty() && lastError != null) {
-            Result.failure(lastError!!)
+        val err = lastError
+        if (processedDepartures.isEmpty() && err != null) {
+            Result.failure(err)
         } else {
             Result.success(processedDepartures)
         }
@@ -157,4 +156,66 @@ class GbRegionalTransitProvider(
         lineId: String?
     ): StationServiceHoursInfo? =
         timetableScheduleResolver.checkStationServiceHours(stationId, lineId)
+
+    override suspend fun getNearbyStations(lat: Double, lon: Double, radiusMeters: Int): List<Station> {
+        return try {
+            val response = apiService.getNearbyStopPoints(
+                lat = lat,
+                lon = lon,
+                radiusMeters = radiusMeters
+            )
+            response.stopPoints
+                .filter { it.modes.isNotEmpty() }
+                .map { sp -> com.androidfung.departureboard.data.repository.region.gb.mapper.TflStationMapper.fromStopPointChild(sp) }
+                .distinctBy { it.id }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    // In-memory cache for line statuses with 3-minute TTL and concurrent request coalescing
+    private val lineStatusesCache = com.androidfung.departureboard.util.CoalescingTimedCache<String, Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem>>(
+        ttlMillis = 3 * 60 * 1000L
+    )
+    private val providerScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
+
+    suspend fun getLineStatuses(): Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        lineStatusesCache.getOrPutCoalesced(
+            key = "line_statuses",
+            scope = providerScope,
+            shouldCache = { it.isNotEmpty() }
+        ) {
+            try {
+                val fresh = apiService.getLineStatuses().associateBy { it.id.lowercase() }.toMutableMap()
+                try {
+                    val bodsDisruptionsXml = bodsApiService.getDisruptions().string()
+                    val bodsDisruptions = com.androidfung.departureboard.data.model.gb.BodsDisruptionXmlParser.parse(bodsDisruptionsXml)
+                    bodsDisruptions.forEach { bd ->
+                        val line = bd.lineRef?.lowercase()
+                        if (!line.isNullOrBlank()) {
+                            val lineKey = if (line.startsWith("bods-")) line else "bods-$line"
+                            fresh[lineKey] = com.androidfung.departureboard.data.model.gb.TflLineStatusItem(
+                                id = lineKey,
+                                name = bd.lineRef.uppercase(),
+                                modeName = "bus",
+                                lineStatuses = listOf(
+                                    com.androidfung.departureboard.data.model.gb.TflLineStatusDetail(
+                                        id = 0,
+                                        statusSeverity = 9,
+                                        statusSeverityDescription = bd.reason ?: "Disrupted",
+                                        reason = "${bd.summary}${if (!bd.description.isNullOrBlank()) ": ${bd.description}" else ""}"
+                                    )
+                                )
+                            )
+                        }
+                    }
+                } catch (_: Exception) {
+                    // Non-fatal if BODS disruptions call fails
+                }
+                fresh.ifEmpty { lineStatusesCache.getStale("line_statuses").orEmpty() }
+            } catch (_: Exception) {
+                lineStatusesCache.getStale("line_statuses").orEmpty()
+            }
+        }
+    }
 }

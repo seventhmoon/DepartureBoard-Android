@@ -2,7 +2,7 @@ package com.androidfung.departureboard.data.repository.region.jp
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.isJpTransitId
-import com.androidfung.departureboard.data.model.jp.JpTokyoRoutes
+import com.androidfung.departureboard.data.model.jp.topology.JpTokyoRoutes
 import com.androidfung.departureboard.data.topology.LinearRouteCallingPointsResolver
 
 /**

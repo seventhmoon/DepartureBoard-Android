@@ -39,7 +39,7 @@ data class Station(
         get() {
             if (!isBusOnly) return name
 
-            val letter = com.androidfung.departureboard.data.repository.TflStopPointUtils.extractBusStopLetter(id)
+            val letter = com.androidfung.departureboard.data.repository.region.gb.TflStopPointUtils.extractBusStopLetter(id)
             if (letter != null) {
                 if (!name.contains(Regex("\\bStop\\s+$letter\\b", RegexOption.IGNORE_CASE)) && !name.contains("(")) {
                     return "$name (Stop $letter)"
@@ -186,6 +186,7 @@ enum class TransitMode(val id: String, val displayName: String) {
     NATIONAL_RAIL("national-rail", "National Rail"),
     CABLE_CAR("cable-car", "Cable Car"),
     TRAM("tram", "Tram"),
+    FERRY("ferry", "Ferry"),
     OTHER("other", "Transit");
 
     val isRail: Boolean get() = this in RAIL_MODES
@@ -210,6 +211,7 @@ enum class TransitMode(val id: String, val displayName: String) {
                 "national-rail", "rail", "train" -> NATIONAL_RAIL
                 "cable-car" -> CABLE_CAR
                 "tram", "light-rail", "lrt" -> TRAM
+                "ferry", "boat" -> FERRY
                 else -> entries.firstOrNull { it.id == normalized } ?: OTHER
             }
         }

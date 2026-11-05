@@ -244,6 +244,7 @@ object StationLineInferrer {
                         TransitMode.BUS -> TflLineColors.getLineBadge("bus", "Bus", mode.id)
                         TransitMode.NATIONAL_RAIL -> TflLineColors.getLineBadge("national-rail", "National Rail", mode.id)
                         TransitMode.CABLE_CAR -> TflLineColors.getLineBadge("cable-car", "IFS Cloud Cable Car", mode.id)
+                        TransitMode.FERRY -> TflLineColors.getLineBadge("ferry", "Ferry", mode.id)
                         TransitMode.OTHER -> TflLineColors.getLineBadge("transit", "Transit", mode.id)
                     }
                 }

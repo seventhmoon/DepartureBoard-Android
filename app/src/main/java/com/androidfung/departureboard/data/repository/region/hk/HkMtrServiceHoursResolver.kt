@@ -2,8 +2,8 @@ package com.androidfung.departureboard.data.repository.region.hk
 
 import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.hk.HkMtrLine
-import com.androidfung.departureboard.data.model.hk.HkMtrRoutes
 import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
+import com.androidfung.departureboard.data.model.hk.topology.HkMtrRoutes
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
 import java.time.ZoneId
 import java.time.ZonedDateTime

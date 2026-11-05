@@ -4,8 +4,8 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import com.androidfung.departureboard.data.model.hk.HkMtrLine
-import com.androidfung.departureboard.data.model.hk.HkMtrRoutes
 import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
+import com.androidfung.departureboard.data.model.hk.topology.HkMtrRoutes
 import com.androidfung.departureboard.data.model.isHkMtrStationId
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
 import com.androidfung.departureboard.data.network.hk.HkMtrApiService

@@ -6,11 +6,8 @@ import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.DepartureSource
-import com.androidfung.departureboard.data.repository.TflStopPointUtils
-import com.androidfung.departureboard.data.repository.TimetableScheduleResolver
-import com.androidfung.departureboard.data.repository.TurnaroundTimeTracker
-import com.androidfung.departureboard.data.repository.direction.DestinationResolver
-import com.androidfung.departureboard.data.repository.mapper.TflDepartureMapper
+import com.androidfung.departureboard.data.repository.region.gb.direction.DestinationResolver
+import com.androidfung.departureboard.data.repository.region.gb.mapper.TflDepartureMapper
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope

@@ -11,8 +11,8 @@ import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitRegion
-import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.BodsDisruptionXmlParser
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.gb.TflLineStatusDetail
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
@@ -22,7 +22,6 @@ import com.androidfung.departureboard.data.network.gb.NationalRailApiService
 import com.androidfung.departureboard.data.network.gb.NationalRailNetworkClient
 import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.network.gb.TflNetworkClient
-import com.androidfung.departureboard.data.repository.mapper.TflStationMapper
 import com.androidfung.departureboard.data.repository.region.RegionalTransitProvider
 import com.androidfung.departureboard.data.repository.region.au.AuCallingPointsResolver
 import com.androidfung.departureboard.data.repository.region.au.AuDepartureSource
@@ -33,7 +32,10 @@ import com.androidfung.departureboard.data.repository.region.gb.GbRegionalTransi
 import com.androidfung.departureboard.data.repository.region.gb.NationalRailDepartureSource
 import com.androidfung.departureboard.data.repository.region.gb.TflCallingPointsResolver
 import com.androidfung.departureboard.data.repository.region.gb.TflDepartureSource
+import com.androidfung.departureboard.data.repository.region.gb.TimetableScheduleResolver
 import com.androidfung.departureboard.data.repository.region.gb.TyneAndWearMetroDepartureSource
+import com.androidfung.departureboard.data.repository.region.gb.mapper.TflStationMapper
+import com.androidfung.departureboard.data.repository.region.gb.search.GbStationSearchEngine
 import com.androidfung.departureboard.data.repository.region.hk.HkBusCallingPointsResolver
 import com.androidfung.departureboard.data.repository.region.hk.HkBusDepartureSource
 import com.androidfung.departureboard.data.repository.region.hk.HkMtrCallingPointsResolver
@@ -45,8 +47,6 @@ import com.androidfung.departureboard.data.repository.region.jp.JpRegionalTransi
 import com.androidfung.departureboard.data.repository.region.sg.SgCallingPointsResolver
 import com.androidfung.departureboard.data.repository.region.sg.SgDepartureSource
 import com.androidfung.departureboard.data.repository.region.sg.SgRegionalTransitProvider
-import com.androidfung.departureboard.data.repository.search.HkBusSearchEngine
-import com.androidfung.departureboard.data.repository.search.StationSearchEngine
 import com.androidfung.departureboard.data.topology.CallingPointsEngine
 import com.androidfung.departureboard.ui.theme.AppThemeMode
 import com.androidfung.departureboard.util.CoalescingTimedCache
@@ -113,14 +113,11 @@ class TransitRepositoryImpl(
     private val dataStore: StationPreferencesDataSource,
     private val departureDao: DepartureDao? = null,
     private val timetableScheduleResolver: TimetableScheduleResolver = TimetableScheduleResolver(apiService),
-    private val context: Context? = null
+    private val context: Context? = null,
+    customRegionalProviders: List<RegionalTransitProvider>? = null
 ) : TransitRepository {
 
-
-
-
-
-    private val stationSearchEngine = StationSearchEngine(
+    private val stationSearchEngine = GbStationSearchEngine(
         apiService = apiService,
         bodsApiService = bodsApiService,
         context = context
@@ -135,7 +132,7 @@ class TransitRepositoryImpl(
         stationLookup = { id -> GbDefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(id, ignoreCase = true) } }
     )
 
-    private val regionalProviders: List<RegionalTransitProvider> = listOf(
+    private val regionalProviders: List<RegionalTransitProvider> = customRegionalProviders ?: listOf(
         HkRegionalTransitProvider(context = context),
         SgRegionalTransitProvider,
         AuRegionalTransitProvider,
@@ -246,52 +243,9 @@ class TransitRepositoryImpl(
         emit(getDepartures(stationId, stationName))
     }.flowOn(Dispatchers.IO)
 
-    // In-memory cache for TfL line statuses with 3-minute TTL and concurrent request coalescing
-    private val lineStatusesCache = CoalescingTimedCache<String, Map<String, TflLineStatusItem>>(
-        ttlMillis = LINE_STATUS_CACHE_TTL_MS
-    )
-
     override suspend fun getLineStatuses(): Map<String, TflLineStatusItem> = withContext(Dispatchers.IO) {
-        lineStatusesCache.getOrPutCoalesced(
-            key = LINE_STATUS_CACHE_KEY,
-            scope = repositoryScope,
-            shouldCache = { it.isNotEmpty() }
-        ) {
-            try {
-                val fresh = apiService.getLineStatuses().associateBy { it.id.lowercase() }.toMutableMap()
-
-                // Concurrently fetch DfT BODS SIRI-SX disruptions for regional bus lines
-                try {
-                    val bodsDisruptionsXml = bodsApiService.getDisruptions().string()
-                    val bodsDisruptions = BodsDisruptionXmlParser.parse(bodsDisruptionsXml)
-                    bodsDisruptions.forEach { bd ->
-                        val line = bd.lineRef?.lowercase()
-                        if (!line.isNullOrBlank()) {
-                            val lineKey = if (line.startsWith("bods-")) line else "bods-$line"
-                            fresh[lineKey] = TflLineStatusItem(
-                                id = lineKey,
-                                name = bd.lineRef.uppercase(),
-                                modeName = "bus",
-                                lineStatuses = listOf(
-                                    TflLineStatusDetail(
-                                        id = 0,
-                                        statusSeverity = 9,
-                                        statusSeverityDescription = bd.reason ?: "Disrupted",
-                                        reason = "${bd.summary}${if (!bd.description.isNullOrBlank()) ": ${bd.description}" else ""}"
-                                    )
-                                )
-                            )
-                        }
-                    }
-                } catch (_: Exception) {
-                    // Non-fatal if BODS disruptions call fails
-                }
-
-                fresh.ifEmpty { lineStatusesCache.getStale(LINE_STATUS_CACHE_KEY).orEmpty() }
-            } catch (_: Exception) {
-                lineStatusesCache.getStale(LINE_STATUS_CACHE_KEY).orEmpty()
-            }
-        }
+        val gb = providersByRegion[TransitRegion.GB] as? GbRegionalTransitProvider ?: gbRegionalProvider
+        gb.getLineStatuses()
     }
 
     override suspend fun getCallingPoints(departure: Departure): List<CallingPoint> = withContext(Dispatchers.IO) {
@@ -339,22 +293,16 @@ class TransitRepositoryImpl(
     }
 
     /**
-     * Fetches nearby stations directly from TfL API by latitude and longitude.
+     * Fetches nearby stations for the currently selected region by latitude and longitude.
      */
-    override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> {
-        return try {
-            val response = apiService.getNearbyStopPoints(
-                lat = lat,
-                lon = lon,
-                radiusMeters = radiusMeters
-            )
-            response.stopPoints
-                .filter { it.modes.isNotEmpty() }
-                .map { sp -> TflStationMapper.fromStopPointChild(sp) }
-                .distinctBy { it.id }
+    override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> = withContext(Dispatchers.IO) {
+        val currentRegion = try {
+            dataStore.selectedRegionFlow.first()
         } catch (_: Exception) {
-            emptyList()
+            TransitRegion.GB
         }
+        val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
+        provider.getNearbyStations(lat, lon, radiusMeters)
     }
 
     private suspend fun cacheDeparturesSafely(stationId: String, departures: List<Departure>) {

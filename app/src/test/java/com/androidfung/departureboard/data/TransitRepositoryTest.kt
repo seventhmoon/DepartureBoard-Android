@@ -5,8 +5,8 @@ import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.gb.TflSearchResponse
 import com.androidfung.departureboard.data.model.gb.TflStopPointMatch
-import com.androidfung.departureboard.data.repository.NationalRailStationCodes
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
+import com.androidfung.departureboard.data.repository.region.gb.NationalRailStationCodes
 import com.androidfung.departureboard.test.FakeNrApiService
 import com.androidfung.departureboard.test.FakeStationPreferencesDataSource
 import com.androidfung.departureboard.test.FakeTflApiService

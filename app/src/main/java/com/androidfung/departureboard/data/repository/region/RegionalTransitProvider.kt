@@ -65,4 +65,10 @@ interface RegionalTransitProvider {
         stationId: String,
         lineId: String? = null
     ): StationServiceHoursInfo? = null
+
+    /**
+     * Discovers nearby stations within this region around the coordinates [lat], [lon]
+     * within [radiusMeters].
+     */
+    suspend fun getNearbyStations(lat: Double, lon: Double, radiusMeters: Int = 1500): List<Station> = emptyList()
 }

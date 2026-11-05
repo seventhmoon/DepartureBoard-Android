@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.data.repository.region.au
 
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.au.AuSydneyRoutes
+import com.androidfung.departureboard.data.model.au.topology.AuSydneyRoutes
 import com.androidfung.departureboard.data.model.isAuTransitId
 import com.androidfung.departureboard.data.topology.LinearRouteCallingPointsResolver
 

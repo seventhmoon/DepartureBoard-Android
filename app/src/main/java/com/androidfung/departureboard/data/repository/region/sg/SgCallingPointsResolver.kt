@@ -2,7 +2,7 @@ package com.androidfung.departureboard.data.repository.region.sg
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.isSgTransitId
-import com.androidfung.departureboard.data.model.sg.SgMrtRoutes
+import com.androidfung.departureboard.data.model.sg.topology.SgMrtRoutes
 import com.androidfung.departureboard.data.topology.LinearRouteCallingPointsResolver
 
 /**

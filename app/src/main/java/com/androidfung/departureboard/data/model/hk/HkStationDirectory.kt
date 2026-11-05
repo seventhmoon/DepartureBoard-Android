@@ -4,6 +4,7 @@ import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationDirectory
 import com.androidfung.departureboard.data.model.StationLineInfo
 import com.androidfung.departureboard.data.model.StationSearchRanker
+import com.androidfung.departureboard.data.model.hk.topology.HkMtrRoutes
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
 
 /**
