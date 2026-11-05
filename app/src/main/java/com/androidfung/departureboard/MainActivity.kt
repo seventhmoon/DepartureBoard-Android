@@ -487,6 +487,10 @@ class MainActivity : ComponentActivity() {
                             onSelectAiModel = { model -> viewModel.setAiModelType(model) },
                             selectedRegion = uiState.selectedRegion,
                             onSelectRegion = { region -> viewModel.setSelectedRegion(region) },
+                            onOpenRegionPicker = {
+                                showDebugSheet = false
+                                showRegionPickerSheet = true
+                            },
                             isHkRegionEnabled = uiState.isHkRegionEnabled,
                             onToggleHkRegionEnabled = { enabled -> viewModel.setHkRegionEnabled(enabled) },
                             onTriggerInAppReview = {
@@ -569,11 +573,6 @@ class MainActivity : ComponentActivity() {
                                     requestLocationWithRationale()
                                 }
                                 viewModel.setAutoSortByLocation(enabled)
-                            },
-                            selectedRegion = uiState.selectedRegion,
-                            onOpenRegionPicker = {
-                                showSettingsSheet = false
-                                showRegionPickerSheet = true
                             },
                             isPro = uiState.isPro,
                             billingRepository = viewModel.billingRepository,

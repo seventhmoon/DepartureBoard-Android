@@ -183,12 +183,15 @@ private fun TrainJourneyContent(
         .collectAsStateWithLifecycle()
     val isTracked = trackedDepartureId == departure.id
 
+    var pendingTrackDeparture by remember { mutableStateOf<Departure?>(null) }
+
     val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
         }
+        pendingTrackDeparture = null
     }
 
     DetailPaneScaffold(

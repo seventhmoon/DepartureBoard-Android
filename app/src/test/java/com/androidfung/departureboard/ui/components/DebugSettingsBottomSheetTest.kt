@@ -97,7 +97,7 @@ class DebugSettingsBottomSheetTest {
 
     @Test
     fun testHkRegionSelectionCallback() {
-        var selectedRegion: TransitRegion? = null
+        var openRegionPickerClicked = false
 
         composeTestRule.setContent {
             DebugSettingsBody(
@@ -107,7 +107,8 @@ class DebugSettingsBottomSheetTest {
                 selectedAiModel = com.androidfung.departureboard.ai.AiModelType.DEFAULT,
                 onSelectAiModel = {},
                 selectedRegion = TransitRegion.GB,
-                onSelectRegion = { selectedRegion = it },
+                onSelectRegion = {},
+                onOpenRegionPicker = { openRegionPickerClicked = true },
                 isHkRegionEnabled = true,
                 onToggleHkRegionEnabled = {},
                 remainingAiQueries = 3,
@@ -117,8 +118,8 @@ class DebugSettingsBottomSheetTest {
             )
         }
 
-        composeTestRule.onNodeWithText("Hong Kong (HK)").performScrollTo().performClick()
-        assertEquals(TransitRegion.HK, selectedRegion)
+        composeTestRule.onNodeWithText("Switch Region").performScrollTo().performClick()
+        assertTrue(openRegionPickerClicked)
     }
 
     @Test

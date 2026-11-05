@@ -63,6 +63,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.androidfung.departureboard.billing.BillingDataSource
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.res.stringResource
+import com.androidfung.departureboard.R
+import com.androidfung.departureboard.util.LocaleHelper
 import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.widget.WidgetUpdateWorker
 import kotlinx.coroutines.launch
@@ -86,6 +93,7 @@ fun DebugSettingsBottomSheet(
     onSelectAiModel: (AiModelType) -> Unit = {},
     selectedRegion: com.androidfung.departureboard.data.model.TransitRegion = com.androidfung.departureboard.data.model.TransitRegion.GB,
     onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit = {},
+    onOpenRegionPicker: (() -> Unit)? = null,
     isHkRegionEnabled: Boolean = false,
     onToggleHkRegionEnabled: (Boolean) -> Unit = {},
     onTriggerInAppReview: () -> Unit = {},
@@ -101,6 +109,7 @@ fun DebugSettingsBottomSheet(
         onSelectAiModel = onSelectAiModel,
         selectedRegion = selectedRegion,
         onSelectRegion = onSelectRegion,
+        onOpenRegionPicker = onOpenRegionPicker,
         isHkRegionEnabled = isHkRegionEnabled,
         onToggleHkRegionEnabled = onToggleHkRegionEnabled,
         onResetStations = onResetStations,
@@ -122,6 +131,7 @@ fun DebugSettingsContent(
     onSelectAiModel: (AiModelType) -> Unit,
     selectedRegion: com.androidfung.departureboard.data.model.TransitRegion,
     onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit,
+    onOpenRegionPicker: (() -> Unit)? = null,
     isHkRegionEnabled: Boolean,
     onToggleHkRegionEnabled: (Boolean) -> Unit,
     onResetStations: () -> Unit,
@@ -150,6 +160,7 @@ fun DebugSettingsContent(
             onSelectAiModel = onSelectAiModel,
             selectedRegion = selectedRegion,
             onSelectRegion = onSelectRegion,
+            onOpenRegionPicker = onOpenRegionPicker,
             isHkRegionEnabled = isHkRegionEnabled,
             onToggleHkRegionEnabled = onToggleHkRegionEnabled,
             remainingAiQueries = remainingAiQueries,
@@ -169,6 +180,7 @@ fun DebugSettingsBody(
     onSelectAiModel: (AiModelType) -> Unit,
     selectedRegion: com.androidfung.departureboard.data.model.TransitRegion,
     onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit,
+    onOpenRegionPicker: (() -> Unit)? = null,
     isHkRegionEnabled: Boolean,
     onToggleHkRegionEnabled: (Boolean) -> Unit,
     remainingAiQueries: Int,
@@ -406,9 +418,9 @@ fun DebugSettingsBody(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Section 3: Multi-Region Testing
+            // Section 3: Region & Language Settings
             Text(
-                text = "REGION TESTING (EXPERIMENTAL)",
+                text = stringResource(R.string.settings_section_region_language),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
@@ -420,80 +432,113 @@ fun DebugSettingsBody(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Enable Hong Kong (Experimental)",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Unlock MTR and KMB/Citybus departures",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    // Region / Transit Network
+                    if (onOpenRegionPicker != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onDismissRequest()
+                                    onOpenRegionPicker()
+                                },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Public,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = stringResource(R.string.switch_region_title),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "${selectedRegion.flagEmoji} ${stringResource(selectedRegion.displayNameRes)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
-                        Switch(
-                            checked = isHkRegionEnabled,
-                            onCheckedChange = { onToggleHkRegionEnabled(it) }
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                            modifier = Modifier.padding(vertical = 16.dp)
                         )
                     }
 
-                    if (isHkRegionEnabled) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                    // App Language Selector
+                    var currentLanguageTag = LocaleHelper.getAppLocale()?.toLanguageTag().orEmpty()
+                    var showLanguagePicker by remember { mutableStateOf(false) }
 
-                        com.androidfung.departureboard.data.model.TransitRegion.entries.forEachIndexed { index, region ->
-                            val isSelected = selectedRegion == region
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onSelectRegion(region) }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable { onSelectRegion(region) },
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = region.flagEmoji,
-                                        fontSize = 20.sp
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        Text(
-                                            text = "${androidx.compose.ui.res.stringResource(region.displayNameRes)} (${region.code})",
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                            ),
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = region.subtitle,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                                RadioButton(
-                                    selected = isSelected,
-                                    onClick = { onSelectRegion(region) }
-                                )
-                            }
-                            if (index < com.androidfung.departureboard.data.model.TransitRegion.entries.lastIndex) {
-                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-                            }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showLanguagePicker = true }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Language,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.settings_language_title),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            val currentLangName = SUPPORTED_LANGUAGES.find {
+                                if (it.tag.isEmpty()) currentLanguageTag.isEmpty()
+                                else currentLanguageTag.startsWith(it.tag, ignoreCase = true)
+                            }?.nativeName ?: stringResource(R.string.language_system)
+                            Text(
+                                text = currentLangName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    if (showLanguagePicker) {
+                        @OptIn(ExperimentalMaterial3Api::class)
+                        LanguagePickerBottomSheet(
+                            currentLanguageTag = currentLanguageTag,
+                            onSelectLanguage = { tag ->
+                                showLanguagePicker = false
+                                LocaleHelper.setAppLanguage(tag.ifEmpty { null })
+                            },
+                            onDismissRequest = { showLanguagePicker = false }
+                        )
                     }
                 }
             }
