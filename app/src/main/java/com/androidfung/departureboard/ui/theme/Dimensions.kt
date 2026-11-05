@@ -36,7 +36,14 @@ data class Dimensions(
     // Transit Specific UI sizes
     val badgeWidth: Dp = 38.dp,
     val badgeHeight: Dp = 28.dp,
-    val mapIconSize: Dp = 18.dp
+    val mapIconSize: Dp = 18.dp,
+
+    // Component Specific Icon & Control Sizes
+    val iconSmall: Dp = 18.dp,
+    val iconMedium: Dp = 22.dp,
+    val iconStandard: Dp = 24.dp,
+    val iconContainerSize: Dp = 38.dp,
+    val cardRadius: Dp = 18.dp
 )
 
 val LocalDimensions = staticCompositionLocalOf { Dimensions() }

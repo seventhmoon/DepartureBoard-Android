@@ -70,3 +70,9 @@ val TflDarkSurfaceContainerLow = Color(0xFF151822)
 val GoodServiceGreen = Color(0xFF2E7D32)
 val MinorDelaysAmber = Color(0xFFF57C00)
 val SevereDelaysRed = Color(0xFFD32F2F)
+
+// Semantic Feature & Badge Accent Colors
+val DebugAccentPink = Color(0xFFE91E63)
+val TierProAmber = Color(0xFFFFB300)
+val TierMaxPurple = Color(0xFF9C27B0)
+val FeatureInstalledGreen = Color(0xFF4CAF50)
