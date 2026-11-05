@@ -396,17 +396,16 @@ class DashboardViewModel @JvmOverloads constructor(
         if (!isCurrentlyOnline) return
         autoRefreshJob?.cancel()
         autoRefreshJob = viewModelScope.launch {
-            // Adaptive polling backed off from 30s to save battery and network:
-            // Fetch immediately on screen entry, then back off to a more reasonable 60s
-            // for dashboard-level macro polling.
+            // Adaptive polling backed off to 60s to conserve battery and avoid rate-limiting.
+            // Delay first because observeSavedStations() already triggers an initial fetch on entry.
             while (isActive) {
+                delay(60_000L.milliseconds)
                 if (isCurrentlyOnline) {
                     val stations = _uiState.value.stationCards.map { it.station }
                     if (stations.isNotEmpty()) {
                         refreshDeparturesForStations(stations)
                     }
                 }
-                delay(60_000L.milliseconds)
             }
         }
     }

@@ -111,7 +111,7 @@ fun StationDepartureCard(
     }
 
     // Reset dismiss state if station is restored/re-added to avoid staying swiped on the red delete box
-    androidx.compose.runtime.LaunchedEffect(cardModel.station.id, cardModel.departures) {
+    androidx.compose.runtime.LaunchedEffect(cardModel.station.id) {
         if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
             dismissState.snapTo(SwipeToDismissBoxValue.Settled)
         }

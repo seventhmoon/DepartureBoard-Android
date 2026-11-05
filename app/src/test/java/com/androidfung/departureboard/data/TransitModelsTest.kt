@@ -109,4 +109,30 @@ class TransitModelsTest {
         assertEquals("Weaver", badges[1].displayName)
         assertEquals(TransitMode.OVERGROUND, badges[1].mode)
     }
+
+    @Test
+    fun testGtfsRouteTypesAndParsing() {
+        assertEquals(TransitMode.METRO, TransitMode.fromModeString("metro"))
+        assertEquals(TransitMode.METRO, TransitMode.fromModeString("subway"))
+        assertEquals(TransitMode.RAIL, TransitMode.fromModeString("rail"))
+        assertEquals(TransitMode.BUS, TransitMode.fromModeString("bus"))
+        assertEquals(TransitMode.TRAM, TransitMode.fromModeString("tram"))
+        assertEquals(TransitMode.FERRY, TransitMode.fromModeString("ferry"))
+        assertEquals(TransitMode.CABLE_CAR, TransitMode.fromModeString("cable-car"))
+        assertEquals(TransitMode.FUNICULAR, TransitMode.fromModeString("funicular"))
+        assertEquals(TransitMode.MONORAIL, TransitMode.fromModeString("monorail"))
+
+        assertEquals(1, TransitMode.METRO.gtfsRouteType)
+        assertEquals(2, TransitMode.RAIL.gtfsRouteType)
+        assertEquals(3, TransitMode.BUS.gtfsRouteType)
+        assertEquals(0, TransitMode.TRAM.gtfsRouteType)
+        assertEquals(4, TransitMode.FERRY.gtfsRouteType)
+        assertEquals(6, TransitMode.CABLE_CAR.gtfsRouteType)
+        assertEquals(7, TransitMode.FUNICULAR.gtfsRouteType)
+        assertEquals(12, TransitMode.MONORAIL.gtfsRouteType)
+
+        assertTrue(TransitMode.MONORAIL.isRail)
+        assertTrue(TransitMode.RAIL.isRail)
+        assertTrue(TransitMode.METRO.isRail)
+    }
 }

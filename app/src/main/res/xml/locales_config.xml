@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Declares the locales the app supports for the per-app language feature
+    (Android 13+: Settings > Apps > Departure Board > Language, or
+    Developer Options > App language).
+
+    IMPORTANT: a locale must be listed here for BOTH of these to work:
+      1. The "App language" override in Developer Options / app info.
+      2. AppCompatDelegate.setApplicationLocales() used by the in-app
+         language picker (LocaleHelper.setAppLanguage) — on Android 13+
+         the platform silently rejects locales not declared here.
+
+    Keep this list in sync with the res/values-* folders and
+    SUPPORTED_LANGUAGES in LanguagePickerBottomSheet.kt.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale item="en" />
+    <locale item="zh-Hant" />
+    <locale item="ja" />
+    <locale item="ko" />
+</locale-config>

@@ -176,42 +176,69 @@ data class LineBadgeInfo(
 
 /**
  * Supported transit modes.
+ *
+ * Generic physical transit mode definitions following international standards (such as GTFS route types).
+ * Regional sub-networks and brands (e.g. Tube for Metro; Overground, Elizabeth line, JR for Rail)
+ * are represented as lines or customized via [TransitRegion.getModeDisplayName].
  */
-enum class TransitMode(val id: String, val displayName: String) {
-    TUBE("tube", "Underground"),
-    BUS("bus", "Bus"),
-    ELIZABETH_LINE("elizabeth-line", "Elizabeth line"),
-    OVERGROUND("overground", "Overground"),
-    DLR("dlr", "DLR"),
-    NATIONAL_RAIL("national-rail", "National Rail"),
-    CABLE_CAR("cable-car", "Cable Car"),
-    TRAM("tram", "Tram"),
-    FERRY("ferry", "Ferry"),
-    OTHER("other", "Transit");
+enum class TransitMode(
+    val id: String,
+    val displayName: String,
+    val gtfsRouteType: Int = -1
+) {
+    METRO("metro", "Metro", 1),              // GTFS 1: Subway, Metro, Underground, MRT, MTR
+    RAIL("rail", "Rail", 2),                 // GTFS 2: Rail, National Rail, Commuter Rail, JR, Sydney Trains
+    BUS("bus", "Bus", 3),                    // GTFS 3: Bus
+    TRAM("tram", "Tram", 0),                 // GTFS 0: Tram, Streetcar, Light rail, DLR, LRT
+    FERRY("ferry", "Ferry", 4),              // GTFS 4: Ferry, River Bus
+    CABLE_CAR("cable-car", "Cable Car", 6),  // GTFS 6: Aerial lift, suspended cable car
+    FUNICULAR("funicular", "Funicular", 7),  // GTFS 7: Funicular railway (e.g. Peak Tram, cliff railways)
+    MONORAIL("monorail", "Monorail", 12),    // GTFS 12: Monorail (e.g. Tokyo Monorail, Sentosa Express)
+    OTHER("other", "Transit", -1);
+
+    /**
+     * Resolves localized or regional name for this mode, falling back to [displayName].
+     */
+    fun getDisplayName(region: TransitRegion?): String {
+        return region?.getModeDisplayName(this) ?: displayName
+    }
 
     val isRail: Boolean get() = this in RAIL_MODES
 
     companion object {
+        // Backward-compatibility aliases for legacy TfL-centric names
+        @Deprecated("Use METRO instead", ReplaceWith("TransitMode.METRO"))
+        val TUBE: TransitMode get() = METRO
+
+        @Deprecated("Use RAIL instead", ReplaceWith("TransitMode.RAIL"))
+        val NATIONAL_RAIL: TransitMode get() = RAIL
+
+        @Deprecated("Use RAIL instead (Elizabeth line is a rail service)", ReplaceWith("TransitMode.RAIL"))
+        val ELIZABETH_LINE: TransitMode get() = RAIL
+
+        @Deprecated("Use RAIL instead (Overground is a rail service)", ReplaceWith("TransitMode.RAIL"))
+        val OVERGROUND: TransitMode get() = RAIL
+
+        @Deprecated("Use TRAM instead (DLR is light rail)", ReplaceWith("TransitMode.TRAM"))
+        val DLR: TransitMode get() = TRAM
+
         val RAIL_MODES: Set<TransitMode> = setOf(
-            TUBE,
-            OVERGROUND,
-            ELIZABETH_LINE,
-            NATIONAL_RAIL,
-            DLR
+            METRO,
+            RAIL,
+            MONORAIL
         )
 
         fun fromModeString(modeStr: String?): TransitMode {
             if (modeStr == null) return OTHER
             return when (val normalized = modeStr.lowercase().trim()) {
-                "tube", "underground", "mtr", "mrt", "subway", "metro" -> TUBE
+                "metro", "tube", "underground", "mtr", "mrt", "subway" -> METRO
                 "bus" -> BUS
-                "elizabeth", "elizabeth-line" -> ELIZABETH_LINE
-                "overground" -> OVERGROUND
-                "dlr" -> DLR
-                "national-rail", "rail", "train" -> NATIONAL_RAIL
-                "cable-car" -> CABLE_CAR
-                "tram", "light-rail", "lrt" -> TRAM
-                "ferry", "boat" -> FERRY
+                "rail", "national-rail", "train", "overground", "elizabeth", "elizabeth-line", "thameslink", "jr" -> RAIL
+                "tram", "light-rail", "lrt", "dlr" -> TRAM
+                "ferry", "river-bus", "river-tour", "boat" -> FERRY
+                "cable-car", "gondola", "aerial" -> CABLE_CAR
+                "funicular" -> FUNICULAR
+                "monorail" -> MONORAIL
                 else -> entries.firstOrNull { it.id == normalized } ?: OTHER
             }
         }

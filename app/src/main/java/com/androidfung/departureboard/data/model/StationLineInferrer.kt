@@ -236,15 +236,14 @@ object StationLineInferrer {
                     )
                 } else {
                     when (mode) {
-                        TransitMode.TUBE -> TflLineColors.getLineBadge("tube", "Underground", mode.id)
-                        TransitMode.ELIZABETH_LINE -> TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", mode.id)
-                        TransitMode.OVERGROUND -> TflLineColors.getLineBadge("overground", "Overground", mode.id)
-                        TransitMode.DLR -> TflLineColors.getLineBadge("dlr", "DLR", mode.id)
+                        TransitMode.METRO -> TflLineColors.getLineBadge("tube", "Underground", mode.id)
+                        TransitMode.RAIL -> TflLineColors.getLineBadge("national-rail", "National Rail", mode.id)
                         TransitMode.TRAM -> TflLineColors.getLineBadge("tram", "Tram", mode.id)
                         TransitMode.BUS -> TflLineColors.getLineBadge("bus", "Bus", mode.id)
-                        TransitMode.NATIONAL_RAIL -> TflLineColors.getLineBadge("national-rail", "National Rail", mode.id)
                         TransitMode.CABLE_CAR -> TflLineColors.getLineBadge("cable-car", "IFS Cloud Cable Car", mode.id)
                         TransitMode.FERRY -> TflLineColors.getLineBadge("ferry", "Ferry", mode.id)
+                        TransitMode.FUNICULAR -> TflLineColors.getLineBadge("funicular", "Funicular", mode.id)
+                        TransitMode.MONORAIL -> TflLineColors.getLineBadge("monorail", "Monorail", mode.id)
                         TransitMode.OTHER -> TflLineColors.getLineBadge("transit", "Transit", mode.id)
                     }
                 }
