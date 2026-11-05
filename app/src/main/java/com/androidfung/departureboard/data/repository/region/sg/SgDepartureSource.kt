@@ -1,9 +1,9 @@
-package com.androidfung.departureboard.data.repository.source.sg
+package com.androidfung.departureboard.data.repository.region.sg
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.isSgTransitId
 import com.androidfung.departureboard.data.model.sg.SgDefaultStations
-import com.androidfung.departureboard.data.repository.source.DepartureSource
+import com.androidfung.departureboard.data.repository.DepartureSource
 
 /**
  * Departure source for Singapore transit (MRT).

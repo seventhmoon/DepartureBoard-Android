@@ -16,9 +16,9 @@ import com.androidfung.departureboard.data.repository.direction.OvergroundLineRe
 import com.androidfung.departureboard.data.repository.direction.ThameslinkDirectionResolver
 import com.androidfung.departureboard.data.repository.mapper.NationalRailDepartureMapper
 import com.androidfung.departureboard.data.repository.mapper.TflDepartureMapper
-import com.androidfung.departureboard.data.repository.source.hk.HkBusDepartureSource
-import com.androidfung.departureboard.data.repository.source.hk.HkMtrDepartureSource
-import com.androidfung.departureboard.data.resolver.hk.HkBusCallingPointsResolver
+import com.androidfung.departureboard.data.repository.region.hk.HkBusCallingPointsResolver
+import com.androidfung.departureboard.data.repository.region.hk.HkBusDepartureSource
+import com.androidfung.departureboard.data.repository.region.hk.HkMtrDepartureSource
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

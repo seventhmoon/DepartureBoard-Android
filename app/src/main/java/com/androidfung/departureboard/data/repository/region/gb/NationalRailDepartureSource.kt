@@ -1,11 +1,11 @@
-package com.androidfung.departureboard.data.repository.source.gb
+package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.gb.NrTrainService
 import com.androidfung.departureboard.data.network.gb.NationalRailApiService
+import com.androidfung.departureboard.data.repository.DepartureSource
 import com.androidfung.departureboard.data.repository.NationalRailStationCodes
 import com.androidfung.departureboard.data.repository.mapper.NationalRailDepartureMapper
-import com.androidfung.departureboard.data.repository.source.DepartureSource
 
 /**
  * Departure source for National Rail (Darwin LDBWS) live departures.

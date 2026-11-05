@@ -1,11 +1,11 @@
-package com.androidfung.departureboard.data.resolver.gb
+package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.gb.BodsXmlParser
 import com.androidfung.departureboard.data.model.isBods
 import com.androidfung.departureboard.data.network.gb.BodsApiService
-import com.androidfung.departureboard.data.resolver.CallingPointsResolver
+import com.androidfung.departureboard.data.topology.CallingPointsResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

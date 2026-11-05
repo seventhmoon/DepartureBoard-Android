@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.repository.source
+package com.androidfung.departureboard.data.repository
 
 import com.androidfung.departureboard.data.model.Departure
 

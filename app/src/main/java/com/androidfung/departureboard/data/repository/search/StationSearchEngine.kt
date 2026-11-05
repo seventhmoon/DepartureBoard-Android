@@ -59,7 +59,7 @@ class StationSearchEngine(
                 val naptanDeferred = async { searchNaptanStopsIfApplicable(trimmed) }
 
                 // 6. Search Tyne & Wear Metro stations
-                val metroStations = com.androidfung.departureboard.data.repository.source.gb.TyneAndWearMetroDepartureSource.searchMetroStations(trimmed)
+                val metroStations = com.androidfung.departureboard.data.repository.region.gb.TyneAndWearMetroDepartureSource.searchMetroStations(trimmed)
 
                 val crsMatchStation = crsDeferred.await()
                 val localRailStations = localRailDeferred.await()

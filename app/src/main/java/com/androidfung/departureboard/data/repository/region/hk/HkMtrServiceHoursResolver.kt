@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.repository.source.hk
+package com.androidfung.departureboard.data.repository.region.hk
 
 import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.hk.HkMtrLine

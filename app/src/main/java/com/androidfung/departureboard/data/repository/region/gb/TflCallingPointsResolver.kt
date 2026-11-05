@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.resolver.gb
+package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
@@ -8,7 +8,7 @@ import com.androidfung.departureboard.data.model.gb.TflRouteSequenceResponse
 import com.androidfung.departureboard.data.model.gb.TflStationIds
 import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.StationNameFormatter
-import com.androidfung.departureboard.data.resolver.CallingPointsResolver
+import com.androidfung.departureboard.data.topology.CallingPointsResolver
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

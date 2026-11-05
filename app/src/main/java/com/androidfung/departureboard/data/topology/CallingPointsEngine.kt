@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.resolver
+package com.androidfung.departureboard.data.topology
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure

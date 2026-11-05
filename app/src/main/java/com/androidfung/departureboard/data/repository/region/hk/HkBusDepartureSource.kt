@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.repository.source.hk
+package com.androidfung.departureboard.data.repository.region.hk
 
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.Departure
@@ -12,7 +12,7 @@ import com.androidfung.departureboard.data.model.hk.HkKmbEtaItem
 import com.androidfung.departureboard.data.model.isHkBusStationId
 import com.androidfung.departureboard.data.network.hk.HkBusApiService
 import com.androidfung.departureboard.data.network.hk.HkBusNetworkClient
-import com.androidfung.departureboard.data.repository.source.DepartureSource
+import com.androidfung.departureboard.data.repository.DepartureSource
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter

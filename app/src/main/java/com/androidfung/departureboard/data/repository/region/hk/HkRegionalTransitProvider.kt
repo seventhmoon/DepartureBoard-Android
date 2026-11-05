@@ -15,8 +15,6 @@ import com.androidfung.departureboard.data.model.isHkTransitId
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
 import com.androidfung.departureboard.data.repository.region.RegionalTransitProvider
 import com.androidfung.departureboard.data.repository.search.HkBusSearchEngine
-import com.androidfung.departureboard.data.repository.source.hk.HkBusServiceHoursResolver
-import com.androidfung.departureboard.data.repository.source.hk.HkMtrServiceHoursResolver
 
 /**
  * Hong Kong (MTR, KMB, Citybus) regional transit provider.

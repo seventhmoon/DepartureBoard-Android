@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.resolver.jp
+package com.androidfung.departureboard.data.repository.region.jp
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.isJpTransitId

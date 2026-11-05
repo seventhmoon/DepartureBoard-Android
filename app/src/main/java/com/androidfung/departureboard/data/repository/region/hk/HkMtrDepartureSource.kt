@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.repository.source.hk
+package com.androidfung.departureboard.data.repository.region.hk
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
@@ -10,7 +10,7 @@ import com.androidfung.departureboard.data.model.isHkMtrStationId
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
 import com.androidfung.departureboard.data.network.hk.HkMtrApiService
 import com.androidfung.departureboard.data.network.hk.HkMtrNetworkClient
-import com.androidfung.departureboard.data.repository.source.DepartureSource
+import com.androidfung.departureboard.data.repository.DepartureSource
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId

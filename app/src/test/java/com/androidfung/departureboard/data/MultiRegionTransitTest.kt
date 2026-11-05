@@ -6,9 +6,9 @@ import com.androidfung.departureboard.data.model.jp.JpDefaultStations
 import com.androidfung.departureboard.data.model.jp.JpStationDirectory
 import com.androidfung.departureboard.data.model.sg.SgDefaultStations
 import com.androidfung.departureboard.data.model.sg.SgStationDirectory
-import com.androidfung.departureboard.data.repository.source.au.AuDepartureSource
-import com.androidfung.departureboard.data.repository.source.jp.JpDepartureSource
-import com.androidfung.departureboard.data.repository.source.sg.SgDepartureSource
+import com.androidfung.departureboard.data.repository.region.au.AuDepartureSource
+import com.androidfung.departureboard.data.repository.region.jp.JpDepartureSource
+import com.androidfung.departureboard.data.repository.region.sg.SgDepartureSource
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

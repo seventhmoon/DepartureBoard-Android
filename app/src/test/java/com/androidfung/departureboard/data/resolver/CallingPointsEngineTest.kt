@@ -5,6 +5,8 @@ import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.topology.CallingPointsEngine
+import com.androidfung.departureboard.data.topology.CallingPointsResolver
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

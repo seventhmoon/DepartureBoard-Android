@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.resolver.au
+package com.androidfung.departureboard.data.repository.region.au
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.au.AuSydneyRoutes

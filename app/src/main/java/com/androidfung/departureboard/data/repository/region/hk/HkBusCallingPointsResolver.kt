@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.resolver.hk
+package com.androidfung.departureboard.data.repository.region.hk
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
@@ -7,7 +7,7 @@ import com.androidfung.departureboard.data.model.hk.HkKmbStopDetailItem
 import com.androidfung.departureboard.data.model.isHkBus
 import com.androidfung.departureboard.data.network.hk.HkBusApiService
 import com.androidfung.departureboard.data.network.hk.HkBusNetworkClient
-import com.androidfung.departureboard.data.resolver.CallingPointsResolver
+import com.androidfung.departureboard.data.topology.CallingPointsResolver
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async

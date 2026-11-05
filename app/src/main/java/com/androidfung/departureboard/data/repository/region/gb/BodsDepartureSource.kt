@@ -1,11 +1,11 @@
-package com.androidfung.departureboard.data.repository.source.gb
+package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.BodsXmlParser
 import com.androidfung.departureboard.data.model.isBodsTransitId
 import com.androidfung.departureboard.data.network.gb.BodsApiService
-import com.androidfung.departureboard.data.repository.source.DepartureSource
+import com.androidfung.departureboard.data.repository.DepartureSource
 
 /**
  * Departure source for Department for Transport (DfT) Bus Open Data Service (BODS) live vehicle monitoring.

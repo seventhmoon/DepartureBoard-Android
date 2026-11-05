@@ -1,9 +1,9 @@
-package com.androidfung.departureboard.data.repository.source.au
+package com.androidfung.departureboard.data.repository.region.au
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.au.AuDefaultStations
 import com.androidfung.departureboard.data.model.isAuTransitId
-import com.androidfung.departureboard.data.repository.source.DepartureSource
+import com.androidfung.departureboard.data.repository.DepartureSource
 
 /**
  * Departure source for Sydney / NSW transit.

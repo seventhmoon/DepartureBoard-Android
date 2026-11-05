@@ -1,11 +1,11 @@
-package com.androidfung.departureboard.data.resolver
+package com.androidfung.departureboard.data.topology
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 
 /**
  * Pluggable resolver abstraction for retrieving calling points along a journey/trip.
- * Parallels [com.androidfung.departureboard.data.repository.source.DepartureSource].
+ * Parallels [com.androidfung.departureboard.data.repository.DepartureSource].
  */
 interface CallingPointsResolver {
     fun canHandle(departure: Departure): Boolean

@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.resolver.hk
+package com.androidfung.departureboard.data.repository.region.hk
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure

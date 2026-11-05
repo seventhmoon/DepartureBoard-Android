@@ -1,9 +1,9 @@
-package com.androidfung.departureboard.data.repository.source.jp
+package com.androidfung.departureboard.data.repository.region.jp
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.isJpTransitId
 import com.androidfung.departureboard.data.model.jp.JpDefaultStations
-import com.androidfung.departureboard.data.repository.source.DepartureSource
+import com.androidfung.departureboard.data.repository.DepartureSource
 
 /**
  * Departure source for Tokyo transit (Tokyo Metro & JR East).

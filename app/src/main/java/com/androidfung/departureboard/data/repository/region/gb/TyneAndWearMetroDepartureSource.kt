@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.repository.source.gb
+package com.androidfung.departureboard.data.repository.region.gb
 
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.Departure
@@ -10,7 +10,7 @@ import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.gb.topology.TyneAndWearMetroRoute
 import com.androidfung.departureboard.data.network.gb.TyneAndWearMetroApiService
 import com.androidfung.departureboard.data.network.gb.TyneAndWearMetroNetworkClient
-import com.androidfung.departureboard.data.repository.source.DepartureSource
+import com.androidfung.departureboard.data.repository.DepartureSource
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
