@@ -16,19 +16,19 @@ import androidx.room.RoomDatabase
     version = 1,
     exportSchema = false
 )
-abstract class UkStationDatabase : RoomDatabase() {
+abstract class GbStationDatabase : RoomDatabase() {
 
     abstract fun stationCrsDao(): StationCrsDao
 
     companion object {
         @Volatile
-        private var instance: UkStationDatabase? = null
+        private var instance: GbStationDatabase? = null
 
-        fun getInstance(context: Context): UkStationDatabase {
+        fun getInstance(context: Context): GbStationDatabase {
             return instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
                     context.applicationContext,
-                    UkStationDatabase::class.java,
+                    GbStationDatabase::class.java,
                     "station_gb.db"
                 )
                     .createFromAsset("station_gb.db")

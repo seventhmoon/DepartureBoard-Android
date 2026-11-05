@@ -1,11 +1,11 @@
 package com.androidfung.departureboard.data.repository.search
 
 import android.content.Context
-import com.androidfung.departureboard.data.db.gb.UkStationDatabase
+import com.androidfung.departureboard.data.db.gb.GbStationDatabase
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationSearchRanker
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.network.gb.BodsApiService
 import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.StationNameFormatter
@@ -38,7 +38,7 @@ class StationSearchEngine(
     suspend fun searchStations(query: String): Result<List<Station>> = withContext(Dispatchers.IO) {
         val trimmed = query.trim()
         if (trimmed.isBlank()) {
-            return@withContext Result.success(DefaultStations.POPULAR_STATIONS)
+            return@withContext Result.success(GbDefaultStations.POPULAR_STATIONS)
         }
 
         try {
@@ -72,7 +72,7 @@ class StationSearchEngine(
                 // Resolve CRS code(s) for the TfL stations via the station_crs_mappings database
                 // (first by stationId, with fallback to exact normalized station name)
                 // to cleanly deduplicate against localRailStations (where station.id is the 3-letter CRS code).
-                val dao = stationCrsDao ?: context?.let { UkStationDatabase.getInstance(it).stationCrsDao() }
+                val dao = stationCrsDao ?: context?.let { GbStationDatabase.getInstance(it).stationCrsDao() }
 
                 val tflCrsCodes = hydratedStations
                     .filter { station ->
@@ -111,7 +111,7 @@ class StationSearchEngine(
                     Result.success(combinedResults)
                 } else {
                     val localMatches = rankStations(
-                        DefaultStations.POPULAR_STATIONS.filter {
+                        GbDefaultStations.POPULAR_STATIONS.filter {
                             it.name.contains(trimmed, ignoreCase = true)
                         },
                         trimmed
@@ -123,7 +123,7 @@ class StationSearchEngine(
             throw e
         } catch (e: Exception) {
             val localMatches = rankStations(
-                DefaultStations.POPULAR_STATIONS.filter {
+                GbDefaultStations.POPULAR_STATIONS.filter {
                     it.name.contains(trimmed, ignoreCase = true)
                 },
                 trimmed
@@ -146,7 +146,7 @@ class StationSearchEngine(
         if (query.length != 3 || !query.all { it.isLetter() }) return null
         return try {
             val crsEntity = (stationCrsDao ?: context?.let { ctx ->
-                UkStationDatabase.getInstance(ctx).stationCrsDao()
+                GbStationDatabase.getInstance(ctx).stationCrsDao()
             })?.getStationByCrsCode(query.uppercase()) ?: return null
 
             // Query TfL for this station name so we get proper coordinates/Naptan if available
@@ -183,7 +183,7 @@ class StationSearchEngine(
         if (query.length < 3) return emptyList()
         return try {
             val entities = (stationCrsDao ?: context?.let { ctx ->
-                UkStationDatabase.getInstance(ctx).stationCrsDao()
+                GbStationDatabase.getInstance(ctx).stationCrsDao()
             })?.getStationsByNameKeyword(query.trim().lowercase()) ?: emptyList()
 
             entities.map { entity ->

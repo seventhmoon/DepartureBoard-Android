@@ -7,7 +7,7 @@ import com.androidfung.departureboard.data.model.StationLineInfo
  * Pre-configured popular London stations across Tube, Elizabeth Line, Overground, DLR, and Rail hubs.
  * Provides instant search hints, quick filter options, and offline fallback stations.
  */
-object DefaultStations {
+object GbDefaultStations {
 
     val DEFAULT_STATIONS: List<Station> = listOf(
         Station(
