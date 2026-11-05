@@ -202,8 +202,10 @@ fun StationSearchResultRow(
                                         modeName = transitMode.id
                                     )
                                 }
-                                val displayBadgeName = if (station.isHkMtr && transitMode == TransitMode.TUBE) {
+                                val displayBadgeName = if (station.isHkMtr && transitMode == TransitMode.METRO) {
                                     "MTR"
+                                } else if (station.id.startsWith("SG_", ignoreCase = true) && transitMode == TransitMode.METRO) {
+                                    "MRT"
                                 } else {
                                     transitMode.displayName
                                 }
