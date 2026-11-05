@@ -38,8 +38,8 @@ object GbTransitRoutes : TransitLineNetwork {
      */
     val STATION_NAMES_BY_CODE: Map<String, String> = buildMap {
         // Seed from ElizabethLineRoute and ThameslinkRoute
-        for (station in ElizabethLineRoute.STATIONS + ThameslinkRoute.STATIONS) {
-            station.crs?.uppercase()?.let { put(it, station.name) }
+        for ((name, crs) in ElizabethLineRoute.STATIONS + ThameslinkRoute.STATIONS) {
+            crs?.uppercase()?.let { put(it, name) }
         }
 
         putAll(

@@ -340,4 +340,47 @@
     <string name="update_downloaded_message">An update has just been downloaded.</string>
     <string name="update_restart_action">Restart</string>
     <string name="action_undo">Undo</string>
+
+    <!-- Glance Widget -->
+    <string name="widget_load_error">EkiBoard: Unable to load departures</string>
+    <string name="widget_live_label">Live %1$s</string>
+    <string name="widget_offline_label">Offline</string>
+    <string name="widget_no_departures">No departures</string>
+    <string name="widget_warning_prefix">⚠ %1$s</string>
+    <string name="widget_subtitle">EkiBoard • %1$s</string>
+    <string name="widget_subtitle_with_filter">EkiBoard • %1$s • %2$s</string>
+    <string name="widget_no_departures_error">No departure information available</string>
+    <string name="widget_no_departures_scheduled">No departures scheduled</string>
+    <string name="widget_empty_no_station">No station selected yet</string>
+    <string name="widget_empty_choose_station_line">Choose Station &amp; Line ➔</string>
+    <string name="widget_preparing_subtitle">Setting up live board…</string>
+    <string name="widget_preparing_subtitle_with_filter">%1$s • Setting up live board…</string>
+    <string name="widget_preparing_fetching">Fetching live arrivals…</string>
+
+    <!-- Widget Interruption Statuses -->
+    <string name="widget_interruption_delays">Delays</string>
+    <string name="widget_interruption_line_with_desc">%1$s: %2$s</string>
+    <string name="widget_interruption_lines_disrupted">%1$d lines disrupted</string>
+    <string name="widget_interruption_cancellations">Cancellations</string>
+
+    <!-- Widget Configuration Screen -->
+    <string name="widget_config_setting_up">Setting up your board…</string>
+    <string name="widget_config_limit_title">Widget Limit Reached</string>
+    <string name="widget_config_limit_free">Free plan includes up to %1$d home screen widgets. Upgrade to Pro for up to %2$d widgets.</string>
+    <string name="widget_config_limit_max">Maximum limit of %1$d widgets reached to protect battery and API limits.</string>
+    <string name="widget_config_upgrade_pro">Upgrade to Pro</string>
+    <string name="widget_config_cancel">Cancel</string>
+    <string name="widget_config_select_station">Select Station</string>
+    <string name="widget_config_select_station_desc">Choose which station and line this widget shows</string>
+    <string name="widget_config_search_hint">Search stations, lines, or bus stops…</string>
+    <string name="widget_config_hk_mtr">Hong Kong MTR</string>
+    <string name="widget_config_zone">Zone %1$s</string>
+    <string name="widget_config_network">Transit Network</string>
+    <string name="widget_config_customize">Customize route &amp; direction filters for this widget:</string>
+    <string name="widget_config_select_line">1. Select Line:</string>
+    <string name="widget_config_all_lines">All Lines</string>
+    <string name="widget_config_loading_routes">Loading station routes &amp; directions…</string>
+    <string name="widget_config_select_direction">2. Select Direction (Optional):</string>
+    <string name="widget_config_all_directions">All Directions (Default)</string>
+    <string name="widget_config_save">Save Widget</string>
 </resources>
