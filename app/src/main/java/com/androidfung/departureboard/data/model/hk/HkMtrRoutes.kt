@@ -5,8 +5,8 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.model.isHkMtr
-import com.androidfung.departureboard.data.resolver.LinearRouteCallingPointsResolver
-import com.androidfung.departureboard.data.resolver.TransitLineNetwork
+import com.androidfung.departureboard.data.topology.LinearRouteCallingPointsResolver
+import com.androidfung.departureboard.data.topology.TransitLineNetwork
 import java.time.ZoneId
 
 /**

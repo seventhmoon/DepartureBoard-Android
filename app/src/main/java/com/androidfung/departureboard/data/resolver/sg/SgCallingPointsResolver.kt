@@ -3,7 +3,7 @@ package com.androidfung.departureboard.data.resolver.sg
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.isSgTransitId
 import com.androidfung.departureboard.data.model.sg.SgMrtRoutes
-import com.androidfung.departureboard.data.resolver.LinearRouteCallingPointsResolver
+import com.androidfung.departureboard.data.topology.LinearRouteCallingPointsResolver
 
 /**
  * Resolves calling points for Singapore MRT departures using [SgMrtRoutes].

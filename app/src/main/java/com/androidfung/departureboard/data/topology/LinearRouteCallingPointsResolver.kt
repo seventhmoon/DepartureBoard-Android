@@ -1,7 +1,8 @@
-package com.androidfung.departureboard.data.resolver
+package com.androidfung.departureboard.data.topology
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.resolver.CallingPointsResolver
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 

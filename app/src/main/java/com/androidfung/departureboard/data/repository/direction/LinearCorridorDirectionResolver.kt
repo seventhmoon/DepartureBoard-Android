@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.data.repository.direction
 
 import com.androidfung.departureboard.data.model.TransitDirection
-import com.androidfung.departureboard.data.routes.RouteStation
+import com.androidfung.departureboard.data.topology.RouteStation
 
 /**
  * Base class for linear rail corridors (e.g. Elizabeth line, Thameslink, Overground lines).

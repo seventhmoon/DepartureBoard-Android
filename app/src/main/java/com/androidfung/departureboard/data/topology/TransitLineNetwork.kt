@@ -1,10 +1,7 @@
-package com.androidfung.departureboard.data.resolver
+package com.androidfung.departureboard.data.topology
 
 import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.repository.direction.DirectionResolver
-import com.androidfung.departureboard.data.routes.LinearRoute
-import com.androidfung.departureboard.data.routes.LoopRoute
-import com.androidfung.departureboard.data.routes.TransitRoute
 import java.time.ZoneId
 
 /**

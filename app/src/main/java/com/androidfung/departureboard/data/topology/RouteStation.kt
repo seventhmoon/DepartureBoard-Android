@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.routes
+package com.androidfung.departureboard.data.topology
 
 /**
  * Domain representation of a station along a transit corridor or line route sequence.

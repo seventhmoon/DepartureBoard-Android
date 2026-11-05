@@ -1,6 +1,7 @@
 package com.androidfung.departureboard.data.routes
 
 import com.androidfung.departureboard.data.model.TransitDirection
+import com.androidfung.departureboard.data.model.gb.topology.TyneAndWearMetroRoute
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

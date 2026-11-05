@@ -3,7 +3,7 @@ package com.androidfung.departureboard.data.resolver.jp
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.isJpTransitId
 import com.androidfung.departureboard.data.model.jp.JpTokyoRoutes
-import com.androidfung.departureboard.data.resolver.LinearRouteCallingPointsResolver
+import com.androidfung.departureboard.data.topology.LinearRouteCallingPointsResolver
 
 /**
  * Resolves calling points for Japan (Tokyo) departures using [JpTokyoRoutes].

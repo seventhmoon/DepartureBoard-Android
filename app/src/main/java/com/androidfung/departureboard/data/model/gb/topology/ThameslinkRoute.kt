@@ -1,5 +1,6 @@
-package com.androidfung.departureboard.data.routes
+package com.androidfung.departureboard.data.model.gb.topology
 
+import com.androidfung.departureboard.data.topology.RouteStation
 /**
  * Ordered linear station sequence for the Thameslink corridor from North (index 0) to South.
  */

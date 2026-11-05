@@ -7,10 +7,10 @@ import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationLineInfo
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.topology.TyneAndWearMetroRoute
 import com.androidfung.departureboard.data.network.gb.TyneAndWearMetroApiService
 import com.androidfung.departureboard.data.network.gb.TyneAndWearMetroNetworkClient
 import com.androidfung.departureboard.data.repository.source.DepartureSource
-import com.androidfung.departureboard.data.routes.TyneAndWearMetroRoute
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 

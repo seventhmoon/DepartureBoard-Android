@@ -3,11 +3,11 @@ package com.androidfung.departureboard.data.model.gb
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.resolver.LinearRouteCallingPointsResolver
-import com.androidfung.departureboard.data.resolver.TransitLineNetwork
-import com.androidfung.departureboard.data.routes.ElizabethLineRoute
-import com.androidfung.departureboard.data.routes.RouteStation
-import com.androidfung.departureboard.data.routes.ThameslinkRoute
+import com.androidfung.departureboard.data.model.gb.topology.ElizabethLineRoute
+import com.androidfung.departureboard.data.model.gb.topology.ThameslinkRoute
+import com.androidfung.departureboard.data.topology.LinearRouteCallingPointsResolver
+import com.androidfung.departureboard.data.topology.RouteStation
+import com.androidfung.departureboard.data.topology.TransitLineNetwork
 import java.time.Instant
 import java.time.ZoneId
 

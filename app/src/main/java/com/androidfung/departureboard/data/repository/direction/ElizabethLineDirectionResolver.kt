@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.data.repository.direction
 
 import com.androidfung.departureboard.data.model.TransitDirection
-import com.androidfung.departureboard.data.routes.ElizabethLineRoute
+import com.androidfung.departureboard.data.model.gb.topology.ElizabethLineRoute
 
 /**
  * Route-sequence based direction resolver for the Elizabeth line (Eastbound vs Westbound).

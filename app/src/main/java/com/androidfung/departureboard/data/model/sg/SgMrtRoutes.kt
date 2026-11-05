@@ -1,6 +1,6 @@
 package com.androidfung.departureboard.data.model.sg
 
-import com.androidfung.departureboard.data.resolver.TransitLineNetwork
+import com.androidfung.departureboard.data.topology.TransitLineNetwork
 import java.time.ZoneId
 
 /**

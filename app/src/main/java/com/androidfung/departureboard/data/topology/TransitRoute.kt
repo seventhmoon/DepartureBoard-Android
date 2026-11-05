@@ -1,8 +1,7 @@
-package com.androidfung.departureboard.data.routes
+package com.androidfung.departureboard.data.topology
 
 import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.repository.direction.DirectionResolver
-import com.androidfung.departureboard.data.resolver.LoopRouteResolver
 
 /**
  * Base abstraction for a transit route, containing the sequence of stations.
