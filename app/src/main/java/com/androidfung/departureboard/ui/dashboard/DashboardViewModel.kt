@@ -915,10 +915,49 @@ class DashboardViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Clears user snackbar message.
+     * Handles errors in the ViewModel with proper user feedback
+     */
+    private fun handleViewModelError(error: Throwable, message: String? = null) {
+        // Log the error for debugging
+        try {
+            android.util.Log.e("DashboardViewModel", "Error occurred: ${error.message}", error)
+        } catch (_: Throwable) {}
+        
+        // Update UI state with error message if available
+        if (message != null) {
+            _uiState.update { state ->
+                state.copy(
+                    userMessage = message,
+                    isInitialLoading = false
+                )
+            }
+        }
+    }
+
+    /**
+     * Updates the UI state with a user-friendly error message
+     */
+    private fun showUserError(message: String) {
+        _uiState.update { state ->
+            state.copy(
+                userMessage = message,
+                isInitialLoading = false
+            )
+        }
+    }
+
+    /**
+     * Clears any current user message
      */
     fun clearUserMessage() {
         _uiState.update { it.copy(userMessage = null) }
+    }
+
+    /**
+     * Clears any current user error messages (alias for backwards compatibility)
+     */
+    fun clearUserError() {
+        clearUserMessage()
     }
 
     /**
