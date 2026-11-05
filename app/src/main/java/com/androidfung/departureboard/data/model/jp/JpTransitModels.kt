@@ -1,20 +1,21 @@
 package com.androidfung.departureboard.data.model.jp
 
 import androidx.compose.ui.graphics.Color
-import com.androidfung.departureboard.data.model.LineBadgeInfo
+import com.androidfung.departureboard.data.model.TransitLineDefinition
+import com.androidfung.departureboard.data.model.TransitLineRegistry
 import com.androidfung.departureboard.data.model.TransitMode
 
 /**
  * Line definitions and badges for Tokyo Metro and JR East.
  */
 enum class JpTokyoLine(
-    val code: String,
+    override val code: String,
     val lineName: String,
     val japaneseName: String,
-    val badgeText: String,
-    val color: Color,
-    val mode: TransitMode = TransitMode.TUBE
-) {
+    override val badgeText: String,
+    override val color: Color,
+    override val mode: TransitMode = TransitMode.TUBE
+) : TransitLineDefinition {
     GINZA("G", "Ginza Line", "銀座線", "G", Color(0xFFFF9500)),
     MARUNOUCHI("M", "Marunouchi Line", "丸ノ内線", "M", Color(0xFFF62E36)),
     HIBIYA("H", "Hibiya Line", "日比谷線", "H", Color(0xFFB5B5AC)),
@@ -48,17 +49,12 @@ enum class JpTokyoLine(
     TOKYU_DENENTOSHI("DT", "Tokyu Den-en-toshi Line", "東急田園都市線", "DT", Color(0xFF00A040), TransitMode.NATIONAL_RAIL),
     KEIKYU("KK", "Keikyu Main Line", "京急本線", "KK", Color(0xFF0080DE), TransitMode.NATIONAL_RAIL);
 
-    fun toLineBadge(): LineBadgeInfo = LineBadgeInfo(
-        lineId = code,
-        displayName = lineName,
-        lineCode = badgeText,
-        backgroundColor = color,
-        textColor = Color.White,
-        mode = mode
-    )
+    override val nameEn: String get() = lineName
+    override val nameTc: String get() = japaneseName
 
-    companion object {
-        fun fromCode(code: String?): JpTokyoLine? {
+    companion object : TransitLineRegistry {
+        override val allLines: Collection<JpTokyoLine> get() = entries
+        override fun fromCode(code: String?): JpTokyoLine? {
             if (code == null) return null
             return entries.firstOrNull { it.code.equals(code, ignoreCase = true) || it.badgeText.equals(code, ignoreCase = true) }
         }

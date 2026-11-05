@@ -2,9 +2,9 @@ package com.androidfung.departureboard.data.routes
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.TransitDirection
-import com.androidfung.departureboard.data.model.TransitLineNetwork
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.repository.direction.DirectionResolver
+import com.androidfung.departureboard.data.resolver.TransitLineNetwork
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -17,6 +17,15 @@ object TyneAndWearMetroRoute : TransitLineNetwork {
 
     private val UK_ZONE = ZoneId.of("Europe/London")
     private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
+
+    override val timeZone: ZoneId = UK_ZONE
+    override val defaultMode: String = TransitMode.TUBE.id
+    override val loopLineCodes: Set<String> = setOf("metro-yellow")
+    override val lineSequences: Map<String, List<String>>
+        get() = mapOf(
+            "metro-green" to GREEN_STATIONS.map { it.name },
+            "metro-yellow" to YELLOW_STATIONS.map { it.name }
+        )
 
     val GREEN_STATIONS = listOf(
         RouteStation("South Hylton"),

@@ -6,9 +6,17 @@ import androidx.compose.material.icons.rounded.DirectionsRailway
 import androidx.compose.material.icons.rounded.DirectionsSubway
 import androidx.compose.material.icons.rounded.Tram
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TransitLineMatcher
+import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.TransitRegion
+import com.androidfung.departureboard.data.model.isBodsTransitId
+import com.androidfung.departureboard.data.model.isBus
 
 /**
- * Shared transit UI helpers for icon resolution and line equivalence checks across components.
+ * Shared transit UI helpers for icon resolution, mode display formatting,
+ * region-aware map queries, and line equivalence checks across components.
  */
 object TransitIconHelper {
 
@@ -18,19 +26,89 @@ object TransitIconHelper {
     fun getTransitIconForMode(mode: String?): ImageVector {
         if (mode == null) return Icons.Rounded.DirectionsSubway
         return when (mode.lowercase().trim()) {
-            "tube", "underground", "mtr" -> Icons.Rounded.DirectionsSubway
+            "tube", "underground", "mtr", "mrt", "metro", "subway" -> Icons.Rounded.DirectionsSubway
             "bus" -> Icons.Rounded.DirectionsBus
-            "national-rail", "overground", "elizabeth-line" -> Icons.Rounded.DirectionsRailway
-            "dlr", "tram" -> Icons.Rounded.Tram
+            "national-rail", "overground", "elizabeth-line", "jr", "train", "rail" -> Icons.Rounded.DirectionsRailway
+            "dlr", "tram", "lrt", "light-rail" -> Icons.Rounded.Tram
             else -> Icons.Rounded.DirectionsSubway
         }
     }
 
     /**
+     * Returns true if the given [Departure] represents a bus service.
+     */
+    fun isBusService(departure: Departure): Boolean = departure.isBus
+
+    /**
+     * Formats raw station mode identifiers (e.g. ["tube", "elizabeth-line", "national-rail"])
+     * into clean, human-readable labels ("Underground, Elizabeth line, National Rail").
+     */
+    fun formatStationModes(modes: List<String>): String {
+        if (modes.isEmpty()) return ""
+        return modes
+            .mapNotNull { rawMode ->
+                val normalized = rawMode.trim().lowercase()
+                if (normalized.isEmpty()) return@mapNotNull null
+                when (normalized) {
+                    "tube", "underground" -> "Underground"
+                    "elizabeth-line", "elizabeth" -> "Elizabeth line"
+                    "national-rail", "rail", "train" -> "National Rail"
+                    "overground" -> "Overground"
+                    "dlr" -> "DLR"
+                    "tram", "light-rail" -> "Tram"
+                    "bus" -> "Bus"
+                    "mtr" -> "MTR"
+                    "mrt" -> "MRT"
+                    "lrt" -> "LRT"
+                    "metro" -> "Metro"
+                    "jr" -> "JR Rail"
+                    else -> TransitMode.fromModeString(normalized).displayName
+                }
+            }
+            .distinct()
+            .joinToString(", ")
+    }
+
+    /**
+     * Builds a region-aware search query for opening a [Station] in a map application.
+     */
+    fun buildStationMapsQuery(station: Station): String {
+        val isBusOnly = station.modes.isNotEmpty() &&
+            station.modes.all { it.equals("bus", ignoreCase = true) }
+        val hasStationSuffix = station.name.contains("Station", ignoreCase = true) ||
+            station.name.contains("Bus Stop", ignoreCase = true)
+        val typeSuffix = when {
+            hasStationSuffix -> ""
+            isBusOnly -> "Bus Stop"
+            else -> "Station"
+        }
+        val regionSuffix = when (TransitRegion.fromStationId(station.id)) {
+            TransitRegion.HK -> "Hong Kong"
+            TransitRegion.SG -> "Singapore"
+            TransitRegion.JP -> "Tokyo"
+            TransitRegion.AU -> "Sydney"
+            TransitRegion.GB -> {
+                if (station.id.startsWith("940GZZNE", ignoreCase = true) ||
+                    station.id.startsWith("TW_", ignoreCase = true)
+                ) {
+                    "Newcastle UK"
+                } else if (station.id.isBodsTransitId) {
+                    "UK"
+                } else {
+                    "London"
+                }
+            }
+        }
+        return listOf(station.displayName.trim(), typeSuffix, regionSuffix)
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+    }
+
+    /**
      * Matches line IDs permissively across TfL naming conventions.
-     * Delegates to [com.androidfung.departureboard.data.model.TransitLineMatcher.isSameLine].
+     * Delegates to [TransitLineMatcher.isSameLine].
      */
     fun isSameLine(lineId1: String?, lineId2: String?): Boolean {
-        return com.androidfung.departureboard.data.model.TransitLineMatcher.isSameLine(lineId1, lineId2)
+        return TransitLineMatcher.isSameLine(lineId1, lineId2)
     }
 }

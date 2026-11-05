@@ -4,6 +4,7 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.HkDefaultStations
 import com.androidfung.departureboard.data.model.isHkMtrStationId
+import com.androidfung.departureboard.data.model.parseHkMtrStationId
 import com.androidfung.departureboard.data.model.HkMtrLineRegistry
 import com.androidfung.departureboard.data.model.HkMtrRoutes
 import com.androidfung.departureboard.data.model.HkMtrStationRegistry
@@ -34,8 +35,7 @@ class HkMtrDepartureSource(
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
         if (isBusStop) return false
-        val parts = stationId.removePrefix("HK_MTR_").split("_")
-        val sta = parts.getOrNull(1) ?: (if (parts.size == 1) parts[0] else "")
+        val sta = stationId.parseHkMtrStationId().stationCode
         val isMtrCode = HkMtrStationRegistry.getStation(sta) != null || HkMtrStationRegistry.getStation(stationId) != null
         return stationId.isHkMtrStationId ||
                 isMtrCode ||
@@ -50,9 +50,9 @@ class HkMtrDepartureSource(
     ): Result<List<Departure>> = coroutineScope {
         try {
             // e.g. "HK_MTR_ISL_CEN" -> line = "ISL", sta = "CEN", or raw station code e.g. "CEN"
-            val parts = stationId.removePrefix("HK_MTR_").split("_")
-            val defaultLine = if (parts.size >= 2) parts[0] else "ISL"
-            val sta = parts.getOrNull(1) ?: (if (parts.size == 1) parts[0] else "CEN")
+            val ref = stationId.parseHkMtrStationId()
+            val defaultLine = ref.lineCode ?: "ISL"
+            val sta = ref.stationCode.ifBlank { "CEN" }
 
             // Query ALL lines serving this station (e.g. for ADM query ISL, TWL, EAL, SIL)
             val linesToQuery = HkMtrRoutes.STATION_LINES[sta] ?: listOf(defaultLine)

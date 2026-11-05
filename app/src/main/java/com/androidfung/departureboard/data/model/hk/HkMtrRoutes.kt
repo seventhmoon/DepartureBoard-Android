@@ -1,12 +1,18 @@
 package com.androidfung.departureboard.data.model
 
+import com.androidfung.departureboard.data.resolver.LinearRouteCallingPointsResolver
+import com.androidfung.departureboard.data.resolver.TransitLineNetwork
+import java.time.ZoneId
+
 /**
  * Route station sequence and interchange lines definition for Hong Kong MTR.
+ * Implements [TransitLineNetwork] so calling-point interpolation is shared across all regions.
  */
-object HkMtrRoutes {
+object HkMtrRoutes : TransitLineNetwork {
 
-    private val HK_ZONE = java.time.ZoneId.of("Asia/Hong_Kong")
-    private val TIME_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+    override val timeZone: ZoneId = ZoneId.of("Asia/Hong_Kong")
+    override val defaultMode: String = "mtr"
+    override val averageSecondsBetweenStops: Long = 120L
 
     // Clean, ordered station code sequences along each line
     val LINE_SEQUENCES: Map<String, List<String>> = mapOf(
@@ -22,6 +28,8 @@ object HkMtrRoutes {
         "TKL" to listOf("NOP", "QUB", "YAT", "TIK", "TKO", "HAH", "POA", "LHP"),
         "DRL" to listOf("SUN", "DIS")
     )
+
+    override val lineSequences: Map<String, List<String>> = LINE_SEQUENCES
 
     // Complete list of lines serving each station (Interchange Stations!)
     val STATION_LINES: Map<String, List<String>> = mapOf(
@@ -48,12 +56,36 @@ object HkMtrRoutes {
         "TST" to listOf("TWL", "TML") // TST connected with East Tsim Sha Tsui
     )
 
+    override fun resolveSequenceKey(lineCode: String, originIdentifier: String, destIdentifier: String): String {
+        val destClean = destIdentifier.trim().uppercase()
+        val servesRacecourse = originIdentifier.equals("RAC", ignoreCase = true) ||
+            destClean.equals("RAC", ignoreCase = true) ||
+            destClean.contains("RACECOURSE") ||
+            destClean.contains("馬場")
+        return if (lineCode.equals("EAL", ignoreCase = true) && servesRacecourse) {
+            "EAL_RAC"
+        } else {
+            lineCode.uppercase()
+        }
+    }
+
+    override fun resolveStationName(stationCodeOrName: String): String =
+        HkMtrStationRegistry.getName(stationCodeOrName)
+
+    override fun resolveStationId(lineCode: String, stationCodeOrName: String): String =
+        "HK_MTR_${lineCode.uppercase()}_${stationCodeOrName.uppercase()}"
+
+    private val sharedCallingPointsResolver = object : LinearRouteCallingPointsResolver(this) {
+        override fun canHandle(departure: Departure): Boolean = departure.isHkMtr
+    }
+
     /**
      * Resolves cardinal or line direction (e.g. "Eastbound" / "Westbound" / "Northbound" / "Southbound")
      * for a train on a given MTR line travelling from origin station to destination station.
      */
     fun resolveDirection(lineCode: String, originSta: String, destSta: String): TransitDirection? {
-        val seq = LINE_SEQUENCES[lineCode] ?: return null
+        val seqKey = resolveSequenceKey(lineCode, originSta, destSta)
+        val seq = LINE_SEQUENCES[seqKey] ?: LINE_SEQUENCES[lineCode] ?: return null
         val originIdx = seq.indexOfFirst { it.equals(originSta, ignoreCase = true) }
         val destIdx = seq.indexOfFirst { it.equals(destSta, ignoreCase = true) }
         if (originIdx == -1 || destIdx == -1 || originIdx == destIdx) return null
@@ -74,71 +106,18 @@ object HkMtrRoutes {
 
     /**
      * Resolves calling points from origin station code to destination station code on a given line.
-     * Computes sequential estimated clock times based on average inter-station runtimes (120s per MTR stop)
-     * when [departureEpochSeconds] is provided.
+     * Delegates to the shared [LinearRouteCallingPointsResolver].
      */
     fun resolveCallingPoints(
         lineCode: String,
         originSta: String,
         destStaOrName: String,
         departureEpochSeconds: Long? = null
-    ): List<CallingPoint> {
-        val destClean = destStaOrName.trim().uppercase()
-        val servesRacecourse = originSta.equals("RAC", ignoreCase = true) ||
-                destClean.equals("RAC", ignoreCase = true) ||
-                destClean.contains("RACECOURSE") ||
-                destClean.contains("馬場")
-
-        val candidateKey = if (lineCode.equals("EAL", ignoreCase = true) && servesRacecourse) {
-            "EAL_RAC"
-        } else {
-            lineCode
-        }
-
-        val seq = LINE_SEQUENCES[candidateKey] ?: LINE_SEQUENCES[lineCode] ?: return emptyList()
-        val originIdx = seq.indexOfFirst { it.equals(originSta, ignoreCase = true) }
-        if (originIdx == -1) return emptyList()
-        val destIdx = seq.indexOfFirst { code ->
-            code.equals(destClean, ignoreCase = true) ||
-            destClean.contains(code) ||
-            HkMtrStationRegistry.getName(code).contains(destStaOrName, ignoreCase = true) ||
-            destStaOrName.contains(HkMtrStationRegistry.getName(code), ignoreCase = true)
-        }
-
-        val range = when {
-            destIdx == -1 -> seq.subList(originIdx, seq.size)
-            destIdx >= originIdx -> seq.subList(originIdx, destIdx + 1)
-            else -> seq.subList(destIdx, originIdx + 1).reversed()
-        }
-
-        val hkZone = HK_ZONE
-        val timeFormatter = TIME_FORMATTER
-
-        return range.mapIndexed { idx, code ->
-            val clockTime = departureEpochSeconds?.let { baseEpoch ->
-                val stopEpoch = baseEpoch + (idx * 120L)
-                java.time.Instant.ofEpochSecond(stopEpoch)
-                    .atZone(hkZone)
-                    .format(timeFormatter)
-            }
-            val estBadge = when {
-                idx == 0 -> "Due"
-                departureEpochSeconds != null -> {
-                    val mins = idx * 2
-                    "$mins mins"
-                }
-                else -> null
-            }
-
-            CallingPoint(
-                stationName = HkMtrStationRegistry.getName(code),
-                scheduledTime = clockTime,
-                estimatedTime = estBadge,
-                isCurrentStation = idx == 0,
-                isDestination = idx == range.lastIndex,
-                stationId = "HK_MTR_${lineCode}_$code",
-                modes = listOf("mtr")
-            )
-        }
-    }
+    ): List<CallingPoint> = sharedCallingPointsResolver.resolveCallingPointsForTrip(
+        lineCode = lineCode,
+        originStationIdentifier = originSta,
+        destStationIdentifier = destStaOrName,
+        departureEpochSeconds = departureEpochSeconds,
+        fallbackCallingPoints = emptyList()
+    )
 }

@@ -6,7 +6,7 @@ import java.time.Instant
 import java.time.format.DateTimeFormatter
 
 /**
- * Base resolver that interpolates journey calling points along a linear station sequence.
+ * Base resolver that interpolates journey calling points along a linear or circular/loop station sequence.
  */
 abstract class LinearRouteCallingPointsResolver(
     private val network: TransitLineNetwork
@@ -25,66 +25,91 @@ abstract class LinearRouteCallingPointsResolver(
     }
 
     /**
-     * Resolves calling points for a journey trip given origin, destination, and departure epoch.
+     * Resolves calling points for a journey trip given origin, destination, and optional departure epoch.
      */
     fun resolveCallingPointsForTrip(
         lineCode: String,
         originStationIdentifier: String,
         destStationIdentifier: String,
-        departureEpochSeconds: Long = Instant.now().epochSecond,
+        departureEpochSeconds: Long? = Instant.now().epochSecond,
         fallbackCallingPoints: List<CallingPoint> = emptyList()
     ): List<CallingPoint> {
         val cleanOrigin = originStationIdentifier.replace(Regex("\\s*\\(.*\\)"), "").trim()
         val cleanDest = destStationIdentifier.replace(Regex("\\s*\\(.*\\)"), "").trim()
         val line = lineCode.uppercase()
+        val seqKey = network.resolveSequenceKey(line, cleanOrigin, cleanDest)
 
-        val seq = network.lineSequences[line] ?: return fallbackCallingPoints
+        val rawSeq = network.lineSequences[seqKey] ?: network.lineSequences[line] ?: return fallbackCallingPoints
+        val isLoop = network.loopLineCodes.any { it.equals(line, ignoreCase = true) || it.equals(seqKey, ignoreCase = true) }
+        val seq = if (isLoop && rawSeq.size > 1 && rawSeq.first().equals(rawSeq.last(), ignoreCase = true)) {
+            rawSeq.dropLast(1)
+        } else {
+            rawSeq
+        }
 
-        val originIdx = seq.indexOfFirst { 
+        val originIdx = seq.indexOfFirst {
             val resolved = network.resolveStationName(it)
-            it.equals(cleanOrigin, ignoreCase = true) || resolved.equals(cleanOrigin, ignoreCase = true)
+            val resolvedClean = resolved.replace(Regex("\\s*\\(.*\\)"), "").trim()
+            it.equals(cleanOrigin, ignoreCase = true) ||
+                resolved.equals(cleanOrigin, ignoreCase = true) ||
+                resolvedClean.equals(cleanOrigin, ignoreCase = true) ||
+                resolved.contains(cleanOrigin, ignoreCase = true)
         }
 
         val destIdx = seq.indexOfFirst {
             val resolved = network.resolveStationName(it)
+            val resolvedClean = resolved.replace(Regex("\\s*\\(.*\\)"), "").trim()
             it.equals(cleanDest, ignoreCase = true) ||
-                    resolved.equals(cleanDest, ignoreCase = true) ||
-                    cleanDest.contains(it, ignoreCase = true) ||
-                    cleanDest.contains(resolved, ignoreCase = true)
+                resolved.equals(cleanDest, ignoreCase = true) ||
+                resolvedClean.equals(cleanDest, ignoreCase = true) ||
+                cleanDest.contains(it, ignoreCase = true) ||
+                cleanDest.contains(resolved, ignoreCase = true) ||
+                resolved.contains(cleanDest, ignoreCase = true)
         }
 
         if (originIdx == -1) {
             return fallbackCallingPoints.ifEmpty {
-                listOf(
-                    CallingPoint(
-                        stationName = cleanOrigin,
-                        scheduledTime = null,
-                        estimatedTime = "Dep",
-                        isCurrentStation = true
-                    ),
-                    CallingPoint(
-                        stationName = cleanDest,
-                        scheduledTime = null,
-                        estimatedTime = null,
-                        isDestination = true
+                if (cleanOrigin.isBlank() || cleanDest.isBlank()) {
+                    emptyList()
+                } else {
+                    listOf(
+                        CallingPoint(
+                            stationName = cleanOrigin,
+                            scheduledTime = null,
+                            estimatedTime = "Dep",
+                            isCurrentStation = true
+                        ),
+                        CallingPoint(
+                            stationName = cleanDest,
+                            scheduledTime = null,
+                            estimatedTime = null,
+                            isDestination = true
+                        )
                     )
-                )
+                }
             }
         }
 
         val range = when {
             destIdx == -1 -> seq.subList(originIdx, seq.size)
+            isLoop && originIdx != destIdx -> LoopRouteResolver.slice(seq, originIdx, destIdx)
             destIdx >= originIdx -> seq.subList(originIdx, destIdx + 1)
             else -> seq.subList(destIdx, originIdx + 1).reversed()
         }
 
         return range.mapIndexed { idx, stationIdentifier ->
-            val stopEpoch = departureEpochSeconds + (idx * network.averageSecondsBetweenStops)
-            val clockTime = Instant.ofEpochSecond(stopEpoch)
-                .atZone(network.timeZone)
-                .format(timeFormatter)
+            val clockTime = departureEpochSeconds?.let { baseEpoch ->
+                val stopEpoch = baseEpoch + (idx * network.averageSecondsBetweenStops)
+                Instant.ofEpochSecond(stopEpoch)
+                    .atZone(network.timeZone)
+                    .format(timeFormatter)
+            }
 
-            val estBadge = if (idx == 0) "Due" else "${(idx * network.averageSecondsBetweenStops) / 60} mins"
+            val estBadge = when {
+                idx == 0 -> "Due"
+                departureEpochSeconds != null -> "${(idx * network.averageSecondsBetweenStops) / 60} mins"
+                else -> null
+            }
 
             CallingPoint(
                 stationName = network.resolveStationName(stationIdentifier),

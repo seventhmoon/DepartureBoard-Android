@@ -7,23 +7,33 @@ import com.androidfung.departureboard.data.i18n.LocalizedNameProvider
  * Definition of an individual MTR line with code, bilingual names, badge colors, and route sequence.
  */
 data class HkMtrLine(
-    val code: String,
+    override val code: String,
     override val nameEn: String,
     override val nameTc: String,
     val shortName: String,
-    val color: Color,
-    val textColor: Color = Color.White
-) : LocalizedNameProvider {
+    override val color: Color,
+    override val textColor: Color = Color.White
+) : TransitLineDefinition {
+    override val badgeText: String get() = shortName
     override val nameSc: String? get() = null
     val bilingualName: String get() = getBilingualName(parentheses = false)
     val displayName: String get() = getBilingualName(parentheses = true)
+
+    override fun toLineBadge(): LineBadgeInfo = LineBadgeInfo(
+        lineId = code,
+        displayName = shortName,
+        lineCode = shortName,
+        backgroundColor = color,
+        textColor = textColor,
+        mode = mode
+    )
 }
 
 /**
  * Central registry for Hong Kong MTR lines, their official colors, and line badge factories.
  * Equivalent to [TflLineColors] for London.
  */
-object HkMtrLineRegistry {
+object HkMtrLineRegistry : TransitLineRegistry {
 
     val IslandLine = HkMtrLine("ISL", "Island Line", "港島綫", "ISL", Color(0xFF007DC5))
     val TsuenWanLine = HkMtrLine("TWL", "Tsuen Wan Line", "荃灣綫", "TWL", Color(0xFFE2231A))
@@ -49,30 +59,14 @@ object HkMtrLineRegistry {
         DisneylandResortLine
     ).associateBy { it.code }
 
+    override val allLines: Collection<HkMtrLine> get() = LINES.values
+
     fun getLine(code: String): HkMtrLine? = LINES[code.uppercase()]
 
     fun getLineName(code: String): String = LINES[code.uppercase()]?.bilingualName ?: "MTR $code"
 
     fun getLineColor(code: String): Color = LINES[code.uppercase()]?.color ?: Color(0xFF007DC5)
 
-    fun getLineBadge(code: String): LineBadgeInfo {
-        val line = LINES[code.uppercase()]
-        return if (line != null) {
-            LineBadgeInfo(
-                lineId = line.code,
-                displayName = line.shortName,
-                backgroundColor = line.color,
-                textColor = line.textColor,
-                mode = TransitMode.TUBE
-            )
-        } else {
-            LineBadgeInfo(
-                lineId = code,
-                displayName = code,
-                backgroundColor = Color(0xFF007DC5),
-                textColor = Color.White,
-                mode = TransitMode.TUBE
-            )
-        }
-    }
+    fun getLineBadge(code: String): LineBadgeInfo =
+        getLineBadge(code = code, fallbackColor = Color(0xFF007DC5))
 }

@@ -1,30 +1,37 @@
 package com.androidfung.departureboard.data.model.au
 
+import com.androidfung.departureboard.data.model.BaseStationDirectory
+import com.androidfung.departureboard.data.model.CatalogStationEntry
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.StationDirectory
 import com.androidfung.departureboard.data.model.StationLineInfo
 
 /**
- * Directory of Sydney / NSW rail stations with search support.
+ * Directory of Sydney / NSW rail stations with O(1) ID lookup and ranked search support.
  */
-object AuStationDirectory : StationDirectory {
+object AuStationDirectory : BaseStationDirectory<AuStationDirectory.AuStationEntry>() {
 
     override val defaultStations: List<Station>
         get() = AuDefaultStations.POPULAR_STATIONS
 
-    override fun searchStations(query: String): List<Station> = searchAuStations(query)
-
-    override fun getStationById(stationId: String): Station? {
-        return ALL_STATIONS.find { it.toStation().id == stationId }?.toStation()
-    }
+    override val entries: List<AuStationEntry>
+        get() = ALL_STATIONS
 
     data class AuStationEntry(
-        val code: String,
+        override val code: String,
         val name: String,
         val lines: List<Pair<String, String>>,
         val isMetroOnly: Boolean = false
-    ) {
-        fun toStation(): Station = Station(
+    ) : CatalogStationEntry {
+        override fun matchesQuery(normalizedQuery: String): Boolean {
+            return name.lowercase().contains(normalizedQuery) ||
+                code.lowercase().contains(normalizedQuery) ||
+                lines.any {
+                    it.first.lowercase().contains(normalizedQuery) ||
+                        it.second.lowercase().contains(normalizedQuery)
+                }
+        }
+
+        override fun toStation(): Station = Station(
             id = "AU_TRAIN_$code",
             name = name,
             modes = if (isMetroOnly) listOf("tube") else listOf("national-rail"),
@@ -61,16 +68,5 @@ object AuStationDirectory : StationDirectory {
         AuStationEntry("VICTORIACROSS", "Victoria Cross", listOf("M1" to "Metro M1"), isMetroOnly = true)
     )
 
-    fun searchAuStations(query: String): List<Station> {
-        val q = query.trim().lowercase()
-        if (q.isBlank()) return AuDefaultStations.POPULAR_STATIONS
-
-        return ALL_STATIONS
-            .filter { entry ->
-                entry.name.lowercase().contains(q) ||
-                        entry.code.lowercase().contains(q) ||
-                        entry.lines.any { it.first.lowercase().contains(q) || it.second.lowercase().contains(q) }
-            }
-            .map { it.toStation() }
-    }
+    fun searchAuStations(query: String): List<Station> = searchStations(query)
 }

@@ -1,30 +1,38 @@
 package com.androidfung.departureboard.data.model.sg
 
+import com.androidfung.departureboard.data.model.BaseStationDirectory
+import com.androidfung.departureboard.data.model.CatalogStationEntry
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.StationDirectory
 import com.androidfung.departureboard.data.model.StationLineInfo
 
 /**
- * Directory of Singapore MRT stations with bilingual search support.
+ * Directory of Singapore MRT stations with bilingual search support and O(1) ID lookup.
  */
-object SgStationDirectory : StationDirectory {
+object SgStationDirectory : BaseStationDirectory<SgStationDirectory.SgStationEntry>() {
 
     override val defaultStations: List<Station>
         get() = SgDefaultStations.POPULAR_STATIONS
 
-    override fun searchStations(query: String): List<Station> = searchSgStations(query)
-
-    override fun getStationById(stationId: String): Station? {
-        return ALL_STATIONS.find { it.toStation().id == stationId }?.toStation()
-    }
+    override val entries: List<SgStationEntry>
+        get() = ALL_STATIONS
 
     data class SgStationEntry(
-        val code: String,
+        override val code: String,
         val englishName: String,
         val chineseName: String,
         val lines: List<Pair<String, String>>
-    ) {
-        fun toStation(): Station = Station(
+    ) : CatalogStationEntry {
+        override fun matchesQuery(normalizedQuery: String): Boolean {
+            return englishName.lowercase().contains(normalizedQuery) ||
+                chineseName.contains(normalizedQuery) ||
+                code.lowercase().contains(normalizedQuery) ||
+                lines.any {
+                    it.first.lowercase().contains(normalizedQuery) ||
+                        it.second.lowercase().contains(normalizedQuery)
+                }
+        }
+
+        override fun toStation(): Station = Station(
             id = "SG_MRT_$code",
             name = englishName,
             modes = listOf("tube"),
@@ -79,17 +87,5 @@ object SgStationDirectory : StationDirectory {
         SgStationEntry("TE22", "Gardens by the Bay", "濱海灣花園", listOf("TEL" to "Thomson-East Coast Line"))
     )
 
-    fun searchSgStations(query: String): List<Station> {
-        val q = query.trim().lowercase()
-        if (q.isBlank()) return SgDefaultStations.POPULAR_STATIONS
-
-        return ALL_STATIONS
-            .filter { entry ->
-                entry.englishName.lowercase().contains(q) ||
-                        entry.chineseName.contains(q) ||
-                        entry.code.lowercase().contains(q) ||
-                        entry.lines.any { it.first.lowercase().contains(q) || it.second.lowercase().contains(q) }
-            }
-            .map { it.toStation() }
-    }
+    fun searchSgStations(query: String): List<Station> = searchStations(query)
 }

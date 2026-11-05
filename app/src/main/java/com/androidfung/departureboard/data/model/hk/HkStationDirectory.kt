@@ -14,9 +14,15 @@ object HkStationDirectory : StationDirectory {
     override fun searchStations(query: String): List<Station> = searchHkStations(query)
 
     override fun getStationById(stationId: String): Station? {
-        val code = stationId.substringAfterLast("_", "")
-        val mtr = HkMtrStationRegistry.getStation(code) ?: return null
-        return mtrToStation(mtr)
+        HkDefaultStations.POPULAR_STATIONS.firstOrNull {
+            it.id.equals(stationId, ignoreCase = true)
+        }?.let { return it }
+
+        val ref = stationId.parseHkMtrStationId()
+        val mtr = HkMtrStationRegistry.getStation(ref.stationCode)
+            ?: HkMtrStationRegistry.getStation(stationId)
+            ?: return null
+        return mtrToStation(mtr, ref.lineCode)
     }
 
     /**
@@ -73,43 +79,6 @@ object HkStationDirectory : StationDirectory {
         } + dynamicBusStops).distinctBy { it.id }
 
         val combined = (mtrMatches + busMatches).distinctBy { it.id }
-        val q = trimmed.lowercase()
-
-        // Check if query is targeting a bus route (digits/bus codes) or bus terminus/interchange terms
-        val isLikelyBusQuery = q.any { it.isDigit() } ||
-                q.contains("bus") ||
-                q.contains("巴士") ||
-                q.contains("轉車站") ||
-                q.contains("總站") ||
-                q.contains("bbi")
-
-        return combined.sortedWith(
-            compareBy<Station> { station ->
-                val nameLower = station.name.lowercase().trim()
-                val baseName = nameLower.substringBefore(" (").trim()
-                when {
-                    baseName == q -> 0
-                    nameLower == q -> 1
-                    baseName.startsWith(q) -> 2
-                    nameLower.startsWith(q) -> 3
-                    baseName.split(Regex("[\\s/\\-]+")).any { it.startsWith(q) } -> 4
-                    nameLower.split(Regex("[\\s/\\-]+")).any { it.startsWith(q) } -> 5
-                    baseName.contains(q) -> 6
-                    else -> 7
-                }
-            }.thenBy { station ->
-                val isRail = station.modes.contains("mtr") || station.modes.contains("tube") || station.modes.contains("rail")
-                // When query indicates bus or route number, prioritize bus results; otherwise prioritize rail
-                if (isLikelyBusQuery) {
-                    if (station.modes.contains("bus")) 0 else 1
-                } else {
-                    if (isRail) 0 else 1
-                }
-            }.thenByDescending { station ->
-                station.lines.size
-            }.thenBy { station ->
-                station.name.length
-            }
-        )
+        return StationSearchRanker.rank(combined, trimmed)
     }
 }

@@ -4,6 +4,7 @@ import com.androidfung.departureboard.data.model.HkMtrLineRegistry
 import com.androidfung.departureboard.data.model.HkMtrRoutes
 import com.androidfung.departureboard.data.model.HkMtrStationRegistry
 import com.androidfung.departureboard.data.model.StationServiceHoursInfo
+import com.androidfung.departureboard.data.model.parseHkMtrStationId
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -32,9 +33,9 @@ object HkMtrServiceHoursResolver {
     )
 
     fun checkStationServiceHours(stationId: String, lineId: String? = null): StationServiceHoursInfo? {
-        val parts = stationId.removePrefix("HK_MTR_").split("_")
-        val defaultLine = if (parts.size >= 2) parts[0] else null
-        val staCode = parts.getOrNull(1) ?: (if (parts.size == 1) parts[0] else "")
+        val ref = stationId.parseHkMtrStationId()
+        val defaultLine = ref.lineCode
+        val staCode = ref.stationCode
 
         val station = HkMtrStationRegistry.getStation(staCode) ?: HkMtrStationRegistry.getStation(stationId)
         val validStaCode = station?.code ?: staCode

@@ -4,7 +4,9 @@ import android.content.Context
 import com.androidfung.departureboard.data.db.gb.UkStationDatabase
 import com.androidfung.departureboard.data.model.DefaultStations
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.StationSearchRanker
 import com.androidfung.departureboard.data.model.TransitMode
+import kotlinx.coroutines.CancellationException
 import com.androidfung.departureboard.data.network.BodsApiService
 import com.androidfung.departureboard.data.network.TflApiService
 import com.androidfung.departureboard.data.repository.StationNameFormatter
@@ -117,6 +119,8 @@ class StationSearchEngine(
                     Result.success(localMatches)
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             val localMatches = rankStations(
                 DefaultStations.POPULAR_STATIONS.filter {
@@ -133,50 +137,10 @@ class StationSearchEngine(
     }
 
     /**
-     * Ranks stations based on relevance to the search query:
-     * 1. Exact name match (ignoring case)
-     * 2. Station name starts with query
-     * 3. Any word in the station name starts with query (word boundary match)
-     * 4. Station name contains query
-     *
-     * Ties are broken by mode tier (rapid transit/rail hubs > buses) and line count.
+     * Ranks stations based on relevance to the search query via [StationSearchRanker].
      */
-    private fun rankStations(stations: List<Station>, query: String): List<Station> {
-        val q = query.trim().lowercase()
-        if (q.isBlank()) return stations
-
-        return stations.sortedWith(
-            compareBy<Station> { station ->
-                val nameLower = station.name.lowercase().trim()
-                // Strip common stop/towards suffixes for matching base name, e.g. "Bank (Stop A)" -> "bank"
-                val baseNameLower = nameLower.substringBefore(" (").trim()
-
-                when {
-                    baseNameLower == q -> 0
-                    nameLower == q -> 1
-                    baseNameLower.startsWith(q) -> 2
-                    nameLower.startsWith(q) -> 3
-                    baseNameLower.split(Regex("[\\s/\\-]+")).any { it.startsWith(q) } -> 4
-                    nameLower.split(Regex("[\\s/\\-]+")).any { it.startsWith(q) } -> 5
-                    baseNameLower.contains(q) -> 6
-                    else -> 7
-                }
-            }.thenBy { station ->
-                // Rail / Metro / Underground hubs rank higher than individual bus stops
-                when {
-                    station.modes.any { it in listOf("tube", "dlr", "elizabeth-line", "overground", "national-rail", "metro", "tram") } -> 0
-                    !station.isBusOnly -> 1
-                    else -> 2
-                }
-            }.thenByDescending { station ->
-                // Stations with more interconnecting lines rank higher
-                station.lines.size
-            }.thenBy { station ->
-                // Shorter names preferred (e.g. "Bank" vs "Bank Underground Station (Stop X)")
-                station.name.length
-            }
-        )
-    }
+    private fun rankStations(stations: List<Station>, query: String): List<Station> =
+        StationSearchRanker.rank(stations, query)
 
     private suspend fun searchCrsCode(query: String): Station? {
         if (query.length != 3 || !query.all { it.isLetter() }) return null

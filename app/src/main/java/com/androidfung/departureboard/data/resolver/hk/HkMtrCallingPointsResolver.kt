@@ -3,28 +3,27 @@ package com.androidfung.departureboard.data.resolver.hk
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.HkMtrRoutes
-import com.androidfung.departureboard.data.resolver.CallingPointsResolver
-
 import com.androidfung.departureboard.data.model.isHkMtr
+import com.androidfung.departureboard.data.model.parseHkMtrStationId
+import com.androidfung.departureboard.data.resolver.LinearRouteCallingPointsResolver
+import java.time.Instant
 
 /**
- * Resolves calling points for Hong Kong MTR heavy rail lines using [HkMtrRoutes].
+ * Resolves calling points for Hong Kong MTR heavy rail lines using [HkMtrRoutes]
+ * and the shared [LinearRouteCallingPointsResolver].
  */
-class HkMtrCallingPointsResolver : CallingPointsResolver {
+class HkMtrCallingPointsResolver : LinearRouteCallingPointsResolver(HkMtrRoutes) {
 
-    override fun canHandle(departure: Departure): Boolean {
-        return departure.isHkMtr
-    }
+    override fun canHandle(departure: Departure): Boolean = departure.isHkMtr
 
     override suspend fun resolveCallingPoints(departure: Departure): List<CallingPoint> {
-        val parts = departure.stationId.removePrefix("HK_MTR_").split("_")
-        val sta = parts.getOrNull(1) ?: (if (parts.size == 1) parts[0] else "")
-        val line = departure.lineId.uppercase()
-
-        return HkMtrRoutes.resolveCallingPoints(
-            lineCode = line,
-            originSta = sta,
-            destStaOrName = departure.destinationName
+        val ref = departure.stationId.parseHkMtrStationId()
+        return resolveCallingPointsForTrip(
+            lineCode = departure.lineId.ifBlank { ref.lineCode ?: "ISL" }.uppercase(),
+            originStationIdentifier = ref.stationCode.ifBlank { departure.stationName },
+            destStationIdentifier = departure.destinationName,
+            departureEpochSeconds = Instant.now().epochSecond + departure.timeToStationSeconds,
+            fallbackCallingPoints = departure.callingPoints
         )
     }
 }

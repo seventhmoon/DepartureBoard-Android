@@ -11,6 +11,7 @@ object JpTokyoRoutes : TransitLineNetwork {
     override val timeZone: ZoneId = ZoneId.of("Asia/Tokyo")
     override val defaultMode: String = "tube"
     override val averageSecondsBetweenStops: Long = 120L
+    override val loopLineCodes: Set<String> = setOf("JY")
 
     override val lineSequences: Map<String, List<String>> = mapOf(
         "JY" to listOf(

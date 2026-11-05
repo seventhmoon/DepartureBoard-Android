@@ -120,6 +120,12 @@ val Station.isHkBus: Boolean
 val Station.isNationalRail: Boolean
     get() = id.isNationalRailStationId
 
+val Station.primaryTransitMode: TransitMode
+    get() = modes.firstNotNullOfOrNull { raw ->
+        val norm = raw.trim().lowercase()
+        if (norm.isEmpty()) null else TransitMode.fromModeString(norm)
+    } ?: TransitMode.TUBE
+
 /**
  * Convenience properties on [Departure].
  */
@@ -134,6 +140,34 @@ val Departure.isHkBus: Boolean
 
 val Departure.isBods: Boolean
     get() = lineId.isBodsTransitId
+
+val Departure.transitMode: TransitMode
+    get() = if (modeName.isNotBlank()) TransitMode.fromModeString(modeName) else lineBadge.mode
+
+val Departure.isBus: Boolean
+    get() = modeName.equals(TransitMode.BUS.id, ignoreCase = true) || lineBadge.mode == TransitMode.BUS
+
+/**
+ * Parsed components of an HK MTR station identifier (e.g. "HK_MTR_ISL_ADM" -> lineCode="ISL", stationCode="ADM").
+ */
+data class HkMtrStationRef(
+    val lineCode: String?,
+    val stationCode: String
+)
+
+/**
+ * Parses an HK MTR station identifier ("HK_MTR_ISL_ADM", "HK_MTR_ADM", or "ADM")
+ * into its optional line code and 3-letter station code.
+ */
+fun String.parseHkMtrStationId(): HkMtrStationRef {
+    val clean = removePrefix(StationIdPrefixes.HK_MTR).trim()
+    val parts = clean.split("_").filter { it.isNotBlank() }
+    return when {
+        parts.size >= 2 -> HkMtrStationRef(lineCode = parts[0].uppercase(), stationCode = parts[1].uppercase())
+        parts.size == 1 -> HkMtrStationRef(lineCode = null, stationCode = parts[0].uppercase())
+        else -> HkMtrStationRef(lineCode = null, stationCode = "")
+    }
+}
 
 /**
  * Removes operator and region prefixes from an HK bus stop ID to get the raw operator stop ID.
