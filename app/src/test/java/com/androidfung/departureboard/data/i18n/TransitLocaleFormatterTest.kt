@@ -31,9 +31,7 @@ class TransitLocaleFormatterTest {
     @Test
     fun testFormatLocalized_traditionalChinese() {
         val result = TransitLocaleFormatter.formatLocalized(
-            nameEn = "Central",
-            nameTc = "中環",
-            nameSc = "中环",
+            names = mapOf("en" to "Central", "zh-Hant" to "中環", "zh-Hans" to "中环"),
             locale = Locale.forLanguageTag("zh-HK")
         )
         assertEquals("中環", result)
@@ -42,9 +40,7 @@ class TransitLocaleFormatterTest {
     @Test
     fun testFormatLocalized_simplifiedChinese() {
         val result = TransitLocaleFormatter.formatLocalized(
-            nameEn = "Central",
-            nameTc = "中環",
-            nameSc = "中环",
+            names = mapOf("en" to "Central", "zh-Hant" to "中環", "zh-Hans" to "中环"),
             locale = Locale.forLanguageTag("zh-CN")
         )
         assertEquals("中环", result)
@@ -53,9 +49,7 @@ class TransitLocaleFormatterTest {
     @Test
     fun testFormatLocalized_english() {
         val result = TransitLocaleFormatter.formatLocalized(
-            nameEn = "Central",
-            nameTc = "中環",
-            nameSc = "中环",
+            names = mapOf("en" to "Central", "zh-Hant" to "中環", "zh-Hans" to "中环"),
             locale = Locale.UK
         )
         assertEquals("Central", result)

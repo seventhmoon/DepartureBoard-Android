@@ -30,14 +30,20 @@ data class HkKmbStopDetailResponse(
 @JsonClass(generateAdapter = true)
 data class HkKmbStopDetailItem(
     @Json(name = "stop") val stop: String? = null,
-    @Json(name = "name_en") override val nameEn: String? = null,
-    @Json(name = "name_tc") override val nameTc: String? = null,
-    @Json(name = "name_sc") override val nameSc: String? = null,
+    @Json(name = "name_en") val jsonNameEn: String? = null,
+    @Json(name = "name_tc") val jsonNameTc: String? = null,
+    @Json(name = "name_sc") val jsonNameSc: String? = null,
     @Json(name = "lat") val lat: String? = null,
     @Json(name = "long") val long: String? = null
 ) : com.androidfung.departureboard.data.i18n.LocalizedNameProvider {
+    override val localizedNames: Map<String, String> get() = buildMap {
+        jsonNameEn?.takeIf { it.isNotBlank() }?.let { put("en", it) }
+        jsonNameTc?.takeIf { it.isNotBlank() }?.let { put("zh-Hant", it) }
+        jsonNameSc?.takeIf { it.isNotBlank() }?.let { put("zh-Hans", it) }
+    }
+
     val displayName: String
         get() = getBilingualName(parentheses = false).ifBlank {
-            nameTc?.takeIf { it.isNotBlank() } ?: nameEn.orEmpty()
+            jsonNameTc?.takeIf { it.isNotBlank() } ?: jsonNameEn.orEmpty()
         }
 }

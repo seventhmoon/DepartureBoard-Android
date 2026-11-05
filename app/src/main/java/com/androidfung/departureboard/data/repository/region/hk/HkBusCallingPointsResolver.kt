@@ -93,14 +93,14 @@ class HkBusCallingPointsResolver(
                             try {
                                 apiService.getKmbStopDetail(stopId).data ?: HkKmbStopDetailItem(
                                     stop = stopId,
-                                    nameEn = "Bus Stop",
-                                    nameTc = "巴士站"
+                                    jsonNameEn = "Bus Stop",
+                                    jsonNameTc = "巴士站"
                                 )
                             } catch (_: Exception) {
                                 HkKmbStopDetailItem(
                                     stop = stopId,
-                                    nameEn = "Bus Stop",
-                                    nameTc = "巴士站"
+                                    jsonNameEn = "Bus Stop",
+                                    jsonNameTc = "巴士站"
                                 )
                             }
                         }

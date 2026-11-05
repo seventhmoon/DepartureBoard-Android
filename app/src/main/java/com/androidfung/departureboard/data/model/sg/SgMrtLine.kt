@@ -22,8 +22,10 @@ enum class SgMrtLine(
     DTL("DTL", "Downtown Line", "濱海市區線", "DT", Color(0xFF005EC4)),
     TEL("TEL", "Thomson-East Coast Line", "湯申－東海岸線", "TE", Color(0xFF9D5B25));
 
-    override val nameEn: String get() = lineName
-    override val nameTc: String get() = chineseName
+    override val localizedNames: Map<String, String> get() = mapOf(
+        "en" to lineName,
+        "zh-Hant" to chineseName
+    )
     override val mode: TransitMode get() = TransitMode.TUBE
 
     companion object : TransitLineRegistry {

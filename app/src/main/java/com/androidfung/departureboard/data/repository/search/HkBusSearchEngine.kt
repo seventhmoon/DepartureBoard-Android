@@ -60,8 +60,8 @@ class HkBusSearchEngine(
 
                 stopDetails.mapNotNull { detail ->
                     val stopId = detail.stop ?: return@mapNotNull null
-                    val nameTc = detail.nameTc.orEmpty().trim()
-                    val nameEn = detail.nameEn.orEmpty().trim()
+                    val nameTc = detail.localizedNames["zh-Hant"].orEmpty().trim()
+                    val nameEn = detail.localizedNames["en"].orEmpty().trim()
                     val displayName = when {
                         nameTc.isNotBlank() && nameEn.isNotBlank() -> "$nameEn ($nameTc)"
                         nameTc.isNotBlank() -> nameTc
@@ -106,14 +106,14 @@ class HkBusSearchEngine(
             try {
                 kmbApiService.getKmbStopDetail(stopId).data ?: HkKmbStopDetailItem(
                     stop = stopId,
-                    nameEn = "Bus Stop",
-                    nameTc = "巴士站"
+                    jsonNameEn = "Bus Stop",
+                    jsonNameTc = "巴士站"
                 )
             } catch (_: Exception) {
                 HkKmbStopDetailItem(
                     stop = stopId,
-                    nameEn = "Bus Stop",
-                    nameTc = "巴士站"
+                    jsonNameEn = "Bus Stop",
+                    jsonNameTc = "巴士站"
                 )
             }
         }

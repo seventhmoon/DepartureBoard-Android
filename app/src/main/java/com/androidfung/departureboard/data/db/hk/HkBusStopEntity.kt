@@ -25,6 +25,11 @@ data class HkBusStopEntity(
     val lat: Double,
     val lon: Double
 ) {
+    val localizedNames: Map<String, String> get() = mapOf(
+        "en" to nameEn,
+        "zh-Hant" to nameTc
+    )
+
     fun toEntry(): HkBusStopDirectory.HkBusStopEntry = HkBusStopDirectory.HkBusStopEntry(
         stopId = stopId,
         nameEn = nameEn,

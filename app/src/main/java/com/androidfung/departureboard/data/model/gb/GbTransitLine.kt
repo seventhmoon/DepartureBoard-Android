@@ -136,7 +136,7 @@ enum class GbTransitLine(
         TransitMode.TUBE
     );
 
-    override val nameEn: String get() = lineName
+    override val localizedNames: Map<String, String> get() = mapOf("en" to lineName)
 
     fun matches(lineId: String?, lineName: String?): Boolean {
         val normId = lineId?.lowercase()?.trim().orEmpty()

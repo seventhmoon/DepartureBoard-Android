@@ -14,9 +14,6 @@ interface TransitLineDefinition : LocalizedNameProvider {
     val textColor: Color get() = Color.White
     val mode: TransitMode get() = TransitMode.TUBE
 
-    override val nameTc: String? get() = null
-    override val nameSc: String? get() = null
-
     fun toLineBadge(): LineBadgeInfo = LineBadgeInfo(
         lineId = code,
         displayName = nameEn ?: code,

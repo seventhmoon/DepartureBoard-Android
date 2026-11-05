@@ -83,8 +83,8 @@ class HkRegionalTransitProvider(
 
             return try {
                 val detail = hkBusSearchEngine.fetchStopDetail(rawStopId)
-                val nameTc = detail.nameTc.orEmpty().trim()
-                val nameEn = detail.nameEn.orEmpty().trim()
+                val nameTc = detail.localizedNames["zh-Hant"].orEmpty().trim()
+                val nameEn = detail.localizedNames["en"].orEmpty().trim()
                 val displayName = when {
                     nameTc.isNotBlank() && nameEn.isNotBlank() -> "$nameEn ($nameTc)"
                     nameTc.isNotBlank() -> nameTc

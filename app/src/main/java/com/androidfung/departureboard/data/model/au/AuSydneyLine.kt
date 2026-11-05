@@ -24,7 +24,7 @@ enum class AuSydneyLine(
     T9("T9", "T9 Northern Line", "T9", Color(0xFFD11242)),
     BCCN("CCN", "Central Coast & Newcastle Line", "CCN", Color(0xFFD11242));
 
-    override val nameEn: String get() = lineName
+    override val localizedNames: Map<String, String> get() = mapOf("en" to lineName)
 
     companion object : TransitLineRegistry {
         override val allLines: Collection<AuSydneyLine> get() = entries

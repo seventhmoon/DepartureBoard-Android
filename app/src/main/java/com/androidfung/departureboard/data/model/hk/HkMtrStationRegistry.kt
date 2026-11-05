@@ -7,12 +7,15 @@ import com.androidfung.departureboard.data.i18n.LocalizedNameProvider
  */
 data class HkMtrStation(
     val code: String,
-    override val nameEn: String,
-    override val nameTc: String,
+    val stationNameEn: String,
+    val stationNameTc: String,
     val lat: Double = 0.0,
     val lon: Double = 0.0
 ) : LocalizedNameProvider {
-    override val nameSc: String? get() = null
+    override val localizedNames: Map<String, String> get() = mapOf(
+        "en" to stationNameEn,
+        "zh-Hant" to stationNameTc
+    )
     val bilingualName: String get() = getBilingualName(parentheses = false)
     val displayName: String get() = getBilingualName(parentheses = true)
 }

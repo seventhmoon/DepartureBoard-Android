@@ -21,15 +21,13 @@ object TransitLocaleFormatter {
     }
 
     fun formatLocalized(
-        nameEn: String?,
-        nameTc: String?,
-        nameSc: String? = null,
+        names: Map<String, String>,
         locale: Locale = Locale.getDefault(),
         fallbackToBilingual: Boolean = false
     ): String {
-        val cleanEn = nameEn?.trim()?.takeIf { it.isNotBlank() }
-        val cleanTc = nameTc?.trim()?.takeIf { it.isNotBlank() }
-        val cleanSc = nameSc?.trim()?.takeIf { it.isNotBlank() }
+        val cleanEn = names["en"]?.trim()?.takeIf { it.isNotBlank() }
+        val cleanTc = (names["zh-Hant"] ?: names["zh-HK"] ?: names["zh-TW"] ?: names["zh"])?.trim()?.takeIf { it.isNotBlank() }
+        val cleanSc = (names["zh-Hans"] ?: names["zh-CN"] ?: names["zh-SG"])?.trim()?.takeIf { it.isNotBlank() }
 
         if (isChinese(locale)) {
             val primaryChinese = if (isSimplifiedChinese(locale)) cleanSc ?: cleanTc else cleanTc ?: cleanSc
@@ -39,14 +37,32 @@ object TransitLocaleFormatter {
         }
 
         if (cleanEn != null) {
-            return if (fallbackToBilingual && (cleanTc != null || cleanSc != null)) {
-                formatBilingual(cleanEn, cleanTc ?: cleanSc, parentheses = true)
+            val primaryChinese = if (isSimplifiedChinese(locale)) cleanSc ?: cleanTc else cleanTc ?: cleanSc
+            return if (fallbackToBilingual && primaryChinese != null) {
+                formatBilingual(cleanEn, primaryChinese, parentheses = true)
             } else {
                 cleanEn
             }
         }
 
-        return cleanTc ?: cleanSc ?: ""
+        // Fallback for any other language or when English is missing
+        val requestedLang = locale.language.takeIf { it.isNotBlank() }
+        if (requestedLang != null && names.containsKey(requestedLang)) {
+            val valForLang = names[requestedLang]?.trim()?.takeIf { it.isNotBlank() }
+            if (valForLang != null) return valForLang
+        }
+
+        return cleanTc ?: cleanSc ?: names.values.firstOrNull { it.isNotBlank() }?.trim() ?: ""
+    }
+
+    fun formatBilingual(
+        names: Map<String, String>,
+        parentheses: Boolean = false
+    ): String {
+        val en = names["en"]?.trim()?.takeIf { it.isNotBlank() }
+        val zh = (names["zh-Hant"] ?: names["zh-Hans"] ?: names["zh-HK"] ?: names["zh-TW"] ?: names["zh-CN"] ?: names["zh"])?.trim()?.takeIf { it.isNotBlank() }
+
+        return formatBilingual(en, zh, parentheses)
     }
 
     fun formatBilingual(

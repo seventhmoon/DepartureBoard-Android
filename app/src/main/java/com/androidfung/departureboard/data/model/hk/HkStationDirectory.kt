@@ -71,8 +71,8 @@ object HkStationDirectory : StationDirectory {
         }
 
         val mtrMatches = HkMtrStationRegistry.STATIONS.values.filter { station ->
-            station.nameEn.contains(trimmed, ignoreCase = true) ||
-                    station.nameTc.contains(trimmed, ignoreCase = true) ||
+            (station.localizedNames["en"]?.contains(trimmed, ignoreCase = true) == true) ||
+                    (station.localizedNames["zh-Hant"]?.contains(trimmed, ignoreCase = true) == true) ||
                     station.code.equals(trimmed, ignoreCase = true)
         }.map { mtrToStation(it) }
 

@@ -49,8 +49,10 @@ enum class JpTokyoLine(
     TOKYU_DENENTOSHI("DT", "Tokyu Den-en-toshi Line", "東急田園都市線", "DT", Color(0xFF00A040), TransitMode.NATIONAL_RAIL),
     KEIKYU("KK", "Keikyu Main Line", "京急本線", "KK", Color(0xFF0080DE), TransitMode.NATIONAL_RAIL);
 
-    override val nameEn: String get() = lineName
-    override val nameTc: String get() = japaneseName
+    override val localizedNames: Map<String, String> get() = mapOf(
+        "en" to lineName,
+        "ja" to japaneseName
+    )
 
     companion object : TransitLineRegistry {
         override val allLines: Collection<JpTokyoLine> get() = entries

@@ -12,8 +12,8 @@ class HkMtrStationRegistryTest {
     fun testStationRegistry_returnsValidStationData() {
         val central = HkMtrStationRegistry.getStation("CEN")
         assertNotNull(central)
-        assertEquals("Central", central!!.nameEn)
-        assertEquals("中環", central.nameTc)
+        assertEquals("Central", central!!.localizedNames["en"])
+        assertEquals("中環", central.localizedNames["zh-Hant"])
         assertEquals("Central 中環", central.bilingualName)
         assertEquals("Central (中環)", central.displayName)
 

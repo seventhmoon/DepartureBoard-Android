@@ -13,13 +13,13 @@ class HkMtrLineTest {
     fun testLineRegistry_containsAllMtrLinesWithOfficialColors() {
         val isl = HkMtrLine.getLine("ISL")
         assertNotNull(isl)
-        assertEquals("Island Line", isl!!.nameEn)
-        assertEquals("港島綫", isl.nameTc)
+        assertEquals("Island Line", isl!!.localizedNames["en"])
+        assertEquals("港島綫", isl.localizedNames["zh-Hant"])
         assertEquals(Color(0xFF007DC5), isl.color)
 
         val twl = HkMtrLine.getLine("TWL")
         assertNotNull(twl)
-        assertEquals("Tsuen Wan Line", twl!!.nameEn)
+        assertEquals("Tsuen Wan Line", twl!!.localizedNames["en"])
         assertEquals(Color(0xFFE2231A), twl.color)
 
         val eal = HkMtrLine.getLine("EAL")

@@ -47,7 +47,7 @@ class HkBusRouteResolverTest {
                     else -> "Bus Stop"
                 }
                 return HkKmbStopDetailResponse(
-                    data = HkKmbStopDetailItem(stop = stopId, nameEn = name.substringBefore(" "), nameTc = name.substringAfter(" "))
+                    data = HkKmbStopDetailItem(stop = stopId, jsonNameEn = name.substringBefore(" "), jsonNameTc = name.substringAfter(" "))
                 )
             }
         }

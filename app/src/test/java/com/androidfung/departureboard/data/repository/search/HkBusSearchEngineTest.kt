@@ -39,8 +39,8 @@ class HkBusSearchEngineTest {
             return HkKmbStopDetailResponse(
                 data = HkKmbStopDetailItem(
                     stop = stopId,
-                    nameEn = en,
-                    nameTc = tc,
+                    jsonNameEn = en,
+                    jsonNameTc = tc,
                     lat = "22.3",
                     long = "114.1"
                 )

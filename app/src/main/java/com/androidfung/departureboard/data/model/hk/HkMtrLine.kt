@@ -11,8 +11,8 @@ import com.androidfung.departureboard.data.model.TransitLineRegistry
  */
 enum class HkMtrLine(
     override val code: String,
-    override val nameEn: String,
-    override val nameTc: String,
+    val lineName: String,
+    val chineseName: String,
     val shortName: String,
     override val color: Color,
     override val textColor: Color = Color.White
@@ -28,8 +28,12 @@ enum class HkMtrLine(
     TSEUNG_KWAN_O("TKL", "Tseung Kwan O Line", "將軍澳綫", "TKL", Color(0xFF6B2C91)),
     DISNEYLAND_RESORT("DRL", "Disneyland Resort Line", "迪士尼綫", "DRL", Color(0xFFF173AC));
 
+    override val localizedNames: Map<String, String> get() = mapOf(
+        "en" to lineName,
+        "zh-Hant" to chineseName
+    )
+
     override val badgeText: String get() = shortName
-    override val nameSc: String? get() = null
     val bilingualName: String get() = getBilingualName(parentheses = false)
     val displayName: String get() = getBilingualName(parentheses = true)
 
