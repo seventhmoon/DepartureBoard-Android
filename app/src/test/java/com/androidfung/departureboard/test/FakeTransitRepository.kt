@@ -3,7 +3,7 @@ package com.androidfung.departureboard.test
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.data.repository.TransitRepository
@@ -17,19 +17,19 @@ import kotlinx.coroutines.flow.flowOf
  * Reusable, fluent in-memory test double for [TransitRepository].
  */
 open class FakeTransitRepository(
-    initialStations: List<Station> = DefaultStations.POPULAR_STATIONS.take(2),
+    initialStations: List<Station> = GbDefaultStations.POPULAR_STATIONS.take(2),
     initialRecentStationId: String? = "940GZZLUOXC",
     initialDepartureRowsCount: Int = 5,
     initialThemeMode: AppThemeMode = AppThemeMode.SYSTEM,
     initialDynamicColor: Boolean = true,
     var departuresResult: (stationId: String, stationName: String) -> Result<List<Departure>> = { id, name ->
-        Result.success(DefaultStations.getFallbackDepartures(id, name))
+        Result.success(GbDefaultStations.getFallbackDepartures(id, name))
     },
     var lineStatuses: Map<String, TflLineStatusItem> = emptyMap(),
     var callingPointsResult: (departure: Departure) -> List<CallingPoint> = { emptyList() },
     var serviceHoursResult: (stationId: String, lineId: String?) -> StationServiceHoursInfo? = { _, _ -> null },
     var searchResult: (query: String) -> Result<List<Station>> = { query ->
-        val matches = DefaultStations.POPULAR_STATIONS.filter {
+        val matches = GbDefaultStations.POPULAR_STATIONS.filter {
             it.name.contains(query, ignoreCase = true)
         }
         Result.success(matches)
@@ -88,7 +88,7 @@ open class FakeTransitRepository(
     override suspend fun searchStations(query: String): Result<List<Station>> = searchResult(query)
 
     override suspend fun getStationById(stationId: String): Station? {
-        return DefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(stationId, ignoreCase = true) }
+        return GbDefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(stationId, ignoreCase = true) }
             ?: stationsFlow.value.firstOrNull { it.id.equals(stationId, ignoreCase = true) }
     }
 

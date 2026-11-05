@@ -1,22 +1,22 @@
 package com.androidfung.departureboard
 
 import android.app.Application
-import com.androidfung.departureboard.data.network.gb.TflNetworkClient
-import com.androidfung.departureboard.data.repository.NationalRailStationCodes
 import com.androidfung.departureboard.data.repository.TransitRepository
-import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
+import com.androidfung.departureboard.di.AppContainer
+import com.androidfung.departureboard.di.DefaultAppContainer
 
 class DepartureBoardApp : Application() {
 
-    val repository: TransitRepository by lazy {
-        TransitRepositoryImpl(this)
-    }
+    lateinit var container: AppContainer
+        private set
+
+    val repository: TransitRepository
+        get() = container.transitRepository
 
     override fun onCreate() {
         super.onCreate()
         instance = this
-        TflNetworkClient.initialize(this)
-        NationalRailStationCodes.initialize(this)
+        container = DefaultAppContainer(this)
         // Initialize Google Mobile Ads SDK on a background thread to prevent blocking main thread
         com.google.android.gms.ads.MobileAds.initialize(this) {}
     }

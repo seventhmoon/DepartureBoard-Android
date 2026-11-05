@@ -62,7 +62,7 @@ import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.ui.dashboard.StationCardUiModel
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
@@ -805,8 +805,8 @@ private fun StationDeparturesContainer(
 @Preview(name = "Station Departure Card - Light", showBackground = true)
 @Composable
 fun StationDepartureCardLightPreview() {
-    val sampleStation = DefaultStations.POPULAR_STATIONS[1] // King's Cross
-    val sampleDepartures = DefaultStations.getFallbackDepartures(sampleStation.id, sampleStation.name)
+    val sampleStation = GbDefaultStations.POPULAR_STATIONS[1] // King's Cross
+    val sampleDepartures = GbDefaultStations.getFallbackDepartures(sampleStation.id, sampleStation.name)
     val cardModel = StationCardUiModel(
         station = sampleStation,
         departures = sampleDepartures,
@@ -915,8 +915,8 @@ fun StationDepartureCardBusStopPreview() {
 @Preview(name = "Station Departure Card - Dark", showBackground = true)
 @Composable
 fun StationDepartureCardDarkPreview() {
-    val sampleStation = DefaultStations.POPULAR_STATIONS[1] // King's Cross
-    val sampleDepartures = DefaultStations.getFallbackDepartures(sampleStation.id, sampleStation.name)
+    val sampleStation = GbDefaultStations.POPULAR_STATIONS[1] // King's Cross
+    val sampleDepartures = GbDefaultStations.getFallbackDepartures(sampleStation.id, sampleStation.name)
     val cardModel = StationCardUiModel(
         station = sampleStation,
         departures = sampleDepartures,

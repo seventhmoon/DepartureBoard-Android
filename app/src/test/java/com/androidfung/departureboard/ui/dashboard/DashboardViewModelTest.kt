@@ -8,7 +8,7 @@ import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.repository.TransitRepository
 import com.androidfung.departureboard.test.FakeTransitRepository
 import java.util.concurrent.TimeUnit
@@ -93,14 +93,14 @@ class DashboardViewModelTest {
     @Test
     fun testAddStation_freeTierLimitTriggersPaywall() = runTest {
         // Initial has FREE_MAX_STATIONS (Free tier max)
-        val initialStations = DefaultStations.POPULAR_STATIONS.take(SubscriptionTier.FREE_MAX_STATIONS)
+        val initialStations = GbDefaultStations.POPULAR_STATIONS.take(SubscriptionTier.FREE_MAX_STATIONS)
         val fakeRepo = FakeTransitRepository(initialStations)
         val fakeBilling = FakeBillingRepository(isProInitial = false)
         val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 
-        val newStation = DefaultStations.POPULAR_STATIONS[SubscriptionTier.FREE_MAX_STATIONS]
+        val newStation = GbDefaultStations.POPULAR_STATIONS[SubscriptionTier.FREE_MAX_STATIONS]
         viewModel.addStation(newStation)
         advanceUntilIdle()
 
@@ -113,7 +113,7 @@ class DashboardViewModelTest {
     @Test
     fun testAddStation_proTierAllowsUpToProMaxStations() = runTest {
         // Initial has 2 stations, and user is PRO
-        val initialStations = DefaultStations.POPULAR_STATIONS.take(2)
+        val initialStations = GbDefaultStations.POPULAR_STATIONS.take(2)
         val fakeRepo = FakeTransitRepository(initialStations)
         val fakeBilling = FakeBillingRepository(isProInitial = true)
         val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
@@ -121,7 +121,7 @@ class DashboardViewModelTest {
         advanceUntilIdle()
         assertTrue(viewModel.uiState.value.isPro)
 
-        val newStation = DefaultStations.POPULAR_STATIONS[2]
+        val newStation = GbDefaultStations.POPULAR_STATIONS[2]
         viewModel.addStation(newStation)
         advanceUntilIdle()
 

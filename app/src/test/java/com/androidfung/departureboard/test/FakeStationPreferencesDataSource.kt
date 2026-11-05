@@ -2,7 +2,7 @@ package com.androidfung.departureboard.test
 
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataSource
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.ui.theme.AppThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
  * Complete, in-memory test double for [StationPreferencesDataSource].
  */
 open class FakeStationPreferencesDataSource(
-    initialStations: List<Station> = DefaultStations.POPULAR_STATIONS,
-    initialRecentId: String? = DefaultStations.POPULAR_STATIONS.firstOrNull()?.id,
+    initialStations: List<Station> = GbDefaultStations.POPULAR_STATIONS,
+    initialRecentId: String? = GbDefaultStations.POPULAR_STATIONS.firstOrNull()?.id,
     initialDepartureRows: Int = 5,
     initialThemeMode: AppThemeMode = AppThemeMode.SYSTEM,
     initialDynamicColor: Boolean = true

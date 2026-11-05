@@ -3,7 +3,7 @@ package com.androidfung.departureboard.data.repository.mapper
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.repository.PlatformFormatter
@@ -268,12 +268,12 @@ object TflDepartureMapper {
 
     private fun findStationLongitude(nameOrCleaned: String, stationId: String?): Double? {
         if (!stationId.isNullOrBlank()) {
-            DefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(stationId, ignoreCase = true) }?.lon?.let {
+            GbDefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(stationId, ignoreCase = true) }?.lon?.let {
                 return it
             }
         }
         val clean = StationNameFormatter.clean(nameOrCleaned).lowercase()
-        return DefaultStations.POPULAR_STATIONS.firstOrNull {
+        return GbDefaultStations.POPULAR_STATIONS.firstOrNull {
             val popularClean = StationNameFormatter.clean(it.name).lowercase()
             clean.contains(popularClean) || popularClean.contains(clean)
         }?.lon

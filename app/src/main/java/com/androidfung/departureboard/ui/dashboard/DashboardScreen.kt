@@ -70,7 +70,7 @@ import com.androidfung.departureboard.BuildConfig
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.ui.components.EmptyDashboardState
 import com.androidfung.departureboard.ui.components.StationDepartureCard
@@ -696,15 +696,15 @@ fun DashboardSearchBar(
 @Preview(name = "Dashboard - Light Mode", showBackground = true)
 @Composable
 fun DashboardScreenLightPreview() {
-    val kxStation = DefaultStations.POPULAR_STATIONS[1]
-    val oxStation = DefaultStations.POPULAR_STATIONS[0]
+    val kxStation = GbDefaultStations.POPULAR_STATIONS[1]
+    val oxStation = GbDefaultStations.POPULAR_STATIONS[0]
 
     val state = DashboardUiState(
         isInitialLoading = false,
         stationCards = listOf(
             StationCardUiModel(
                 station = kxStation,
-                departures = DefaultStations.getFallbackDepartures(kxStation.id, kxStation.name),
+                departures = GbDefaultStations.getFallbackDepartures(kxStation.id, kxStation.name),
                 availableLineBadges = listOf(
                     TflLineColors.getLineBadge("victoria", "Victoria", "tube"),
                     TflLineColors.getLineBadge("northern", "Northern", "tube"),
@@ -713,7 +713,7 @@ fun DashboardScreenLightPreview() {
             ),
             StationCardUiModel(
                 station = oxStation,
-                departures = DefaultStations.getFallbackDepartures(oxStation.id, oxStation.name),
+                departures = GbDefaultStations.getFallbackDepartures(oxStation.id, oxStation.name),
                 availableLineBadges = listOf(
                     TflLineColors.getLineBadge("central", "Central", "tube"),
                     TflLineColors.getLineBadge("bakerloo", "Bakerloo", "tube")
@@ -739,15 +739,15 @@ fun DashboardScreenLightPreview() {
 @Preview(name = "Dashboard - Dark Mode", showBackground = true)
 @Composable
 fun DashboardScreenDarkPreview() {
-    val kxStation = DefaultStations.POPULAR_STATIONS[1]
-    val oxStation = DefaultStations.POPULAR_STATIONS[0]
+    val kxStation = GbDefaultStations.POPULAR_STATIONS[1]
+    val oxStation = GbDefaultStations.POPULAR_STATIONS[0]
 
     val state = DashboardUiState(
         isInitialLoading = false,
         stationCards = listOf(
             StationCardUiModel(
                 station = kxStation,
-                departures = DefaultStations.getFallbackDepartures(kxStation.id, kxStation.name),
+                departures = GbDefaultStations.getFallbackDepartures(kxStation.id, kxStation.name),
                 availableLineBadges = listOf(
                     TflLineColors.getLineBadge("victoria", "Victoria", "tube"),
                     TflLineColors.getLineBadge("northern", "Northern", "tube"),
@@ -756,7 +756,7 @@ fun DashboardScreenDarkPreview() {
             ),
             StationCardUiModel(
                 station = oxStation,
-                departures = DefaultStations.getFallbackDepartures(oxStation.id, oxStation.name),
+                departures = GbDefaultStations.getFallbackDepartures(oxStation.id, oxStation.name),
                 availableLineBadges = listOf(
                     TflLineColors.getLineBadge("central", "Central", "tube"),
                     TflLineColors.getLineBadge("bakerloo", "Bakerloo", "tube")

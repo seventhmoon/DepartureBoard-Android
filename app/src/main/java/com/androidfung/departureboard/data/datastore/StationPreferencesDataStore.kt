@@ -9,7 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitRegion
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import com.androidfung.departureboard.ui.theme.AppThemeMode
 import com.squareup.moshi.JsonClass
@@ -234,7 +234,7 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
             TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
             TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
             TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
-            TransitRegion.GB -> DefaultStations.POPULAR_STATIONS
+            TransitRegion.GB -> GbDefaultStations.POPULAR_STATIONS
         }
     }
 

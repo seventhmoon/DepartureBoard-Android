@@ -6,7 +6,7 @@ import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.au.AuStationDirectory
 import com.androidfung.departureboard.data.model.extractRawHkBusStopId
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.hk.HkBusStopDirectory
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
@@ -209,7 +209,7 @@ class GbRegionalTransitProvider(
         stationSearchEngine.searchStations(query)
 
     override suspend fun getStationById(stationId: String): Station? {
-        DefaultStations.POPULAR_STATIONS.firstOrNull {
+        GbDefaultStations.POPULAR_STATIONS.firstOrNull {
             it.id.equals(stationId, ignoreCase = true)
         }?.let { return it }
 

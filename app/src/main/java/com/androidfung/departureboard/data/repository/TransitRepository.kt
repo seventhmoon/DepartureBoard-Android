@@ -35,7 +35,7 @@ import com.androidfung.departureboard.data.repository.source.au.AuDepartureSourc
 import com.androidfung.departureboard.data.repository.source.gb.BodsDepartureSource
 import com.androidfung.departureboard.data.repository.source.gb.NationalRailDepartureSource
 import com.androidfung.departureboard.data.repository.source.gb.TflDepartureSource
-import com.androidfung.departureboard.data.repository.source.gb.TyneAndWearMetroSource
+import com.androidfung.departureboard.data.repository.source.gb.TyneAndWearMetroDepartureSource
 import com.androidfung.departureboard.data.repository.source.hk.HkBusDepartureSource
 import com.androidfung.departureboard.data.repository.source.hk.HkMtrDepartureSource
 import com.androidfung.departureboard.data.repository.source.jp.JpDepartureSource
@@ -119,7 +119,7 @@ class TransitRepositoryImpl(
     private val tflDepartureSource = TflDepartureSource(apiService)
     private val nationalRailDepartureSource = NationalRailDepartureSource(nrApiService)
     private val bodsDepartureSource = BodsDepartureSource(bodsApiService) { id -> getStationById(id) }
-    private val tyneAndWearMetroSource = TyneAndWearMetroSource()
+    private val tyneAndWearMetroSource = TyneAndWearMetroDepartureSource()
     private val hkBusDepartureSource = HkBusDepartureSource()
     private val hkMtrDepartureSource = HkMtrDepartureSource()
     private val hkBusCallingPointsResolver = HkBusCallingPointsResolver()

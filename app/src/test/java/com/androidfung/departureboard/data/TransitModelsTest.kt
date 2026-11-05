@@ -2,7 +2,7 @@ package com.androidfung.departureboard.data
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -81,13 +81,13 @@ class TransitModelsTest {
 
     @Test
     fun testDefaultStationsList() {
-        assertTrue(DefaultStations.POPULAR_STATIONS.isNotEmpty())
-        val oxfordCircus = DefaultStations.POPULAR_STATIONS.firstOrNull { it.name == "Oxford Circus" }
+        assertTrue(GbDefaultStations.POPULAR_STATIONS.isNotEmpty())
+        val oxfordCircus = GbDefaultStations.POPULAR_STATIONS.firstOrNull { it.name == "Oxford Circus" }
         assertNotNull(oxfordCircus)
         assertTrue(oxfordCircus!!.lines.isNotEmpty())
         assertEquals(listOf("bakerloo", "central", "victoria"), oxfordCircus.lines.map { it.id })
 
-        val fallbacks = DefaultStations.getFallbackDepartures("940GZZLUOXC", "Oxford Circus")
+        val fallbacks = GbDefaultStations.getFallbackDepartures("940GZZLUOXC", "Oxford Circus")
         assertTrue(fallbacks.isNotEmpty())
         assertEquals("Oxford Circus", fallbacks.first().stationName)
     }

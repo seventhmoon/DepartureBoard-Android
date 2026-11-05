@@ -1,6 +1,6 @@
 package com.androidfung.departureboard.data.repository.search
 
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflSearchResponse
 import com.androidfung.departureboard.data.model.gb.TflStopPointMatch
 import com.androidfung.departureboard.test.FakeBodsApiService
@@ -21,7 +21,7 @@ class StationSearchEngineTest {
 
         val result = engine.searchStations("")
         assertTrue(result.isSuccess)
-        assertEquals(DefaultStations.POPULAR_STATIONS, result.getOrNull())
+        assertEquals(GbDefaultStations.POPULAR_STATIONS, result.getOrNull())
     }
 
     @Test

@@ -68,7 +68,7 @@ import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.BillingRepository
 import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
 import com.androidfung.departureboard.ui.components.PaywallBottomSheet
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
@@ -342,9 +342,9 @@ fun WidgetStationPickerScreen(
 
     LaunchedEffect(Unit) {
         val saved = try {
-            repository.savedStationsFlow.first().ifEmpty { DefaultStations.POPULAR_STATIONS }
+            repository.savedStationsFlow.first().ifEmpty { GbDefaultStations.POPULAR_STATIONS }
         } catch (_: Exception) {
-            DefaultStations.POPULAR_STATIONS
+            GbDefaultStations.POPULAR_STATIONS
         }
         stations = saved
         isLoading = false
@@ -359,9 +359,9 @@ fun WidgetStationPickerScreen(
             isLoading = false
         } else {
             val saved = try {
-                repository.savedStationsFlow.first().ifEmpty { DefaultStations.POPULAR_STATIONS }
+                repository.savedStationsFlow.first().ifEmpty { GbDefaultStations.POPULAR_STATIONS }
             } catch (_: Exception) {
-                DefaultStations.POPULAR_STATIONS
+                GbDefaultStations.POPULAR_STATIONS
             }
             stations = saved
             isLoading = false

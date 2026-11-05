@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.isHkBus
 import com.androidfung.departureboard.data.model.isHkMtr
@@ -271,7 +271,7 @@ fun StationSearchResultRow(
 fun StationSearchResultRowPreview() {
     DepartureBoardTheme {
         StationSearchResultRow(
-            station = DefaultStations.POPULAR_STATIONS[0],
+            station = GbDefaultStations.POPULAR_STATIONS[0],
             isSaved = false,
             onAddClick = {}
         )
@@ -283,7 +283,7 @@ fun StationSearchResultRowPreview() {
 fun StationSearchResultRowSavedPreview() {
     DepartureBoardTheme {
         StationSearchResultRow(
-            station = DefaultStations.POPULAR_STATIONS[1],
+            station = GbDefaultStations.POPULAR_STATIONS[1],
             isSaved = true,
             onAddClick = {}
         )

@@ -11,7 +11,7 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitRegion
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.repository.TransitRepository
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
@@ -721,7 +721,7 @@ class DashboardViewModel @JvmOverloads constructor(
                 com.androidfung.departureboard.data.model.TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
                 com.androidfung.departureboard.data.model.TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
                 com.androidfung.departureboard.data.model.TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
-                com.androidfung.departureboard.data.model.TransitRegion.GB -> DefaultStations.POPULAR_STATIONS
+                com.androidfung.departureboard.data.model.TransitRegion.GB -> GbDefaultStations.POPULAR_STATIONS
             }
             repository.reorderStations(defaults)
             _uiState.update { it.copy(userMessage = "Debug: Reset to default stations") }
@@ -807,7 +807,7 @@ class DashboardViewModel @JvmOverloads constructor(
                     com.androidfung.departureboard.data.model.TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
                     com.androidfung.departureboard.data.model.TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
                     com.androidfung.departureboard.data.model.TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
-                    com.androidfung.departureboard.data.model.TransitRegion.GB -> DefaultStations.POPULAR_STATIONS
+                    com.androidfung.departureboard.data.model.TransitRegion.GB -> GbDefaultStations.POPULAR_STATIONS
                 }
                 val allCandidateStations: List<Station> = (apiNearbyStations + savedStations + regionDefaults)
                     .distinctBy { it.id }

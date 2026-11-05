@@ -5,7 +5,7 @@ import android.content.res.Configuration
 import androidx.test.core.app.ApplicationProvider
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.TransitRegion
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import com.androidfung.departureboard.test.TestFixtures
 import java.time.Instant
@@ -80,10 +80,10 @@ class LocalizationAndRegionTest {
         assertEquals(R.string.region_hk, hk.displayNameRes)
 
         // Verify default stations for regions
-        assertTrue(DefaultStations.POPULAR_STATIONS.isNotEmpty())
+        assertTrue(GbDefaultStations.POPULAR_STATIONS.isNotEmpty())
         assertTrue(HkDefaultStations.POPULAR_STATIONS.isNotEmpty())
 
-        assertTrue(DefaultStations.POPULAR_STATIONS.all { TransitRegion.fromStationId(it.id) == TransitRegion.GB })
+        assertTrue(GbDefaultStations.POPULAR_STATIONS.all { TransitRegion.fromStationId(it.id) == TransitRegion.GB })
         assertTrue(HkDefaultStations.POPULAR_STATIONS.all { TransitRegion.fromStationId(it.id) == TransitRegion.HK })
     }
 

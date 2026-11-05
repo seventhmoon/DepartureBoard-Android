@@ -17,7 +17,7 @@ import com.androidfung.departureboard.data.repository.direction.OvergroundLineRe
 import com.androidfung.departureboard.data.repository.direction.ThameslinkDirectionResolver
 import com.androidfung.departureboard.data.repository.mapper.NationalRailDepartureMapper
 import com.androidfung.departureboard.data.repository.mapper.TflDepartureMapper
-import com.androidfung.departureboard.data.repository.source.gb.TyneAndWearMetroSource
+import com.androidfung.departureboard.data.repository.source.gb.TyneAndWearMetroDepartureSource
 import com.androidfung.departureboard.data.repository.source.hk.HkBusDepartureSource
 import com.androidfung.departureboard.data.repository.source.hk.HkMtrDepartureSource
 import com.androidfung.departureboard.data.resolver.hk.HkBusCallingPointsResolver
@@ -77,11 +77,11 @@ class CachedDepartureEntityTest {
     }
 
     @Test
-    fun `TyneAndWearMetroSource searches expanded Metro stations`() {
-        val jesmondMatches = TyneAndWearMetroSource.searchMetroStations("Jesmond")
+    fun `TyneAndWearMetroDepartureSource searches expanded Metro stations`() {
+        val jesmondMatches = TyneAndWearMetroDepartureSource.searchMetroStations("Jesmond")
         assertTrue(jesmondMatches.any { it.id == "JES" })
 
-        val gatesheadMatches = TyneAndWearMetroSource.searchMetroStations("Gateshead")
+        val gatesheadMatches = TyneAndWearMetroDepartureSource.searchMetroStations("Gateshead")
         assertTrue(gatesheadMatches.any { it.id == "GAT" })
     }
 

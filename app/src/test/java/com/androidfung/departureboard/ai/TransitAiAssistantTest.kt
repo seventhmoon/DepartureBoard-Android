@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.test.FakeTransitRepository
 import kotlinx.coroutines.Dispatchers
@@ -198,7 +198,7 @@ class TransitAiAssistantTest {
 
     @Test
     fun `near me query dynamically resolves closest station using LocationDataSource`() = runTest {
-        val kingsCross = DefaultStations.POPULAR_STATIONS.first { it.name.contains("King's Cross", ignoreCase = true) }
+        val kingsCross = GbDefaultStations.POPULAR_STATIONS.first { it.name.contains("King's Cross", ignoreCase = true) }
         val testDepartures = listOf(
             departure("victoria", "Victoria", "Brixton", seconds = 60, stationId = kingsCross.id, stationName = kingsCross.name)
         )

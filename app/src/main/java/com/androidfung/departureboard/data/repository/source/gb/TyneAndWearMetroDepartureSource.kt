@@ -18,7 +18,7 @@ import kotlinx.coroutines.coroutineScope
  * Departure source for Tyne and Wear Metro stations (Newcastle & Sunderland)
  * querying Nexus RTI API.
  */
-class TyneAndWearMetroSource(
+class TyneAndWearMetroDepartureSource(
     private val apiService: TyneAndWearMetroApiService = TyneAndWearMetroNetworkClient.apiService
 ) : DepartureSource {
 

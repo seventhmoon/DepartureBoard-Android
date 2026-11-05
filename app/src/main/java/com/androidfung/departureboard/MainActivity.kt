@@ -695,7 +695,7 @@ class MainActivity : ComponentActivity() {
             // Reuse full metadata (modes/zone/lines) for known popular stations so a
             // deep-linked card shows correct branding — previously every deep link was
             // hard-coded as a "tube" station, which was wrong for National Rail hubs.
-            val known = com.androidfung.departureboard.data.model.gb.DefaultStations.POPULAR_STATIONS
+            val known = com.androidfung.departureboard.data.model.gb.GbDefaultStations.POPULAR_STATIONS
                 .firstOrNull { (id) -> id == stationId }
             if (known != null) {
                 initialStation = known.copy(

@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.data
 
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.gb.DefaultStations
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.gb.TflSearchResponse
 import com.androidfung.departureboard.data.model.gb.TflStopPointMatch
