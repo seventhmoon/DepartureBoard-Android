@@ -1,16 +1,25 @@
 package com.androidfung.departureboard.data.repository.region.au
 
+import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.au.AuStationDirectory
 import com.androidfung.departureboard.data.model.isAuTransitId
+import com.androidfung.departureboard.data.repository.DepartureSource
 import com.androidfung.departureboard.data.repository.region.RegionalTransitProvider
+import com.androidfung.departureboard.data.topology.CallingPointsResolver
 
 /**
  * Australia / Sydney (Transport for NSW) regional transit provider.
  */
 object AuRegionalTransitProvider : RegionalTransitProvider {
     override val region: TransitRegion = TransitRegion.AU
+
+    private val departureSource = AuDepartureSource()
+    private val callingPointsResolver = AuCallingPointsResolver()
+
+    override val departureSources: List<DepartureSource> = listOf(departureSource)
+    override val callingPointsResolvers: List<CallingPointsResolver> = listOf(callingPointsResolver)
 
     override fun ownsStationId(stationId: String): Boolean = stationId.isAuTransitId
 
@@ -19,4 +28,8 @@ object AuRegionalTransitProvider : RegionalTransitProvider {
 
     override suspend fun getStationById(stationId: String): Station? =
         AuStationDirectory.getStationById(stationId)
+
+    override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> {
+        return departureSource.fetchDepartures(stationId, stationName, isBusStop = false)
+    }
 }

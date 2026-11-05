@@ -1,13 +1,14 @@
-package com.androidfung.departureboard.data.repository.engine
+package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.Departure
 import kotlin.math.abs
 
 /**
- * Collaborator responsible for merging and deduplicating departure feeds from multiple sources
- * (such as TfL predictions and National Rail services), reconciling cross-feed overlaps.
+ * GB/London specific collaborator responsible for merging and deduplicating departure feeds
+ * from multiple sources (such as TfL predictions and National Rail services), reconciling
+ * cross-feed overlaps (e.g., Overground named lines vs generic Overground, Elizabeth line, Euston).
  */
-object FeedMergeEngine {
+object GbFeedReconciliationEngine {
 
     private const val TIMESTAMP_TOLERANCE_SECONDS = 180
     private val OVERGROUND_ALIASES = setOf(
@@ -43,10 +44,12 @@ object FeedMergeEngine {
 
                 linesMatch && destsMatch && abs(tfl.timeToStationSeconds - nr.timeToStationSeconds) < TIMESTAMP_TOLERANCE_SECONDS
             }
+
             if (!isDuplicate) {
                 result.add(nr)
             }
         }
+
         return result
     }
 }

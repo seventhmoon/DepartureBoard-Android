@@ -11,6 +11,7 @@ import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitRegion
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.BodsDisruptionXmlParser
 import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.gb.TflLineStatusDetail
@@ -21,7 +22,6 @@ import com.androidfung.departureboard.data.network.gb.NationalRailApiService
 import com.androidfung.departureboard.data.network.gb.NationalRailNetworkClient
 import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.network.gb.TflNetworkClient
-import com.androidfung.departureboard.data.repository.engine.DepartureQueryEngine
 import com.androidfung.departureboard.data.repository.mapper.TflStationMapper
 import com.androidfung.departureboard.data.repository.region.RegionalTransitProvider
 import com.androidfung.departureboard.data.repository.region.au.AuCallingPointsResolver
@@ -116,46 +116,9 @@ class TransitRepositoryImpl(
     private val context: Context? = null
 ) : TransitRepository {
 
-    private val tflDepartureSource = TflDepartureSource(apiService)
-    private val nationalRailDepartureSource = NationalRailDepartureSource(nrApiService)
-    private val bodsDepartureSource = BodsDepartureSource(bodsApiService) { id -> getStationById(id) }
-    private val tyneAndWearMetroSource = TyneAndWearMetroDepartureSource()
-    private val hkBusDepartureSource = HkBusDepartureSource()
-    private val hkMtrDepartureSource = HkMtrDepartureSource()
-    private val hkBusCallingPointsResolver = HkBusCallingPointsResolver()
-    private val hkMtrCallingPointsResolver = HkMtrCallingPointsResolver()
-    private val hkBusSearchEngine = HkBusSearchEngine()
-    private val bodsCallingPointsResolver = BodsCallingPointsResolver(bodsApiService)
-    private val tflCallingPointsResolver = TflCallingPointsResolver(apiService)
-    private val sgCallingPointsResolver = SgCallingPointsResolver()
-    private val auCallingPointsResolver = AuCallingPointsResolver()
-    private val jpCallingPointsResolver = JpCallingPointsResolver()
 
-    private val callingPointsEngine = CallingPointsEngine(
-        listOf(
-            bodsCallingPointsResolver,
-            hkMtrCallingPointsResolver,
-            hkBusCallingPointsResolver,
-            tflCallingPointsResolver,
-            sgCallingPointsResolver,
-            auCallingPointsResolver,
-            jpCallingPointsResolver
-        )
-    )
 
-    private val departureQueryEngine = DepartureQueryEngine(
-        listOf(
-            tflDepartureSource,
-            nationalRailDepartureSource,
-            bodsDepartureSource,
-            tyneAndWearMetroSource,
-            hkBusDepartureSource,
-            hkMtrDepartureSource,
-            SgDepartureSource(),
-            AuDepartureSource(),
-            JpDepartureSource()
-        )
-    )
+
 
     private val stationSearchEngine = StationSearchEngine(
         apiService = apiService,
@@ -165,12 +128,15 @@ class TransitRepositoryImpl(
 
     private val gbRegionalProvider = GbRegionalTransitProvider(
         apiService = apiService,
+        nrApiService = nrApiService,
+        bodsApiService = bodsApiService,
         stationSearchEngine = stationSearchEngine,
-        timetableScheduleResolver = timetableScheduleResolver
+        timetableScheduleResolver = timetableScheduleResolver,
+        stationLookup = { id -> GbDefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(id, ignoreCase = true) } }
     )
 
     private val regionalProviders: List<RegionalTransitProvider> = listOf(
-        HkRegionalTransitProvider(context = context, hkBusSearchEngine = hkBusSearchEngine),
+        HkRegionalTransitProvider(context = context),
         SgRegionalTransitProvider,
         AuRegionalTransitProvider,
         JpRegionalTransitProvider,
@@ -179,6 +145,10 @@ class TransitRepositoryImpl(
 
     private val providersByRegion: Map<TransitRegion, RegionalTransitProvider> =
         regionalProviders.associateBy { it.region }
+
+    private val callingPointsEngine = CallingPointsEngine(
+        regionalProviders.flatMap { it.callingPointsResolvers }
+    )
 
     constructor(context: Context) : this(
         apiService = TflNetworkClient.apiService,
@@ -229,7 +199,8 @@ class TransitRepositoryImpl(
                 key = stationId,
                 scope = repositoryScope
             ) {
-                val queryResult = departureQueryEngine.queryDepartures(stationId, stationName)
+                val provider = regionalProviders.firstOrNull { it.ownsStationId(stationId) } ?: gbRegionalProvider
+                val queryResult = provider.getDepartures(stationId, stationName)
                 queryResult.fold(
                     onSuccess = { departures ->
                         if (departures.isNotEmpty()) {

@@ -1,6 +1,7 @@
 package com.androidfung.departureboard.data.repository.region.hk
 
 import android.content.Context
+import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.TransitRegion
@@ -13,11 +14,16 @@ import com.androidfung.departureboard.data.model.hk.HkStationDirectory
 import com.androidfung.departureboard.data.model.isHkBusStationId
 import com.androidfung.departureboard.data.model.isHkTransitId
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
+import com.androidfung.departureboard.data.repository.DepartureSource
 import com.androidfung.departureboard.data.repository.region.RegionalTransitProvider
 import com.androidfung.departureboard.data.repository.search.HkBusSearchEngine
+import com.androidfung.departureboard.data.topology.CallingPointsResolver
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 /**
  * Hong Kong (MTR, KMB, Citybus) regional transit provider.
+ * Wraps both MTR rail and franchised bus departure sources behind a single regional interface.
  */
 class HkRegionalTransitProvider(
     private val context: Context? = null,
@@ -25,6 +31,21 @@ class HkRegionalTransitProvider(
 ) : RegionalTransitProvider {
 
     override val region: TransitRegion = TransitRegion.HK
+
+    private val hkMtrDepartureSource = HkMtrDepartureSource()
+    private val hkBusDepartureSource = HkBusDepartureSource()
+    private val hkMtrCallingPointsResolver = HkMtrCallingPointsResolver()
+    private val hkBusCallingPointsResolver = HkBusCallingPointsResolver()
+
+    override val departureSources: List<DepartureSource> = listOf(
+        hkMtrDepartureSource,
+        hkBusDepartureSource
+    )
+
+    override val callingPointsResolvers: List<CallingPointsResolver> = listOf(
+        hkMtrCallingPointsResolver,
+        hkBusCallingPointsResolver
+    )
 
     override fun ownsStationId(stationId: String): Boolean =
         stationId.isHkTransitId || HkMtrStationRegistry.getStation(stationId) != null
@@ -85,6 +106,35 @@ class HkRegionalTransitProvider(
         }
 
         return null
+    }
+
+    override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> = coroutineScope {
+        val isBusStop = stationId.isHkBusStationId
+        val matchingSources = departureSources.filter { it.canHandle(stationId, stationName, isBusStop) }
+        if (matchingSources.isEmpty()) {
+            return@coroutineScope Result.success(emptyList())
+        }
+
+        val deferreds = matchingSources.map { source ->
+            async { source.fetchDepartures(stationId, stationName, isBusStop) }
+        }
+
+        val results = deferreds.map { it.await() }
+        val merged = mutableListOf<Departure>()
+        var lastError: Throwable? = null
+
+        for (res in results) {
+            res.fold(
+                onSuccess = { merged.addAll(it) },
+                onFailure = { lastError = it }
+            )
+        }
+
+        if (merged.isEmpty() && lastError != null) {
+            Result.failure(lastError!!)
+        } else {
+            Result.success(merged.sortedBy { it.timeToStationSeconds })
+        }
     }
 
     override suspend fun checkStationServiceHours(
