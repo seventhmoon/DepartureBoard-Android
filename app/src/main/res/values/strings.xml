@@ -356,6 +356,8 @@
     <string name="widget_preparing_subtitle">Setting up live board…</string>
     <string name="widget_preparing_subtitle_with_filter">%1$s • Setting up live board…</string>
     <string name="widget_preparing_fetching">Fetching live arrivals…</string>
+    <string name="widget_dep_minutes">%1$dm</string>
+    <string name="widget_station_name_fallback">Departure Board</string>
 
     <!-- Widget Interruption Statuses -->
     <string name="widget_interruption_delays">Delays</string>
