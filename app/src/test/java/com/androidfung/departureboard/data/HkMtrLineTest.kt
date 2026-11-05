@@ -1,41 +1,41 @@
 package com.androidfung.departureboard.data
 
 import androidx.compose.ui.graphics.Color
-import com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry
+import com.androidfung.departureboard.data.model.hk.HkMtrLine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class HkMtrLineRegistryTest {
+class HkMtrLineTest {
 
     @Test
     fun testLineRegistry_containsAllMtrLinesWithOfficialColors() {
-        val isl = HkMtrLineRegistry.getLine("ISL")
+        val isl = HkMtrLine.getLine("ISL")
         assertNotNull(isl)
         assertEquals("Island Line", isl!!.nameEn)
         assertEquals("港島綫", isl.nameTc)
         assertEquals(Color(0xFF007DC5), isl.color)
 
-        val twl = HkMtrLineRegistry.getLine("TWL")
+        val twl = HkMtrLine.getLine("TWL")
         assertNotNull(twl)
         assertEquals("Tsuen Wan Line", twl!!.nameEn)
         assertEquals(Color(0xFFE2231A), twl.color)
 
-        val eal = HkMtrLineRegistry.getLine("EAL")
+        val eal = HkMtrLine.getLine("EAL")
         assertNotNull(eal)
         assertEquals(Color(0xFF53B7E8), eal!!.color)
     }
 
     @Test
     fun testLineRegistry_createsValidBadge() {
-        val badge = HkMtrLineRegistry.getLineBadge("ISL")
+        val badge = HkMtrLine.getLineBadge("ISL")
         assertEquals("ISL", badge.lineId)
         assertEquals("ISL", badge.displayName)
         assertEquals(Color(0xFF007DC5), badge.backgroundColor)
         assertEquals(Color.White, badge.textColor)
 
-        val fallbackBadge = HkMtrLineRegistry.getLineBadge("UNKNOWN")
+        val fallbackBadge = HkMtrLine.getLineBadge("UNKNOWN")
         assertEquals("UNKNOWN", fallbackBadge.lineId)
     }
 }

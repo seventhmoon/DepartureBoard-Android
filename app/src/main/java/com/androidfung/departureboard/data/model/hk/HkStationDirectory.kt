@@ -37,7 +37,7 @@ object HkStationDirectory : StationDirectory {
             ?: listOfNotNull(lineCode ?: findPrimaryLineForStation(station.code))
 
         val linesList = allLinesForStation.distinct().map { lCode ->
-            val lineName = HkMtrLineRegistry.getLineName(lCode)
+            val lineName = HkMtrLine.getLineName(lCode)
             StationLineInfo(lCode, lineName, "tube")
         }
 

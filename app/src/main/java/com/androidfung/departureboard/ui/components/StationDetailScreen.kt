@@ -75,6 +75,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.ui.detail.DetailPaneScaffold
 
 private sealed interface StationDetailListItem {
     data class DepartureItem(val departure: Departure, val index: Int) : StationDetailListItem

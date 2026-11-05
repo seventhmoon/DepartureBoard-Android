@@ -191,7 +191,7 @@ fun StationSearchResultRow(
                                 val transitMode = TransitMode.fromModeString(modeStr)
                                 val badge = if (station.isHkMtr) {
                                     val primaryLine = station.lines.firstOrNull()?.id ?: "ISL"
-                                    com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry.getLineBadge(primaryLine)
+                                    com.androidfung.departureboard.data.model.hk.HkMtrLine.getLineBadge(primaryLine)
                                 } else if (station.isHkBus) {
                                     LineBadgeInfo("bus", "Bus", com.androidfung.departureboard.data.model.hk.HkDefaultStations.ColorKmbRed, Color.White, TransitMode.BUS)
                                 } else {

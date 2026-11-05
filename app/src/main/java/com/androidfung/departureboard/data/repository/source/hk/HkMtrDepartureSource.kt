@@ -3,7 +3,7 @@ package com.androidfung.departureboard.data.repository.source.hk
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
-import com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry
+import com.androidfung.departureboard.data.model.hk.HkMtrLine
 import com.androidfung.departureboard.data.model.hk.HkMtrRoutes
 import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
 import com.androidfung.departureboard.data.model.isHkMtrStationId
@@ -65,8 +65,8 @@ class HkMtrDepartureSource(
                         val scheduleData = response.data?.get("${lineCode}-$sta")
                         val allItems = (scheduleData?.upDepartures.orEmpty() + scheduleData?.downDepartures.orEmpty())
 
-                        val lineTitle = HkMtrLineRegistry.getLineName(lineCode)
-                        val lineBadge = HkMtrLineRegistry.getLineBadge(lineCode)
+                        val lineTitle = HkMtrLine.getLineName(lineCode)
+                        val lineBadge = HkMtrLine.getLineBadge(lineCode)
 
                         allItems.mapNotNull { item ->
                             val timeStr = item.time?.trim() ?: return@mapNotNull null

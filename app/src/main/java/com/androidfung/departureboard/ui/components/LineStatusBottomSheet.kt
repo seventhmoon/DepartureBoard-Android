@@ -60,7 +60,7 @@ import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.gb.TflLineStatusDetail
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
-import com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry
+import com.androidfung.departureboard.data.model.hk.HkMtrLine
 import com.androidfung.departureboard.ui.theme.GoodServiceGreen
 import com.androidfung.departureboard.ui.theme.MinorDelaysAmber
 import com.androidfung.departureboard.ui.theme.SevereDelaysRed
@@ -321,7 +321,7 @@ internal fun buildDisplayLineStatusItems(
     }
 
     if (selectedRegion == TransitRegion.HK) {
-        val items = HkMtrLineRegistry.LINES.values.map { mtrLine ->
+        val items = HkMtrLine.LINES.values.map { mtrLine ->
             val statusItem = lineStatuses[mtrLine.code.lowercase()]
             val primaryStatus = statusItem?.lineStatuses?.minByOrNull { it.statusSeverity }
             DisplayLineStatusItem(

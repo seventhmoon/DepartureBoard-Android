@@ -10,7 +10,7 @@ import com.androidfung.departureboard.data.model.au.AuSydneyLine
 import com.androidfung.departureboard.data.model.gb.GbTransitLine
 import com.androidfung.departureboard.data.model.gb.GbTransitRoutes
 import com.androidfung.departureboard.data.model.gb.TflLineColors
-import com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry
+import com.androidfung.departureboard.data.model.hk.HkMtrLine
 import com.androidfung.departureboard.data.model.hk.HkMtrRoutes
 import com.androidfung.departureboard.data.model.isBus
 import com.androidfung.departureboard.data.model.jp.JpStationDirectory
@@ -146,7 +146,7 @@ class RegionalArchitectureTest {
     fun `TransitLineRegistry resolves line badges across GB, HK, SG, AU, and JP`() {
         val registries: List<TransitLineRegistry> = listOf(
             GbTransitLine,
-            HkMtrLineRegistry,
+            HkMtrLine,
             SgMrtLine,
             AuSydneyLine,
             JpTokyoLine
@@ -161,7 +161,7 @@ class RegionalArchitectureTest {
         assertEquals("windrush", gbOvergroundBadge.lineId)
         assertEquals(TransitMode.OVERGROUND, gbOvergroundBadge.mode)
 
-        val hkBadge = HkMtrLineRegistry.getLineBadge("TWL")
+        val hkBadge = HkMtrLine.getLineBadge("TWL")
         assertEquals("TWL", hkBadge.lineCode)
         assertEquals(TransitMode.TUBE, hkBadge.mode)
 

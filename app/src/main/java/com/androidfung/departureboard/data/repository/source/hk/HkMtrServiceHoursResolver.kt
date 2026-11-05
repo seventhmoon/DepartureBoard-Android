@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.data.repository.source.hk
 
 import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
-import com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry
+import com.androidfung.departureboard.data.model.hk.HkMtrLine
 import com.androidfung.departureboard.data.model.hk.HkMtrRoutes
 import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
@@ -54,7 +54,7 @@ object HkMtrServiceHoursResolver {
         val isLateNight = (hour == 1 && minute >= 20) || (hour in 2..4) || (hour == 5 && minute < 40)
 
         val (lastTrain, firstTrain) = LINE_SERVICE_HOURS[candidateLine] ?: ("01:00" to "06:00")
-        val lineName = HkMtrLineRegistry.getLineName(candidateLine)
+        val lineName = HkMtrLine.getLineName(candidateLine)
 
         return if (isLateNight) {
             StationServiceHoursInfo(

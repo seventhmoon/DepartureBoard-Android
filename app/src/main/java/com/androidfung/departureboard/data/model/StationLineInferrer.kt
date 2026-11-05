@@ -2,7 +2,7 @@ package com.androidfung.departureboard.data.model
 
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
-import com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry
+import com.androidfung.departureboard.data.model.hk.HkMtrLine
 
 /**
  * Data-driven inference of default line badges for London transit stations
@@ -170,8 +170,8 @@ object StationLineInferrer {
             }
             .map { line ->
                 val mode = line.mode ?: resolveDefaultMode(line.id)
-                if (station.isHkMtr || line.id in HkMtrLineRegistry.LINES) {
-                    HkMtrLineRegistry.getLineBadge(line.id)
+                if (station.isHkMtr || line.id in HkMtrLine.LINES) {
+                    HkMtrLine.getLineBadge(line.id)
                 } else if (station.isHkBus || line.id.isHkBusRouteId) {
                     val cleanRoute = line.name.ifBlank { line.id.removePrefix("KMB_").removePrefix("CTB_") }
                     LineBadgeInfo(

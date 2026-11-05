@@ -10,7 +10,7 @@ import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.gb.TflLineColors
-import com.androidfung.departureboard.data.model.hk.HkMtrLineRegistry
+import com.androidfung.departureboard.data.model.hk.HkMtrLine
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -60,8 +60,8 @@ data class CachedDepartureEntity(
                 mode = TransitMode.fromModeString(modeName),
                 lineCode = badgeLineCode ?: lineName.take(3).uppercase()
             )
-        } else if (stationId.startsWith("HK_MTR_") || lineId.uppercase() in HkMtrLineRegistry.LINES) {
-            HkMtrLineRegistry.getLineBadge(lineId)
+        } else if (stationId.startsWith("HK_MTR_") || lineId.uppercase() in HkMtrLine.LINES) {
+            HkMtrLine.getLineBadge(lineId)
         } else {
             TflLineColors.getLineBadge(lineId, lineName, modeName)
         }
