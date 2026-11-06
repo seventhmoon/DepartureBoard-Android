@@ -49,6 +49,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,6 +57,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.ui.ads.NativeAdStyle
@@ -307,7 +309,7 @@ private fun TrainJourneyContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Train to ${departure.destinationName}",
+                            text = stringResource(R.string.train_journey_title, departure.destinationName),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 22.sp
@@ -331,7 +333,7 @@ private fun TrainJourneyContent(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "From",
+                                text = stringResource(R.string.train_journey_from),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -382,7 +384,7 @@ private fun TrainJourneyContent(
 
                         Column {
                             Text(
-                                text = "CURRENT TRAIN LOCATION",
+                                text = stringResource(R.string.train_journey_current_location),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp,
@@ -409,16 +411,16 @@ private fun TrainJourneyContent(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (departure.status == com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
                             TrainTripAlertBanner(
-                                title = "Service Cancelled",
+                                title = stringResource(R.string.tracking_service_cancelled_title),
                                 description = departure.currentLocation?.takeIf { it.isNotBlank() && !it.equals("Cancelled", ignoreCase = true) }
-                                    ?: "This service has been cancelled.",
+                                    ?: stringResource(R.string.tracking_service_cancelled_desc),
                                 isCancelled = true
                             )
                         } else if (departure.status == com.androidfung.departureboard.data.model.DepartureStatus.DELAYED) {
                             TrainTripAlertBanner(
-                                title = "Service Delayed",
+                                title = stringResource(R.string.status_delayed),
                                 description = departure.currentLocation?.takeIf { it.isNotBlank() && !it.equals("Delayed", ignoreCase = true) }
-                                    ?: "This service is experiencing delays.",
+                                    ?: stringResource(R.string.widget_interruption_delays),
                                 isCancelled = false
                             )
                         }
@@ -443,7 +445,7 @@ private fun TrainJourneyContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Calling Points",
+                            text = stringResource(R.string.train_journey_calling_points),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),
@@ -458,7 +460,7 @@ private fun TrainJourneyContent(
                             )
                         } else {
                             Text(
-                                text = "${callingPoints.size} stops",
+                                text = stringResource(R.string.train_journey_stops_count, callingPoints.size),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -525,7 +527,7 @@ private fun TrainJourneyContent(
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "Loading calling points...",
+                                text = stringResource(R.string.train_journey_loading_stops),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -546,7 +548,7 @@ private fun TrainJourneyContent(
                             modifier = Modifier.padding(16.dp)
                         ) {
                             Text(
-                                text = "Calling points details not available for this service.",
+                                text = stringResource(R.string.train_journey_no_stops),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -742,7 +744,7 @@ private fun CallingPointTimelineItem(
                 Spacer(modifier = Modifier.width(10.dp))
 
                 Text(
-                    text = "Your station",
+                    text = stringResource(R.string.train_journey_your_station),
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(bottom = 6.dp)

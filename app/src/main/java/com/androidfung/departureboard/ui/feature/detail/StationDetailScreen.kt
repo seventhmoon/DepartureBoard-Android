@@ -63,6 +63,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -74,6 +75,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.ui.ads.NativeAdStyle
@@ -356,7 +358,7 @@ private fun StationDetailContent(
 
             if (isSingleDirectionBusStop) {
                 Text(
-                    text = "towards ${distinctTowards.first()}",
+                    text = stringResource(R.string.station_towards, distinctTowards.first()),
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
@@ -367,13 +369,14 @@ private fun StationDetailContent(
                 )
             }
 
+            val displayZone = station.displayZone
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                if (station.displayZone != null) {
+                if (displayZone != null) {
                     Text(
-                        text = "Zone ${station.displayZone}",
+                        text = stringResource(R.string.station_zone, displayZone),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -434,7 +437,7 @@ private fun StationDetailContent(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Map,
-                    contentDescription = "Open in Maps",
+                    contentDescription = stringResource(R.string.cd_open_in_maps),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(19.dp)
                 )
@@ -451,7 +454,7 @@ private fun StationDetailContent(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Refresh,
-                    contentDescription = "Refresh Departures",
+                    contentDescription = stringResource(R.string.cd_refresh_departures),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(19.dp)
                 )
@@ -657,7 +660,7 @@ private fun StationDetailContent(
                                             modifier = Modifier.padding(end = 6.dp)
                                         )
                                         Text(
-                                            text = "${disruptedBadgesToShow.size} Line Disruptions",
+                                            text = stringResource(R.string.station_detail_disruptions_count, disruptedBadgesToShow.size),
                                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                             color = Color(0xFFFFC107)
                                         )
@@ -671,7 +674,7 @@ private fun StationDetailContent(
                                     }
                                     Icon(
                                         imageVector = if (isDisruptionsExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                                        contentDescription = if (isDisruptionsExpanded) "Collapse Disruptions" else "Expand Disruptions",
+                                        contentDescription = if (isDisruptionsExpanded) stringResource(R.string.line_status_collapse_desc) else stringResource(R.string.line_status_expand_desc),
                                         tint = Color(0xFFFFC107),
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -705,7 +708,7 @@ private fun StationDetailContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Stops / Stands:",
+                            text = stringResource(R.string.station_detail_stops_stands),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(end = 8.dp)
@@ -781,7 +784,7 @@ private fun StationDetailContent(
                                     .background(Color(0xFF22C55E).copy(alpha = pulseAlpha))
                             )
                             Text(
-                                text = "Live Departures",
+                                text = stringResource(R.string.station_detail_live_departures),
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
@@ -797,7 +800,7 @@ private fun StationDetailContent(
                             )
                         } else {
                             Text(
-                                text = "${filteredDepartures.size} predictions",
+                                text = stringResource(R.string.station_detail_predictions_count, filteredDepartures.size),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -822,7 +825,7 @@ private fun StationDetailContent(
                                 modifier = Modifier.padding(horizontal = 24.dp)
                             ) {
                                 Text(
-                                    text = "🌙 Service Ended for Today",
+                                    text = stringResource(R.string.station_detail_service_ended),
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center

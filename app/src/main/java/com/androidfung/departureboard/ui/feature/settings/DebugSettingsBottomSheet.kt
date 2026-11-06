@@ -244,7 +244,7 @@ fun DebugSettingsBody(
                 IconButton(onClick = onDismissRequest) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(R.string.cd_close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

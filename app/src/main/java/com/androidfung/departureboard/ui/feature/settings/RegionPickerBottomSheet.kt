@@ -106,7 +106,7 @@ fun RegionPickerBottomSheet(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Choose your city or transit network",
+                            text = stringResource(R.string.region_picker_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -116,7 +116,7 @@ fun RegionPickerBottomSheet(
                 IconButton(onClick = onDismissRequest) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(R.string.cd_close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -157,12 +157,12 @@ fun RegionPickerBottomSheet(
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "EkiBoard isn't in $countryDisplay yet",
+                            text = stringResource(R.string.region_picker_not_supported_title, countryDisplay),
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Text(
-                            text = "Explore live departures for any of our supported transit networks below.",
+                            text = stringResource(R.string.region_picker_not_supported_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                         )
@@ -177,7 +177,7 @@ fun RegionPickerBottomSheet(
             // Detected Region (if location GPS/carrier resolved a supported region)
             if (detectedRegion != null) {
                 Text(
-                    text = "NEARBY",
+                    text = stringResource(R.string.region_picker_section_nearby),
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -199,7 +199,7 @@ fun RegionPickerBottomSheet(
             }
 
             Text(
-                text = "SUPPORTED CITIES & REGIONS",
+                text = stringResource(R.string.region_picker_section_supported),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -306,7 +306,7 @@ private fun RegionCardItem(
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
-                                text = "Current",
+                                text = stringResource(R.string.region_picker_current_badge),
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.primary,
                                 fontSize = 10.sp
@@ -337,7 +337,7 @@ private fun RegionCardItem(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Check,
-                    contentDescription = "Selected",
+                    contentDescription = stringResource(R.string.cd_selected),
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(16.dp)
                 )

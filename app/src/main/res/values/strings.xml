@@ -73,6 +73,16 @@
     <string name="language_ko">한국어</string>
 
     <!-- Settings Bottom Sheet -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Preferences &amp; options</string>
+    <string name="settings_section_display">DISPLAY PREFERENCES</string>
+    <string name="settings_rows_per_card_title">Rows Per Station Card</string>
+    <string name="settings_rows_per_card_desc">Max upcoming departures shown</string>
+    <string name="settings_theme_title">App Theme</string>
+    <string name="settings_theme_desc">Choose system default, light, or dark theme</string>
+    <string name="settings_auto_sort_title">Smart Location Auto-Sort</string>
+    <string name="settings_auto_sort_desc">Automatically place your nearest saved station at the top</string>
+    <string name="settings_section_about_help">ABOUT &amp; HELP</string>
     <string name="settings_close">Close</string>
     <string name="settings_section_region_language">REGION &amp; LANGUAGE</string>
     <string name="settings_theme_system">System</string>
@@ -90,13 +100,36 @@
     <string name="empty_dashboard_desc">Add your regular transit stations, MTR lines, or bus stops to see real-time departure countdowns.</string>
     <string name="empty_dashboard_add_station">Add Station</string>
 
-    <!-- Station Departure Card -->
+    <!-- Station Departure Card & Details -->
+    <string name="station_towards">towards %1$s</string>
+    <string name="station_zone">Zone %1$s</string>
+    <string name="station_nearest">📍 Nearest</string>
+    <string name="station_nearest_with_distance">📍 Nearest • %1$s</string>
+    <string name="station_pinned">Pinned</string>
+    <string name="travel_alert_view_details">View travel alert details ↗</string>
+    <string name="travel_alert_more_details">More details ↗</string>
+    <string name="travel_alert_delays">Delays</string>
     <string name="departures_loading">Loading live departures…</string>
     <string name="departures_retry_hint">Pull down or tap to retry</string>
     <string name="departures_filter_no_match">No departures match this filter</string>
     <string name="departures_show_all">Show all departures</string>
     <string name="departures_none_upcoming">No upcoming departures</string>
     <string name="departures_service_ended">Service may have ended for the day</string>
+    <string name="station_detail_disruptions_count" tools:ignore="PluralsCandidate">%1$d Line Disruptions</string>
+    <string name="station_detail_stops_stands">Stops / Stands:</string>
+    <string name="station_detail_live_departures">Live Departures</string>
+    <string name="station_detail_predictions_count" tools:ignore="PluralsCandidate">%1$d predictions</string>
+    <string name="station_detail_service_ended">🌙 Service Ended for Today</string>
+
+    <!-- Train Journey Screen -->
+    <string name="train_journey_title">Train to %1$s</string>
+    <string name="train_journey_from">From</string>
+    <string name="train_journey_current_location">CURRENT TRAIN LOCATION</string>
+    <string name="train_journey_calling_points">Calling Points</string>
+    <string name="train_journey_stops_count" tools:ignore="PluralsCandidate">%1$d stops</string>
+    <string name="train_journey_loading_stops">Loading calling points…</string>
+    <string name="train_journey_no_stops">Calling points details not available for this service.</string>
+    <string name="train_journey_your_station">Your station</string>
 
     <!-- Search Station Bottom Sheet -->
     <string name="search_stations_title">Search Stations</string>
@@ -206,6 +239,42 @@
     <string name="help_faq_app_description">Open-source transit companion built with Jetpack Compose &amp; Material 3 Expressive. Powered by Official Open Data.</string>
 
     <!-- Region Picker Bottom Sheet -->
+    <string name="region_picker_subtitle">Choose your city or transit network</string>
+    <string name="region_picker_not_supported_title">EkiBoard isn\'t in %1$s yet</string>
+    <string name="region_picker_not_supported_desc">Explore live departures for any of our supported transit networks below.</string>
+    <string name="region_picker_section_nearby">NEARBY</string>
+    <string name="region_picker_section_supported">SUPPORTED CITIES &amp; REGIONS</string>
+    <string name="region_picker_current_badge">Current</string>
+
+    <!-- AI Transit Assistant & Sheet -->
+    <string name="ai_sheet_title">EkiBoard AI</string>
+    <string name="ai_sheet_subtitle">Ask about live trains, buses &amp; departures</string>
+    <string name="ai_module_title">On-Device Local AI Module</string>
+    <string name="ai_module_desc">Download on-device generative LiteRT reasoning module (~35 MB) for complete offline privacy.</string>
+    <string name="ai_module_download_button">Download On-Demand AI (35 MB)</string>
+    <string name="ai_module_downloading">Downloading AI module: %1$d%%</string>
+    <string name="ai_query_checking">Checking live transit network…</string>
+    <string name="ai_upgrade_pro">Upgrade to Pro for Unlimited AI</string>
+    <string name="ai_suggested_questions">Suggested Questions:</string>
+    <string name="ai_live_services">Live Services</string>
+    <string name="ai_action_maps">Directions in Maps</string>
+    <string name="ai_action_tfl">TfL Journey Planner</string>
+    <string name="ai_action_pin">Pin %1$s</string>
+
+    <!-- Accessibility & Content Descriptions -->
+    <string name="cd_delete_station">Delete station</string>
+    <string name="cd_close">Close</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_open_in_maps">Open in Maps</string>
+    <string name="cd_refresh_departures">Refresh departures</string>
+    <string name="cd_nearby_stations">Nearby stations</string>
+    <string name="cd_pinned_to_home">Pinned to home</string>
+    <string name="cd_view_departures">View departures</string>
+    <string name="cd_selected">Selected</string>
+    <string name="cd_speak_prompt">Speak departure prompt</string>
+    <string name="cd_send_query">Send query</string>
+    <string name="cd_departure_cancelled">%1$s to %2$s, cancelled</string>
+    <string name="cd_departure_departing">%1$s to %2$s, departing in %3$s</string>
 
     <!-- Debug Settings Bottom Sheet -->
     <string name="update_downloaded_message">An update has just been downloaded.</string>

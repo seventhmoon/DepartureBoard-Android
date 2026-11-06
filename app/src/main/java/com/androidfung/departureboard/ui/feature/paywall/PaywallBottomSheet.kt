@@ -51,12 +51,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.billingclient.api.ProductDetails
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.SubscriptionTier
 
@@ -147,7 +149,7 @@ fun PaywallBottomSheet(
                 IconButton(onClick = onDismissRequest) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(R.string.cd_close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

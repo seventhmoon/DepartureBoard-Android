@@ -43,11 +43,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.ai.A2UiAction
 import com.androidfung.departureboard.ai.A2UiBlock
 import com.androidfung.departureboard.ai.A2UiResponse
@@ -231,7 +233,7 @@ private fun DeparturesActionCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Live Services",
+                    text = stringResource(R.string.ai_live_services),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -319,7 +321,7 @@ private fun ActionButtonChip(
                     context.startActivity(Intent(Intent.ACTION_VIEW, uri))
                     onActionClick(action)
                 },
-                label = { Text("Directions in Maps") },
+                label = { Text(stringResource(R.string.ai_action_maps)) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Rounded.Map,
@@ -337,7 +339,7 @@ private fun ActionButtonChip(
                     context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
                     onActionClick(action)
                 },
-                label = { Text("TfL Journey Planner") },
+                label = { Text(stringResource(R.string.ai_action_tfl)) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Rounded.DirectionsTransit,
@@ -351,7 +353,7 @@ private fun ActionButtonChip(
         is A2UiAction.PinStation -> {
             AssistChip(
                 onClick = { onActionClick(action) },
-                label = { Text("Pin ${action.station.displayName.substringBefore("(").trim()}") },
+                label = { Text(stringResource(R.string.ai_action_pin, action.station.displayName.substringBefore("(").trim())) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Rounded.PushPin,

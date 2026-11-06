@@ -73,6 +73,16 @@
     <string name="language_ko">한국어</string>
 
     <!-- Settings Bottom Sheet -->
+    <string name="settings_title">設定</string>
+    <string name="settings_subtitle">偏好設定與選項</string>
+    <string name="settings_section_display">顯示偏好</string>
+    <string name="settings_rows_per_card_title">每張車站卡片顯示行數</string>
+    <string name="settings_rows_per_card_desc">最多顯示之即將離站班次</string>
+    <string name="settings_theme_title">應用程式主題</string>
+    <string name="settings_theme_desc">選擇系統預設、淺色或深色主題</string>
+    <string name="settings_auto_sort_title">智慧位置自動排序</string>
+    <string name="settings_auto_sort_desc">自動將距離最近的已儲存車站置頂</string>
+    <string name="settings_section_about_help">關於與說明</string>
     <string name="settings_close">關閉</string>
     <string name="settings_section_region_language">地區與語言</string>
     <string name="settings_theme_system">跟隨系統</string>
@@ -90,13 +100,36 @@
     <string name="empty_dashboard_desc">新增您常用的交通車站、港鐵路線或巴士站，即可隨時掌握即時倒數班次。</string>
     <string name="empty_dashboard_add_station">新增車站</string>
 
-    <!-- Station Departure Card -->
+    <!-- Station Departure Card & Details -->
+    <string name="station_towards">開往 %1$s</string>
+    <string name="station_zone">第 %1$s 區</string>
+    <string name="station_nearest">📍 最近</string>
+    <string name="station_nearest_with_distance">📍 最近 • %1$s</string>
+    <string name="station_pinned">已釘選</string>
+    <string name="travel_alert_view_details">查看交通警報詳情 ↗</string>
+    <string name="travel_alert_more_details">詳細資訊 ↗</string>
+    <string name="travel_alert_delays">延誤</string>
     <string name="departures_loading">正在載入即時班次…</string>
     <string name="departures_retry_hint">向下拉動或輕觸以重試</string>
     <string name="departures_filter_no_match">沒有符合此篩選條件的班次</string>
     <string name="departures_show_all">顯示所有班次</string>
     <string name="departures_none_upcoming">暫無即將離站班次</string>
     <string name="departures_service_ended">今日服務可能已結束</string>
+    <string name="station_detail_disruptions_count">%1$d 條路線異動</string>
+    <string name="station_detail_stops_stands">巴士站 / 候車位：</string>
+    <string name="station_detail_live_departures">即時離站班次</string>
+    <string name="station_detail_predictions_count">%1$d 個預測班次</string>
+    <string name="station_detail_service_ended">🌙 今日服務已結束</string>
+
+    <!-- Train Journey Screen -->
+    <string name="train_journey_title">前往 %1$s 的列車</string>
+    <string name="train_journey_from">出發站</string>
+    <string name="train_journey_current_location">目前列車位置</string>
+    <string name="train_journey_calling_points">沿途停靠站</string>
+    <string name="train_journey_stops_count">%1$d 個停靠站</string>
+    <string name="train_journey_loading_stops">正在載入停靠站…</string>
+    <string name="train_journey_no_stops">此班次未提供停靠站詳細資料。</string>
+    <string name="train_journey_your_station">您的車站</string>
 
     <!-- Search Station Bottom Sheet -->
     <string name="search_stations_title">搜尋車站</string>
@@ -206,9 +239,90 @@
     <string name="help_faq_app_description">使用 Jetpack Compose 與 Material 3 Expressive 打造的開源交通伴侶，由官方開放資料提供支援。</string>
 
     <!-- Region Picker Bottom Sheet -->
+    <string name="region_picker_subtitle">選擇您的城市或交通網絡</string>
+    <string name="region_picker_not_supported_title">EkiBoard 尚未支援 %1$s</string>
+    <string name="region_picker_not_supported_desc">瀏覽下方支援的其他城市與交通網絡即時班次。</string>
+    <string name="region_picker_section_nearby">附近地區</string>
+    <string name="region_picker_section_supported">支援的城市與地區</string>
+    <string name="region_picker_current_badge">目前選擇</string>
+
+    <!-- AI Transit Assistant & Sheet -->
+    <string name="ai_sheet_title">EkiBoard AI</string>
+    <string name="ai_sheet_subtitle">查詢即時列車、巴士與發車資訊</string>
+    <string name="ai_module_title">裝置端本機 AI 模組</string>
+    <string name="ai_module_desc">下載裝置端 LiteRT 生成式推論模組（約 35 MB），享受完整的離線隱私保障。</string>
+    <string name="ai_module_download_button">下載隨選 AI 模組 (35 MB)</string>
+    <string name="ai_module_downloading">正在下載 AI 模組：%1$d%%</string>
+    <string name="ai_query_checking">正在查詢即時交通網絡…</string>
+    <string name="ai_upgrade_pro">升級至 Pro 享無限制 AI 服務</string>
+    <string name="ai_suggested_questions">推薦問題：</string>
+    <string name="ai_live_services">即時班次</string>
+    <string name="ai_action_maps">在 Google 地圖中查看路線</string>
+    <string name="ai_action_tfl">TfL 行程規劃</string>
+    <string name="ai_action_pin">釘選 %1$s</string>
+
+    <!-- Accessibility & Content Descriptions -->
+    <string name="cd_delete_station">刪除車站</string>
+    <string name="cd_close">關閉</string>
+    <string name="cd_back">返回</string>
+    <string name="cd_open_in_maps">在地圖中開啟</string>
+    <string name="cd_refresh_departures">重新整理班次</string>
+    <string name="cd_nearby_stations">附近車站</string>
+    <string name="cd_pinned_to_home">已釘選至主畫面</string>
+    <string name="cd_view_departures">查看班次</string>
+    <string name="cd_selected">已選取</string>
+    <string name="cd_speak_prompt">語音輸入查詢</string>
+    <string name="cd_send_query">傳送查詢</string>
+    <string name="cd_departure_cancelled">%1$s 開往 %2$s，已取消</string>
+    <string name="cd_departure_departing">%1$s 開往 %2$s，%3$s 後出發</string>
 
     <!-- Debug Settings Bottom Sheet -->
     <string name="update_downloaded_message">更新已下載完成。</string>
     <string name="update_restart_action">重新啟動</string>
     <string name="action_undo">復原</string>
+
+    <!-- Glance Widget -->
+    <string name="widget_load_error">EkiBoard：無法載入班次</string>
+    <string name="widget_live_label">即時 %1$s</string>
+    <string name="widget_offline_label">離線</string>
+    <string name="widget_no_departures">無班次</string>
+    <string name="widget_warning_prefix">⚠ %1$s</string>
+    <string name="widget_subtitle">EkiBoard • %1$s</string>
+    <string name="widget_subtitle_with_filter">EkiBoard • %1$s • %2$s</string>
+    <string name="widget_no_departures_error">目前無法取得班次資訊</string>
+    <string name="widget_no_departures_scheduled">暫無預定班次</string>
+    <string name="widget_empty_no_station">尚未選擇車站</string>
+    <string name="widget_empty_choose_station_line">選擇車站與路線 ➔</string>
+    <string name="widget_preparing_subtitle">正在設定即時顯示板…</string>
+    <string name="widget_preparing_subtitle_with_filter">%1$s • 正在設定即時顯示板…</string>
+    <string name="widget_preparing_fetching">正在擷取即時到站資訊…</string>
+    <string name="widget_dep_minutes">%1$d分</string>
+    <string name="widget_station_name_fallback">即時到站板</string>
+
+    <!-- Widget Interruption Statuses -->
+    <string name="widget_interruption_delays">延誤</string>
+    <string name="widget_interruption_line_with_desc">%1$s：%2$s</string>
+    <string name="widget_interruption_lines_disrupted">%1$d 條路線受阻</string>
+    <string name="widget_interruption_cancellations">班次取消</string>
+
+    <!-- Widget Configuration Screen -->
+    <string name="widget_config_setting_up">正在設定顯示板…</string>
+    <string name="widget_config_limit_title">已達小工具數量上限</string>
+    <string name="widget_config_limit_free">免費方案最多可新增 %1$d 個主畫面小工具。升級至 Pro 可新增至多 %2$d 個小工具。</string>
+    <string name="widget_config_limit_max">已達 %1$d 個小工具的上限，以節省電力並符合 API 限制。</string>
+    <string name="widget_config_upgrade_pro">升級至 Pro</string>
+    <string name="widget_config_cancel">取消</string>
+    <string name="widget_config_select_station">選擇車站</string>
+    <string name="widget_config_select_station_desc">選擇此小工具顯示的車站與路線</string>
+    <string name="widget_config_search_hint">搜尋車站、路線或巴士站…</string>
+    <string name="widget_config_hk_mtr">香港港鐵</string>
+    <string name="widget_config_zone">第 %1$s 區</string>
+    <string name="widget_config_network">交通網絡</string>
+    <string name="widget_config_customize">自訂此小工具的路線與方向篩選：</string>
+    <string name="widget_config_select_line">1. 選擇路線：</string>
+    <string name="widget_config_all_lines">所有路線</string>
+    <string name="widget_config_loading_routes">正在載入車站路線與行車方向…</string>
+    <string name="widget_config_select_direction">2. 選擇方向（選填）：</string>
+    <string name="widget_config_all_directions">所有方向（預設）</string>
+    <string name="widget_config_save">儲存小工具</string>
 </resources>

@@ -68,6 +68,12 @@ fun DepartureRowItem(
     onClick: (() -> Unit)? = null,
     trailingAction: (@Composable () -> Unit)? = null
 ) {
+    val departureContentDescription = if (departure.status == DepartureStatus.CANCELLED) {
+        stringResource(R.string.cd_departure_cancelled, departure.lineName, departure.destinationName)
+    } else {
+        stringResource(R.string.cd_departure_departing, departure.lineName, departure.destinationName, departure.formattedTimeToArrival)
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -78,7 +84,7 @@ fun DepartureRowItem(
                 horizontal = MaterialTheme.dimensions.paddingSmall
             )
             .semantics {
-                contentDescription = "${departure.lineName} to ${departure.destinationName}, ${if (departure.status == DepartureStatus.CANCELLED) "cancelled" else "departing in " + departure.formattedTimeToArrival}"
+                contentDescription = departureContentDescription
             },
         verticalAlignment = Alignment.CenterVertically
     ) {

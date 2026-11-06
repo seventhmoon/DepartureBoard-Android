@@ -38,6 +38,30 @@
 
     <!-- UI Labels -->
     <string name="ad_badge_label">광고</string>
+    <!-- Tracking Notifications & Alerts -->
+    <string name="notification_channel_live_tracking">실시간 열차 추적</string>
+    <string name="notification_channel_live_tracking_desc">추적 중인 열차의 실시간 도착 카운트다운을 표시합니다</string>
+    <string name="notification_channel_alerts">열차 추적 알림</string>
+    <string name="notification_channel_alerts_desc">열차 취소 또는 변경 사항에 대한 알림</string>
+    <string name="tracking_action_stop">추적 중지</string>
+    <string name="tracking_action_dismiss">닫기</string>
+    <string name="tracking_destination_changed_title">목적지 변경</string>
+    <string name="tracking_destination_changed_message">%2$s행 %1$s의 종착역이 %3$s(으)로 변경되었습니다</string>
+    <string name="tracking_platform_changed_title">승강장 변경</string>
+    <string name="tracking_platform_changed_message">%2$s행 %1$s 승강장이 %3$s에서 %4$s(으)로 변경되었습니다</string>
+    <string name="tracking_service_cancelled_title">운행 취소</string>
+    <string name="tracking_service_cancelled_message">탑승 예정인 %2$s행 %1$s 운행이 취소되었습니다.</string>
+    <string name="tracking_service_cancelled_desc">이 열차는 운행이 취소되었습니다</string>
+    <string name="tracking_at_platform_boarding">승강장 대기 중 • 탑승 중</string>
+    <string name="tracking_subtext_to">%1$s (%2$s행)</string>
+    <string name="tracking_stops_away_one">1개 역 전</string>
+    <string name="tracking_stops_away_other">아직 %1$d개 역 전</string>
+    <string name="tracking_chip_min">%1$d분</string>
+    <string name="tracking_default_destination">목적지</string>
+    <string name="tracking_default_train">열차</string>
+    <string name="tracking_platform_default">승강장</string>
+    <string name="tracking_bus_stop_default">정류장</string>
+
     <!-- Debug & Settings -->
     <string name="switch_region_title">지역 전환</string>
     <string name="title_ai_assistant">온디바이스 AI 어시스턴트</string>
@@ -50,6 +74,16 @@
     <string name="language_ko">한국어</string>
 
     <!-- Settings Bottom Sheet -->
+    <string name="settings_title">설정</string>
+    <string name="settings_subtitle">환경설정 및 옵션</string>
+    <string name="settings_section_display">화면 표시 설정</string>
+    <string name="settings_rows_per_card_title">역 카드당 표시 행 수</string>
+    <string name="settings_rows_per_card_desc">표시할 최대 예정 출발편 수</string>
+    <string name="settings_theme_title">앱 테마</string>
+    <string name="settings_theme_desc">시스템 기본값, 라이트 또는 다크 테마 선택</string>
+    <string name="settings_auto_sort_title">위치 기반 스마트 자동 정렬</string>
+    <string name="settings_auto_sort_desc">가장 가까운 저장된 역을 자동으로 맨 위에 배치</string>
+    <string name="settings_section_about_help">정보 및 도움말</string>
     <string name="settings_close">닫기</string>
     <string name="settings_section_region_language">지역 및 언어</string>
     <string name="settings_theme_system">시스템</string>
@@ -67,13 +101,36 @@
     <string name="empty_dashboard_desc">자주 이용하는 역이나 버스 정류장을 추가하면 실시간 출발 카운트다운을 확인할 수 있습니다.</string>
     <string name="empty_dashboard_add_station">역 추가</string>
 
-    <!-- Station Departure Card -->
+    <!-- Station Departure Card & Details -->
+    <string name="station_towards">%1$s 방면</string>
+    <string name="station_zone">%1$s구역</string>
+    <string name="station_nearest">📍 가장 가까운 역</string>
+    <string name="station_nearest_with_distance">📍 가장 가까운 역 • %1$s</string>
+    <string name="station_pinned">고정됨</string>
+    <string name="travel_alert_view_details">운행 경보 상세 보기 ↗</string>
+    <string name="travel_alert_more_details">자세히 보기 ↗</string>
+    <string name="travel_alert_delays">지연</string>
     <string name="departures_loading">실시간 출발 정보 불러오는 중…</string>
     <string name="departures_retry_hint">당겨서 새로고침하거나 탭하여 재시도</string>
     <string name="departures_filter_no_match">조건에 일치하는 출발 정보가 없습니다</string>
     <string name="departures_show_all">모든 출발 정보 표시</string>
     <string name="departures_none_upcoming">예정된 출발 정보가 없습니다</string>
     <string name="departures_service_ended">오늘의 운행이 종료되었습니다</string>
+    <string name="station_detail_disruptions_count">%1$d건의 노선 지연/차질</string>
+    <string name="station_detail_stops_stands">정류장 / 승강장:</string>
+    <string name="station_detail_live_departures">실시간 출발 정보</string>
+    <string name="station_detail_predictions_count">%1$d개 예정편</string>
+    <string name="station_detail_service_ended">🌙 오늘의 운행이 종료되었습니다</string>
+
+    <!-- Train Journey Screen -->
+    <string name="train_journey_title">%1$s행 열차</string>
+    <string name="train_journey_from">출발역</string>
+    <string name="train_journey_current_location">현재 열차 위치</string>
+    <string name="train_journey_calling_points">정차역 안내</string>
+    <string name="train_journey_stops_count">%1$d개 정차역</string>
+    <string name="train_journey_loading_stops">정차역 불러오는 중…</string>
+    <string name="train_journey_no_stops">이 열차의 정차역 상세 정보를 사용할 수 없습니다.</string>
+    <string name="train_journey_your_station">내 역</string>
 
     <!-- Search Station Bottom Sheet -->
     <string name="search_stations_title">역 및 정류장 검색</string>
@@ -183,6 +240,90 @@
     <string name="help_faq_app_description">Jetpack Compose 및 Material 3 Expressive로 제작된 오픈소스 대중교통 앱입니다. 공식 오픈 데이터를 기반으로 합니다.</string>
 
     <!-- Region Picker Bottom Sheet -->
+    <string name="region_picker_subtitle">도시 또는 대중교통 네트워크 선택</string>
+    <string name="region_picker_not_supported_title">EkiBoard는 아직 %1$s 지역을 지원하지 않습니다</string>
+    <string name="region_picker_not_supported_desc">아래에서 지원되는 다른 도시 및 네트워크의 실시간 정보를 확인해보세요.</string>
+    <string name="region_picker_section_nearby">주변 지역</string>
+    <string name="region_picker_section_supported">지원 도시 및 지역</string>
+    <string name="region_picker_current_badge">현재 선택</string>
+
+    <!-- AI Transit Assistant & Sheet -->
+    <string name="ai_sheet_title">EkiBoard AI</string>
+    <string name="ai_sheet_subtitle">실시간 열차, 버스 및 출발 정보를 AI에게 물어보세요</string>
+    <string name="ai_module_title">온디바이스 로컬 AI 모듈</string>
+    <string name="ai_module_desc">완벽한 오프라인 개인정보 보호를 위한 온디바이스 생성형 LiteRT 추론 모듈(~35 MB)을 다운로드하세요.</string>
+    <string name="ai_module_download_button">온디맨드 AI 다운로드 (35 MB)</string>
+    <string name="ai_module_downloading">AI 모듈 다운로드 중: %1$d%%</string>
+    <string name="ai_query_checking">실시간 대중교통 네트워크 확인 중…</string>
+    <string name="ai_upgrade_pro">Pro로 업그레이드하여 무제한 AI 이용</string>
+    <string name="ai_suggested_questions">추천 질문:</string>
+    <string name="ai_live_services">실시간 운행편</string>
+    <string name="ai_action_maps">지도에서 경로 보기</string>
+    <string name="ai_action_tfl">TfL 경로 플래너</string>
+    <string name="ai_action_pin">%1$s 고정</string>
+
+    <!-- Accessibility & Content Descriptions -->
+    <string name="cd_delete_station">역 삭제</string>
+    <string name="cd_close">닫기</string>
+    <string name="cd_back">뒤로</string>
+    <string name="cd_open_in_maps">지도에서 열기</string>
+    <string name="cd_refresh_departures">출발 정보 새로고침</string>
+    <string name="cd_nearby_stations">주변 역</string>
+    <string name="cd_pinned_to_home">홈에 고정됨</string>
+    <string name="cd_view_departures">출발 정보 보기</string>
+    <string name="cd_selected">선택됨</string>
+    <string name="cd_speak_prompt">음성으로 질문하기</string>
+    <string name="cd_send_query">질문 보내기</string>
+    <string name="cd_departure_cancelled">%2$s행 %1$s, 운행 취소됨</string>
+    <string name="cd_departure_departing">%2$s행 %1$s, %3$s 후 출발</string>
 
     <!-- Debug Settings Bottom Sheet -->
+    <string name="update_downloaded_message">업데이트가 다운로드되었습니다.</string>
+    <string name="update_restart_action">다시 시작</string>
+    <string name="action_undo">실행 취소</string>
+
+    <!-- Glance Widget -->
+    <string name="widget_load_error">EkiBoard: 출발 정보를 불러올 수 없습니다</string>
+    <string name="widget_live_label">실시간 %1$s</string>
+    <string name="widget_offline_label">오프라인</string>
+    <string name="widget_no_departures">출발 정보 없음</string>
+    <string name="widget_warning_prefix">⚠ %1$s</string>
+    <string name="widget_subtitle">EkiBoard • %1$s</string>
+    <string name="widget_subtitle_with_filter">EkiBoard • %1$s • %2$s</string>
+    <string name="widget_no_departures_error">출발 정보를 사용할 수 없습니다</string>
+    <string name="widget_no_departures_scheduled">예정된 출발편이 없습니다</string>
+    <string name="widget_empty_no_station">선택된 역이 없습니다</string>
+    <string name="widget_empty_choose_station_line">역 및 노선 선택 ➔</string>
+    <string name="widget_preparing_subtitle">출발 안내판 설정 중…</string>
+    <string name="widget_preparing_subtitle_with_filter">%1$s • 출발 안내판 설정 중…</string>
+    <string name="widget_preparing_fetching">실시간 도착 정보 가져오는 중…</string>
+    <string name="widget_dep_minutes">%1$d분</string>
+    <string name="widget_station_name_fallback">출발 안내판</string>
+
+    <!-- Widget Interruption Statuses -->
+    <string name="widget_interruption_delays">지연</string>
+    <string name="widget_interruption_line_with_desc">%1$s: %2$s</string>
+    <string name="widget_interruption_lines_disrupted">%1$d개 노선 지연/차질</string>
+    <string name="widget_interruption_cancellations">운행 취소</string>
+
+    <!-- Widget Configuration Screen -->
+    <string name="widget_config_setting_up">안내판 설정 중…</string>
+    <string name="widget_config_limit_title">위젯 개수 한도 도달</string>
+    <string name="widget_config_limit_free">무료 요금제는 홈 화면 위젯을 최대 %1$d개까지 지원합니다. Pro로 업그레이드하여 최대 %2$d개까지 사용해보세요.</string>
+    <string name="widget_config_limit_max">배터리 절약 및 API 한도 보호를 위해 최대 %1$d개로 제한됩니다.</string>
+    <string name="widget_config_upgrade_pro">Pro로 업그레이드</string>
+    <string name="widget_config_cancel">취소</string>
+    <string name="widget_config_select_station">역 선택</string>
+    <string name="widget_config_select_station_desc">이 위젯에 표시할 역과 노선을 선택하세요</string>
+    <string name="widget_config_search_hint">역, 노선 또는 버스 정류장 검색…</string>
+    <string name="widget_config_hk_mtr">홍콩 MTR</string>
+    <string name="widget_config_zone">%1$s구역</string>
+    <string name="widget_config_network">대중교통 네트워크</string>
+    <string name="widget_config_customize">위젯 노선 및 방향 필터 맞춤설정:</string>
+    <string name="widget_config_select_line">1. 노선 선택:</string>
+    <string name="widget_config_all_lines">모든 노선</string>
+    <string name="widget_config_loading_routes">역 노선 및 방향 불러오는 중…</string>
+    <string name="widget_config_select_direction">2. 방향 선택 (선택 사항):</string>
+    <string name="widget_config_all_directions">모든 방향 (기본값)</string>
+    <string name="widget_config_save">위젯 저장</string>
 </resources>

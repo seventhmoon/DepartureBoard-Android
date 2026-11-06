@@ -27,11 +27,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitMode
@@ -123,15 +125,18 @@ fun StationSearchResultRow(
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.align(Alignment.CenterVertically)
                             )
-                        } else if (station.displayZone != null && !station.isHkStation) {
-                            Text(
-                                text = "Zone ${station.displayZone}",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.align(Alignment.CenterVertically)
-                            )
+                        } else {
+                            val zone = station.displayZone
+                            if (zone != null && !station.isHkStation) {
+                                Text(
+                                    text = stringResource(R.string.station_zone, zone),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.align(Alignment.CenterVertically)
+                                )
+                            }
                         }
 
                         // Line badges: Prioritize inferred/declared station lines (e.g. TKL, TWL, ISL)
@@ -243,13 +248,13 @@ fun StationSearchResultRow(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Rounded.Bookmark,
-                            contentDescription = "Pinned to home",
+                            contentDescription = stringResource(R.string.cd_pinned_to_home),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Pinned",
+                            text = stringResource(R.string.station_pinned),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -258,7 +263,7 @@ fun StationSearchResultRow(
             } else {
                 Icon(
                     imageVector = Icons.Rounded.ChevronRight,
-                    contentDescription = "View departures",
+                    contentDescription = stringResource(R.string.cd_view_departures),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp)
                 )

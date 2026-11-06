@@ -678,7 +678,7 @@ fun DashboardSearchBar(
                 // Quick nearby indicator icon
                 Icon(
                     imageVector = Icons.Rounded.LocationOn,
-                    contentDescription = "Nearby stations",
+                    contentDescription = stringResource(R.string.cd_nearby_stations),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.size(18.dp)
                 )

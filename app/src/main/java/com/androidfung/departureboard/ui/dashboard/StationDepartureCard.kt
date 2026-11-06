@@ -165,7 +165,7 @@ fun StationDepartureCard(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Delete,
-                    contentDescription = "Delete station",
+                    contentDescription = stringResource(R.string.cd_delete_station),
                     tint = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier
                         .size(28.dp)
@@ -341,9 +341,9 @@ private fun StationHeaderSection(
                     if (distanceMeters != null || isNearest) {
                         val distText = if (distanceMeters != null) {
                             val km = distanceMeters / 1000.0
-                            val formatted = if (km < 1.0) "${distanceMeters.toInt()}m away" else "%.1f km away".format(km)
-                            if (isNearest) "📍 Nearest • $formatted" else "📍 $formatted"
-                        } else "📍 Nearest"
+                            val formatted = if (km < 1.0) stringResource(R.string.search_stations_distance_meters, distanceMeters.toInt()) else stringResource(R.string.search_stations_distance_km, km)
+                            if (isNearest) stringResource(R.string.station_nearest_with_distance, formatted) else formatted
+                        } else stringResource(R.string.station_nearest)
                         Text(
                             text = distText,
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
@@ -371,7 +371,7 @@ private fun StationHeaderSection(
                     if (isSingleDirectionBusStop) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "towards ${distinctTowards.first()}",
+                            text = stringResource(R.string.station_towards, distinctTowards.first()),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium
@@ -464,8 +464,9 @@ fun LineDisruptionBanner(
                 modifier = Modifier.padding(end = 6.dp)
             )
             Column {
+                val delayFallback = stringResource(R.string.travel_alert_delays)
                 Text(
-                    text = "${badge.displayName}: ${badge.statusDescription ?: "Delays"}",
+                    text = "${badge.displayName}: ${badge.statusDescription ?: delayFallback}",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = Color(0xFFFFC107)
                 )
@@ -480,7 +481,7 @@ fun LineDisruptionBanner(
                     if (url != null && (reason.startsWith("http://") || reason.startsWith("https://"))) {
                         // Entire reason is a URL: show a clean clickable action link
                         Text(
-                            text = "View travel alert details ↗",
+                            text = stringResource(R.string.travel_alert_view_details),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -508,7 +509,7 @@ fun LineDisruptionBanner(
                             )
                         }
                         Text(
-                            text = "More details ↗",
+                            text = stringResource(R.string.travel_alert_more_details),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,

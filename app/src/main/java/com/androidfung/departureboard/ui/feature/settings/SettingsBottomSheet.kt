@@ -136,12 +136,12 @@ fun SettingsBottomSheet(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Settings",
+                            text = stringResource(R.string.settings_title),
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Preferences & options",
+                            text = stringResource(R.string.settings_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -151,7 +151,7 @@ fun SettingsBottomSheet(
                 IconButton(onClick = onDismissRequest) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(R.string.cd_close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -161,7 +161,7 @@ fun SettingsBottomSheet(
 
             // Section 1: Display Options
             Text(
-                text = "DISPLAY PREFERENCES",
+                text = stringResource(R.string.settings_section_display),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
@@ -196,12 +196,12 @@ fun SettingsBottomSheet(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Rows Per Station Card",
+                                    text = stringResource(R.string.settings_rows_per_card_title),
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Max upcoming departures shown",
+                                    text = stringResource(R.string.settings_rows_per_card_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -248,12 +248,12 @@ fun SettingsBottomSheet(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "App Theme",
+                                text = stringResource(R.string.settings_theme_title),
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Choose system default, light, or dark theme",
+                                text = stringResource(R.string.settings_theme_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -332,12 +332,12 @@ fun SettingsBottomSheet(
                     ) {
                         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                             Text(
-                                text = "Smart Location Auto-Sort",
+                                text = stringResource(R.string.settings_auto_sort_title),
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Automatically place your nearest saved station at the top",
+                                text = stringResource(R.string.settings_auto_sort_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -385,7 +385,7 @@ fun SettingsBottomSheet(
 
                     SettingsActionItem(
                         icon = Icons.AutoMirrored.Rounded.OpenInNew,
-                        title = "Manage / Cancel Subscription",
+                        title = stringResource(R.string.settings_manage_subscription_title),
                         subtitle = "Opens Google Play Subscriptions Center",
                         onClick = {
                             val intent = Intent(
@@ -402,7 +402,7 @@ fun SettingsBottomSheet(
 
                     SettingsActionItem(
                         icon = Icons.Rounded.LockReset,
-                        title = if (isRestoring) "Checking Google Play..." else "Restore Purchases",
+                        title = if (isRestoring) stringResource(R.string.paywall_checking_google_play) else stringResource(R.string.paywall_restore_purchases),
                         subtitle = if (isRestoring) "Communicating with Google Play Store" else "Sync previous purchases from Google Play",
                         onClick = {
                             if (!isRestoring) {
@@ -421,7 +421,7 @@ fun SettingsBottomSheet(
 
             // Section 3: About & Help
             Text(
-                text = "ABOUT & HELP",
+                text = stringResource(R.string.settings_section_about_help),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
@@ -436,7 +436,7 @@ fun SettingsBottomSheet(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     SettingsActionItem(
                         icon = Icons.AutoMirrored.Rounded.HelpOutline,
-                        title = "Help & FAQ",
+                        title = stringResource(R.string.help_faq_title),
                         subtitle = "Frequently asked questions & usage tips",
                         onClick = {
                             onDismissRequest()
@@ -448,7 +448,7 @@ fun SettingsBottomSheet(
 
                     SettingsActionItem(
                         icon = Icons.Rounded.StarRate,
-                        title = "Rate on Google Play",
+                        title = stringResource(R.string.settings_rate_app_title),
                         subtitle = "Share your review with other commuters",
                         onClick = onRateApp
                     )
@@ -457,7 +457,7 @@ fun SettingsBottomSheet(
 
                     SettingsActionItem(
                         icon = Icons.Rounded.Policy,
-                        title = "Privacy Policy",
+                        title = stringResource(R.string.settings_privacy_policy_title),
                         subtitle = "View privacy terms and data safety info",
                         onClick = {
                             val intent = Intent(

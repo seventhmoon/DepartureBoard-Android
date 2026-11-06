@@ -58,9 +58,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.ai.AiTransitResult
 import com.androidfung.departureboard.ai.TransitAiAssistant
 import com.androidfung.departureboard.billing.BillingDataSource
@@ -353,12 +355,12 @@ fun AiTransitSheet(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "EkiBoard AI",
+                            text = stringResource(R.string.ai_sheet_title),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Ask about live trains, buses & departures",
+                            text = stringResource(R.string.ai_sheet_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -368,7 +370,7 @@ fun AiTransitSheet(
                 IconButton(onClick = onDismissRequest) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(R.string.cd_close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -392,14 +394,14 @@ fun AiTransitSheet(
                                 tint = MaterialTheme.colorScheme.tertiary
                             )
                             Text(
-                                text = "On-Device Local AI Module",
+                                text = stringResource(R.string.ai_module_title),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Download on-device generative LiteRT reasoning module (~35 MB) for complete offline privacy.",
+                            text = stringResource(R.string.ai_module_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
@@ -412,7 +414,7 @@ fun AiTransitSheet(
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 Text(
-                                    text = "Downloading AI module: ${(installProgress * 100).toInt()}%",
+                                    text = stringResource(R.string.ai_module_downloading, (installProgress * 100).toInt()),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
@@ -426,7 +428,7 @@ fun AiTransitSheet(
                                     contentColor = MaterialTheme.colorScheme.onTertiary
                                 )
                             ) {
-                                Text("Download On-Demand AI (35 MB)")
+                                Text(stringResource(R.string.ai_module_download_button))
                             }
                         }
                     }
@@ -452,7 +454,7 @@ fun AiTransitSheet(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Checking live transit network...",
+                            text = stringResource(R.string.ai_query_checking),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -536,7 +538,7 @@ fun AiTransitSheet(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Upgrade to Pro for Unlimited AI",
+                            text = stringResource(R.string.ai_upgrade_pro),
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                         )
                     }
@@ -547,7 +549,7 @@ fun AiTransitSheet(
 
             // Quick Prompt Suggestions
             Text(
-                text = "Suggested Questions:",
+                text = stringResource(R.string.ai_suggested_questions),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -597,7 +599,7 @@ fun AiTransitSheet(
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Mic,
-                                contentDescription = "Speak Departure Prompt",
+                                contentDescription = stringResource(R.string.cd_speak_prompt),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(22.dp)
                             )
@@ -614,7 +616,7 @@ fun AiTransitSheet(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Rounded.Send,
-                                contentDescription = "Send Query",
+                                contentDescription = stringResource(R.string.cd_send_query),
                                 modifier = Modifier.size(18.dp)
                             )
                         }

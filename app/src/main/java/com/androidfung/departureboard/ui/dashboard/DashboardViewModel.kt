@@ -682,16 +682,28 @@ class DashboardViewModel @JvmOverloads constructor(
 
     fun openStationDetailFromCallingPoint(callingPoint: com.androidfung.departureboard.data.model.CallingPoint, callingPoints: List<com.androidfung.departureboard.data.model.CallingPoint>) {
         val targetStationId = callingPoint.stationId ?: callingPoint.stationName
-        viewModelScope.launch {
-            closeTrainJourney()
-            val station = repository.getStationById(targetStationId) ?: Station(
-                id = targetStationId,
-                name = callingPoint.stationName,
-                modes = callingPoint.modes
+        val fallbackStation = Station(
+            id = targetStationId,
+            name = callingPoint.stationName,
+            modes = callingPoint.modes
+        )
+        val fallbackCallingStations = callingPoints.map { cp ->
+            val id = cp.stationId ?: cp.stationName
+            Station(
+                id = id,
+                name = cp.stationName,
+                modes = cp.modes
             )
+        }
 
-            // Convert all calling points into Station instances for the context-aware swipe pager
-            val callingStations = callingPoints.map { cp ->
+        // Open station detail immediately (synchronously updating state to clear selectedJourneyDeparture
+        // and set selectedDetailStation atomically) so the backstack doesn't collapse back to the main dashboard.
+        openStationDetail(fallbackStation, fallbackCallingStations)
+
+        // Enrich the station models asynchronously in the background if repository has more metadata
+        viewModelScope.launch {
+            val enrichedStation = repository.getStationById(targetStationId) ?: fallbackStation
+            val enrichedCallingStations = callingPoints.map { cp ->
                 val id = cp.stationId ?: cp.stationName
                 repository.getStationById(id) ?: Station(
                     id = id,
@@ -700,7 +712,18 @@ class DashboardViewModel @JvmOverloads constructor(
                 )
             }
 
-            openStationDetail(station, callingStations)
+            if (enrichedStation != fallbackStation || enrichedCallingStations != fallbackCallingStations) {
+                _uiState.update { current ->
+                    if (current.selectedDetailStation?.id == targetStationId) {
+                        current.copy(
+                            selectedDetailStation = enrichedStation,
+                            detailStationsContext = enrichedCallingStations
+                        )
+                    } else {
+                        current
+                    }
+                }
+            }
         }
     }
 
