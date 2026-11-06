@@ -633,6 +633,7 @@ private fun IncomingTrainTimelineNode(
     lineColor: Color,
     modifier: Modifier = Modifier
 ) {
+    val accessibleColors = rememberAccessibleTimelineColors(lineColor)
     val infiniteTransition = rememberInfiniteTransition(label = "IncomingTrainRadar")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1.0f,
@@ -680,14 +681,14 @@ private fun IncomingTrainTimelineNode(
                     modifier = Modifier
                         .size(12.dp * pulseScale)
                         .clip(CircleShape)
-                        .background(lineColor.copy(alpha = pulseAlpha))
+                        .background(accessibleColors.pulseHaloColor.copy(alpha = pulseAlpha))
                 )
                 // Core train location indicator
                 Box(
                     modifier = Modifier
                         .size(13.dp)
                         .clip(CircleShape)
-                        .background(lineColor)
+                        .background(accessibleColors.coreNodeColor)
                         .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
                 )
             }
@@ -696,7 +697,7 @@ private fun IncomingTrainTimelineNode(
                 modifier = Modifier
                     .width(3.dp)
                     .weight(1f)
-                    .background(lineColor.copy(alpha = 0.5f))
+                    .background(accessibleColors.effectiveLineColor.copy(alpha = 0.5f))
             )
         }
 
@@ -713,14 +714,14 @@ private fun IncomingTrainTimelineNode(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(lineColor.copy(alpha = 0.14f))
-                    .border(1.dp, lineColor.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                    .background(accessibleColors.badgeBackground)
+                    .border(1.dp, accessibleColors.badgeBorder, RoundedCornerShape(8.dp))
                     .padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
                 Icon(
                     imageVector = Icons.Rounded.LocationOn,
                     contentDescription = null,
-                    tint = lineColor,
+                    tint = accessibleColors.badgeContent,
                     modifier = Modifier.size(12.dp)
                 )
                 Text(
@@ -729,7 +730,7 @@ private fun IncomingTrainTimelineNode(
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp
                     ),
-                    color = lineColor,
+                    color = accessibleColors.badgeContent,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -753,6 +754,7 @@ private fun CallingPointTimelineItem(
     hasIncomingTrainAbove: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
+    val accessibleColors = rememberAccessibleTimelineColors(lineColor)
     val infiniteTransition = rememberInfiniteTransition(label = "TrainLocationTransition")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1.0f,
@@ -798,10 +800,10 @@ private fun CallingPointTimelineItem(
             ) {
                 // Upper connecting line segment
                 val upperLineColor = when {
-                    isFirst && hasIncomingTrainAbove -> lineColor.copy(alpha = 0.5f)
+                    isFirst && hasIncomingTrainAbove -> accessibleColors.effectiveLineColor.copy(alpha = 0.5f)
                     isFirst -> Color.Transparent
                     isPassed || isTrainLocation -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                    else -> lineColor.copy(alpha = 0.5f)
+                    else -> accessibleColors.effectiveLineColor.copy(alpha = 0.5f)
                 }
                 Box(
                     modifier = Modifier
@@ -821,14 +823,14 @@ private fun CallingPointTimelineItem(
                             modifier = Modifier
                                 .size(12.dp * pulseScale)
                                 .clip(CircleShape)
-                                .background(lineColor.copy(alpha = pulseAlpha))
+                                .background(accessibleColors.pulseHaloColor.copy(alpha = pulseAlpha))
                         )
                         // Core node indicator
                         Box(
                             modifier = Modifier
                                 .size(13.dp)
                                 .clip(CircleShape)
-                                .background(lineColor)
+                                .background(accessibleColors.coreNodeColor)
                                 .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
                         )
                     }
@@ -844,7 +846,7 @@ private fun CallingPointTimelineItem(
                         modifier = Modifier
                             .size(14.dp)
                             .clip(CircleShape)
-                            .background(lineColor)
+                            .background(accessibleColors.effectiveLineColor)
                             .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
                     )
                 } else if (isLast) {
@@ -859,7 +861,7 @@ private fun CallingPointTimelineItem(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(lineColor.copy(alpha = 0.6f))
+                            .background(accessibleColors.effectiveLineColor.copy(alpha = 0.6f))
                     )
                 }
 
@@ -867,7 +869,7 @@ private fun CallingPointTimelineItem(
                 val lowerLineColor = when {
                     isLast && !callingPoint.isCurrentStation -> Color.Transparent
                     isPassed -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                    else -> lineColor.copy(alpha = 0.5f)
+                    else -> accessibleColors.effectiveLineColor.copy(alpha = 0.5f)
                 }
                 Box(
                     modifier = Modifier
