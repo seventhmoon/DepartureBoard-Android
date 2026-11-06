@@ -122,6 +122,25 @@ class DestinationResolverTest {
             platformName = "Platform 1"
         )
         assertEquals("Battersea Power Station via Charing Cross", cxInboundResult)
+
+        // Outbound train heading to Morden with "Morden via Bank" or "via Bank" retains corridor
+        val mordenViaBank = DestinationResolver.resolve(
+            stationName = "Mill Hill East",
+            itemDestination = "Morden",
+            itemTowards = "Morden via Bank",
+            lineId = "northern",
+            platformName = "Platform 1"
+        )
+        assertEquals("Morden via Bank", mordenViaBank)
+
+        val mordenViaShort = DestinationResolver.resolve(
+            stationName = "Mill Hill East",
+            itemDestination = "Morden",
+            itemTowards = "via Bank",
+            lineId = "northern",
+            platformName = "Platform 1"
+        )
+        assertEquals("Morden via Bank", mordenViaShort)
     }
 
     @Test

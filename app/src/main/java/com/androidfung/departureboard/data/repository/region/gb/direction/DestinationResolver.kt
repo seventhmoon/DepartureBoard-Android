@@ -236,8 +236,19 @@ object DestinationResolver {
         )
         val isTerminatingAtThisStation = isTerminatingById || isTerminatingByName
 
-        // Fast-Path: if train is already heading somewhere else, keep it
+        // Fast-Path: if train is already heading somewhere else, keep it (preserving corridor routing if provided in towards)
         if (!isTerminatingAtThisStation && !isGenericCheckFront) {
+            val towardsClean = itemTowards?.let { StationNameFormatter.clean(it) }?.takeIf { it.isNotBlank() }
+            if (towardsClean != null && !towardsClean.equals("null", ignoreCase = true)) {
+                val towardsLower = towardsClean.lowercase()
+                if (towardsLower.contains("via ") && !towardsLower.startsWith(stationLower)) {
+                    return if (towardsLower.startsWith("via ")) {
+                        "$rawDest $towardsClean"
+                    } else {
+                        towardsClean
+                    }
+                }
+            }
             return rawDest
         }
 
