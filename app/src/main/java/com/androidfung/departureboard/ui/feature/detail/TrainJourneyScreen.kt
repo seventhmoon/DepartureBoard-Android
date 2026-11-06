@@ -1,5 +1,11 @@
 package com.androidfung.departureboard.ui.feature.detail
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -185,6 +191,19 @@ private fun TrainJourneyContent(
                 add(JourneyTimelineListItem.AdItem("ad_bottom", style = adStyle))
             }
         }
+    }
+
+    val activeTrainIndex = remember(callingPoints, departure.currentLocation) {
+        if (callingPoints.isEmpty()) return@remember -1
+        val loc = departure.currentLocation?.trim()?.lowercase() ?: ""
+        if (loc.isNotBlank()) {
+            val matchIndex = callingPoints.indexOfFirst { cp ->
+                val name = cp.stationName.trim().lowercase()
+                name.length >= 3 && (loc.contains(name) || name.contains(loc))
+            }
+            if (matchIndex >= 0) return@remember matchIndex
+        }
+        callingPoints.indexOfFirst { it.isCurrentStation }
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -488,11 +507,15 @@ private fun TrainJourneyContent(
                 ) { item ->
                     when (item) {
                         is JourneyTimelineListItem.CallingPointItem -> {
+                            val isPassed = activeTrainIndex >= 0 && item.index < activeTrainIndex
+                            val isTrainLocation = activeTrainIndex >= 0 && item.index == activeTrainIndex
                             CallingPointTimelineItem(
                                 callingPoint = item.callingPoint,
                                 isFirst = item.index == 0,
                                 isLast = item.index == callingPoints.lastIndex,
                                 lineColor = departure.lineBadge.backgroundColor,
+                                isPassed = isPassed,
+                                isTrainLocation = isTrainLocation,
                                 onClick = if (!item.callingPoint.isCurrentStation) {
                                     { onCallingPointClick(item.callingPoint, callingPoints) }
                                 } else null
@@ -579,8 +602,30 @@ private fun CallingPointTimelineItem(
     isLast: Boolean,
     lineColor: Color,
     modifier: Modifier = Modifier,
+    isPassed: Boolean = false,
+    isTrainLocation: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
+    val infiniteTransition = rememberInfiniteTransition(label = "TrainLocationTransition")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 2.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "PulseScale"
+    )
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.70f,
+        targetValue = 0.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "PulseAlpha"
+    )
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -600,22 +645,53 @@ private fun CallingPointTimelineItem(
             // Timeline track and node dot
             Column(
                 modifier = Modifier
-                    .width(28.dp)
+                    .width(30.dp)
                     .fillMaxHeight(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Upper connecting line segment
+                val upperLineColor = when {
+                    isFirst -> Color.Transparent
+                    isPassed || isTrainLocation -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    else -> lineColor.copy(alpha = 0.5f)
+                }
                 Box(
                     modifier = Modifier
                         .width(3.dp)
                         .weight(1f)
-                        .background(
-                            if (isFirst) Color.Transparent else lineColor.copy(alpha = 0.5f)
-                        )
+                        .background(upperLineColor)
                 )
 
                 // Station node indicator
-                if (callingPoint.isCurrentStation) {
+                if (isTrainLocation) {
+                    Box(
+                        modifier = Modifier.size(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Pulsing radar ripple halo
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp * pulseScale)
+                                .clip(CircleShape)
+                                .background(lineColor.copy(alpha = pulseAlpha))
+                        )
+                        // Core node indicator
+                        Box(
+                            modifier = Modifier
+                                .size(13.dp)
+                                .clip(CircleShape)
+                                .background(lineColor)
+                                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                        )
+                    }
+                } else if (isPassed) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
+                    )
+                } else if (callingPoint.isCurrentStation) {
                     Box(
                         modifier = Modifier
                             .size(14.dp)
@@ -640,17 +716,20 @@ private fun CallingPointTimelineItem(
                 }
 
                 // Lower connecting line segment
+                val lowerLineColor = when {
+                    isLast && !callingPoint.isCurrentStation -> Color.Transparent
+                    isPassed -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    else -> lineColor.copy(alpha = 0.5f)
+                }
                 Box(
                     modifier = Modifier
                         .width(3.dp)
                         .weight(1f)
-                        .background(
-                            if (isLast && !callingPoint.isCurrentStation) Color.Transparent else lineColor.copy(alpha = 0.5f)
-                        )
+                        .background(lowerLineColor)
                 )
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             // Station name & calling time
             Row(
@@ -660,18 +739,54 @@ private fun CallingPointTimelineItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = callingPoint.stationName,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = if (callingPoint.isCurrentStation || isLast) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 15.sp
-                    ),
-                    color = if (callingPoint.isCurrentStation) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
+                val nameColor = when {
+                    isPassed -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.50f)
+                    callingPoint.isCurrentStation -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.onSurface
+                }
+
+                Row(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = callingPoint.stationName,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = if (callingPoint.isCurrentStation || isLast || isTrainLocation) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 15.sp
+                        ),
+                        color = nameColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    if (isTrainLocation) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(lineColor.copy(alpha = 0.15f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.LocationOn,
+                                contentDescription = null,
+                                tint = lineColor,
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.train_journey_current_location),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = lineColor
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
@@ -679,13 +794,15 @@ private fun CallingPointTimelineItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    val timeAlpha = if (isPassed) 0.45f else 1.0f
                     // If there's an estimated countdown badge (e.g. "3 mins" or "Due") separate from clock time
                     if (!callingPoint.estimatedTime.isNullOrBlank() && callingPoint.scheduledTime != null && callingPoint.estimatedTime != callingPoint.scheduledTime) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(
-                                    if (callingPoint.estimatedTime.equals("Due", ignoreCase = true)) MaterialTheme.colorScheme.errorContainer
+                                    if (isPassed) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                    else if (callingPoint.estimatedTime.equals("Due", ignoreCase = true)) MaterialTheme.colorScheme.errorContainer
                                     else MaterialTheme.colorScheme.surfaceVariant
                                 )
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -696,7 +813,8 @@ private fun CallingPointTimelineItem(
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = if (callingPoint.estimatedTime.equals("Due", ignoreCase = true)) MaterialTheme.colorScheme.onErrorContainer
+                                color = if (isPassed) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                                else if (callingPoint.estimatedTime.equals("Due", ignoreCase = true)) MaterialTheme.colorScheme.onErrorContainer
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -710,7 +828,7 @@ private fun CallingPointTimelineItem(
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.SemiBold
                             ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = timeAlpha)
                         )
                     }
                 }
@@ -727,21 +845,22 @@ private fun CallingPointTimelineItem(
             ) {
                 Box(
                     modifier = Modifier
-                        .width(28.dp)
+                        .width(30.dp)
                         .fillMaxHeight(),
                     contentAlignment = Alignment.Center
                 ) {
+                    val subtitleTrackColor = if (isLast) Color.Transparent
+                    else if (isPassed) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    else lineColor.copy(alpha = 0.5f)
                     Box(
                         modifier = Modifier
                             .width(3.dp)
                             .fillMaxHeight()
-                            .background(
-                                if (isLast) Color.Transparent else lineColor.copy(alpha = 0.5f)
-                            )
+                            .background(subtitleTrackColor)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
                     text = stringResource(R.string.train_journey_your_station),
@@ -805,7 +924,9 @@ private fun CallingPointTimelinePreview() {
                     callingPoint = cp,
                     isFirst = index == 0,
                     isLast = index == sampleCallingPoints.lastIndex,
-                    lineColor = bakerlooColor
+                    lineColor = bakerlooColor,
+                    isPassed = index < 2,
+                    isTrainLocation = index == 2
                 )
             }
         }

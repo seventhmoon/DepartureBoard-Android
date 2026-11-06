@@ -36,6 +36,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,7 +49,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,6 +71,7 @@ import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.ui.dashboard.StationCardUiModel
 import com.androidfung.departureboard.ui.designsystem.DepartureRowItem
+import com.androidfung.departureboard.ui.designsystem.DepartureRowsSkeleton
 import com.androidfung.departureboard.ui.designsystem.TransitIconHelper
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 
@@ -114,15 +120,16 @@ fun StationDepartureCard(
 
     val isPastThreshold by remember {
         derivedStateOf {
-            dismissState.progress >= 0.5f && dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
+            dismissState.targetValue == SwipeToDismissBoxValue.EndToStart &&
+                dismissState.currentValue == SwipeToDismissBoxValue.Settled
         }
     }
 
-    // Trigger haptic when crossing the threshold
-    val hapticFeedback = androidx.compose.ui.platform.LocalHapticFeedback.current
-    androidx.compose.runtime.LaunchedEffect(isPastThreshold) {
+    // Trigger crisp tactile feedback when crossing card delete threshold
+    val hapticFeedback = LocalHapticFeedback.current
+    LaunchedEffect(isPastThreshold) {
         if (isPastThreshold) {
-            hapticFeedback.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         }
     }
 
@@ -688,18 +695,15 @@ private fun StationDeparturesContainer(
             }
 
             isLoading -> {
-                Box(
+                val loadingDesc = stringResource(R.string.departures_loading)
+                DepartureRowsSkeleton(
+                    count = maxRows.coerceIn(2, 4),
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 28.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(R.string.departures_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                        .padding(vertical = 4.dp)
+                        .semantics {
+                            contentDescription = loadingDesc
+                        }
+                )
             }
 
             errorMessage != null -> {

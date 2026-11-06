@@ -2,10 +2,14 @@ package com.androidfung.departureboard.ui.feature.detail
 
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -54,6 +58,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
@@ -154,6 +160,8 @@ fun StationDetailScreen(
             }
         }
 
+        val coroutineScope = rememberCoroutineScope()
+
         androidx.compose.foundation.pager.HorizontalPager(
             state = pagerState,
             modifier = modifier.fillMaxSize(),
@@ -176,7 +184,70 @@ fun StationDetailScreen(
                 onDepartureClick = onDepartureClick,
                 serviceHoursInfo = if (pageStation.id == station.id) serviceHoursInfo else null,
                 isPro = isPro,
-                pageInfo = "${page + 1} of ${stationList.size}"
+                pageInfo = "${page + 1} of ${stationList.size}",
+                pageCount = stationList.size,
+                currentPage = page,
+                onPageClick = { targetPage ->
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(targetPage)
+                    }
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Visual indicator pills representing the current station in a multi-station horizontal pager.
+ */
+@Composable
+private fun StationDetailPagerIndicator(
+    pageCount: Int,
+    currentPage: Int,
+    modifier: Modifier = Modifier,
+    onPageClick: ((Int) -> Unit)? = null
+) {
+    val haptic = LocalHapticFeedback.current
+    Row(
+        modifier = modifier
+            .semantics {
+                stateDescription = "Station ${currentPage + 1} of $pageCount"
+            },
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        for (i in 0 until pageCount) {
+            val isSelected = i == currentPage
+            val dotWidth by animateDpAsState(
+                targetValue = if (isSelected) 18.dp else 6.dp,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "dotWidth_$i"
+            )
+            val dotColor by animateColorAsState(
+                targetValue = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                },
+                label = "dotColor_$i"
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(width = dotWidth, height = 6.dp)
+                    .clip(CircleShape)
+                    .background(dotColor)
+                    .then(
+                        if (onPageClick != null) {
+                            Modifier.clickable(
+                                role = Role.Tab,
+                                onClickLabel = "Station ${i + 1}"
+                            ) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onPageClick(i)
+                            }
+                        } else Modifier
+                    )
             )
         }
     }
@@ -196,7 +267,10 @@ private fun StationDetailContent(
     onDepartureClick: ((departure: Departure, contextDepartures: List<Departure>) -> Unit)? = null,
     serviceHoursInfo: com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo? = null,
     isPro: Boolean = false,
-    pageInfo: String? = null
+    pageInfo: String? = null,
+    pageCount: Int = 1,
+    currentPage: Int = 0,
+    onPageClick: ((Int) -> Unit)? = null
 ) {
     val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram")
         .firstOrNull { it in station.modes }
@@ -338,7 +412,28 @@ private fun StationDetailContent(
                 overflow = TextOverflow.Ellipsis
             )
 
-            if (!pageInfo.isNullOrBlank()) {
+            if (pageCount > 1) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                ) {
+                    StationDetailPagerIndicator(
+                        pageCount = pageCount,
+                        currentPage = currentPage,
+                        onPageClick = onPageClick
+                    )
+                    if (!pageInfo.isNullOrBlank()) {
+                        Text(
+                            text = pageInfo,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            } else if (!pageInfo.isNullOrBlank()) {
                 Text(
                     text = pageInfo,
                     style = MaterialTheme.typography.labelSmall.copy(

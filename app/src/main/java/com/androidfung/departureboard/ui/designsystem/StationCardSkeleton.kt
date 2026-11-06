@@ -156,63 +156,78 @@ fun StationCardSkeleton(
                         )
                         .padding(vertical = 12.dp, horizontal = 14.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        repeat(3) { index ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Line indicator pill placeholder
-                                Box(
-                                    modifier = Modifier
-                                        .size(width = 38.dp, height = 28.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(shimmerBrush)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth(0.7f)
-                                            .height(14.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(shimmerBrush)
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth(0.4f)
-                                            .height(11.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(shimmerBrush)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                // Countdown pill placeholder
-                                Box(
-                                    modifier = Modifier
-                                        .size(width = 46.dp, height = 24.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(shimmerBrush)
-                                )
-                            }
-                            if (index < 2) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 48.dp, end = 4.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-                                    thickness = 0.8.dp
-                                )
-                            }
-                        }
-                    }
+                    DepartureRowsSkeleton(
+                        count = 3,
+                        shimmerBrush = shimmerBrush
+                    )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Shimmering placeholder rows representing upcoming departures during refresh or filtering.
+ */
+@Composable
+fun DepartureRowsSkeleton(
+    count: Int = 3,
+    modifier: Modifier = Modifier,
+    shimmerBrush: Brush = rememberShimmerBrush()
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        repeat(count) { index ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Line indicator pill placeholder
+                Box(
+                    modifier = Modifier
+                        .size(width = 38.dp, height = 28.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(shimmerBrush)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .height(14.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmerBrush)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.4f)
+                            .height(11.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmerBrush)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                // Countdown pill placeholder
+                Box(
+                    modifier = Modifier
+                        .size(width = 46.dp, height = 24.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(shimmerBrush)
+                )
+            }
+            if (index < count - 1) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 48.dp, end = 4.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                    thickness = 0.8.dp
+                )
             }
         }
     }
