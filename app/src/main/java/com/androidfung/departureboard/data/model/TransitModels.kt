@@ -134,15 +134,44 @@ data class JourneyDestination(
     val via: String? = null,
     val terminusStationId: String? = null
 ) {
+    /**
+     * Terminus stop name without any embedded "via ..." corridor suffix.
+     */
     val displayDestination: String
-        get() = tripHeadsign?.ifBlank { null } ?: terminusName
+        get() = terminusName.substringBefore(" via ").trim().ifBlank {
+            tripHeadsign?.substringBefore(" via ")?.trim() ?: terminusName
+        }
 
+    /**
+     * Clean corridor routing subtitle (e.g. "via Bank", "via London Bridge"),
+     * only when non-redundant and not duplicating the terminus name.
+     */
     val displayViaSubtitle: String?
-        get() = when {
-            !via.isNullOrBlank() -> if (via.startsWith("via", ignoreCase = true)) via else "via $via"
-            tripHeadsign != null && tripHeadsign.contains(" via ", ignoreCase = true) ->
-                "via " + tripHeadsign.substringAfter(" via ").trim()
-            else -> null
+        get() {
+            val candidateVia = when {
+                !via.isNullOrBlank() -> {
+                    val raw = via.trim()
+                    if (raw.startsWith("via ", ignoreCase = true)) raw.substring(4).trim() else raw
+                }
+                tripHeadsign != null && tripHeadsign.contains(" via ", ignoreCase = true) ->
+                    tripHeadsign.substringAfter(" via ").trim()
+                terminusName.contains(" via ", ignoreCase = true) ->
+                    terminusName.substringAfter(" via ").trim()
+                else -> null
+            } ?: return null
+
+            if (candidateVia.isBlank()) return null
+
+            val cleanTerminus = displayDestination.lowercase().trim()
+            val cleanVia = candidateVia.lowercase().trim()
+
+            // If via is identical to destination (e.g. terminus "Mill Hill East" and via "Mill Hill East"),
+            // or if it simply repeats the destination station, it's not a corridor route.
+            if (cleanVia == cleanTerminus || cleanVia.startsWith("$cleanTerminus ") || cleanVia.endsWith(" $cleanTerminus")) {
+                return null
+            }
+
+            return "via $candidateVia"
         }
 }
 

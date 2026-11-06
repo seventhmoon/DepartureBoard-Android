@@ -160,7 +160,7 @@ class NationalRailDepartureMapperTest {
         assertFalse(departure.callingPoints[1].isCancelled)
 
         assertNotNull(departure.journeyDestination)
-        assertEquals("Brighton via London Bridge", departure.resolvedDestination.displayDestination)
+        assertEquals("Brighton", departure.resolvedDestination.displayDestination)
         assertEquals("via London Bridge", departure.resolvedDestination.displayViaSubtitle)
     }
 }

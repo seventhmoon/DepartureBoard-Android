@@ -102,8 +102,9 @@ fun DepartureRowItem(
 
         // Destination & Platform details
         Column(modifier = Modifier.weight(1f)) {
-            val destinationText = departure.destinationName.ifBlank { departure.lineName }
-            val viaText = departure.resolvedDestination.displayViaSubtitle
+            val destinationInfo = departure.resolvedDestination
+            val destinationText = destinationInfo.displayDestination.ifBlank { departure.lineName }
+            val viaText = destinationInfo.displayViaSubtitle
             val isCancelled = departure.status == DepartureStatus.CANCELLED
 
             Row(verticalAlignment = Alignment.CenterVertically) {

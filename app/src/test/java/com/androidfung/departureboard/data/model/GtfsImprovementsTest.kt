@@ -71,7 +71,7 @@ class GtfsImprovementsTest {
             via = "Bank",
             terminusStationId = "940GZZLUMDN"
         )
-        assertEquals("Morden via Bank", dest1.displayDestination)
+        assertEquals("Morden", dest1.displayDestination)
         assertEquals("via Bank", dest1.displayViaSubtitle)
 
         val dest2 = JourneyDestination(
@@ -81,6 +81,22 @@ class GtfsImprovementsTest {
         )
         assertEquals("Heathrow Terminal 4", dest2.displayDestination)
         assertNull(dest2.displayViaSubtitle)
+
+        // Linear or redundant via should be suppressed
+        val destRedundant = JourneyDestination(
+            terminusName = "Mill Hill East",
+            tripHeadsign = "Mill Hill East",
+            via = "Mill Hill East"
+        )
+        assertEquals("Mill Hill East", destRedundant.displayDestination)
+        assertNull(destRedundant.displayViaSubtitle)
+
+        val destRedundantInHeadsign = JourneyDestination(
+            terminusName = "Mill Hill East",
+            tripHeadsign = "Mill Hill East via Mill Hill East"
+        )
+        assertEquals("Mill Hill East", destRedundantInHeadsign.displayDestination)
+        assertNull(destRedundantInHeadsign.displayViaSubtitle)
     }
 
     @Test
