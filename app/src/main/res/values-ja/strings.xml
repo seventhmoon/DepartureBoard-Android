@@ -14,7 +14,6 @@
 
     <!-- Transit Statuses -->
     <string name="status_due">まもなく</string>
-    <string name="status_on_time">定刻</string>
     <string name="status_delayed">遅延</string>
     <string name="status_cancelled">運休</string>
     <string name="status_approaching">接近中</string>
@@ -36,21 +35,10 @@
     <string name="dir_outbound">下り</string>
     <string name="dir_clockwise">外回り</string>
     <string name="dir_anti_clockwise">内回り</string>
-    <string name="dir_indicator_northbound">↑ 北行き</string>
-    <string name="dir_indicator_southbound">↓ 南行き</string>
-    <string name="dir_indicator_eastbound">→ 東行き</string>
-    <string name="dir_indicator_westbound">← 西行き</string>
-    <string name="dir_indicator_inbound">上り</string>
-    <string name="dir_indicator_outbound">下り</string>
-    <string name="dir_indicator_clockwise">↻ 外回り</string>
-    <string name="dir_indicator_anti_clockwise">↺ 内回り</string>
 
     <!-- UI Labels -->
-    <string name="platform_label">%s番線</string>
-    <string name="search_hint">駅、路線、またはバス停を検索…</string>
     <string name="ad_badge_label">広告</string>
     <!-- Debug & Settings -->
-    <string name="debug_settings_title">開発者向けオプション</string>
     <string name="switch_region_title">地域を切り替え</string>
     <string name="title_ai_assistant">オンデバイス AI アシスタント</string>
     <string name="settings_language_title">アプリの言語</string>
@@ -62,46 +50,17 @@
     <string name="language_ko">한국어</string>
 
     <!-- Settings Bottom Sheet -->
-    <string name="settings_title">設定</string>
-    <string name="settings_subtitle">設定とオプション</string>
     <string name="settings_close">閉じる</string>
-    <string name="settings_section_display">表示設定</string>
     <string name="settings_section_region_language">地域と言語</string>
-    <string name="settings_rows_per_card_title">駅カードごとの表示行数</string>
-    <string name="settings_rows_per_card_desc">表示する次の出発便の最大数</string>
-    <string name="settings_theme_title">テーマ</string>
-    <string name="settings_theme_desc">システムのデフォルト、ライト、またはダークを選択</string>
     <string name="settings_theme_system">システム</string>
     <string name="settings_theme_light">ライト</string>
     <string name="settings_theme_dark">ダーク</string>
     <string name="settings_dynamic_color_title">ダイナミックカラー (Monet)</string>
     <string name="settings_dynamic_color_desc">壁紙の色に合わせてテーマカラーを適用</string>
-    <string name="settings_hk_bilingual_title">2言語駅名表示 (香港)</string>
-    <string name="settings_hk_bilingual_desc">英語と中国語の両方を表示 (例: Central / 中環)</string>
-    <string name="settings_auto_sort_title">GPSスマート自動並び替え</string>
-    <string name="settings_auto_sort_desc">最寄り駅を自動的に先頭に配置</string>
     <string name="settings_section_subscription">サブスクリプションとアカウント</string>
-    <string name="settings_plan_pro_title">EkiBoard Pro</string>
-    <string name="settings_plan_free_title">無料プラン</string>
-    <string name="settings_plan_pro_subtitle">有効なプラン • タップして特典を確認</string>
-    <string name="settings_plan_free_subtitle">アップグレードして駅の登録数やAIアシスタントを拡張</string>
     <string name="settings_manage_subscription_title">定期購入の管理 / 解約</string>
-    <string name="settings_manage_subscription_desc">Google Play 定期購入センターを開く</string>
-    <string name="settings_restore_checking_title">Google Play を確認中…</string>
-    <string name="settings_restore_title">購入を復元</string>
-    <string name="settings_restore_checking_desc">Google Play ストアと通信中</string>
-    <string name="settings_restore_desc">過去の購入情報を Google Play から同期</string>
-    <string name="settings_section_about">サポート &amp; その他</string>
-    <string name="settings_help_faq_title">ヘルプ &amp; よくある質問</string>
-    <string name="settings_help_faq_desc">ガイドとよくある質問</string>
     <string name="settings_rate_app_title">Google Play で評価</string>
-    <string name="settings_rate_app_desc">他の通勤者とレビューを共有</string>
     <string name="settings_privacy_policy_title">プライバシーポリシー</string>
-    <string name="settings_privacy_policy_desc">プライバシー条項とデータ安全性情報</string>
-    <string name="settings_app_version_title">アプリバージョン</string>
-    <string name="settings_app_version_desc">v%1$s • 公式オープン交通データ</string>
-    <string name="settings_developer_options_title">開発者向けオプション</string>
-    <string name="settings_developer_options_desc">デバッグ設定、AIエンジン、テストツール</string>
 
     <!-- Empty Dashboard State -->
     <string name="empty_dashboard_title">登録された駅がありません</string>
@@ -109,16 +68,6 @@
     <string name="empty_dashboard_add_station">駅を追加</string>
 
     <!-- Station Departure Card -->
-    <string name="delete_station">駅を削除</string>
-    <string name="station_distance_meters_away">%1$dm</string>
-    <string name="station_distance_km_away">%.1fkm</string>
-    <string name="station_nearest_with_distance">📍 最寄り • %1$s</string>
-    <string name="station_nearest">📍 最寄り</string>
-    <string name="station_distance_format">📍 %1$s</string>
-    <string name="station_bus_towards">%1$s 方面</string>
-    <string name="disruption_status_delays">遅延</string>
-    <string name="disruption_view_alert_details">運行情報の詳細を表示 ↗</string>
-    <string name="disruption_more_details">詳細 ↗</string>
     <string name="departures_loading">発車情報を読み込み中…</string>
     <string name="departures_retry_hint">下に引っ張るかタップして再試行</string>
     <string name="departures_filter_no_match">条件に一致する便がありません</string>
@@ -152,13 +101,11 @@
     <string name="search_stations_find_near_me_desc">徒歩圏内の駅やバス停を表示</string>
 
     <!-- Dashboard Screen -->
-    <string name="dashboard_pro_badge">PRO</string>
     <string name="dashboard_live_network_status">リアルタイム運行状況</string>
     <string name="dashboard_upgrade_to_pro">Pro にアップグレード</string>
     <string name="dashboard_more_options">その他のオプション</string>
     <string name="dashboard_menu_network_status">運行状況</string>
     <string name="dashboard_menu_network_status_count">運行状況 (%1$d)</string>
-    <string name="dashboard_menu_switch_region">地域を切り替え</string>
     <string name="dashboard_menu_settings">設定</string>
     <string name="dashboard_menu_help_faq">ヘルプ &amp; よくある質問</string>
     <string name="dashboard_menu_debug_settings">開発者設定</string>
@@ -168,7 +115,6 @@
     <string name="dashboard_offline_banner">オフライン • キャ��シュされた発車情報を表示中</string>
     <string name="dashboard_search_bar_placeholder">駅、路線、またはバス停を検索…</string>
     <string name="dashboard_search_desc">検索</string>
-    <string name="dashboard_nearby_desc">周辺の駅</string>
 
     <!-- Line Status Bottom Sheet -->
     <string name="line_status_title_live">リアルタイム運行状況</string>
@@ -185,45 +131,10 @@
     <string name="line_status_filter_disrupted">乱れ発生中 (%1$d)</string>
     <string name="line_status_expand_desc">詳細を展開</string>
     <string name="line_status_collapse_desc">詳細を折りたたむ</string>
-    <string name="line_status_bus_name">バス %1$s</string>
 
     <!-- Station Detail Screen -->
-    <string name="station_detail_page_info">%1$d / %2$d</string>
-    <string name="station_detail_zone">ゾーン %1$s</string>
-    <string name="station_detail_open_maps">マップで開く</string>
-    <string name="station_detail_refresh">発車情報を更新</string>
-    <string name="station_detail_pin">ホームに固定</string>
-    <string name="station_detail_unpin">ホームから削除</string>
-    <string name="station_detail_filter_all">すべて</string>
-    <string name="station_detail_disruptions_title">%1$d路線の遅延情報</string>
-    <string name="station_detail_disruptions_expand">遅延情報を展開</string>
-    <string name="station_detail_disruptions_collapse">遅延情報を折りたたむ</string>
-    <string name="station_detail_stops_stands_header">のりば / ホーム:</string>
-    <string name="station_detail_live_departures">リアルタイム発車案内</string>
-    <string name="station_detail_predictions_count">%1$d件の発車情報</string>
-    <string name="station_detail_service_ended_title">🌙 本日の運行は終了しました</string>
-    <string name="station_detail_last_train">最終列車は %1$s に発車しました。</string>
-    <string name="station_detail_first_train">始発列車は %1$s 頃に発車します。</string>
-    <string name="station_detail_last_bus_departed">本日の最終バスは発車しました。</string>
-    <string name="station_detail_empty_message">現在利用可能な発車情報はありません。\n上の更新アイコンをタップして再試行してください。</string>
 
     <!-- Train Journey Screen -->
-    <string name="journey_header_bus">%2$s 行きバス %1$s</string>
-    <string name="journey_header_train">%1$s 行き</string>
-    <string name="journey_from_label">出発地</string>
-    <string name="journey_current_bus_location">バスの現在位置</string>
-    <string name="journey_current_train_location">列車の現在位置</string>
-    <string name="journey_service_cancelled_title">運休</string>
-    <string name="journey_service_cancelled_desc">この便は運休となりました。</string>
-    <string name="journey_service_delayed_title">遅延</string>
-    <string name="journey_service_delayed_desc">この便に遅延が発生しています。</string>
-    <string name="journey_calling_points_header">停車駅</string>
-    <string name="journey_calling_points_count">%1$d駅</string>
-    <string name="journey_loading_calling_points">停車駅を読み込み中…</string>
-    <string name="journey_calling_points_unavailable">この便の停車駅詳細は取得できません。</string>
-    <string name="journey_your_station">現在の駅</string>
-    <string name="journey_notify_stop">通知を停止</string>
-    <string name="journey_notify_start">リアルタイム追跡通知を開始</string>
 
     <!-- Location Rationale Dialog -->
     <string name="location_rationale_title">最寄り駅を探す</string>
@@ -272,46 +183,6 @@
     <string name="help_faq_app_description">Jetpack Compose と Material 3 Expressive で構築されたオープンソースの交通案内アプリ。公式オープンデータ提供。</string>
 
     <!-- Region Picker Bottom Sheet -->
-    <string name="region_picker_subtitle">都市または交通機関ネットワークを選択</string>
-    <string name="region_picker_unsupported_title">EkiBoard はまだ %1$s に対応していません</string>
-    <string name="region_picker_unsupported_desc">現在サポートされている以下の地域をお試しください。</string>
-    <string name="region_picker_nearby">周辺地域</string>
-    <string name="region_picker_supported_cities">サポートされている都市と地域</string>
-    <string name="region_picker_current">現在</string>
-    <string name="region_picker_area_fallback">お使いの地域</string>
 
     <!-- Debug Settings Bottom Sheet -->
-    <string name="debug_settings_subtitle">開発者向けテスト設定</string>
-    <string name="debug_section_subscription">サブスクリプションプラン</string>
-    <string name="debug_section_ai_engine">AI エンジン選択</string>
-    <string name="debug_section_region_testing">地域テスト (実験的)</string>
-    <string name="debug_section_testing_actions">テストアクション</string>
-    <string name="debug_section_dynamic_modules">Dynamic Feature モジュール</string>
-    <string name="debug_plan_title">%1$s プラン</string>
-    <string name="debug_plan_only">デバッグ専用</string>
-    <string name="debug_hk_enable_title">香港を有効化 (実験的)</string>
-    <string name="debug_hk_enable_desc">MTRおよび九巴/城巴の運行情報を有効化</string>
-    <string name="debug_action_reset_stations_title">登録駅をリセット</string>
-    <string name="debug_action_reset_stations_desc">現在の地域の人気初期駅を再登録</string>
-    <string name="debug_action_reset_stations_toast">登録駅をデフォルトにリセットしました</string>
-    <string name="debug_action_force_widget_title">ウィジェット更新を強制実行</string>
-    <string name="debug_action_force_widget_desc">Glance WidgetUpdateWorker を直ちに実行</string>
-    <string name="debug_action_force_widget_toast">ウィジェット更新をキューに追加しました</string>
-    <string name="debug_action_in_app_review_title">アプリ内レビューをテスト</string>
-    <string name="debug_action_in_app_review_desc">Google Play アプリ内レビューダイアログを表示</string>
-    <string name="debug_action_reset_review_title">レビュー追跡データをリセット</string>
-    <string name="debug_action_reset_review_desc">初回起動や起動回数、クールダウンをクリア</string>
-    <string name="debug_action_clear_cache_title">オフライン HTTP キャッシュをクリア</string>
-    <string name="debug_action_clear_cache_desc">キャッシュされたネットワーク応答を削除</string>
-    <string name="debug_action_clear_cache_success">オフライン HTTP キャッシュをクリアしました</string>
-    <string name="debug_action_clear_cache_fail">キャッシュのクリアに失敗しました</string>
-    <string name="debug_module_installed">インストール済み (オンデバイス LLM &amp; LiteRT 準備完了)</string>
-    <string name="debug_module_not_installed">未インストール (オンデマンド Play 機能)</string>
-    <string name="debug_module_downloading">モジュールをダウンロード中…</string>
-    <string name="debug_module_trigger_install">機能インストールをリクエスト</string>
-    <string name="debug_module_trigger_desc">SplitInstallManager にダウンロードを要求</string>
-    <string name="debug_module_status_downloading">ダウンロード中: %1$d%%</string>
-    <string name="debug_module_status_initiating">SplitInstall リクエストを開始中…</string>
-    <string name="debug_module_toast_success">AI 機能モジュールがインストールされました</string>
-    <string name="debug_module_toast_fail">インストールに失敗しました (コード %1$d)</string>
 </resources>

@@ -38,12 +38,12 @@ class LocalizationAndRegionTest {
         assertEquals("United Kingdom", context.getString(R.string.region_uk))
         assertEquals("Hong Kong", context.getString(R.string.region_hk))
         assertEquals("Due", context.getString(R.string.status_due))
-        assertEquals("On time", context.getString(R.string.status_on_time))
+        assertEquals("Northbound", context.getString(R.string.dir_northbound))
         assertEquals("Delayed", context.getString(R.string.status_delayed))
         assertEquals("Cancelled", context.getString(R.string.status_cancelled))
-        assertEquals("Search station, line, or stop…", context.getString(R.string.search_hint))
-        assertEquals("Plat 3", context.getString(R.string.platform_label, "3"))
-        assertEquals("Developer Options", context.getString(R.string.debug_settings_title))
+        assertEquals("Search station, line, or bus stop…", context.getString(R.string.dashboard_search_bar_placeholder))
+        assertEquals("Network Status (5)", context.getString(R.string.dashboard_menu_network_status_count, 5))
+        assertEquals("Debug Settings", context.getString(R.string.dashboard_menu_debug_settings))
         assertEquals("Switch Region", context.getString(R.string.switch_region_title))
     }
 
@@ -54,12 +54,12 @@ class LocalizationAndRegionTest {
         assertEquals("英國", context.getString(R.string.region_uk))
         assertEquals("香港", context.getString(R.string.region_hk))
         assertEquals("即將抵達", context.getString(R.string.status_due))
-        assertEquals("準時", context.getString(R.string.status_on_time))
+        assertEquals("北行", context.getString(R.string.dir_northbound))
         assertEquals("延誤", context.getString(R.string.status_delayed))
         assertEquals("取消", context.getString(R.string.status_cancelled))
-        assertEquals("搜尋車站、路線或巴士站…", context.getString(R.string.search_hint))
-        assertEquals("3 號月台", context.getString(R.string.platform_label, "3"))
-        assertEquals("開發者選項", context.getString(R.string.debug_settings_title))
+        assertEquals("搜尋車站、路線或巴士站…", context.getString(R.string.dashboard_search_bar_placeholder))
+        assertEquals("路網狀態 (5)", context.getString(R.string.dashboard_menu_network_status_count, 5))
+        assertEquals("除錯設定", context.getString(R.string.dashboard_menu_debug_settings))
         assertEquals("切換地區", context.getString(R.string.switch_region_title))
     }
 

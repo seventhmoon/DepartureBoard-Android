@@ -14,7 +14,6 @@
 
     <!-- Transit Statuses -->
     <string name="status_due">곧 도착</string>
-    <string name="status_on_time">정시</string>
     <string name="status_delayed">지연</string>
     <string name="status_cancelled">취소</string>
     <string name="status_approaching">접근 중</string>
@@ -36,21 +35,10 @@
     <string name="dir_outbound">하행</string>
     <string name="dir_clockwise">외선순환</string>
     <string name="dir_anti_clockwise">내선순환</string>
-    <string name="dir_indicator_northbound">↑ 북행</string>
-    <string name="dir_indicator_southbound">↓ 남행</string>
-    <string name="dir_indicator_eastbound">→ 동행</string>
-    <string name="dir_indicator_westbound">← 서행</string>
-    <string name="dir_indicator_inbound">상행</string>
-    <string name="dir_indicator_outbound">하행</string>
-    <string name="dir_indicator_clockwise">↻ 외선</string>
-    <string name="dir_indicator_anti_clockwise">↺ 내선</string>
 
     <!-- UI Labels -->
-    <string name="platform_label">%s번 승강장</string>
-    <string name="search_hint">역, 노선 또는 정류장 검색…</string>
     <string name="ad_badge_label">광고</string>
     <!-- Debug & Settings -->
-    <string name="debug_settings_title">개발자 옵션</string>
     <string name="switch_region_title">지역 전환</string>
     <string name="title_ai_assistant">온디바이스 AI 어시스턴트</string>
     <string name="settings_language_title">앱 언어</string>
@@ -62,46 +50,17 @@
     <string name="language_ko">한국어</string>
 
     <!-- Settings Bottom Sheet -->
-    <string name="settings_title">설정</string>
-    <string name="settings_subtitle">환경설정 및 옵션</string>
     <string name="settings_close">닫기</string>
-    <string name="settings_section_display">화면 표시 설정</string>
     <string name="settings_section_region_language">지역 및 언어</string>
-    <string name="settings_rows_per_card_title">역 카드당 표시 행 수</string>
-    <string name="settings_rows_per_card_desc">표시할 다음 출발 정보의 최대 개수</string>
-    <string name="settings_theme_title">테마</string>
-    <string name="settings_theme_desc">시스템 기본값, 라이트 또는 다크 테마 선택</string>
     <string name="settings_theme_system">시스템</string>
     <string name="settings_theme_light">라이트</string>
     <string name="settings_theme_dark">다크</string>
     <string name="settings_dynamic_color_title">다이내믹 컬러 (Monet)</string>
     <string name="settings_dynamic_color_desc">배경화면 색상에 맞춰 인터페이스 색조 적용</string>
-    <string name="settings_hk_bilingual_title">이중 언어 역명 표시 (홍콩)</string>
-    <string name="settings_hk_bilingual_desc">영어와 중국어 역명 모두 표시 (예: Central / 中環)</string>
-    <string name="settings_auto_sort_title">스마트 위치 자동 정렬</string>
-    <string name="settings_auto_sort_desc">가장 가까운 저장된 역을 상단에 자동으로 정렬</string>
     <string name="settings_section_subscription">구독 및 계정</string>
-    <string name="settings_plan_pro_title">EkiBoard Pro</string>
-    <string name="settings_plan_free_title">무료 플랜</string>
-    <string name="settings_plan_pro_subtitle">활성화된 플랜 • 혜택 확인</string>
-    <string name="settings_plan_free_subtitle">저장 가능한 역, 위젯 및 AI 기능 업그레이드</string>
     <string name="settings_manage_subscription_title">구독 관리 / 취소</string>
-    <string name="settings_manage_subscription_desc">Google Play 정기 결제 관리 페이지 열기</string>
-    <string name="settings_restore_checking_title">Google Play 확인 중…</string>
-    <string name="settings_restore_title">구매 내역 복원</string>
-    <string name="settings_restore_checking_desc">Google Play 스토어와 연결 중</string>
-    <string name="settings_restore_desc">Google Play에서 이전 구매 내역 동기화</string>
-    <string name="settings_section_about">고객지원 및 정보</string>
-    <string name="settings_help_faq_title">도움말 &amp; 자주 묻는 질문</string>
-    <string name="settings_help_faq_desc">사용 가이드 및 FAQ</string>
     <string name="settings_rate_app_title">Google Play 평가</string>
-    <string name="settings_rate_app_desc">다른 통근자들과 리뷰 공유하기</string>
     <string name="settings_privacy_policy_title">개인정보 처리방침</string>
-    <string name="settings_privacy_policy_desc">개인정보 보호 약관 및 데이터 안전 정보</string>
-    <string name="settings_app_version_title">앱 버전</string>
-    <string name="settings_app_version_desc">v%1$s • 공식 오픈 교통 데이터 제공</string>
-    <string name="settings_developer_options_title">개발자 옵션</string>
-    <string name="settings_developer_options_desc">디버그 설정, AI 엔진 및 테스트 도구</string>
 
     <!-- Empty Dashboard State -->
     <string name="empty_dashboard_title">저장된 역이 없습니다</string>
@@ -109,16 +68,6 @@
     <string name="empty_dashboard_add_station">역 추가</string>
 
     <!-- Station Departure Card -->
-    <string name="delete_station">역 삭제</string>
-    <string name="station_distance_meters_away">%1$dm</string>
-    <string name="station_distance_km_away">%.1fkm</string>
-    <string name="station_nearest_with_distance">📍 가장 가까운 역 • %1$s</string>
-    <string name="station_nearest">📍 가장 가까운 역</string>
-    <string name="station_distance_format">📍 %1$s</string>
-    <string name="station_bus_towards">%1$s 방면</string>
-    <string name="disruption_status_delays">지연</string>
-    <string name="disruption_view_alert_details">운행 정보 상세 보기 ↗</string>
-    <string name="disruption_more_details">자세히 ↗</string>
     <string name="departures_loading">실시간 출발 정보 불러오는 중…</string>
     <string name="departures_retry_hint">당겨서 새로고침하거나 탭하여 재시도</string>
     <string name="departures_filter_no_match">조건에 일치하는 출발 정보가 없습니다</string>
@@ -152,13 +101,11 @@
     <string name="search_stations_find_near_me_desc">도보 거리 내의 정류장 및 역 표시</string>
 
     <!-- Dashboard Screen -->
-    <string name="dashboard_pro_badge">PRO</string>
     <string name="dashboard_live_network_status">실시간 운행 현황</string>
     <string name="dashboard_upgrade_to_pro">Pro로 업그레이드</string>
     <string name="dashboard_more_options">더보기 옵션</string>
     <string name="dashboard_menu_network_status">운행 현황</string>
     <string name="dashboard_menu_network_status_count">운행 현황 (%1$d)</string>
-    <string name="dashboard_menu_switch_region">지역 전환</string>
     <string name="dashboard_menu_settings">설정</string>
     <string name="dashboard_menu_help_faq">도움말 &amp; 자주 묻는 질문</string>
     <string name="dashboard_menu_debug_settings">개발자 설정</string>
@@ -168,7 +115,6 @@
     <string name="dashboard_offline_banner">오프라인 상태 • 캐시된 출발 정보 표시 중</string>
     <string name="dashboard_search_bar_placeholder">역, 노선 또는 버스 정류장 검색…</string>
     <string name="dashboard_search_desc">검색</string>
-    <string name="dashboard_nearby_desc">주변 역</string>
 
     <!-- Line Status Bottom Sheet -->
     <string name="line_status_title_live">실시간 운행 현황</string>
@@ -185,45 +131,10 @@
     <string name="line_status_filter_disrupted">지연 노선 (%1$d)</string>
     <string name="line_status_expand_desc">상세 정보 펼치기</string>
     <string name="line_status_collapse_desc">상세 정보 접기</string>
-    <string name="line_status_bus_name">버스 %1$s</string>
 
     <!-- Station Detail Screen -->
-    <string name="station_detail_page_info">%1$d / %2$d</string>
-    <string name="station_detail_zone">%1$s구역</string>
-    <string name="station_detail_open_maps">지도에서 열기</string>
-    <string name="station_detail_refresh">출발 정보 새로고침</string>
-    <string name="station_detail_pin">홈에 고정</string>
-    <string name="station_detail_unpin">홈에서 고정 해제</string>
-    <string name="station_detail_filter_all">전체</string>
-    <string name="station_detail_disruptions_title">%1$d개 노선 지연 정보</string>
-    <string name="station_detail_disruptions_expand">지연 정보 펼치기</string>
-    <string name="station_detail_disruptions_collapse">지연 정보 접기</string>
-    <string name="station_detail_stops_stands_header">승강장 / 정류장:</string>
-    <string name="station_detail_live_departures">실시간 출발 안내</string>
-    <string name="station_detail_predictions_count">%1$d개 예측 정보</string>
-    <string name="station_detail_service_ended_title">🌙 오늘의 운행이 종료되었습니다</string>
-    <string name="station_detail_last_train">막차는 %1$s에 출발했습니다.</string>
-    <string name="station_detail_first_train">첫차는 약 %1$s에 출발합니다.</string>
-    <string name="station_detail_last_bus_departed">오늘의 막차 버스가 출발했습니다.</string>
-    <string name="station_detail_empty_message">현재 이용 가능한 출발 정보가 없습니다.\n위의 새로고침 아이콘을 눌러 확인해 보세요.</string>
 
     <!-- Train Journey Screen -->
-    <string name="journey_header_bus">%2$s 방면 버스 %1$s</string>
-    <string name="journey_header_train">%1$s 방면 열차</string>
-    <string name="journey_from_label">출발지</string>
-    <string name="journey_current_bus_location">버스 현재 위치</string>
-    <string name="journey_current_train_location">열차 현재 위치</string>
-    <string name="journey_service_cancelled_title">운행 취소</string>
-    <string name="journey_service_cancelled_desc">해당 운행이 취소되었습니다.</string>
-    <string name="journey_service_delayed_title">운행 지연</string>
-    <string name="journey_service_delayed_desc">해당 운행에 지연이 발생하고 있습니다.</string>
-    <string name="journey_calling_points_header">정차역</string>
-    <string name="journey_calling_points_count">%1$d개 역</string>
-    <string name="journey_loading_calling_points">정차역 불러오는 중…</string>
-    <string name="journey_calling_points_unavailable">이 운행의 정차역 상세 정보를 불러올 수 없습니다.</string>
-    <string name="journey_your_station">현재 역</string>
-    <string name="journey_notify_stop">알림 중지</string>
-    <string name="journey_notify_start">실시간 추적 알림 시작</string>
 
     <!-- Location Rationale Dialog -->
     <string name="location_rationale_title">주변 역 찾기</string>
@@ -272,46 +183,6 @@
     <string name="help_faq_app_description">Jetpack Compose 및 Material 3 Expressive로 제작된 오픈소스 대중교통 앱입니다. 공식 오픈 데이터를 기반으로 합니다.</string>
 
     <!-- Region Picker Bottom Sheet -->
-    <string name="region_picker_subtitle">도시 또는 대중교통 네트워크 선택</string>
-    <string name="region_picker_unsupported_title">EkiBoard가 아직 %1$s에 지원되지 않습니다</string>
-    <string name="region_picker_unsupported_desc">현재 지원되는 아래 대중교통 네트워크를 둘러보세요.</string>
-    <string name="region_picker_nearby">주변 지역</string>
-    <string name="region_picker_supported_cities">지원되는 도시 및 지역</string>
-    <string name="region_picker_current">현재</string>
-    <string name="region_picker_area_fallback">현재 지역</string>
 
     <!-- Debug Settings Bottom Sheet -->
-    <string name="debug_settings_subtitle">개발자 테스트 설정</string>
-    <string name="debug_section_subscription">구독 플랜</string>
-    <string name="debug_section_ai_engine">AI 엔진 선택</string>
-    <string name="debug_section_region_testing">지역 테스트 (실험적)</string>
-    <string name="debug_section_testing_actions">테스트 작업</string>
-    <string name="debug_section_dynamic_modules">다이내믹 기능 모듈</string>
-    <string name="debug_plan_title">%1$s 플랜</string>
-    <string name="debug_plan_only">디버그 전용</string>
-    <string name="debug_hk_enable_title">홍콩 활성화 (실험적)</string>
-    <string name="debug_hk_enable_desc">MTR 및 KMB/Citybus 운행 정보 활성화</string>
-    <string name="debug_action_reset_stations_title">저장된 역 초기화</string>
-    <string name="debug_action_reset_stations_desc">현재 지역의 인기 기본 역으로 복원</string>
-    <string name="debug_action_reset_stations_toast">저장된 역이 기본값으로 초기화되었습니다</string>
-    <string name="debug_action_force_widget_title">위젯 강제 업데이트</string>
-    <string name="debug_action_force_widget_desc">Glance WidgetUpdateWorker 즉시 실행</string>
-    <string name="debug_action_force_widget_toast">위젯 업데이트 작업이 등록되었습니다</string>
-    <string name="debug_action_in_app_review_title">인앱 리뷰 플로우 테스트</string>
-    <string name="debug_action_in_app_review_desc">Google Play 인앱 리뷰 대화상자를 실행합니다</string>
-    <string name="debug_action_reset_review_title">인앱 리뷰 추적기 초기화</string>
-    <string name="debug_action_reset_review_desc">최초 실행, 실행 횟수 및 쿨다운 초기화</string>
-    <string name="debug_action_clear_cache_title">오프라인 HTTP 캐시 삭제</string>
-    <string name="debug_action_clear_cache_desc">캐시된 TfL 및 교통 API 네트워크 응답 삭제</string>
-    <string name="debug_action_clear_cache_success">오프라인 HTTP 캐시가 삭제되었습니다</string>
-    <string name="debug_action_clear_cache_fail">캐시 삭제에 실패했습니다</string>
-    <string name="debug_module_installed">설치됨 (온디바이스 LLM 및 LiteRT 런타임 준비 완료)</string>
-    <string name="debug_module_not_installed">설치되지 않음 (주문형 Play 기능)</string>
-    <string name="debug_module_downloading">모듈 다운로드 중…</string>
-    <string name="debug_module_trigger_install">기능 전송 설치 실행</string>
-    <string name="debug_module_trigger_desc">SplitInstallManager에 AI 기능 다운로드 요청</string>
-    <string name="debug_module_status_downloading">다운로드 중: %1$d%%</string>
-    <string name="debug_module_status_initiating">SplitInstall 요청 시작 중…</string>
-    <string name="debug_module_toast_success">AI 기능 모듈이 성공적으로 설치되었습니다</string>
-    <string name="debug_module_toast_fail">설치 실패 (코드 %1$d)</string>
 </resources>

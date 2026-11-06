@@ -13,7 +13,6 @@
 
     <!-- Transit Statuses -->
     <string name="status_due">即將抵達</string>
-    <string name="status_on_time">準時</string>
     <string name="status_delayed">延誤</string>
     <string name="status_cancelled">取消</string>
     <string name="status_approaching">即將到達</string>
@@ -35,18 +34,8 @@
     <string name="dir_outbound">下行</string>
     <string name="dir_clockwise">順時針</string>
     <string name="dir_anti_clockwise">逆時針</string>
-    <string name="dir_indicator_northbound">↑ 北行</string>
-    <string name="dir_indicator_southbound">↓ 南行</string>
-    <string name="dir_indicator_eastbound">→ 東行</string>
-    <string name="dir_indicator_westbound">← 西行</string>
-    <string name="dir_indicator_inbound">上行</string>
-    <string name="dir_indicator_outbound">下行</string>
-    <string name="dir_indicator_clockwise">↻ 順時針</string>
-    <string name="dir_indicator_anti_clockwise">↺ 逆時針</string>
 
     <!-- UI Labels -->
-    <string name="platform_label">%s 號月台</string>
-    <string name="search_hint">搜尋車站、路線或巴士站…</string>
     <string name="ad_badge_label">廣告</string>
     <!-- Tracking Notifications & Alerts -->
     <string name="notification_channel_live_tracking">即時班次追蹤</string>
@@ -73,7 +62,6 @@
     <string name="tracking_bus_stop_default">巴士站</string>
 
     <!-- Debug & Settings -->
-    <string name="debug_settings_title">開發者選項</string>
     <string name="switch_region_title">切換地區</string>
     <string name="title_ai_assistant">裝置端 AI 助理</string>
     <string name="settings_language_title">應用程式語言</string>
@@ -85,46 +73,17 @@
     <string name="language_ko">한국어</string>
 
     <!-- Settings Bottom Sheet -->
-    <string name="settings_title">設定</string>
-    <string name="settings_subtitle">偏好設定與選項</string>
     <string name="settings_close">關閉</string>
-    <string name="settings_section_display">顯示偏好設定</string>
     <string name="settings_section_region_language">地區與語言</string>
-    <string name="settings_rows_per_card_title">每個車站顯示列數</string>
-    <string name="settings_rows_per_card_desc">最多顯示的即將離站班次數量</string>
-    <string name="settings_theme_title">外觀主題</string>
-    <string name="settings_theme_desc">選擇跟隨系統、淺色或深色主題</string>
     <string name="settings_theme_system">跟隨系統</string>
     <string name="settings_theme_light">淺色</string>
     <string name="settings_theme_dark">深色</string>
     <string name="settings_dynamic_color_title">動態色彩 (Monet)</string>
     <string name="settings_dynamic_color_desc">根據桌布色彩自動調整介面色調</string>
-    <string name="settings_hk_bilingual_title">雙語站名顯示 (香港)</string>
-    <string name="settings_hk_bilingual_desc">同時顯示中英文站名 (例：Central / 中環)</string>
-    <string name="settings_auto_sort_title">智慧位置自動排序</string>
-    <string name="settings_auto_sort_desc">自動將距離最近的已儲存車站置頂</string>
     <string name="settings_section_subscription">訂閱與帳戶</string>
-    <string name="settings_plan_pro_title">EkiBoard Pro</string>
-    <string name="settings_plan_free_title">免費版</string>
-    <string name="settings_plan_pro_subtitle">有效方案 • 輕觸查看專屬權益</string>
-    <string name="settings_plan_free_subtitle">升級享有更多儲存車站、小工具及 AI 助理</string>
     <string name="settings_manage_subscription_title">管理 / 取消訂閱</string>
-    <string name="settings_manage_subscription_desc">前往 Google Play 訂閱中心</string>
-    <string name="settings_restore_checking_title">正在查詢 Google Play…</string>
-    <string name="settings_restore_title">還原購買項目</string>
-    <string name="settings_restore_checking_desc">正在與 Google Play 商店連線</string>
-    <string name="settings_restore_desc">同步您在 Google Play 的歷史購買項目</string>
-    <string name="settings_section_about">關於與支援</string>
-    <string name="settings_help_faq_title">使用說明與常見問題</string>
-    <string name="settings_help_faq_desc">常見問題解答與實用操作指南</string>
     <string name="settings_rate_app_title">在 Google Play 上評分</string>
-    <string name="settings_rate_app_desc">為其他通勤乘客留下您的使用心得</string>
     <string name="settings_privacy_policy_title">隱私權政策</string>
-    <string name="settings_privacy_policy_desc">查看隱私條款與資料安全資訊</string>
-    <string name="settings_app_version_title">應用程式版本</string>
-    <string name="settings_app_version_desc">v%1$s • 官方開放交通資料</string>
-    <string name="settings_developer_options_title">開發者選項</string>
-    <string name="settings_developer_options_desc">除錯開關、AI 引擎與測試工具</string>
 
     <!-- Empty Dashboard State -->
     <string name="empty_dashboard_title">尚無已儲存的車站</string>
@@ -132,16 +91,6 @@
     <string name="empty_dashboard_add_station">新增車站</string>
 
     <!-- Station Departure Card -->
-    <string name="delete_station">刪除車站</string>
-    <string name="station_distance_meters_away">相距 %1$d 公尺</string>
-    <string name="station_distance_km_away">相距 %.1f 公里</string>
-    <string name="station_nearest_with_distance">📍 最近 • %1$s</string>
-    <string name="station_nearest">📍 最近</string>
-    <string name="station_distance_format">📍 %1$s</string>
-    <string name="station_bus_towards">往 %1$s</string>
-    <string name="disruption_status_delays">延誤</string>
-    <string name="disruption_view_alert_details">查看特別交通消息 ↗</string>
-    <string name="disruption_more_details">詳細資訊 ↗</string>
     <string name="departures_loading">正在載入即時班次…</string>
     <string name="departures_retry_hint">向下拉動或輕觸以重試</string>
     <string name="departures_filter_no_match">沒有符合此篩選條件的班次</string>
@@ -175,13 +124,11 @@
     <string name="search_stations_find_near_me_desc">顯示步行距離內的站點與車站</string>
 
     <!-- Dashboard Screen -->
-    <string name="dashboard_pro_badge">PRO</string>
     <string name="dashboard_live_network_status">即時路網狀態</string>
     <string name="dashboard_upgrade_to_pro">升級至 Pro</string>
     <string name="dashboard_more_options">更多選項</string>
     <string name="dashboard_menu_network_status">路網狀態</string>
     <string name="dashboard_menu_network_status_count">路網狀態 (%1$d)</string>
-    <string name="dashboard_menu_switch_region">切換地區</string>
     <string name="dashboard_menu_settings">設定</string>
     <string name="dashboard_menu_help_faq">使用說明與常見問題</string>
     <string name="dashboard_menu_debug_settings">除錯設定</string>
@@ -191,7 +138,6 @@
     <string name="dashboard_offline_banner">離線狀態 • 正在顯示快取班次</string>
     <string name="dashboard_search_bar_placeholder">搜尋車站、路線或巴士站…</string>
     <string name="dashboard_search_desc">搜尋</string>
-    <string name="dashboard_nearby_desc">附近車站</string>
 
     <!-- Line Status Bottom Sheet -->
     <string name="line_status_title_live">即時路網狀態</string>
@@ -208,45 +154,10 @@
     <string name="line_status_filter_disrupted">異常路線 (%1$d)</string>
     <string name="line_status_expand_desc">展開詳細資訊</string>
     <string name="line_status_collapse_desc">收起詳細資訊</string>
-    <string name="line_status_bus_name">巴士 %1$s</string>
 
     <!-- Station Detail Screen -->
-    <string name="station_detail_page_info">%1$d / %2$d</string>
-    <string name="station_detail_zone">第 %1$s 區</string>
-    <string name="station_detail_open_maps">在 Google 地圖中開啟</string>
-    <string name="station_detail_refresh">重新整理班次</string>
-    <string name="station_detail_pin">釘選至首頁</string>
-    <string name="station_detail_unpin">從首頁取消釘選</string>
-    <string name="station_detail_filter_all">全部</string>
-    <string name="station_detail_disruptions_title">%1$d 條路線受阻</string>
-    <string name="station_detail_disruptions_expand">展開異常消息</string>
-    <string name="station_detail_disruptions_collapse">收起異常消息</string>
-    <string name="station_detail_stops_stands_header">站位 / 月台：</string>
-    <string name="station_detail_live_departures">即時離站班次</string>
-    <string name="station_detail_predictions_count">%1$d 個預測班次</string>
-    <string name="station_detail_service_ended_title">🌙 今日服務已結束</string>
-    <string name="station_detail_last_train">尾班車已於 %1$s 開出。</string>
-    <string name="station_detail_first_train">清晨首班車約於 %1$s 開始服務。</string>
-    <string name="station_detail_last_bus_departed">今日尾班車已開出。</string>
-    <string name="station_detail_empty_message">目前沒有即時離站班次。\n請輕觸上方重新整理圖示以檢查最新更新。</string>
 
     <!-- Train Journey Screen -->
-    <string name="journey_header_bus">巴士 %1$s 往 %2$s</string>
-    <string name="journey_header_train">列車往 %1$s</string>
-    <string name="journey_from_label">出發地</string>
-    <string name="journey_current_bus_location">巴士目前位置</string>
-    <string name="journey_current_train_location">列車目前位置</string>
-    <string name="journey_service_cancelled_title">班次已取消</string>
-    <string name="journey_service_cancelled_desc">此班次服務已被取消。</string>
-    <string name="journey_service_delayed_title">班次延誤</string>
-    <string name="journey_service_delayed_desc">此班次目前有所延誤。</string>
-    <string name="journey_calling_points_header">停靠站點</string>
-    <string name="journey_calling_points_count">%1$d 個停靠站</string>
-    <string name="journey_loading_calling_points">正在載入停靠站點…</string>
-    <string name="journey_calling_points_unavailable">此班次暫無詳細停靠站資訊。</string>
-    <string name="journey_your_station">您的所在車站</string>
-    <string name="journey_notify_stop">停止即時通知</string>
-    <string name="journey_notify_start">開啟即時動態追蹤</string>
 
     <!-- Location Rationale Dialog -->
     <string name="location_rationale_title">尋找附近車站</string>
@@ -295,48 +206,8 @@
     <string name="help_faq_app_description">使用 Jetpack Compose 與 Material 3 Expressive 打造的開源交通伴侶，由官方開放資料提供支援。</string>
 
     <!-- Region Picker Bottom Sheet -->
-    <string name="region_picker_subtitle">選擇您的城市或交通路網</string>
-    <string name="region_picker_unsupported_title">EkiBoard 尚未進駐 %1$s</string>
-    <string name="region_picker_unsupported_desc">歡迎探索我們目前支援的交通路網即時班次。</string>
-    <string name="region_picker_nearby">附近地區</string>
-    <string name="region_picker_supported_cities">支援的城市與地區</string>
-    <string name="region_picker_current">目前</string>
-    <string name="region_picker_area_fallback">您所在的地區</string>
 
     <!-- Debug Settings Bottom Sheet -->
-    <string name="debug_settings_subtitle">開發者測試控制項</string>
-    <string name="debug_section_subscription">訂閱方案</string>
-    <string name="debug_section_ai_engine">AI 引擎選擇</string>
-    <string name="debug_section_region_testing">地區測試 (實驗性)</string>
-    <string name="debug_section_testing_actions">測試操作</string>
-    <string name="debug_section_dynamic_modules">動態功能模組</string>
-    <string name="debug_plan_title">%1$s 方案</string>
-    <string name="debug_plan_only">僅供除錯</string>
-    <string name="debug_hk_enable_title">啟用香港 (實驗性)</string>
-    <string name="debug_hk_enable_desc">解鎖港鐵及九巴/城巴即時離站資訊</string>
-    <string name="debug_action_reset_stations_title">重設已儲存車站</string>
-    <string name="debug_action_reset_stations_desc">還原為目前地區的熱門預設車站</string>
-    <string name="debug_action_reset_stations_toast">已將儲存車站還原為預設值</string>
-    <string name="debug_action_force_widget_title">強制更新小工具</string>
-    <string name="debug_action_force_widget_desc">立即觸發 Glance WidgetUpdateWorker</string>
-    <string name="debug_action_force_widget_toast">已排入小工具更新佇列</string>
-    <string name="debug_action_in_app_review_title">測試應用程式內評分流程</string>
-    <string name="debug_action_in_app_review_desc">啟動 Google Play 應用程式內評分對話框</string>
-    <string name="debug_action_reset_review_title">重設評分追蹤記錄</string>
-    <string name="debug_action_reset_review_desc">清除首次啟動、開啟次數與冷卻狀態</string>
-    <string name="debug_action_clear_cache_title">清除離線 HTTP 快取</string>
-    <string name="debug_action_clear_cache_desc">刪除已快取的 TfL 與交通 API 網路回應</string>
-    <string name="debug_action_clear_cache_success">已清除離線 HTTP 快取</string>
-    <string name="debug_action_clear_cache_fail">清除快取失敗</string>
-    <string name="debug_module_installed">已安裝 (裝置端 LLM 與 LiteRT 執行階段就緒)</string>
-    <string name="debug_module_not_installed">未安裝 (依需求下載的 Play 功能)</string>
-    <string name="debug_module_downloading">正在下載模組…</string>
-    <string name="debug_module_trigger_install">觸發功能傳遞安裝</string>
-    <string name="debug_module_trigger_desc">請求 SplitInstallManager 下載 AI 功能</string>
-    <string name="debug_module_status_downloading">下載中：%1$d%%</string>
-    <string name="debug_module_status_initiating">正在發起 SplitInstall 請求…</string>
-    <string name="debug_module_toast_success">AI 功能模組安裝成功</string>
-    <string name="debug_module_toast_fail">安裝失敗 (錯誤代碼 %1$d)</string>
     <string name="update_downloaded_message">更新已下載完成。</string>
     <string name="update_restart_action">重新啟動</string>
     <string name="action_undo">復原</string>
