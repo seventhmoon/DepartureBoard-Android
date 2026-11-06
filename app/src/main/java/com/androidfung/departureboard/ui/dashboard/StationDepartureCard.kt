@@ -154,7 +154,7 @@ fun StationDepartureCard(
                 else -> Alignment.Center
             }
 
-            val iconScale by androidx.compose.animation.core.animateFloatAsState(
+            val iconScaleState = androidx.compose.animation.core.animateFloatAsState(
                 targetValue = if (isPastThreshold) 1.25f else 1.0f,
                 animationSpec = androidx.compose.animation.core.spring(
                     dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy
@@ -177,8 +177,8 @@ fun StationDepartureCard(
                     modifier = Modifier
                         .size(28.dp)
                         .graphicsLayer {
-                            scaleX = iconScale
-                            scaleY = iconScale
+                            scaleX = iconScaleState.value
+                            scaleY = iconScaleState.value
                         }
                 )
             }

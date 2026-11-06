@@ -43,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -641,13 +642,11 @@ private fun TrainJourneyContent(
  * before the user's boarding station ("Your station").
  */
 @Composable
-private fun IncomingTrainTimelineNode(
-    currentLocation: String?,
-    lineColor: Color,
+private fun PulsingRadarHalo(
+    haloColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val accessibleColors = rememberAccessibleTimelineColors(lineColor)
-    val infiniteTransition = rememberInfiniteTransition(label = "IncomingTrainRadar")
+    val infiniteTransition = rememberInfiniteTransition(label = "RadarPulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1.0f,
         targetValue = 2.2f,
@@ -655,7 +654,7 @@ private fun IncomingTrainTimelineNode(
             animation = tween(durationMillis = 1400, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "IncomingPulseScale"
+        label = "PulseScale"
     )
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.70f,
@@ -664,8 +663,29 @@ private fun IncomingTrainTimelineNode(
             animation = tween(durationMillis = 1400, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "IncomingPulseAlpha"
+        label = "PulseAlpha"
     )
+
+    Box(
+        modifier = modifier
+            .size(12.dp)
+            .graphicsLayer {
+                scaleX = pulseScale
+                scaleY = pulseScale
+                alpha = pulseAlpha
+            }
+            .clip(CircleShape)
+            .background(haloColor)
+    )
+}
+
+@Composable
+private fun IncomingTrainTimelineNode(
+    currentLocation: String?,
+    lineColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val accessibleColors = rememberAccessibleTimelineColors(lineColor)
 
     val labelText = when {
         !currentLocation.isNullOrBlank() && !currentLocation.equals("In transit", ignoreCase = true) -> currentLocation
@@ -690,12 +710,7 @@ private fun IncomingTrainTimelineNode(
                 contentAlignment = Alignment.Center
             ) {
                 // Pulsing radar ripple halo
-                Box(
-                    modifier = Modifier
-                        .size(12.dp * pulseScale)
-                        .clip(CircleShape)
-                        .background(accessibleColors.pulseHaloColor.copy(alpha = pulseAlpha))
-                )
+                PulsingRadarHalo(haloColor = accessibleColors.pulseHaloColor)
                 // Core train location indicator
                 Box(
                     modifier = Modifier
@@ -768,25 +783,6 @@ private fun CallingPointTimelineItem(
     onClick: (() -> Unit)? = null
 ) {
     val accessibleColors = rememberAccessibleTimelineColors(lineColor)
-    val infiniteTransition = rememberInfiniteTransition(label = "TrainLocationTransition")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1.0f,
-        targetValue = 2.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "PulseScale"
-    )
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.70f,
-        targetValue = 0.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "PulseAlpha"
-    )
 
     Column(
         modifier = modifier
@@ -832,12 +828,7 @@ private fun CallingPointTimelineItem(
                         contentAlignment = Alignment.Center
                     ) {
                         // Pulsing radar ripple halo
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp * pulseScale)
-                                .clip(CircleShape)
-                                .background(accessibleColors.pulseHaloColor.copy(alpha = pulseAlpha))
-                        )
+                        PulsingRadarHalo(haloColor = accessibleColors.pulseHaloColor)
                         // Core node indicator
                         Box(
                             modifier = Modifier

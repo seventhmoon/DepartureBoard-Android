@@ -463,7 +463,11 @@ fun WidgetStationPickerScreen(
                     .weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(stations, key = { it.id + it.name }) { station -> // Adding name to ensure uniqueness
+                items(
+                    items = stations,
+                    key = { it.id + it.name },
+                    contentType = { "station_item" }
+                ) { station ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
