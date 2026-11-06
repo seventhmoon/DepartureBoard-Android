@@ -102,41 +102,21 @@ fun DepartureRowItem(
 
         // Destination & Platform details
         Column(modifier = Modifier.weight(1f)) {
-            val destinationInfo = departure.resolvedDestination
-            val destinationText = destinationInfo.displayDestination.ifBlank { departure.lineName }
-            val viaText = destinationInfo.displayViaSubtitle
+            val destinationText = departure.destinationName.ifBlank { departure.lineName }
             val isCancelled = departure.status == DepartureStatus.CANCELLED
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = destinationText,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = if (isFirst || variant == DepartureRowVariant.DETAILED) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = if (isFirst || variant == DepartureRowVariant.DETAILED) 15.sp else 14.5.sp,
-                        lineHeight = 18.sp,
-                        textDecoration = if (isCancelled) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None
-                    ),
-                    color = if (isCancelled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f) else MaterialTheme.colorScheme.onSurface,
-                    maxLines = if (!viaText.isNullOrBlank()) 1 else 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-
-                if (!viaText.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = viaText,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Normal,
-                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
+            Text(
+                text = destinationText,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = if (isFirst || variant == DepartureRowVariant.DETAILED) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = if (isFirst || variant == DepartureRowVariant.DETAILED) 15.sp else 14.5.sp,
+                    lineHeight = 18.sp,
+                    textDecoration = if (isCancelled) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None
+                ),
+                color = if (isCancelled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f) else MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
 
             // Subtitle row: [Platform Pill Tag / Towards / Formation / Operator / Boarding Semantics]
             if (departure.platformName.isNotBlank() || departure.isWheelchairAccessible == true || !departure.occupancyStatus.isNullOrBlank() || departure.formation != null || departure.isSetDownOnly || departure.isPickUpOnly) {

@@ -209,26 +209,39 @@ private fun StationDetailPagerIndicator(
 ) {
     val haptic = LocalHapticFeedback.current
     val pagerStateDesc = stringResource(R.string.cd_station_pager_dot, currentPage + 1, pageCount)
+    val maxVisibleDots = 7
+    val shouldLimitDots = pageCount > maxVisibleDots
+    val visiblePageRange = if (shouldLimitDots) {
+        val half = maxVisibleDots / 2
+        val start = (currentPage - half).coerceIn(0, pageCount - maxVisibleDots)
+        start until (start + maxVisibleDots)
+    } else {
+        0 until pageCount
+    }
+
     Row(
         modifier = modifier
             .semantics {
                 stateDescription = pagerStateDesc
             },
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        for (i in 0 until pageCount) {
+        for (i in visiblePageRange) {
             val isSelected = i == currentPage
+            val isEdge = shouldLimitDots && (i == visiblePageRange.first || i == visiblePageRange.last) && (i != 0 && i != pageCount - 1)
+            val baseDotSize = if (isEdge) 4.dp else 6.dp
             val dotWidth by animateDpAsState(
-                targetValue = if (isSelected) 18.dp else 6.dp,
+                targetValue = if (isSelected) 16.dp else baseDotSize,
                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                 label = "dotWidth_$i"
             )
+            val dotHeight = if (isSelected) 6.dp else baseDotSize
             val dotColor by animateColorAsState(
                 targetValue = if (isSelected) {
                     MaterialTheme.colorScheme.primary
                 } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isEdge) 0.2f else 0.35f)
                 },
                 label = "dotColor_$i"
             )
@@ -246,7 +259,7 @@ private fun StationDetailPagerIndicator(
 
             Box(
                 modifier = Modifier
-                    .size(width = dotWidth, height = 6.dp)
+                    .size(width = dotWidth, height = dotHeight)
                     .clip(CircleShape)
                     .background(dotColor)
                     .then(clickModifier)
