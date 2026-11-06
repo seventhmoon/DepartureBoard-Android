@@ -6,7 +6,7 @@ import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.StationIdPrefixes
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.model.extractRawHkBusStopId
+import com.androidfung.departureboard.data.model.hk.extractRawHkBusStopId
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import com.androidfung.departureboard.data.model.hk.HkKmbEtaItem
 import com.androidfung.departureboard.data.model.isHkBusStationId

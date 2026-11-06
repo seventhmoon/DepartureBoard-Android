@@ -5,7 +5,7 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.gb.NrTrainService
-import com.androidfung.departureboard.data.repository.StationNameFormatter
+import com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter
 import com.androidfung.departureboard.data.repository.region.gb.direction.ElizabethLineDirectionResolver
 import com.androidfung.departureboard.data.repository.region.gb.direction.OvergroundLineResolver
 import com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver
@@ -119,7 +119,7 @@ object NationalRailDepartureMapper {
                     displayName = displayLabel,
                     backgroundColor = badgeColor,
                     textColor = textColor,
-                    mode = TransitMode.NATIONAL_RAIL,
+                    mode = TransitMode.RAIL,
                     lineCode = when {
                         operatorCode.equals("AW", ignoreCase = true) -> "TfW"
                         else -> operatorCode.take(3).uppercase()
@@ -152,7 +152,7 @@ object NationalRailDepartureMapper {
             else -> null
         }
 
-        val modeId = if (isElizabeth) TransitMode.ELIZABETH_LINE.id else if (isOverground) TransitMode.OVERGROUND.id else TransitMode.NATIONAL_RAIL.id
+        val modeId = TransitMode.RAIL.id
 
         val subsequentPoints = service.subsequentCallingPoints?.firstOrNull()?.callingPoint?.map { cp ->
             com.androidfung.departureboard.data.model.CallingPoint(

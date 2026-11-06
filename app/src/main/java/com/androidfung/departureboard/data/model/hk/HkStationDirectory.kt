@@ -5,7 +5,7 @@ import com.androidfung.departureboard.data.model.StationDirectory
 import com.androidfung.departureboard.data.model.StationLineInfo
 import com.androidfung.departureboard.data.model.StationSearchRanker
 import com.androidfung.departureboard.data.model.hk.topology.HkMtrRoutes
-import com.androidfung.departureboard.data.model.parseHkMtrStationId
+import com.androidfung.departureboard.data.model.hk.parseHkMtrStationId
 
 /**
  * Directory of Hong Kong MTR stations and major franchised bus hubs/stops for local search.

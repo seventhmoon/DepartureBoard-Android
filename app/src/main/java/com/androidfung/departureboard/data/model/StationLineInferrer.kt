@@ -223,16 +223,16 @@ object StationLineInferrer {
 
         return TransitMode.fromModes(station.modes)
             .filter { mode ->
-                !(isKingsCrossOrStPancrasNR && mode == TransitMode.TUBE) && mode != TransitMode.OTHER
+                !(isKingsCrossOrStPancrasNR && mode == TransitMode.METRO) && mode != TransitMode.OTHER
             }
             .map { mode ->
-                if (station.isHkMtr && mode == TransitMode.TUBE) {
+                if (station.isHkMtr && mode == TransitMode.METRO) {
                     LineBadgeInfo(
                         lineId = "MTR",
                         displayName = "MTR",
                         backgroundColor = androidx.compose.ui.graphics.Color(0xFF007DC5),
                         textColor = androidx.compose.ui.graphics.Color.White,
-                        mode = TransitMode.TUBE
+                        mode = TransitMode.METRO
                     )
                 } else {
                     when (mode) {
@@ -253,10 +253,10 @@ object StationLineInferrer {
     }
 
     private fun resolveDefaultMode(lineId: String): String = when {
-        lineId == "elizabeth" || lineId == "elizabeth-line" -> TransitMode.ELIZABETH_LINE.id
-        lineId in OVERGROUND_LINE_IDS -> TransitMode.OVERGROUND.id
-        lineId.startsWith("nr-") || lineId == "thameslink" -> TransitMode.NATIONAL_RAIL.id
-        else -> TransitMode.TUBE.id
+        lineId == "elizabeth" || lineId == "elizabeth-line" -> TransitMode.RAIL.id
+        lineId in OVERGROUND_LINE_IDS -> TransitMode.RAIL.id
+        lineId.startsWith("nr-") || lineId == "thameslink" -> TransitMode.RAIL.id
+        else -> TransitMode.METRO.id
     }
 
     private fun Station.isKingsCrossOrStPancrasNationalRail(): Boolean {

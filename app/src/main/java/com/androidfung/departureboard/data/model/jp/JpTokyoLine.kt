@@ -14,7 +14,7 @@ enum class JpTokyoLine(
     val japaneseName: String,
     override val badgeText: String,
     override val color: Color,
-    override val mode: TransitMode = TransitMode.TUBE
+    override val mode: TransitMode = TransitMode.METRO
 ) : TransitLineDefinition {
     GINZA("G", "Ginza Line", "銀座線", "G", Color(0xFFFF9500)),
     MARUNOUCHI("M", "Marunouchi Line", "丸ノ内線", "M", Color(0xFFF62E36)),
@@ -31,23 +31,23 @@ enum class JpTokyoLine(
     SHINJUKU("S", "Shinjuku Line", "新宿線", "S", Color(0xFF6CBB5A)),
     OEDO("E", "Oedo Line", "大江戸線", "E", Color(0xFFB6007A)),
     // JR East Lines
-    YAMANOTE("JY", "Yamanote Line", "山手線", "JY", Color(0xFF9ACD32), TransitMode.NATIONAL_RAIL),
-    CHUO("JC", "Chuo Line (Rapid)", "中央線快速", "JC", Color(0xFFFF4500), TransitMode.NATIONAL_RAIL),
-    CHUO_SOBU("JB", "Chuo-Sobu Line", "中央・総武線各駅停車", "JB", Color(0xFFFFD700), TransitMode.NATIONAL_RAIL),
-    SAIKYO("JA", "Saikyo Line", "埼京線", "JA", Color(0xFF00AC9A), TransitMode.NATIONAL_RAIL),
-    KEIHIN_TOHOKU("JK", "Keihin-Tohoku Line", "京浜東北線", "JK", Color(0xFF00BFFF), TransitMode.NATIONAL_RAIL),
-    TOKAIDO("JT", "Tokaido Line", "東海道線", "JT", Color(0xFFF68B1E), TransitMode.NATIONAL_RAIL),
-    YOKOSUKA("JO", "Yokosuka Line", "横須賀線", "JO", Color(0xFF007AC0), TransitMode.NATIONAL_RAIL),
-    SHONAN_SHINJUKU("JS", "Shonan-Shinjuku Line", "湘南新宿ライン", "JS", Color(0xFFED1C24), TransitMode.NATIONAL_RAIL),
-    NAMBU("JN", "Nambu Line", "南武線", "JN", Color(0xFFFFD400), TransitMode.NATIONAL_RAIL),
-    YOKOHAMA("JH", "Yokohama Line", "横浜線", "JH", Color(0xFF80C241), TransitMode.NATIONAL_RAIL),
+    YAMANOTE("JY", "Yamanote Line", "山手線", "JY", Color(0xFF9ACD32), TransitMode.RAIL),
+    CHUO("JC", "Chuo Line (Rapid)", "中央線快速", "JC", Color(0xFFFF4500), TransitMode.RAIL),
+    CHUO_SOBU("JB", "Chuo-Sobu Line", "中央・総武線各駅停車", "JB", Color(0xFFFFD700), TransitMode.RAIL),
+    SAIKYO("JA", "Saikyo Line", "埼京線", "JA", Color(0xFF00AC9A), TransitMode.RAIL),
+    KEIHIN_TOHOKU("JK", "Keihin-Tohoku Line", "京浜東北線", "JK", Color(0xFF00BFFF), TransitMode.RAIL),
+    TOKAIDO("JT", "Tokaido Line", "東海道線", "JT", Color(0xFFF68B1E), TransitMode.RAIL),
+    YOKOSUKA("JO", "Yokosuka Line", "横須賀線", "JO", Color(0xFF007AC0), TransitMode.RAIL),
+    SHONAN_SHINJUKU("JS", "Shonan-Shinjuku Line", "湘南新宿ライン", "JS", Color(0xFFED1C24), TransitMode.RAIL),
+    NAMBU("JN", "Nambu Line", "南武線", "JN", Color(0xFFFFD400), TransitMode.RAIL),
+    YOKOHAMA("JH", "Yokohama Line", "横浜線", "JH", Color(0xFF80C241), TransitMode.RAIL),
     // Major Private Railways
-    ODAKYU("OH", "Odakyu Line", "小田急線", "OH", Color(0xFF0075C2), TransitMode.NATIONAL_RAIL),
-    KEIO("KO", "Keio Line", "京王線", "KO", Color(0xFFDD0077), TransitMode.NATIONAL_RAIL),
-    KEIO_INOKASHIRA("IN", "Keio Inokashira Line", "京王井の頭線", "IN", Color(0xFF1D2088), TransitMode.NATIONAL_RAIL),
-    TOKYU_TOYOKO("TY", "Tokyu Toyoko Line", "東急東横線", "TY", Color(0xFFDA0442), TransitMode.NATIONAL_RAIL),
-    TOKYU_DENENTOSHI("DT", "Tokyu Den-en-toshi Line", "東急田園都市線", "DT", Color(0xFF00A040), TransitMode.NATIONAL_RAIL),
-    KEIKYU("KK", "Keikyu Main Line", "京急本線", "KK", Color(0xFF0080DE), TransitMode.NATIONAL_RAIL);
+    ODAKYU("OH", "Odakyu Line", "小田急線", "OH", Color(0xFF0075C2), TransitMode.RAIL),
+    KEIO("KO", "Keio Line", "京王線", "KO", Color(0xFFDD0077), TransitMode.RAIL),
+    KEIO_INOKASHIRA("IN", "Keio Inokashira Line", "京王井の頭線", "IN", Color(0xFF1D2088), TransitMode.RAIL),
+    TOKYU_TOYOKO("TY", "Tokyu Toyoko Line", "東急東横線", "TY", Color(0xFFDA0442), TransitMode.RAIL),
+    TOKYU_DENENTOSHI("DT", "Tokyu Den-en-toshi Line", "東急田園都市線", "DT", Color(0xFF00A040), TransitMode.RAIL),
+    KEIKYU("KK", "Keikyu Main Line", "京急本線", "KK", Color(0xFF0080DE), TransitMode.RAIL);
 
     override val localizedNames: Map<String, String> get() = mapOf(
         "en" to lineName,

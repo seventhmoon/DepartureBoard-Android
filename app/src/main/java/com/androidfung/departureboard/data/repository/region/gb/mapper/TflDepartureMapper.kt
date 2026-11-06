@@ -7,7 +7,7 @@ import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.repository.PlatformFormatter
-import com.androidfung.departureboard.data.repository.StationNameFormatter
+import com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter
 import com.androidfung.departureboard.data.repository.region.gb.TurnaroundTimeTracker
 import com.androidfung.departureboard.data.repository.region.gb.direction.DestinationResolver
 import com.androidfung.departureboard.data.repository.region.gb.direction.ElizabethLineDirectionResolver
@@ -197,7 +197,7 @@ object TflDepartureMapper {
             timeToStationSeconds = finalTimeToStationSeconds,
             expectedArrivalIso = finalExpectedArrivalIso,
             currentLocation = item.currentLocation?.takeIf { !it.trim().equals("null", ignoreCase = true) },
-            modeName = item.modeName ?: if (isBus) TransitMode.BUS.id else TransitMode.TUBE.id,
+            modeName = item.modeName ?: if (isBus) TransitMode.BUS.id else TransitMode.METRO.id,
             lineBadge = badge,
             vehicleId = item.vehicleId,
             destinationStationId = finalDestinationStationId

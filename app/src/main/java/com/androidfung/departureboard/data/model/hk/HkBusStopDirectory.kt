@@ -6,7 +6,7 @@ import com.androidfung.departureboard.data.db.hk.HkStationDatabase
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationLineInfo
 import com.androidfung.departureboard.data.model.TransitMode
-import com.androidfung.departureboard.data.model.extractRawHkBusStopId
+import com.androidfung.departureboard.data.model.hk.extractRawHkBusStopId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

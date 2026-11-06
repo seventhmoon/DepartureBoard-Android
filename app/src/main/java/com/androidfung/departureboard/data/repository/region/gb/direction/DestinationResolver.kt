@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.data.repository.region.gb.direction
 
 import com.androidfung.departureboard.data.model.gb.TflStationIds
-import com.androidfung.departureboard.data.repository.StationNameFormatter
+import com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter
 
 /**
  * Resolves the outbound destination for terminus stations when TfL's prediction API reports

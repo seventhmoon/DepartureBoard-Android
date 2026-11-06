@@ -4,7 +4,7 @@ import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.hk.topology.HkMtrRoutes
 import com.androidfung.departureboard.data.model.isHkMtr
-import com.androidfung.departureboard.data.model.parseHkMtrStationId
+import com.androidfung.departureboard.data.model.hk.parseHkMtrStationId
 import com.androidfung.departureboard.data.topology.LinearRouteCallingPointsResolver
 import java.time.Instant
 

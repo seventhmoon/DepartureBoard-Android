@@ -1,4 +1,4 @@
-package com.androidfung.departureboard.data.repository
+package com.androidfung.departureboard.data.repository.region.gb
 
 /**
  * Utility for normalizing station names and removing redundant transport suffixes while

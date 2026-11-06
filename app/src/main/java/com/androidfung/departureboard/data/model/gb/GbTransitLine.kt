@@ -18,7 +18,7 @@ enum class GbTransitLine(
     override val badgeText: String,
     override val color: Color,
     override val textColor: Color = TflLineColors.LightText,
-    override val mode: TransitMode = TransitMode.TUBE,
+    override val mode: TransitMode = TransitMode.METRO,
     val aliases: Set<String> = emptySet()
 ) : TransitLineDefinition {
 
@@ -44,7 +44,7 @@ enum class GbTransitLine(
         "NCL",
         Color(0xFF003882),
         TflLineColors.LightText,
-        TransitMode.NATIONAL_RAIL,
+        TransitMode.RAIL,
         aliases = setOf("great northern", "northern city", "northern city line")
     ),
     NORTHERN("northern", "Northern", "NOR", TflLineColors.Northern),
@@ -66,24 +66,24 @@ enum class GbTransitLine(
         "ELIZ",
         TflLineColors.ElizabethLine,
         TflLineColors.LightText,
-        TransitMode.ELIZABETH_LINE,
+        TransitMode.RAIL,
         aliases = setOf("elizabeth", "elizabeth line")
     ),
 
     // London Overground (6 named lines + generic)
-    LIBERTY("liberty", "Liberty", "LIB", TflLineColors.OvergroundLiberty, TflLineColors.LightText, TransitMode.OVERGROUND),
-    LIONESS("lioness", "Lioness", "LIO", TflLineColors.OvergroundLioness, TflLineColors.LightText, TransitMode.OVERGROUND),
-    MILDMAY("mildmay", "Mildmay", "MIL", TflLineColors.OvergroundMildmay, TflLineColors.LightText, TransitMode.OVERGROUND),
-    SUFFRAGETTE("suffragette", "Suffragette", "SUF", TflLineColors.OvergroundSuffragette, TflLineColors.LightText, TransitMode.OVERGROUND),
-    WEAVER("weaver", "Weaver", "WEA", TflLineColors.OvergroundWeaver, TflLineColors.LightText, TransitMode.OVERGROUND),
-    WINDRUSH("windrush", "Windrush", "WIN", TflLineColors.OvergroundWindrush, TflLineColors.LightText, TransitMode.OVERGROUND),
+    LIBERTY("liberty", "Liberty", "LIB", TflLineColors.OvergroundLiberty, TflLineColors.LightText, TransitMode.RAIL),
+    LIONESS("lioness", "Lioness", "LIO", TflLineColors.OvergroundLioness, TflLineColors.LightText, TransitMode.RAIL),
+    MILDMAY("mildmay", "Mildmay", "MIL", TflLineColors.OvergroundMildmay, TflLineColors.LightText, TransitMode.RAIL),
+    SUFFRAGETTE("suffragette", "Suffragette", "SUF", TflLineColors.OvergroundSuffragette, TflLineColors.LightText, TransitMode.RAIL),
+    WEAVER("weaver", "Weaver", "WEA", TflLineColors.OvergroundWeaver, TflLineColors.LightText, TransitMode.RAIL),
+    WINDRUSH("windrush", "Windrush", "WIN", TflLineColors.OvergroundWindrush, TflLineColors.LightText, TransitMode.RAIL),
     OVERGROUND(
         "overground",
         "London Overground",
         "LO",
         TflLineColors.LondonOverground,
         TflLineColors.LightText,
-        TransitMode.OVERGROUND,
+        TransitMode.RAIL,
         aliases = setOf("london-overground", "london overground")
     ),
 
@@ -94,7 +94,7 @@ enum class GbTransitLine(
         "DLR",
         TflLineColors.Dlr,
         TflLineColors.LightText,
-        TransitMode.DLR,
+        TransitMode.TRAM,
         aliases = setOf("docklands", "docklands light railway")
     ),
     TRAM("tram", "Tram", "TRAM", TflLineColors.Tram, TflLineColors.DarkText, TransitMode.TRAM),
@@ -115,7 +115,7 @@ enum class GbTransitLine(
         "TL",
         Color(0xFFC70066),
         TflLineColors.LightText,
-        TransitMode.NATIONAL_RAIL
+        TransitMode.RAIL
     ),
 
     // Tyne and Wear Metro
@@ -125,7 +125,7 @@ enum class GbTransitLine(
         "MET",
         Color(0xFFF7B11E),
         Color.Black,
-        TransitMode.TUBE
+        TransitMode.METRO
     ),
     METRO_GREEN(
         "metro-green",
@@ -133,7 +133,7 @@ enum class GbTransitLine(
         "MET",
         Color(0xFF009640),
         Color.White,
-        TransitMode.TUBE
+        TransitMode.METRO
     );
 
     override val localizedNames: Map<String, String> get() = mapOf("en" to lineName)

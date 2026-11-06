@@ -141,7 +141,7 @@ class TyneAndWearMetroDepartureSource(
                         displayName = lineDisplayName,
                         backgroundColor = badgeColor,
                         textColor = if (isGreen) Color.White else Color.Black,
-                        mode = TransitMode.TUBE,
+                        mode = TransitMode.METRO,
                         lineCode = "MET"
                     )
 

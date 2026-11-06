@@ -5,7 +5,6 @@ import com.androidfung.departureboard.data.model.gb.TflKnownJourney
 import com.androidfung.departureboard.data.model.gb.TflTimetableResponse
 import com.androidfung.departureboard.data.model.gb.TflTimetableRoute
 import com.androidfung.departureboard.data.network.gb.TflApiService
-import com.androidfung.departureboard.data.repository.StationNameFormatter
 import com.androidfung.departureboard.data.repository.region.gb.direction.DestinationResolver
 import java.time.ZoneId
 import java.time.ZonedDateTime

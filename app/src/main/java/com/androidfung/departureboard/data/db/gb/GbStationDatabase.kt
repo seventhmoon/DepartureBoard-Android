@@ -11,14 +11,14 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [
-        StationCrsEntity::class
+        GbStationCrsEntity::class
     ],
     version = 1,
     exportSchema = false
 )
 abstract class GbStationDatabase : RoomDatabase() {
 
-    abstract fun stationCrsDao(): StationCrsDao
+    abstract fun stationCrsDao(): GbStationCrsDao
 
     companion object {
         @Volatile

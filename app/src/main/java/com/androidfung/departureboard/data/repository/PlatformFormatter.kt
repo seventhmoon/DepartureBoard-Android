@@ -1,5 +1,7 @@
 package com.androidfung.departureboard.data.repository
 
+import com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter
+
 /**
  * Standardizes platform and stand display strings across Rail, Tube, and Bus modes.
  */

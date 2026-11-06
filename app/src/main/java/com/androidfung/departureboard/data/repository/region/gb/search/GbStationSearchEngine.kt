@@ -8,7 +8,7 @@ import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.network.gb.BodsApiService
 import com.androidfung.departureboard.data.network.gb.TflApiService
-import com.androidfung.departureboard.data.repository.StationNameFormatter
+import com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter
 import com.androidfung.departureboard.data.repository.region.gb.TflStopPointUtils
 import com.androidfung.departureboard.data.repository.region.gb.mapper.TflStationMapper
 import kotlinx.coroutines.CancellationException
@@ -77,7 +77,7 @@ class GbStationSearchEngine(
                 val tflCrsCodes = hydratedStations
                     .filter { station ->
                         station.id.startsWith(TflStopPointUtils.PREFIX_NATIONAL_RAIL, ignoreCase = true) ||
-                                station.modes.any { it.equals(TransitMode.NATIONAL_RAIL.id, ignoreCase = true) }
+                                station.modes.any { TransitMode.fromModeString(it) == TransitMode.RAIL }
                     }
                     .flatMap { station ->
                         val byId = dao?.getCrsCodesForStationId(station.id).orEmpty()

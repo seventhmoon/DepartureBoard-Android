@@ -15,7 +15,7 @@ import androidx.room.PrimaryKey
         Index(value = ["normalizedName"])
     ]
 )
-data class StationCrsEntity(
+data class GbStationCrsEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val stationId: String,
@@ -24,3 +24,5 @@ data class StationCrsEntity(
     val normalizedName: String,
     val modes: String = "" // Comma-separated transit modes
 )
+
+typealias StationCrsEntity = GbStationCrsEntity

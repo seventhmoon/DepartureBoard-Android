@@ -36,7 +36,7 @@ object StationBadgeSynthesizer {
 
                 // Guard: Filter out Tube badges for St Pancras or King's Cross National Rail
                 if (isStPancrasOrKingsCrossNR) {
-                    if (badge.mode == TransitMode.TUBE ||
+                    if (badge.mode == TransitMode.METRO ||
                         badge.lineId.lowercase() in TflLineColors.TUBE_LINE_IDS
                     ) {
                         return@filter false

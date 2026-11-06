@@ -85,13 +85,13 @@ object TflLineColors {
                 )
 
             // National Rail
-            mode == TransitMode.NATIONAL_RAIL || normalizedId.contains("national-rail") ->
+            mode == TransitMode.RAIL || normalizedId.contains("national-rail") ->
                 LineBadgeInfo(
                     lineId = "national-rail",
                     displayName = displayName.ifBlank { "National Rail" },
                     backgroundColor = NationalRail,
                     textColor = LightText,
-                    mode = TransitMode.NATIONAL_RAIL,
+                    mode = TransitMode.RAIL,
                     lineCode = "NR"
                 )
 

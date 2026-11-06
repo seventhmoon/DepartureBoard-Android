@@ -8,6 +8,7 @@ import com.androidfung.departureboard.data.datastore.StationPreferencesDataStore
 import com.androidfung.departureboard.data.db.cache.DepartureCacheDatabase
 import com.androidfung.departureboard.data.db.cache.DepartureDao
 import com.androidfung.departureboard.data.db.gb.GbStationDatabase
+import com.androidfung.departureboard.data.db.gb.GbStationCrsDao
 import com.androidfung.departureboard.data.db.gb.StationCrsDao
 import com.androidfung.departureboard.data.db.hk.HkBusStopDao
 import com.androidfung.departureboard.data.db.hk.HkStationDatabase
@@ -41,7 +42,8 @@ interface AppContainer {
     val citybusApiService: HkBusApiService
     val stationPreferencesDataSource: StationPreferencesDataSource
     val departureDao: DepartureDao
-    val stationCrsDao: StationCrsDao
+    val stationCrsDao: GbStationCrsDao
+    val gbStationCrsDao: GbStationCrsDao get() = stationCrsDao
     val hkBusStopDao: HkBusStopDao
     val transitRepository: TransitRepository
     val billingRepository: BillingDataSource

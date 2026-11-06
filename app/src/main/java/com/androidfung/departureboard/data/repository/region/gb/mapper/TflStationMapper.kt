@@ -4,7 +4,7 @@ import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.gb.TflStopPointChild
 import com.androidfung.departureboard.data.model.gb.TflStopPointMatch
-import com.androidfung.departureboard.data.repository.StationNameFormatter
+import com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter
 import com.androidfung.departureboard.data.repository.region.gb.TflStopPointUtils
 
 /**

@@ -7,7 +7,6 @@ import com.androidfung.departureboard.data.model.gb.TflMatchedStop
 import com.androidfung.departureboard.data.model.gb.TflRouteSequenceResponse
 import com.androidfung.departureboard.data.model.gb.TflStationIds
 import com.androidfung.departureboard.data.network.gb.TflApiService
-import com.androidfung.departureboard.data.repository.StationNameFormatter
 import com.androidfung.departureboard.data.topology.CallingPointsResolver
 import java.time.Instant
 import java.time.ZoneId

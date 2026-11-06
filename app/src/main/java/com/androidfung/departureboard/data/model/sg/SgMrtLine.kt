@@ -26,7 +26,7 @@ enum class SgMrtLine(
         "en" to lineName,
         "zh-Hant" to chineseName
     )
-    override val mode: TransitMode get() = TransitMode.TUBE
+    override val mode: TransitMode get() = TransitMode.METRO
 
     companion object : TransitLineRegistry {
         override val allLines: Collection<SgMrtLine> get() = entries

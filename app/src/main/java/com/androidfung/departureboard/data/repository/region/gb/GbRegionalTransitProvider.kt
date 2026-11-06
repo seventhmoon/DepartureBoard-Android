@@ -2,6 +2,7 @@ package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
@@ -14,7 +15,6 @@ import com.androidfung.departureboard.data.network.gb.BodsApiService
 import com.androidfung.departureboard.data.network.gb.NationalRailApiService
 import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.DepartureSource
-import com.androidfung.departureboard.data.repository.StationNameFormatter
 import com.androidfung.departureboard.data.repository.region.RegionalTransitProvider
 import com.androidfung.departureboard.data.repository.region.gb.mapper.TflStationMapper
 import com.androidfung.departureboard.data.repository.region.gb.search.GbStationSearchEngine
@@ -135,7 +135,7 @@ class GbRegionalTransitProvider(
         val processedDepartures = merged
             .filter { dep ->
                 if (isStPancrasOrKingsCrossNR) {
-                    val isUnderground = dep.transitMode == com.androidfung.departureboard.data.model.TransitMode.TUBE
+                    val isUnderground = dep.transitMode == TransitMode.METRO
                     !isUnderground
                 } else {
                     true

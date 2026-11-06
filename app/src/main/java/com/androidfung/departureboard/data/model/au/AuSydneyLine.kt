@@ -13,9 +13,9 @@ enum class AuSydneyLine(
     val lineName: String,
     override val badgeText: String,
     override val color: Color,
-    override val mode: TransitMode = TransitMode.NATIONAL_RAIL
+    override val mode: TransitMode = TransitMode.RAIL
 ) : TransitLineDefinition {
-    M1("M1", "Metro M1 Northwest & City", "M", Color(0xFF009688), TransitMode.TUBE),
+    M1("M1", "Metro M1 Northwest & City", "M", Color(0xFF009688), TransitMode.METRO),
     T1("T1", "T1 North Shore & Western", "T1", Color(0xFFF99D1C)),
     T2("T2", "T2 Inner West & Leppington", "T2", Color(0xFF0098CD)),
     T3("T3", "T3 Liverpool & Inner West", "T3", Color(0xFFF37021)),

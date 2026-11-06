@@ -5,7 +5,7 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.TransitRegion
-import com.androidfung.departureboard.data.model.extractRawHkBusStopId
+import com.androidfung.departureboard.data.model.hk.extractRawHkBusStopId
 import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.hk.HkBusStopDirectory
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
@@ -13,7 +13,7 @@ import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
 import com.androidfung.departureboard.data.model.hk.HkStationDirectory
 import com.androidfung.departureboard.data.model.isHkBusStationId
 import com.androidfung.departureboard.data.model.isHkTransitId
-import com.androidfung.departureboard.data.model.parseHkMtrStationId
+import com.androidfung.departureboard.data.model.hk.parseHkMtrStationId
 import com.androidfung.departureboard.data.repository.DepartureSource
 import com.androidfung.departureboard.data.repository.region.RegionalTransitProvider
 import com.androidfung.departureboard.data.repository.region.hk.search.HkBusSearchEngine

@@ -12,7 +12,7 @@ interface TransitLineDefinition : LocalizedNameProvider {
     val badgeText: String get() = code
     val color: Color
     val textColor: Color get() = Color.White
-    val mode: TransitMode get() = TransitMode.TUBE
+    val mode: TransitMode get() = TransitMode.METRO
 
     fun toLineBadge(): LineBadgeInfo = LineBadgeInfo(
         lineId = code,
@@ -49,7 +49,7 @@ interface TransitLineRegistry {
             lineCode = code,
             backgroundColor = fallbackColor,
             textColor = Color.White,
-            mode = TransitMode.TUBE
+            mode = TransitMode.METRO
         )
     }
 }
