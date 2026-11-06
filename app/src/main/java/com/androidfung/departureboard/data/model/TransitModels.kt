@@ -74,6 +74,72 @@ data class CallingPoint(
 )
 
 /**
+ * Structured platform or berth representation adhering to GTFS stops.txt platform_code.
+ */
+@Immutable
+data class PlatformInfo(
+    val code: String,
+    val isConfirmed: Boolean = true,
+    val directionHint: String? = null
+) {
+    /**
+     * Formats user-facing label (e.g. "Platform 4", "Stop B", "Plat 2 (Unconfirmed)").
+     */
+    fun formatDisplay(includeDirection: Boolean = false): String {
+        val base = if (code.matches(Regex("""^\d+[A-Za-z]?$"""))) "Platform $code" else code
+        val confirmedSuffix = if (!isConfirmed) " (TBD)" else ""
+        return if (includeDirection && !directionHint.isNullOrBlank()) {
+            "$directionHint • $base$confirmedSuffix"
+        } else {
+            "$base$confirmedSuffix"
+        }
+    }
+}
+
+/**
+ * Rolling stock carriage / coach information.
+ */
+@Immutable
+data class CoachInfo(
+    val coachNumber: String? = null,
+    val coachClass: String? = null,
+    val occupancyStatus: String? = null,
+    val isWheelchairAccessible: Boolean? = null,
+    val hasBicycleRack: Boolean? = null,
+    val hasToilet: Boolean? = null,
+    val isQuietCoach: Boolean? = null
+)
+
+/**
+ * Train composition / formation details (e.g. 8 coaches, carriage layout).
+ */
+@Immutable
+data class TrainFormation(
+    val coachCount: Int,
+    val coaches: List<CoachInfo> = emptyList()
+) {
+    val displayCoachCount: String
+        get() = when (coachCount) {
+            1 -> "1 coach"
+            else -> "$coachCount coaches"
+        }
+}
+
+/**
+ * Detailed telemetry for train, rail, or vehicle services (GTFS trips / Real-time TripUpdate).
+ */
+@Immutable
+data class TrainInfo(
+    val serviceId: String? = null,
+    val headcode: String? = null,
+    val operator: TransitOperator? = null,
+    val formation: TrainFormation? = null,
+    val cancelReason: String? = null,
+    val delayReason: String? = null,
+    val isWheelchairAccessible: Boolean? = null
+)
+
+/**
  * Clean domain representation of a live departure prediction.
  */
 @Immutable
@@ -97,8 +163,23 @@ data class Departure(
     val vehicleId: String? = null,
     val destinationStationId: String? = null,
     val isWheelchairAccessible: Boolean? = null,
-    val occupancyStatus: String? = null
+    val occupancyStatus: String? = null,
+    val platform: PlatformInfo? = null,
+    val train: TrainInfo? = null,
+    val scheduledDepartureInstant: java.time.Instant? = null,
+    val expectedDepartureInstant: java.time.Instant? = null
 ) {
+    val resolvedPlatform: PlatformInfo
+        get() = platform ?: PlatformInfo(
+            code = platformName.ifBlank { "TBD" },
+            isConfirmed = !platformName.contains("TBD", ignoreCase = true)
+        )
+
+    val operator: TransitOperator? get() = train?.operator
+    val formation: TrainFormation? get() = train?.formation
+    val cancelReason: String? get() = train?.cancelReason
+    val delayReason: String? get() = train?.delayReason
+
     /**
      * Human-friendly formatted arrival string, e.g. "Due", "1 min", "4 mins".
      */
@@ -118,6 +199,11 @@ data class Departure(
     val formattedActualClockTime: String?
         get() {
             val targetZone = TransitRegion.fromStationId(stationId.ifBlank { id }).timeZone
+            val targetInstant = expectedDepartureInstant ?: scheduledDepartureInstant
+            if (targetInstant != null) {
+                val local = java.time.ZonedDateTime.ofInstant(targetInstant, targetZone)
+                return local.format(TIME_FORMATTER)
+            }
 
             if (!expectedArrivalIso.isNullOrBlank()) {
                 return try {

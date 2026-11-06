@@ -1,6 +1,7 @@
 package com.androidfung.departureboard.data.repository.region.gb.mapper
 
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.PlatformInfo
 import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
@@ -184,6 +185,22 @@ object TflDepartureMapper {
             }
         }
 
+        val platformInfo = PlatformInfo(
+            code = platformDisplay,
+            isConfirmed = !platformDisplay.contains("TBD", ignoreCase = true),
+            directionHint = resolvedDirection
+        )
+        val expectedInstant = finalExpectedArrivalIso?.let {
+            try {
+                java.time.Instant.parse(it)
+            } catch (_: Exception) {
+                null
+            }
+        }
+        val scheduledInstant = scheduledDepartureEpochSeconds?.let {
+            java.time.Instant.ofEpochSecond(it)
+        }
+
         return Departure(
             id = item.id,
             stationId = effectiveStationId,
@@ -200,7 +217,10 @@ object TflDepartureMapper {
             modeName = item.modeName ?: if (isBus) TransitMode.BUS.id else TransitMode.METRO.id,
             lineBadge = badge,
             vehicleId = item.vehicleId,
-            destinationStationId = finalDestinationStationId
+            destinationStationId = finalDestinationStationId,
+            platform = platformInfo,
+            expectedDepartureInstant = expectedInstant,
+            scheduledDepartureInstant = scheduledInstant
         )
     }
 

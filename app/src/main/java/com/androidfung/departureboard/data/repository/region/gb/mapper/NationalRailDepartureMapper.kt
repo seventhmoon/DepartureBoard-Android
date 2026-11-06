@@ -3,12 +3,18 @@ package com.androidfung.departureboard.data.repository.region.gb.mapper
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
+import com.androidfung.departureboard.data.model.PlatformInfo
+import com.androidfung.departureboard.data.model.TrainFormation
+import com.androidfung.departureboard.data.model.TrainInfo
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.TransitOperator
+import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.gb.NrTrainService
 import com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter
 import com.androidfung.departureboard.data.repository.region.gb.direction.ElizabethLineDirectionResolver
 import com.androidfung.departureboard.data.repository.region.gb.direction.OvergroundLineResolver
 import com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver
+import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -74,8 +80,19 @@ object NationalRailDepartureMapper {
         val std = service.std ?: "00:00"
         val etd = service.etd ?: "On time"
 
-        val timeToStationSeconds = calculateSecondsToDeparture(std, etd)
+        val (timeToStationSeconds, expectedInstant, scheduledInstant) = calculateDepartureTimes(std, etd)
         val platformStr = service.platform?.let { "Platform $it" } ?: "Platform TBD"
+        val platformInfo = service.platform?.let {
+            PlatformInfo(
+                code = it,
+                isConfirmed = true,
+                directionHint = null
+            )
+        } ?: PlatformInfo(
+            code = "TBD",
+            isConfirmed = false,
+            directionHint = null
+        )
 
         val isElizabeth = operatorCode.equals("XR", ignoreCase = true) || operatorName.contains("Elizabeth", ignoreCase = true)
         val isOverground = operatorCode.equals("LO", ignoreCase = true) || operatorName.contains("Overground", ignoreCase = true)
@@ -182,6 +199,22 @@ object NationalRailDepartureMapper {
             emptyList()
         }
 
+        val operatorInfo = TransitOperator(
+            id = operatorCode,
+            name = operatorName,
+            region = TransitRegion.GB
+        )
+        val formationInfo = service.length?.let {
+            TrainFormation(coachCount = it)
+        }
+        val trainInfo = TrainInfo(
+            serviceId = service.serviceId,
+            operator = operatorInfo,
+            formation = formationInfo,
+            cancelReason = service.cancelReason,
+            delayReason = service.delayReason
+        )
+
         return Departure(
             id = service.serviceId,
             stationId = stationId,
@@ -193,30 +226,46 @@ object NationalRailDepartureMapper {
             towards = service.destination.firstOrNull()?.via?.let { "via $it" },
             direction = resolvedDirection,
             timeToStationSeconds = timeToStationSeconds,
-            expectedArrivalIso = null,
+            expectedArrivalIso = expectedInstant?.toString(),
             currentLocation = statusDescription,
             modeName = modeId,
             lineBadge = badge,
             destinationStationId = destCrs,
-            callingPoints = fullCallingPoints
+            callingPoints = fullCallingPoints,
+            platform = platformInfo.copy(directionHint = resolvedDirection),
+            train = trainInfo,
+            scheduledDepartureInstant = scheduledInstant,
+            expectedDepartureInstant = expectedInstant
         )
     }
 
-    private fun calculateSecondsToDeparture(std: String, etd: String): Int {
-        val targetTimeStr = if (etd.matches(TIME_FORMAT_REGEX)) etd else std
-        val parts = targetTimeStr.split(":")
-        if (parts.size != 2) return 0
-
-        val targetHour = parts[0].toIntOrNull() ?: return 0
-        val targetMinute = parts[1].toIntOrNull() ?: return 0
-
+    private fun calculateDepartureTimes(std: String, etd: String): Triple<Int, Instant?, Instant?> {
         val nowZdt = ZonedDateTime.now(UK_ZONE)
-        var targetZdt = nowZdt.with(LocalTime.of(targetHour, targetMinute, 0))
-        if (targetZdt.isBefore(nowZdt.minusHours(1))) {
-            targetZdt = targetZdt.plusDays(1)
+        val scheduledZdt = parseTimeToZonedDateTime(std, nowZdt)
+        val expectedZdt = if (etd.matches(TIME_FORMAT_REGEX)) {
+            parseTimeToZonedDateTime(etd, nowZdt)
+        } else {
+            scheduledZdt
         }
 
-        val diffSeconds = ChronoUnit.SECONDS.between(nowZdt, targetZdt).toInt()
-        return diffSeconds.coerceAtLeast(0)
+        val diffSeconds = if (expectedZdt != null) {
+            ChronoUnit.SECONDS.between(nowZdt, expectedZdt).toInt().coerceAtLeast(0)
+        } else {
+            0
+        }
+        return Triple(diffSeconds, expectedZdt?.toInstant(), scheduledZdt?.toInstant())
+    }
+
+    private fun parseTimeToZonedDateTime(timeStr: String, nowZdt: ZonedDateTime): ZonedDateTime? {
+        val parts = timeStr.split(":")
+        if (parts.size != 2) return null
+        val hour = parts[0].toIntOrNull() ?: return null
+        val minute = parts[1].toIntOrNull() ?: return null
+
+        var target = nowZdt.with(LocalTime.of(hour, minute, 0))
+        if (target.isBefore(nowZdt.minusHours(1))) {
+            target = target.plusDays(1)
+        }
+        return target
     }
 }

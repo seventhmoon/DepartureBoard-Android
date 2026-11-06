@@ -117,8 +117,8 @@ fun DepartureRowItem(
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Subtitle row: [Platform Pill Tag / Towards]
-            if (departure.platformName.isNotBlank() || departure.isWheelchairAccessible == true || !departure.occupancyStatus.isNullOrBlank()) {
+            // Subtitle row: [Platform Pill Tag / Towards / Formation / Operator]
+            if (departure.platformName.isNotBlank() || departure.isWheelchairAccessible == true || !departure.occupancyStatus.isNullOrBlank() || departure.formation != null) {
                 val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
                 val isNarrow = windowWidthClass.isNarrow
 
@@ -197,11 +197,43 @@ fun DepartureRowItem(
                             )
                         }
                     }
+
+                    if (departure.formation != null && departure.formation!!.coachCount > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = departure.formation!!.displayCoachCount,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
                 }
             }
 
-            // Current location subtitle if available (especially in detailed view)
-            if (variant == DepartureRowVariant.DETAILED && !departure.currentLocation.isNullOrBlank()) {
+            // Reason for delay or cancellation in detailed view
+            if (variant == DepartureRowVariant.DETAILED && !departure.cancelReason.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = departure.cancelReason!!,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            } else if (variant == DepartureRowVariant.DETAILED && !departure.delayReason.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = departure.delayReason!!,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            } else if (variant == DepartureRowVariant.DETAILED && !departure.currentLocation.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = departure.currentLocation,

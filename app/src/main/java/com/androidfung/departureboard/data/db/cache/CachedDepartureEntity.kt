@@ -8,7 +8,11 @@ import androidx.room.PrimaryKey
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.LineBadgeInfo
+import com.androidfung.departureboard.data.model.PlatformInfo
+import com.androidfung.departureboard.data.model.TrainFormation
+import com.androidfung.departureboard.data.model.TrainInfo
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.TransitOperator
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.hk.HkMtrLine
 import java.time.Instant
@@ -45,6 +49,13 @@ data class CachedDepartureEntity(
     val badgeLineCode: String? = null,
     val isWheelchairAccessible: Boolean? = null,
     val occupancyStatus: String? = null,
+    val platformCode: String? = null,
+    val isPlatformConfirmed: Boolean? = null,
+    val operatorCode: String? = null,
+    val operatorName: String? = null,
+    val coachCount: Int? = null,
+    val cancelReason: String? = null,
+    val delayReason: String? = null,
     val cachedAtMillis: Long = System.currentTimeMillis()
 ) {
     fun toDeparture(nowMillis: Long = System.currentTimeMillis()): Departure {
@@ -66,6 +77,33 @@ data class CachedDepartureEntity(
             TflLineColors.getLineBadge(lineId, lineName, modeName)
         }
 
+        val restoredPlatform = if (!platformCode.isNullOrBlank()) {
+            PlatformInfo(
+                code = platformCode,
+                isConfirmed = isPlatformConfirmed ?: true
+            )
+        } else if (platformName.isNotBlank()) {
+            PlatformInfo(
+                code = platformName,
+                isConfirmed = !platformName.contains("TBD", ignoreCase = true)
+            )
+        } else null
+
+        val restoredTrain = if (!operatorCode.isNullOrBlank() || !operatorName.isNullOrBlank() || coachCount != null || !cancelReason.isNullOrBlank() || !delayReason.isNullOrBlank()) {
+            TrainInfo(
+                operator = if (!operatorCode.isNullOrBlank() || !operatorName.isNullOrBlank()) {
+                    TransitOperator(
+                        id = operatorCode ?: operatorName ?: "",
+                        name = operatorName ?: operatorCode ?: ""
+                    )
+                } else null,
+                formation = coachCount?.let { TrainFormation(coachCount = it) },
+                cancelReason = cancelReason,
+                delayReason = delayReason,
+                isWheelchairAccessible = isWheelchairAccessible
+            )
+        } else null
+
         return Departure(
             id = id,
             stationId = stationId,
@@ -84,7 +122,9 @@ data class CachedDepartureEntity(
             status = DepartureStatus.fromString(currentLocation, adjustedSeconds),
             destinationStationId = destinationStationId,
             isWheelchairAccessible = isWheelchairAccessible,
-            occupancyStatus = occupancyStatus
+            occupancyStatus = occupancyStatus,
+            platform = restoredPlatform,
+            train = restoredTrain
         )
     }
 
@@ -117,6 +157,8 @@ data class CachedDepartureEntity(
 
     companion object {
         fun fromDeparture(departure: Departure, nowMillis: Long = System.currentTimeMillis()): CachedDepartureEntity {
+            val platformInfo = departure.platform
+            val trainInfo = departure.train
             return CachedDepartureEntity(
                 id = departure.id,
                 stationId = departure.stationId,
@@ -137,6 +179,13 @@ data class CachedDepartureEntity(
                 badgeLineCode = departure.lineBadge.lineCode,
                 isWheelchairAccessible = departure.isWheelchairAccessible,
                 occupancyStatus = departure.occupancyStatus,
+                platformCode = platformInfo?.code,
+                isPlatformConfirmed = platformInfo?.isConfirmed,
+                operatorCode = trainInfo?.operator?.id,
+                operatorName = trainInfo?.operator?.name,
+                coachCount = trainInfo?.formation?.coachCount,
+                cancelReason = trainInfo?.cancelReason ?: departure.cancelReason,
+                delayReason = trainInfo?.delayReason ?: departure.delayReason,
                 cachedAtMillis = nowMillis
             )
         }

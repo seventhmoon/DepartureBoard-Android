@@ -13,7 +13,7 @@ import androidx.room.RoomDatabase
     entities = [
         CachedDepartureEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class DepartureCacheDatabase : RoomDatabase() {

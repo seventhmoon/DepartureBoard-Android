@@ -5,7 +5,11 @@ import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.LineBadgeInfo
+import com.androidfung.departureboard.data.model.PlatformInfo
+import com.androidfung.departureboard.data.model.TrainFormation
+import com.androidfung.departureboard.data.model.TrainInfo
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.TransitOperator
 import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.gb.TflLineStatusDetail
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
@@ -74,6 +78,42 @@ class CachedDepartureEntityTest {
         // 400 seconds later (> 300 + 45s grace): expired
         val expiredTime = cachedAt + 400_000L
         assertTrue(entity.isExpired(expiredTime))
+    }
+
+    @Test
+    fun `fromDeparture and toDeparture preserve train formation, operator, and platform info`() {
+        val departure = Departure(
+            id = "train_1",
+            stationId = "STP",
+            stationName = "St Pancras International",
+            lineId = "thameslink",
+            lineName = "Thameslink",
+            platformName = "Platform A",
+            destinationName = "Brighton",
+            towards = "Brighton",
+            timeToStationSeconds = 600,
+            expectedArrivalIso = null,
+            currentLocation = "On time",
+            modeName = "rail",
+            lineBadge = LineBadgeInfo("thameslink", "Thameslink", Color.Magenta, mode = TransitMode.RAIL),
+            platform = PlatformInfo(code = "A", isConfirmed = true),
+            train = TrainInfo(
+                operator = TransitOperator("TL", "Thameslink", TransitRegion.GB),
+                formation = TrainFormation(coachCount = 12),
+                delayReason = "Signal fault"
+            )
+        )
+
+        val entity = CachedDepartureEntity.fromDeparture(departure)
+        val restored = entity.toDeparture()
+
+        assertEquals("A", restored.platform?.code)
+        assertTrue(restored.platform?.isConfirmed == true)
+        assertEquals("Thameslink", restored.operator?.name)
+        assertEquals("TL", restored.operator?.id)
+        assertEquals(12, restored.formation?.coachCount)
+        assertEquals("12 coaches", restored.formation?.displayCoachCount)
+        assertEquals("Signal fault", restored.delayReason)
     }
 
     @Test
