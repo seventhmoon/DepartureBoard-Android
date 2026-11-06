@@ -18,10 +18,15 @@ class GtfsDatabaseTest {
         val routesList = mutableListOf<GtfsRouteEntity>()
         val tripsList = mutableListOf<GtfsTripEntity>()
         val stopTimesList = mutableListOf<GtfsStopTimeEntity>()
+        val calendarsList = mutableListOf<GtfsCalendarEntity>()
+        val calendarDatesList = mutableListOf<GtfsCalendarDateEntity>()
 
         fakeDao = object : GtfsDao {
             override suspend fun getStopById(stopId: String): GtfsStopEntity? =
                 stopsList.firstOrNull { it.stopId.equals(stopId, ignoreCase = true) }
+
+            override suspend fun getChildStops(parentStationId: String): List<GtfsStopEntity> =
+                stopsList.filter { it.parentStation == parentStationId }
 
             override suspend fun searchStopsByName(query: String, limit: Int): List<GtfsStopEntity> =
                 stopsList.filter { it.stopName.contains(query, ignoreCase = true) }.take(limit)
@@ -45,6 +50,28 @@ class GtfsDatabaseTest {
                     .sortedBy { it.departureTimeSeconds }
                     .take(limit)
 
+            override suspend fun getUpcomingStopTimesForServices(
+                stopIds: List<String>,
+                serviceIds: List<String>,
+                afterTimeSeconds: Int,
+                limit: Int
+            ): List<GtfsStopTimeEntity> {
+                val matchingTripIds = tripsList
+                    .filter { it.serviceId in serviceIds }
+                    .map { it.tripId }
+                    .toSet()
+                return stopTimesList
+                    .filter { it.stopId in stopIds && it.tripId in matchingTripIds && it.departureTimeSeconds >= afterTimeSeconds }
+                    .sortedBy { it.departureTimeSeconds }
+                    .take(limit)
+            }
+
+            override suspend fun getAllCalendars(): List<GtfsCalendarEntity> =
+                calendarsList.toList()
+
+            override suspend fun getCalendarDatesForDate(date: String): List<GtfsCalendarDateEntity> =
+                calendarDatesList.filter { it.date == date }
+
             override suspend fun insertStops(stops: List<GtfsStopEntity>) {
                 stopsList.addAll(stops)
             }
@@ -61,10 +88,20 @@ class GtfsDatabaseTest {
                 stopTimesList.addAll(stopTimes)
             }
 
+            override suspend fun insertCalendars(calendars: List<GtfsCalendarEntity>) {
+                calendarsList.addAll(calendars)
+            }
+
+            override suspend fun insertCalendarDates(calendarDates: List<GtfsCalendarDateEntity>) {
+                calendarDatesList.addAll(calendarDates)
+            }
+
             override suspend fun clearStops() { stopsList.clear() }
             override suspend fun clearRoutes() { routesList.clear() }
             override suspend fun clearTrips() { tripsList.clear() }
             override suspend fun clearStopTimes() { stopTimesList.clear() }
+            override suspend fun clearCalendars() { calendarsList.clear() }
+            override suspend fun clearCalendarDates() { calendarDatesList.clear() }
         }
 
         importer = GtfsStaticScheduleImporter(fakeDao)
