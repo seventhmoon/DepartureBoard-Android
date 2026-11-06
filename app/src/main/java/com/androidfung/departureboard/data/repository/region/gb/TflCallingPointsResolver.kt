@@ -2,6 +2,12 @@ package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.StationIdPrefixes
+import com.androidfung.departureboard.data.model.isAuTransitId
+import com.androidfung.departureboard.data.model.isBods
+import com.androidfung.departureboard.data.model.isHkDeparture
+import com.androidfung.departureboard.data.model.isJpTransitId
+import com.androidfung.departureboard.data.model.isSgTransitId
 import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.gb.TflMatchedStop
 import com.androidfung.departureboard.data.model.gb.TflRouteSequenceResponse
@@ -32,10 +38,16 @@ class TflCallingPointsResolver(
     override fun canHandle(departure: Departure): Boolean {
         // Fallback resolver for TfL lines (Tube, Rail, Overground, DLR, Elizabeth line, London Buses)
         val lineId = departure.lineId.trim()
-        return lineId.isNotBlank() &&
-                !departure.stationId.startsWith("HK_", ignoreCase = true) &&
-                !departure.lineId.startsWith("HK_", ignoreCase = true) &&
-                !departure.lineId.startsWith("bods-", ignoreCase = true)
+        if (lineId.isBlank()) return false
+
+        // Exclude non-TfL feeds (BODS) and non-UK regions
+        if (departure.isBods || departure.isHkDeparture) return false
+        val stationId = departure.stationId
+        if (stationId.isJpTransitId || stationId.isSgTransitId || stationId.isAuTransitId) {
+            return false
+        }
+
+        return true
     }
 
     override suspend fun resolveCallingPoints(departure: Departure): List<CallingPoint> = withContext(Dispatchers.IO) {
@@ -106,17 +118,80 @@ class TflCallingPointsResolver(
 
             val branchMap = sequenceResponse.stopPointSequences.associateBy { it.branchId }
 
-            // 1. Try finding a branch sequence that directly contains both current station and destination
-            var resolvedStops: List<TflMatchedStop>? = null
+            // Direction matching logic:
+            // 1) Direct check against TfL sequence direction (inbound / outbound)
+            // 2) Geographic check when cardinal direction is specified (Eastbound/Westbound via lon diff, Northbound/Southbound via lat diff)
+            val depDirLower = departure.direction?.lowercase()?.trim()
 
-            for ((_, _, _, _, stopPoint) in sequenceResponse.stopPointSequences) {
+            fun sequenceMatchesCardinalDirection(seqStops: List<TflMatchedStop>, originIdx: Int): Boolean? {
+                if (depDirLower.isNullOrBlank() || originIdx < 0 || originIdx + 1 >= seqStops.size) return null
+                val curStop = seqStops[originIdx]
+                val nextStop = seqStops[originIdx + 1]
+                val curLat = curStop.lat
+                val curLon = curStop.lon
+                val nextLat = nextStop.lat
+                val nextLon = nextStop.lon
+
+                val isEastWest = depDirLower.contains("eastbound") || depDirLower.contains("westbound")
+                val isNorthSouth = depDirLower.contains("northbound") || depDirLower.contains("southbound")
+
+                if (isEastWest) {
+                    if (curLon == null || nextLon == null) return null
+                    val lonDiff = nextLon - curLon
+                    return if (depDirLower.contains("eastbound")) lonDiff > 0.0001 else lonDiff < -0.0001
+                }
+
+                if (isNorthSouth) {
+                    if (curLat == null || nextLat == null) return null
+                    val latDiff = nextLat - curLat
+                    return if (depDirLower.contains("northbound")) latDiff > 0.0001 else latDiff < -0.0001
+                }
+
+                return null
+            }
+
+            fun directionMatches(branchDirection: String?): Boolean {
+                if (depDirLower.isNullOrBlank() || branchDirection.isNullOrBlank()) return true
+                val branchDirLower = branchDirection.lowercase().trim()
+                return branchDirLower == depDirLower
+            }
+
+            // 1. Try finding a branch sequence that directly contains both current station and destination.
+            // If multiple branches match (e.g. Circle line loop or multi-branch overlaps), prioritize the one
+            // moving in the correct cardinal/travel direction from the origin station.
+            data class SingleBranchCandidate(
+                val stops: List<TflMatchedStop>,
+                val matchesCardinal: Boolean?,
+                val matchesTflDir: Boolean
+            )
+
+            val singleBranchMatches = mutableListOf<SingleBranchCandidate>()
+
+            for (seq in sequenceResponse.stopPointSequences) {
+                val stopPoint = seq.stopPoint
                 val curIndex = stopPoint.indexOfFirst { matchesOrigin(it) }
                 val destIndex = stopPoint.indexOfLast { matchesDestination(it) }
                 if (curIndex != -1 && destIndex != -1 && destIndex > curIndex) {
-                    resolvedStops = stopPoint.subList(curIndex, destIndex + 1)
-                    break
+                    val candidateStops = stopPoint.subList(curIndex, destIndex + 1)
+                    val cardinalMatch = sequenceMatchesCardinalDirection(stopPoint, curIndex)
+                    val tflDirMatch = directionMatches(seq.direction)
+                    singleBranchMatches.add(
+                        SingleBranchCandidate(
+                            stops = candidateStops,
+                            matchesCardinal = cardinalMatch,
+                            matchesTflDir = tflDirMatch
+                        )
+                    )
                 }
             }
+
+            var resolvedStops: List<TflMatchedStop>? = singleBranchMatches
+                .sortedWith(
+                    compareByDescending<SingleBranchCandidate> { it.matchesCardinal == true }
+                        .thenBy { it.matchesCardinal == false } // false is penalized after null
+                        .thenByDescending { it.matchesTflDir }
+                )
+                .firstOrNull()?.stops
 
             // 2. Multi-branch traversal (e.g. Northern Line, District, Piccadilly, Elizabeth Line, etc.)
             if (resolvedStops == null && branchMap.isNotEmpty()) {
@@ -160,11 +235,21 @@ class TflCallingPointsResolver(
                         }
                     }
 
-                    return listOf(currBranchId) + candidatePaths.first()
+                    // Prefer paths matching departure direction if known
+                    val matchingPathByDirection = candidatePaths.firstOrNull { path ->
+                        path.all { bId -> directionMatches(branchMap[bId]?.direction) }
+                    }
+
+                    return listOf(currBranchId) + (matchingPathByDirection ?: candidatePaths.first())
                 }
 
-                for ((branchId) in startBranches) {
-                    val branchPath = findBranchPath(branchId, emptySet())
+                // Prioritize start branches that match the departure direction
+                val prioritizedStartBranches = startBranches.sortedByDescending {
+                    directionMatches(it.direction)
+                }
+
+                for (branch in prioritizedStartBranches) {
+                    val branchPath = findBranchPath(branch.branchId, emptySet())
                     if (branchPath != null) {
                         val combined = mutableListOf<TflMatchedStop>()
                         for (bId in branchPath) {

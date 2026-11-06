@@ -2,7 +2,6 @@ package com.androidfung.departureboard.data.model.hk.topology
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
 import com.androidfung.departureboard.data.model.isHkMtr
@@ -20,18 +19,26 @@ object HkMtrRoutes : TransitLineNetwork {
     override val defaultMode: String = "mtr"
     override val averageSecondsBetweenStops: Long = 120L
 
+    // Shared trunk station segments
+    private val EAL_TRUNK_SOUTH = listOf("ADM", "EXC", "HUH", "MKK", "KOT", "TAW", "SHT")
+    private val EAL_TRUNK_NORTH = listOf("UNI", "TAP", "TWO", "FAN", "SHS")
+    private val TKL_TRUNK = listOf("NOP", "QUB", "YAT", "TIK", "TKO")
+
     // Clean, ordered station code sequences along each line
     val LINE_SEQUENCES: Map<String, List<String>> = mapOf(
         "ISL" to listOf("KET", "HKU", "SYP", "SHW", "CEN", "ADM", "WAC", "CAB", "TIH", "FOH", "NOP", "QUB", "TAK", "SWH", "SKW", "HFC", "CHW"),
         "TWL" to listOf("CEN", "ADM", "TST", "JOR", "YMT", "MOK", "PRE", "SSP", "CSW", "LCK", "MEF", "LAK", "KWF", "KWH", "TWH", "TSW"),
         "KTL" to listOf("WHA", "HOM", "YMT", "MOK", "PRE", "SKM", "KOT", "LOF", "WTS", "DIH", "CHH", "KOB", "NTK", "KWT", "LAT", "YAT", "TIK"),
-        "EAL" to listOf("ADM", "EXC", "HUH", "MKK", "KOT", "TAW", "SHT", "FOT", "UNI", "TAP", "TWO", "FAN", "SHS", "LOW", "LMC"),
-        "EAL_RAC" to listOf("ADM", "EXC", "HUH", "MKK", "KOT", "TAW", "SHT", "RAC", "UNI", "TAP", "TWO", "FAN", "SHS", "LOW", "LMC"),
+        "EAL" to EAL_TRUNK_SOUTH + "FOT" + EAL_TRUNK_NORTH + "LOW",
+        "EAL_LMC" to EAL_TRUNK_SOUTH + "FOT" + EAL_TRUNK_NORTH + "LMC",
+        "EAL_RAC" to EAL_TRUNK_SOUTH + "RAC" + EAL_TRUNK_NORTH + "LOW",
+        "EAL_RAC_LMC" to EAL_TRUNK_SOUTH + "RAC" + EAL_TRUNK_NORTH + "LMC",
         "TML" to listOf("WKS", "MOS", "HEO", "TSH", "SHM", "CIO", "STW", "CKT", "TAW", "HIK", "DIH", "KAT", "SUW", "TKW", "HOM", "HUH", "ETS", "AUS", "NAC", "MEF", "TWW", "KSR", "YUL", "LOP", "TIS", "SIH", "TUM"),
         "TCL" to listOf("HOK", "KOW", "OLY", "NAC", "LAK", "TSY", "SUN", "TUC"),
         "AEL" to listOf("HOK", "KOW", "TSY", "AIR", "AWE"),
         "SIL" to listOf("ADM", "OCP", "WCH", "LET", "SOH"),
-        "TKL" to listOf("NOP", "QUB", "YAT", "TIK", "TKO", "HAH", "POA", "LHP"),
+        "TKL" to TKL_TRUNK + listOf("HAH", "POA"),
+        "TKL_LHP" to TKL_TRUNK + listOf("LHP"),
         "DRL" to listOf("SUN", "DIS")
     )
 
@@ -63,16 +70,39 @@ object HkMtrRoutes : TransitLineNetwork {
     )
 
     override fun resolveSequenceKey(lineCode: String, originIdentifier: String, destIdentifier: String): String {
+        val originClean = originIdentifier.trim().uppercase()
         val destClean = destIdentifier.trim().uppercase()
-        val servesRacecourse = originIdentifier.equals("RAC", ignoreCase = true) ||
-            destClean.equals("RAC", ignoreCase = true) ||
-            destClean.contains("RACECOURSE") ||
-            destClean.contains("馬場")
-        return if (lineCode.equals("EAL", ignoreCase = true) && servesRacecourse) {
-            "EAL_RAC"
-        } else {
-            lineCode.uppercase()
+        val lineUpper = lineCode.uppercase()
+
+        if (lineUpper == "EAL" || lineUpper.startsWith("EAL_")) {
+            val servesRacecourse = originClean == "RAC" ||
+                destClean == "RAC" ||
+                destClean.contains("RACECOURSE") ||
+                destClean.contains("馬場")
+
+            val servesLokMaChau = originClean == "LMC" ||
+                destClean == "LMC" ||
+                destClean.contains("LOK MA CHAU") ||
+                destClean.contains("落馬洲")
+
+            return when {
+                servesRacecourse && servesLokMaChau -> "EAL_RAC_LMC"
+                servesRacecourse -> "EAL_RAC"
+                servesLokMaChau -> "EAL_LMC"
+                else -> "EAL"
+            }
         }
+
+        if (lineUpper == "TKL" || lineUpper.startsWith("TKL_")) {
+            val servesLohasPark = originClean == "LHP" ||
+                destClean == "LHP" ||
+                destClean.contains("LOHAS") ||
+                destClean.contains("康城")
+
+            return if (servesLohasPark) "TKL_LHP" else "TKL"
+        }
+
+        return lineUpper
     }
 
     override fun resolveStationName(stationCodeOrName: String): String =
@@ -101,11 +131,11 @@ object HkMtrRoutes : TransitLineNetwork {
             "ISL" -> if (isForward) TransitDirection.EASTBOUND else TransitDirection.WESTBOUND
             "TWL" -> if (isForward) TransitDirection.NORTHBOUND else TransitDirection.SOUTHBOUND
             "KTL" -> if (isForward) TransitDirection.EASTBOUND else TransitDirection.WESTBOUND
-            "EAL", "EAL_RAC" -> if (isForward) TransitDirection.NORTHBOUND else TransitDirection.SOUTHBOUND
+            "EAL", "EAL_RAC", "EAL_LMC", "EAL_RAC_LMC" -> if (isForward) TransitDirection.NORTHBOUND else TransitDirection.SOUTHBOUND
             "TML" -> if (isForward) TransitDirection.WESTBOUND else TransitDirection.EASTBOUND
             "TCL", "AEL" -> if (isForward) TransitDirection.WESTBOUND else TransitDirection.EASTBOUND
             "SIL" -> if (isForward) TransitDirection.SOUTHBOUND else TransitDirection.NORTHBOUND
-            "TKL" -> if (isForward) TransitDirection.EASTBOUND else TransitDirection.WESTBOUND
+            "TKL", "TKL_LHP" -> if (isForward) TransitDirection.EASTBOUND else TransitDirection.WESTBOUND
             else -> if (isForward) TransitDirection.OUTBOUND else TransitDirection.INBOUND
         }
     }

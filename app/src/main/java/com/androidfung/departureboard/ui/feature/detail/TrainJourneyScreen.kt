@@ -198,10 +198,26 @@ private fun TrainJourneyContent(
         callingPoints.indexOfFirst { it.isCurrentStation }
     }
 
-    val activeTrainIndex = remember(callingPoints, departure.currentLocation, departure.timeToStationSeconds, departure.status) {
+    val activeTrainIndex = remember(callingPoints, departure.currentLocation, departure.timeToStationSeconds, departure.status, currentStationIndex) {
         if (callingPoints.isEmpty()) return@remember -1
         val loc = departure.currentLocation?.trim()?.lowercase() ?: ""
-        if (loc.isNotBlank()) {
+
+        // Only mark "Your station" if the train is actually at or arriving at the boarding platform right now
+        val isAtCurrentStation = departure.timeToStationSeconds <= 30 ||
+            departure.status == com.androidfung.departureboard.data.model.DepartureStatus.DUE ||
+            loc.contains("at platform") ||
+            (currentStationIndex >= 0 && loc.contains("at ${callingPoints[currentStationIndex].stationName.lowercase()}"))
+
+        if (isAtCurrentStation && currentStationIndex >= 0) {
+            return@remember currentStationIndex
+        }
+
+        // If the train has not yet arrived at the boarding station (e.g. countdown > 30s and train is still approaching),
+        // we must NOT match downstream calling points (e.g., if train is approaching northbound to Mill Hill East,
+        // it may currently be at Tufnell Park heading north, but Tufnell Park also appears downstream on the passenger trip!).
+        val isTrainYetToArriveAtOrigin = currentStationIndex >= 0 && departure.timeToStationSeconds > 30
+
+        if (loc.isNotBlank() && !isTrainYetToArriveAtOrigin) {
             val matchIndex = callingPoints.indexOfFirst { cp ->
                 if (!cp.stationId.isNullOrBlank() && (loc.contains(cp.stationId, ignoreCase = true) || cp.stationId.equals(loc, ignoreCase = true))) {
                     return@indexOfFirst true
@@ -212,18 +228,8 @@ private fun TrainJourneyContent(
             if (matchIndex >= 0) return@remember matchIndex
         }
 
-        // Only mark "Your station" if the train is actually at or arriving at the boarding platform right now
-        val isAtCurrentStation = departure.timeToStationSeconds <= 30 ||
-            departure.status == com.androidfung.departureboard.data.model.DepartureStatus.DUE ||
-            loc.contains("at platform") ||
-            (currentStationIndex >= 0 && loc.contains("at ${callingPoints[currentStationIndex].stationName.lowercase()}"))
-
-        if (isAtCurrentStation && currentStationIndex >= 0) {
-            currentStationIndex
-        } else {
-            // Train is en route / approaching before reaching the boarding station
-            -1
-        }
+        // Train is en route / approaching before reaching the boarding station
+        -1
     }
 
     val isTrainApproachingBeforeBoarding = remember(activeTrainIndex, currentStationIndex, departure.status) {

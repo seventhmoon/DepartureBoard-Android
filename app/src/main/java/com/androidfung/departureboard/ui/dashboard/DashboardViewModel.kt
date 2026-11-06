@@ -759,13 +759,7 @@ class DashboardViewModel @JvmOverloads constructor(
      */
     fun resetSavedStationsToDefaults() {
         viewModelScope.launch {
-            val defaults = when (_uiState.value.selectedRegion) {
-                com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.hk.HkDefaultStations.POPULAR_STATIONS
-                com.androidfung.departureboard.data.model.TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
-                com.androidfung.departureboard.data.model.TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
-                com.androidfung.departureboard.data.model.TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
-                com.androidfung.departureboard.data.model.TransitRegion.GB -> GbDefaultStations.POPULAR_STATIONS
-            }
+            val defaults = _uiState.value.selectedRegion.defaultStations
             repository.reorderStations(defaults)
             _uiState.update { it.copy(userMessage = "Debug: Reset to default stations") }
         }
@@ -840,12 +834,9 @@ class DashboardViewModel @JvmOverloads constructor(
                 } else emptyList()
 
                 val savedStations = _uiState.value.stationCards.map { it.station }
-                val regionDefaults = when (_uiState.value.selectedRegion) {
-                    com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.hk.HkDefaultStations.POPULAR_STATIONS + com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry.STATIONS.values.map { com.androidfung.departureboard.data.model.hk.HkStationDirectory.mtrToStation(it) }
-                    com.androidfung.departureboard.data.model.TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
-                    com.androidfung.departureboard.data.model.TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
-                    com.androidfung.departureboard.data.model.TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
-                    com.androidfung.departureboard.data.model.TransitRegion.GB -> GbDefaultStations.POPULAR_STATIONS
+                val regionDefaults = when (currentRegion) {
+                    com.androidfung.departureboard.data.model.TransitRegion.HK -> currentRegion.defaultStations + com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry.STATIONS.values.map { com.androidfung.departureboard.data.model.hk.HkStationDirectory.mtrToStation(it) }
+                    else -> currentRegion.defaultStations
                 }
                 val allCandidateStations: List<Station> = (apiNearbyStations + savedStations + regionDefaults)
                     .distinctBy { it.id }

@@ -2,9 +2,12 @@ package com.androidfung.departureboard.data
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.StationLineInferrer
+import com.androidfung.departureboard.data.model.StationLineInfo
 import com.androidfung.departureboard.data.model.StationSearchRanker
 import com.androidfung.departureboard.data.model.TransitLineRegistry
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.au.AuStationDirectory
 import com.androidfung.departureboard.data.model.au.AuSydneyLine
 import com.androidfung.departureboard.data.model.gb.GbTransitLine
@@ -19,13 +22,19 @@ import com.androidfung.departureboard.data.model.parseHkMtrStationId
 import com.androidfung.departureboard.data.model.sg.SgMrtLine
 import com.androidfung.departureboard.data.model.sg.SgStationDirectory
 import com.androidfung.departureboard.data.model.sg.topology.SgMrtRoutes
+import com.androidfung.departureboard.data.repository.region.au.AuDepartureSource
 import com.androidfung.departureboard.data.repository.region.au.AuRegionalTransitProvider
+import com.androidfung.departureboard.data.repository.region.hk.HkBusDepartureSource
+import com.androidfung.departureboard.data.repository.region.hk.HkMtrDepartureSource
 import com.androidfung.departureboard.data.repository.region.hk.HkRegionalTransitProvider
 import com.androidfung.departureboard.data.repository.region.jp.JpCallingPointsResolver
+import com.androidfung.departureboard.data.repository.region.jp.JpDepartureSource
 import com.androidfung.departureboard.data.repository.region.jp.JpRegionalTransitProvider
 import com.androidfung.departureboard.data.repository.region.sg.SgCallingPointsResolver
+import com.androidfung.departureboard.data.repository.region.sg.SgDepartureSource
 import com.androidfung.departureboard.data.repository.region.sg.SgRegionalTransitProvider
 import com.androidfung.departureboard.util.CoalescingTimedCache
+import com.androidfung.departureboard.util.LocationHelper
 import com.androidfung.departureboard.util.runSuspendCatching
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
@@ -229,6 +238,58 @@ class RegionalArchitectureTest {
     }
 
     @Test
+    fun `HkMtrRoutes resolves Lok Ma Chau and Lo Wu branches without cross-contamination`() {
+        val lmcCallingPoints = HkMtrRoutes.resolveCallingPoints(
+            lineCode = "EAL",
+            originSta = "SHS",
+            destStaOrName = "LMC",
+            departureEpochSeconds = 1_700_000_000L
+        )
+        assertEquals(2, lmcCallingPoints.size)
+        assertTrue(lmcCallingPoints[0].stationName.contains("Sheung Shui"))
+        assertTrue(lmcCallingPoints[1].stationName.contains("Lok Ma Chau"))
+        assertFalse(lmcCallingPoints.any { it.stationName.contains("Lo Wu") })
+
+        val lowCallingPoints = HkMtrRoutes.resolveCallingPoints(
+            lineCode = "EAL",
+            originSta = "SHS",
+            destStaOrName = "LOW",
+            departureEpochSeconds = 1_700_000_000L
+        )
+        assertEquals(2, lowCallingPoints.size)
+        assertTrue(lowCallingPoints[0].stationName.contains("Sheung Shui"))
+        assertTrue(lowCallingPoints[1].stationName.contains("Lo Wu"))
+        assertFalse(lowCallingPoints.any { it.stationName.contains("Lok Ma Chau") })
+    }
+
+    @Test
+    fun `HkMtrRoutes resolves Tseung Kwan O line branches correctly`() {
+        val poaCallingPoints = HkMtrRoutes.resolveCallingPoints(
+            lineCode = "TKL",
+            originSta = "TKO",
+            destStaOrName = "POA",
+            departureEpochSeconds = 1_700_000_000L
+        )
+        val poaNames = poaCallingPoints.map { it.stationName }
+        assertTrue(poaNames.any { it.contains("Hang Hau") })
+        assertTrue(poaNames.any { it.contains("Po Lam") })
+        assertFalse(poaNames.any { it.contains("LOHAS") })
+
+        val lhpCallingPoints = HkMtrRoutes.resolveCallingPoints(
+            lineCode = "TKL",
+            originSta = "TKO",
+            destStaOrName = "LHP",
+            departureEpochSeconds = 1_700_000_000L
+        )
+        val lhpNames = lhpCallingPoints.map { it.stationName }
+        assertEquals(2, lhpCallingPoints.size)
+        assertTrue(lhpNames.any { it.contains("Tseung Kwan O") })
+        assertTrue(lhpNames.any { it.contains("LOHAS") })
+        assertFalse(lhpNames.any { it.contains("Po Lam") })
+        assertFalse(lhpNames.any { it.contains("Hang Hau") })
+    }
+
+    @Test
     fun `RegionalTransitProviders claim ownership of their respective station IDs`() = runTest {
         val hkProvider = HkRegionalTransitProvider()
         assertTrue(hkProvider.ownsStationId("HK_MTR_ISL_CEN"))
@@ -292,5 +353,83 @@ class RegionalArchitectureTest {
         // Tokyo stores station numbering codes (JY01..JY30, G01..G19, M01..M25)
         assertTrue(JpTokyoRoutes.lineSequences["JY"]!!.contains("JY01"))
         assertEquals("Tokyo", JpTokyoRoutes.resolveStationName("JY01"))
+    }
+
+    @Test
+    fun `TransitRegion provides centralized defaultStations, lineRegistry, directory, and hints`() {
+        for (region in TransitRegion.entries) {
+            assertTrue(region.defaultStations.isNotEmpty())
+            assertNotNull(region.lineRegistry)
+            assertTrue(region.searchNotFoundHintRes != 0)
+            assertTrue(region.mapsSearchRegionSuffix.isNotBlank())
+            assertTrue(region.lineStatusTitleRes != 0)
+            assertTrue(region.lineStatusDescRes != 0)
+            if (region == TransitRegion.GB) {
+                assertNull(region.directory)
+            } else {
+                assertNotNull(region.directory)
+            }
+        }
+    }
+
+    @Test
+    fun `Regional departure sources reject false positive substring matches`() {
+        val jpSource = JpDepartureSource()
+        assertFalse(jpSource.canHandle("940GZZLUMTR", "Metro Station", false))
+        assertFalse(jpSource.canHandle("BUS_123", "Tokyo Bus", true))
+        assertTrue(jpSource.canHandle("JP_METRO_M08", "Tokyo Station", false))
+
+        val sgSource = SgDepartureSource()
+        assertFalse(sgSource.canHandle("PARIS_METRO", "Paris MRT", false))
+        assertFalse(sgSource.canHandle("BJ_SUBWAY", "北京地鐵", false))
+        assertTrue(sgSource.canHandle("SG_MRT_EW13_NS25", "City Hall", false))
+
+        val auSource = AuDepartureSource()
+        assertFalse(auSource.canHandle("UK_123", "Sydney Gardens London", false))
+        assertFalse(auSource.canHandle("US_NSW", "NSW USA", false))
+        assertTrue(auSource.canHandle("AU_TRAIN_CENTRAL", "Central", false))
+
+        val hkMtrSource = HkMtrDepartureSource()
+        assertFalse(hkMtrSource.canHandle("SG_MRT_1", "MRT Station", false))
+        assertTrue(hkMtrSource.canHandle("HK_MTR_ISL_CEN", "Central", false))
+        assertTrue(hkMtrSource.canHandle("ADM", "Admiralty", false))
+
+        val hkBusSource = HkBusDepartureSource()
+        assertFalse(hkBusSource.canHandle("UK_BUS_1", "London Victoria Coach Station", true))
+        assertTrue(hkBusSource.canHandle("001406", "Cross Harbour Tunnel BBI", true))
+        assertTrue(hkBusSource.canHandle("HK_BUS_KMB_001406", "Cross Harbour Tunnel", true))
+    }
+
+    @Test
+    fun `LocationHelper findNearestStation with coordinates works without Location object`() {
+        val st1 = Station(id = "1", name = "One", modes = listOf("tube"), zone = null, lat = 51.500, lon = -0.120)
+        val st2 = Station(id = "2", name = "Two", modes = listOf("tube"), zone = null, lat = 51.510, lon = -0.130)
+
+        val nearest = LocationHelper.findNearestStation(51.501, -0.121, listOf(st1, st2))
+        assertNotNull(nearest)
+        assertEquals("1", nearest!!.first.id)
+    }
+
+    @Test
+    fun `StationLineInferrer infers badges accurately across different regional lines`() {
+        val sgStation = Station(
+            id = "SG_MRT_NS1",
+            name = "Jurong East",
+            modes = listOf("mrt"),
+            zone = null,
+            lines = listOf(StationLineInfo("NSL", "North South Line", "tube"))
+        )
+        val sgBadges = StationLineInferrer.infer(sgStation)
+        assertTrue(sgBadges.any { it.lineId == "NSL" && it.lineCode == "NS" })
+
+        val jpStation = Station(
+            id = "JP_METRO_G01",
+            name = "Shibuya",
+            modes = listOf("metro"),
+            zone = null,
+            lines = listOf(StationLineInfo("G", "Ginza Line", "tube"))
+        )
+        val jpBadges = StationLineInferrer.infer(jpStation)
+        assertTrue(jpBadges.any { it.lineCode == "G" })
     }
 }

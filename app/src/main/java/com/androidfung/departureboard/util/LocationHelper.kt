@@ -72,9 +72,9 @@ object LocationHelper {
     }
 
     /**
-     * Finds the nearest station to user's location.
+     * Finds the nearest station to the specified coordinates.
      */
-    fun findNearestStation(userLocation: Location, stations: List<Station>): Pair<Station, Double>? {
+    fun findNearestStation(lat: Double, lon: Double, stations: List<Station>): Pair<Station, Double>? {
         val validStations = stations.filter { it.lat != null && it.lon != null }
         if (validStations.isEmpty()) return null
 
@@ -85,8 +85,8 @@ object LocationHelper {
             val stationLat = st.lat ?: continue
             val stationLon = st.lon ?: continue
             val dist = calculateDistanceMeters(
-                userLat = userLocation.latitude,
-                userLon = userLocation.longitude,
+                userLat = lat,
+                userLon = lon,
                 stationLat = stationLat,
                 stationLon = stationLon
             )
@@ -97,6 +97,13 @@ object LocationHelper {
         }
 
         return nearest?.let { it to minDistance }
+    }
+
+    /**
+     * Finds the nearest station to user's location.
+     */
+    fun findNearestStation(userLocation: Location, stations: List<Station>): Pair<Station, Double>? {
+        return findNearestStation(userLocation.latitude, userLocation.longitude, stations)
     }
 
     /**

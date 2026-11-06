@@ -88,11 +88,8 @@ object TransitIconHelper {
             isBusOnly -> "Bus Stop"
             else -> "Station"
         }
-        val regionSuffix = when (TransitRegion.fromStationId(station.id)) {
-            TransitRegion.HK -> "Hong Kong"
-            TransitRegion.SG -> "Singapore"
-            TransitRegion.JP -> "Tokyo"
-            TransitRegion.AU -> "Sydney"
+        val region = TransitRegion.fromStationId(station.id)
+        val regionSuffix = when (region) {
             TransitRegion.GB -> {
                 if (station.id.startsWith("940GZZNE", ignoreCase = true) ||
                     station.id.startsWith("TW_", ignoreCase = true)
@@ -101,9 +98,10 @@ object TransitIconHelper {
                 } else if (station.id.isBodsTransitId) {
                     "UK"
                 } else {
-                    "London"
+                    region.mapsSearchRegionSuffix
                 }
             }
+            else -> region.mapsSearchRegionSuffix
         }
         return listOf(station.displayName.trim(), typeSuffix, regionSuffix)
             .filter { it.isNotBlank() }

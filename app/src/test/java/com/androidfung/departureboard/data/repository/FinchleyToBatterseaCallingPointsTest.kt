@@ -435,4 +435,77 @@ class FinchleyToBatterseaCallingPointsTest {
         assertEquals("Finchley Central", callingPoints[1].stationName)
         assertTrue(callingPoints[1].isDestination)
     }
+
+    @Test
+    fun circleLine_kingsCrossToEdgwareRoadEastbound_selectsEastboundSequence() = runTest {
+        // Circle line has both inbound (Eastbound via Liverpool Street to King's Cross) and outbound (Westbound via Baker St)
+        val mockSequence = TflRouteSequenceResponse(
+            lineId = "circle",
+            stopPointSequences = listOf(
+                // Branch 3: Westbound through King's Cross towards Baker Street
+                TflStopPointSequence(
+                    branchId = 3,
+                    direction = "outbound",
+                    stopPoint = listOf(
+                        TflMatchedStop("ER", "Edgware Road (Circle Line) Underground Station", lon = -0.1678),
+                        TflMatchedStop("VIC", "Victoria Underground Station", lon = -0.1431),
+                        TflMatchedStop("LVT", "Liverpool Street Underground Station", lon = -0.0883),
+                        TflMatchedStop("KSX", "King's Cross St. Pancras Underground Station", lon = -0.1232),
+                        TflMatchedStop("ESQ", "Euston Square Underground Station", lon = -0.1358),
+                        TflMatchedStop("GPS", "Great Portland Street Underground Station", lon = -0.1442),
+                        TflMatchedStop("BST", "Baker Street Underground Station", lon = -0.1571),
+                        TflMatchedStop("ER_END", "Edgware Road (Circle Line) Underground Station", lon = -0.1678)
+                    )
+                ),
+                // Branch 1: Eastbound through King's Cross (from Baker Street -> GPS -> ESQ -> KSX -> LVT -> ...)
+                TflStopPointSequence(
+                    branchId = 1,
+                    direction = "inbound",
+                    stopPoint = listOf(
+                        TflMatchedStop("ER_START", "Edgware Road (Circle Line) Underground Station", lon = -0.1678),
+                        TflMatchedStop("BST", "Baker Street Underground Station", lon = -0.1571),
+                        TflMatchedStop("GPS", "Great Portland Street Underground Station", lon = -0.1442),
+                        TflMatchedStop("ESQ", "Euston Square Underground Station", lon = -0.1358),
+                        TflMatchedStop("KSX", "King's Cross St. Pancras Underground Station", lon = -0.1232),
+                        TflMatchedStop("LVT", "Liverpool Street Underground Station", lon = -0.0883),
+                        TflMatchedStop("VIC", "Victoria Underground Station", lon = -0.1431),
+                        TflMatchedStop("ER_TERM", "Edgware Road (Circle Line) Underground Station", lon = -0.1678)
+                    )
+                )
+            )
+        )
+
+        val fakeTflApi = com.androidfung.departureboard.test.FakeTflApiService(
+            routeSequenceResult = mockSequence
+        )
+
+        val repository = TransitRepositoryImpl(
+            apiService = fakeTflApi,
+            nrApiService = com.androidfung.departureboard.test.FakeNrApiService(),
+            dataStore = com.androidfung.departureboard.test.FakeStationPreferencesDataSource(emptyList(), null)
+        )
+
+        // Departure Eastbound from King's Cross towards Edgware Road via Liverpool Street
+        val departure = TestFixtures.createTestDeparture(
+            id = "circle_eastbound",
+            stationId = "KSX",
+            stationName = "King's Cross St. Pancras",
+            lineId = "circle",
+            lineName = "Circle",
+            platformName = "Platform 2",
+            destinationName = "Edgware Road (Circle Line)",
+            direction = "Eastbound",
+            timeToStationSeconds = 120
+        )
+
+        val callingPoints = repository.getCallingPoints(departure)
+
+        assertEquals("King's Cross St. Pancras", callingPoints.first().stationName)
+        assertEquals("Edgware Road (Circle Line)", callingPoints.last().stationName)
+        // Eastbound from King's Cross must go via Liverpool Street, not Euston Square
+        assertTrue(callingPoints.any { it.stationName.contains("Liverpool Street") })
+        assertTrue(!callingPoints.any { it.stationName.contains("Euston Square") })
+    }
 }
+
+

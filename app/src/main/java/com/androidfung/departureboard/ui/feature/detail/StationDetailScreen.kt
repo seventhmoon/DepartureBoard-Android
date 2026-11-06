@@ -495,8 +495,7 @@ private fun StationDetailContent(
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                     .clickable {
-                        val querySuffix = if (station.isBusOnly) "Bus Stop" else "Station"
-                        val queryText = "${station.displayName} $querySuffix London"
+                        val queryText = TransitIconHelper.buildStationMapsQuery(station)
                         val encodedQuery = java.net.URLEncoder.encode(queryText, "UTF-8")
 
                         val geoUri = if (station.lat != null && station.lon != null) {

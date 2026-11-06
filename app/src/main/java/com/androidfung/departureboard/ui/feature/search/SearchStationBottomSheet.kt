@@ -90,13 +90,7 @@ fun SearchStationBottomSheet(
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val defaultStationsForRegion = remember(selectedRegion) {
-        when (selectedRegion) {
-            com.androidfung.departureboard.data.model.TransitRegion.HK -> com.androidfung.departureboard.data.model.hk.HkDefaultStations.POPULAR_STATIONS
-            com.androidfung.departureboard.data.model.TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
-            com.androidfung.departureboard.data.model.TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
-            com.androidfung.departureboard.data.model.TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
-            com.androidfung.departureboard.data.model.TransitRegion.GB -> GbDefaultStations.POPULAR_STATIONS
-        }
+        selectedRegion.defaultStations
     }
 
     val availableModes = remember(selectedRegion) {
@@ -306,15 +300,8 @@ fun SearchStationBottomSheet(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        val hintText = when (selectedRegion) {
-                            com.androidfung.departureboard.data.model.TransitRegion.HK -> stringResource(R.string.search_stations_not_found_hint_hk)
-                            com.androidfung.departureboard.data.model.TransitRegion.SG -> stringResource(R.string.search_stations_not_found_hint_sg)
-                            com.androidfung.departureboard.data.model.TransitRegion.AU -> stringResource(R.string.search_stations_not_found_hint_au)
-                            com.androidfung.departureboard.data.model.TransitRegion.JP -> stringResource(R.string.search_stations_not_found_hint_jp)
-                            com.androidfung.departureboard.data.model.TransitRegion.GB -> stringResource(R.string.search_stations_not_found_hint_general)
-                        }
                         Text(
-                            text = hintText,
+                            text = stringResource(selectedRegion.searchNotFoundHintRes),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

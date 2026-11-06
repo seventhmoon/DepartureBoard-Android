@@ -3,6 +3,7 @@ package com.androidfung.departureboard.data.repository.region.sg
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.isSgTransitId
 import com.androidfung.departureboard.data.model.sg.SgDefaultStations
+import com.androidfung.departureboard.data.model.sg.SgStationDirectory
 import com.androidfung.departureboard.data.repository.DepartureSource
 
 /**
@@ -12,9 +13,7 @@ class SgDepartureSource : DepartureSource {
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
         if (isBusStop) return false
-        return stationId.isSgTransitId ||
-                stationName.contains("MRT") ||
-                stationName.contains("地鐵")
+        return stationId.isSgTransitId || SgStationDirectory.getStationById(stationId) != null
     }
 
     override suspend fun fetchDepartures(

@@ -170,9 +170,8 @@ object StationLineInferrer {
             }
             .map { line ->
                 val mode = line.mode ?: resolveDefaultMode(line.id)
-                if (station.isHkMtr || line.id in HkMtrLine.LINES) {
-                    HkMtrLine.getLineBadge(line.id)
-                } else if (station.isHkBus || line.id.isHkBusRouteId) {
+                val region = TransitRegion.fromStationId(station.id)
+                if (station.isHkBus || line.id.isHkBusRouteId) {
                     val cleanRoute = line.name.ifBlank { line.id.removePrefix("KMB_").removePrefix("CTB_") }
                     LineBadgeInfo(
                         lineId = cleanRoute,
@@ -181,17 +180,12 @@ object StationLineInferrer {
                         textColor = androidx.compose.ui.graphics.Color.White,
                         mode = TransitMode.BUS
                     )
-                } else if (station.id.isJpTransitId || com.androidfung.departureboard.data.model.jp.JpTokyoLine.fromCode(line.id) != null) {
-                    com.androidfung.departureboard.data.model.jp.JpTokyoLine.fromCode(line.id)?.toLineBadge()
-                        ?: TflLineColors.getLineBadge(line.id, line.name, mode)
-                } else if (station.id.isSgTransitId || com.androidfung.departureboard.data.model.sg.SgMrtLine.fromCode(line.id) != null) {
-                    com.androidfung.departureboard.data.model.sg.SgMrtLine.fromCode(line.id)?.toLineBadge()
-                        ?: TflLineColors.getLineBadge(line.id, line.name, mode)
-                } else if (station.id.isAuTransitId || com.androidfung.departureboard.data.model.au.AuSydneyLine.fromCode(line.id) != null) {
-                    com.androidfung.departureboard.data.model.au.AuSydneyLine.fromCode(line.id)?.toLineBadge()
-                        ?: TflLineColors.getLineBadge(line.id, line.name, mode)
                 } else {
-                    TflLineColors.getLineBadge(line.id, line.name, mode)
+                    region.lineRegistry.fromCode(line.id)?.toLineBadge()
+                        ?: TransitRegion.entries.asSequence()
+                            .mapNotNull { it.lineRegistry.fromCode(line.id) }
+                            .firstOrNull()?.toLineBadge()
+                        ?: TflLineColors.getLineBadge(line.id, line.name, mode)
                 }
             }
             .distinctBy { it.displayName }

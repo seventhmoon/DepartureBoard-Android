@@ -6,6 +6,7 @@ import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.StationIdPrefixes
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.hk.extractRawHkBusStopId
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import com.androidfung.departureboard.data.model.hk.HkKmbEtaItem
@@ -33,9 +34,11 @@ class HkBusDepartureSource(
         val isRawNumeric = stationId.matches(Regex("^[0-9]{6}$"))
         return stationId.isHkBusStationId ||
                 isRawNumeric ||
+                (isBusStop && TransitRegion.fromStationId(stationId) == TransitRegion.HK) ||
                 stationName.contains("海底隧道") ||
                 stationName.contains("轉車站") ||
-                stationName.contains("Cross Harbour Tunnel")
+                stationName.contains("Cross Harbour Tunnel") ||
+                HkDefaultStations.POPULAR_STATIONS.any { it.id.equals(stationId, ignoreCase = true) && it.isBusOnly }
     }
 
     override suspend fun fetchDepartures(

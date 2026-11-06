@@ -2,6 +2,20 @@ package com.androidfung.departureboard.data.model
 
 import androidx.annotation.StringRes
 import com.androidfung.departureboard.R
+import com.androidfung.departureboard.data.model.au.AuDefaultStations
+import com.androidfung.departureboard.data.model.au.AuStationDirectory
+import com.androidfung.departureboard.data.model.au.AuSydneyLine
+import com.androidfung.departureboard.data.model.gb.GbDefaultStations
+import com.androidfung.departureboard.data.model.gb.GbTransitLine
+import com.androidfung.departureboard.data.model.hk.HkDefaultStations
+import com.androidfung.departureboard.data.model.hk.HkMtrLine
+import com.androidfung.departureboard.data.model.hk.HkStationDirectory
+import com.androidfung.departureboard.data.model.jp.JpDefaultStations
+import com.androidfung.departureboard.data.model.jp.JpStationDirectory
+import com.androidfung.departureboard.data.model.jp.JpTokyoLine
+import com.androidfung.departureboard.data.model.sg.SgDefaultStations
+import com.androidfung.departureboard.data.model.sg.SgMrtLine
+import com.androidfung.departureboard.data.model.sg.SgStationDirectory
 import java.time.ZoneId
 
 /**
@@ -106,6 +120,81 @@ enum class TransitRegion(
 
     // Backward-compatibility property so any existing code using `.id` continues to work
     val id: String get() = code
+
+    /**
+     * Default popular transit stations for this region.
+     */
+    val defaultStations: List<Station>
+        get() = when (this) {
+            GB -> GbDefaultStations.POPULAR_STATIONS
+            HK -> HkDefaultStations.POPULAR_STATIONS
+            SG -> SgDefaultStations.POPULAR_STATIONS
+            AU -> AuDefaultStations.POPULAR_STATIONS
+            JP -> JpDefaultStations.POPULAR_STATIONS
+        }
+
+    /**
+     * Regional station directory with catalog entries and search ranking, if available offline.
+     */
+    val directory: StationDirectory?
+        get() = when (this) {
+            GB -> null
+            HK -> HkStationDirectory
+            SG -> SgStationDirectory
+            AU -> AuStationDirectory
+            JP -> JpStationDirectory
+        }
+
+    /**
+     * Unified transit line registry for looking up transit lines, colors, and badges.
+     */
+    val lineRegistry: TransitLineRegistry
+        get() = when (this) {
+            GB -> GbTransitLine
+            HK -> HkMtrLine
+            SG -> SgMrtLine
+            AU -> AuSydneyLine
+            JP -> JpTokyoLine
+        }
+
+    /**
+     * Localized string resource for "No stations found" query hints.
+     */
+    @get:StringRes
+    val searchNotFoundHintRes: Int
+        get() = when (this) {
+            GB -> R.string.search_stations_not_found_hint_general
+            HK -> R.string.search_stations_not_found_hint_hk
+            SG -> R.string.search_stations_not_found_hint_sg
+            AU -> R.string.search_stations_not_found_hint_au
+            JP -> R.string.search_stations_not_found_hint_jp
+        }
+
+    /**
+     * Suffix used for external map directions queries for stations in this region.
+     */
+    val mapsSearchRegionSuffix: String
+        get() = when (this) {
+            GB -> "London"
+            HK -> "Hong Kong"
+            SG -> "Singapore"
+            AU -> "Sydney"
+            JP -> "Tokyo"
+        }
+
+    /**
+     * Localized string resource for network/line disruption status sheet title.
+     */
+    @get:StringRes
+    val lineStatusTitleRes: Int
+        get() = if (this == HK) R.string.line_status_title_mtr else R.string.line_status_title_live
+
+    /**
+     * Localized string resource for network/line disruption status sheet subtitle.
+     */
+    @get:StringRes
+    val lineStatusDescRes: Int
+        get() = if (this == HK) R.string.line_status_desc_hk else R.string.line_status_desc_general
 
     companion object {
         /**

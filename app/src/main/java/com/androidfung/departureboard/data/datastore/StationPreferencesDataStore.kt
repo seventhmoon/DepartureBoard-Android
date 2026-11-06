@@ -9,8 +9,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitRegion
-import com.androidfung.departureboard.data.model.gb.GbDefaultStations
-import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import com.androidfung.departureboard.ui.theme.AppThemeMode
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
@@ -249,15 +247,7 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         }
     }
 
-    private fun getDefaultStationsForRegion(region: TransitRegion): List<Station> {
-        return when (region) {
-            TransitRegion.HK -> HkDefaultStations.POPULAR_STATIONS
-            TransitRegion.SG -> com.androidfung.departureboard.data.model.sg.SgDefaultStations.POPULAR_STATIONS
-            TransitRegion.AU -> com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS
-            TransitRegion.JP -> com.androidfung.departureboard.data.model.jp.JpDefaultStations.POPULAR_STATIONS
-            TransitRegion.GB -> GbDefaultStations.POPULAR_STATIONS
-        }
-    }
+    private fun getDefaultStationsForRegion(region: TransitRegion): List<Station> = region.defaultStations
 
     /**
      * Flow of saved/favorite stations. If empty, provides popular defaults for the active region.

@@ -140,40 +140,7 @@ class TransitAiAssistant(
         // Dynamically resolve live nearest station via LocationDataSource if available and nearestStation is null or stale
         var resolvedNearestStation = nearestStation
 
-        if (isExplicitNearMe) {
-            if (locationDataSource != null) {
-                val userCoords = locationDataSource.getCurrentCoordinates()
-                if (userCoords != null) {
-                    val apiNearby = runCatching {
-                        repository.getNearbyStationsFromApi(userCoords.latitude, userCoords.longitude, 2000)
-                    }.getOrDefault(emptyList())
-
-                    val candidates = (apiNearby + savedStations).distinctBy { it.id }
-                    val validCandidates = candidates.filter { it.lat != null && it.lon != null }
-                    var closestCandidate: Station? = null
-                    var minDistance = Double.MAX_VALUE
-
-                    for (cand in validCandidates) {
-                        val stationLat = cand.lat ?: continue
-                        val stationLon = cand.lon ?: continue
-                        val dist = com.androidfung.departureboard.util.LocationHelper.calculateDistanceMeters(
-                            userLat = userCoords.latitude,
-                            userLon = userCoords.longitude,
-                            stationLat = stationLat,
-                            stationLon = stationLon
-                        )
-                        if (dist < minDistance) {
-                            minDistance = dist
-                            closestCandidate = cand
-                        }
-                    }
-
-                    if (closestCandidate != null) {
-                        resolvedNearestStation = closestCandidate
-                    }
-                }
-            }
-        } else if (resolvedNearestStation == null && locationDataSource != null) {
+        if ((isExplicitNearMe || resolvedNearestStation == null) && locationDataSource != null) {
             val userCoords = locationDataSource.getCurrentCoordinates()
             if (userCoords != null) {
                 val apiNearby = runCatching {
@@ -181,27 +148,13 @@ class TransitAiAssistant(
                 }.getOrDefault(emptyList())
 
                 val candidates = (apiNearby + savedStations).distinctBy { it.id }
-                val validCandidates = candidates.filter { it.lat != null && it.lon != null }
-                var closestCandidate: Station? = null
-                var minDistance = Double.MAX_VALUE
-
-                for (cand in validCandidates) {
-                    val stationLat = cand.lat ?: continue
-                    val stationLon = cand.lon ?: continue
-                    val dist = com.androidfung.departureboard.util.LocationHelper.calculateDistanceMeters(
-                        userLat = userCoords.latitude,
-                        userLon = userCoords.longitude,
-                        stationLat = stationLat,
-                        stationLon = stationLon
-                    )
-                    if (dist < minDistance) {
-                        minDistance = dist
-                        closestCandidate = cand
-                    }
-                }
-
-                if (closestCandidate != null) {
-                    resolvedNearestStation = closestCandidate
+                val nearestPair = com.androidfung.departureboard.util.LocationHelper.findNearestStation(
+                    lat = userCoords.latitude,
+                    lon = userCoords.longitude,
+                    stations = candidates
+                )
+                if (nearestPair != null) {
+                    resolvedNearestStation = nearestPair.first
                 }
             }
         }

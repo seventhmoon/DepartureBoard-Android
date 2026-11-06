@@ -2,6 +2,7 @@ package com.androidfung.departureboard.data.repository.region.au
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.au.AuDefaultStations
+import com.androidfung.departureboard.data.model.au.AuStationDirectory
 import com.androidfung.departureboard.data.model.isAuTransitId
 import com.androidfung.departureboard.data.repository.DepartureSource
 
@@ -12,9 +13,7 @@ class AuDepartureSource : DepartureSource {
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
         if (isBusStop) return false
-        return stationId.isAuTransitId ||
-                stationName.contains("Sydney", ignoreCase = true) ||
-                stationName.contains("NSW", ignoreCase = true)
+        return stationId.isAuTransitId || AuStationDirectory.getStationById(stationId) != null
     }
 
     override suspend fun fetchDepartures(

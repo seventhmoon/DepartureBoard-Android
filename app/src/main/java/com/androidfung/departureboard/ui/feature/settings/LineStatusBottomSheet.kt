@@ -150,16 +150,12 @@ fun LineStatusBottomSheet(
                     )
                     Column {
                         Text(
-                            text = if (selectedRegion == TransitRegion.HK) stringResource(R.string.line_status_title_mtr) else stringResource(R.string.line_status_title_live),
+                            text = stringResource(selectedRegion.lineStatusTitleRes),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = if (selectedRegion == TransitRegion.HK) {
-                                stringResource(R.string.line_status_desc_hk)
-                            } else {
-                                stringResource(R.string.line_status_desc_general)
-                            },
+                            text = stringResource(selectedRegion.lineStatusDescRes),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
