@@ -26,6 +26,17 @@
     <string name="status_full">満員</string>
     <string name="status_set_down_only">降車専用</string>
     <string name="status_pick_up_only">乗車専用</string>
+    <string name="status_level_boarding">段差なし乗車可能</string>
+    <string name="status_ramp_boarding">スロープ板対応</string>
+    <string name="status_not_accessible">バリアフリー非対応</string>
+    <string name="transfer_recommended">推奨乗り換え</string>
+    <string name="transfer_timed">接続運行</string>
+    <string name="train_formation_coaches">車両編成</string>
+    <string name="coach_label">%1$s 号車</string>
+    <string name="amenity_quiet">静粛車両</string>
+    <string name="amenity_bike">自転車スペース</string>
+    <string name="amenity_toilet">お手洗い</string>
+    <string name="amenity_wheelchair">車椅子スペース</string>
     <string name="unit_min">分</string>
 
     <!-- Transit Directions -->

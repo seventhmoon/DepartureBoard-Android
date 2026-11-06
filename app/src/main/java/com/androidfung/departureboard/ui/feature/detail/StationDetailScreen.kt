@@ -476,6 +476,44 @@ private fun StationDetailContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                // Station accessibility badge
+                val wheelchairStatus = station.wheelchairStatus
+                if (wheelchairStatus != com.androidfung.departureboard.data.model.WheelchairBoardingStatus.UNKNOWN) {
+                    val statusText = when (wheelchairStatus) {
+                        com.androidfung.departureboard.data.model.WheelchairBoardingStatus.STEP_FREE_LEVEL_BOARDING -> stringResource(R.string.status_level_boarding)
+                        com.androidfung.departureboard.data.model.WheelchairBoardingStatus.STEP_FREE_WITH_RAMP -> stringResource(R.string.status_ramp_boarding)
+                        com.androidfung.departureboard.data.model.WheelchairBoardingStatus.NOT_ACCESSIBLE -> stringResource(R.string.status_not_accessible)
+                        com.androidfung.departureboard.data.model.WheelchairBoardingStatus.UNKNOWN -> null
+                    }
+                    if (statusText != null) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = if (wheelchairStatus == com.androidfung.departureboard.data.model.WheelchairBoardingStatus.NOT_ACCESSIBLE) {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            }
+                        ) {
+                            Text(
+                                text = "♿ $statusText",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                color = if (wheelchairStatus == com.androidfung.departureboard.data.model.WheelchairBoardingStatus.NOT_ACCESSIBLE) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                },
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
                 Text(
                     text = station.modes.joinToString(", ") { mode ->
                         mode.replaceFirstChar { it.uppercase() }
@@ -606,6 +644,68 @@ private fun StationDetailContent(
             contentPadding = PaddingValues(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Station Inter-Platform Transfers (GTFS transfers.txt)
+            if (station.transfers.isNotEmpty()) {
+                item(key = "station_transfers") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        station.transfers.forEach { transfer ->
+                            val transferTypeLabel = when (transfer.type) {
+                                com.androidfung.departureboard.data.model.TransferType.RECOMMENDED -> stringResource(R.string.transfer_recommended)
+                                com.androidfung.departureboard.data.model.TransferType.TIMED_TRANSFER -> stringResource(R.string.transfer_timed)
+                                else -> null
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "${transfer.fromPlatform} ➔ ${transfer.toPlatform}",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    val timeLabel = transfer.displayTransferTime
+                                    if (!timeLabel.isNullOrBlank()) {
+                                        Text(
+                                            text = "• $timeLabel",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    if (transferTypeLabel != null) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                        ) {
+                                            Text(
+                                                text = transferTypeLabel,
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.SemiBold),
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // 1. Lines filter chips row (scrolls seamlessly with departures, no background artifact)
             if (distinctLines.size > 1 || singleLineHasDirections) {
                 item(key = "line_filters") {

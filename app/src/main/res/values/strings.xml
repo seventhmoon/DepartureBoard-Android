@@ -25,6 +25,17 @@
     <string name="status_full">Full</string>
     <string name="status_set_down_only">Set Down Only</string>
     <string name="status_pick_up_only">Pick Up Only</string>
+    <string name="status_level_boarding">Step-free level boarding</string>
+    <string name="status_ramp_boarding">Step-free with ramp</string>
+    <string name="status_not_accessible">Not step-free</string>
+    <string name="transfer_recommended">Recommended</string>
+    <string name="transfer_timed">Timed connection</string>
+    <string name="train_formation_coaches">Train Formation</string>
+    <string name="coach_label">Coach %1$s</string>
+    <string name="amenity_quiet">Quiet Coach</string>
+    <string name="amenity_bike">Bicycle Area</string>
+    <string name="amenity_toilet">Toilet</string>
+    <string name="amenity_wheelchair">Wheelchair Space</string>
     <string name="unit_min">min</string>
 
     <!-- Transit Directions -->

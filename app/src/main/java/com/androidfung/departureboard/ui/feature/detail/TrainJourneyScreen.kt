@@ -1,6 +1,8 @@
 package com.androidfung.departureboard.ui.feature.detail
 
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -404,6 +406,7 @@ private fun TrainJourneyContent(
             // 2. Where the train is NOW banner
             item(key = "current_location") {
                 val location = departure.currentLocation?.takeIf { it.isNotBlank() } ?: stringResource(R.string.status_in_transit)
+                val stopStatus = departure.vehicleStopStatus
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
@@ -424,6 +427,9 @@ private fun TrainJourneyContent(
                                 .background(MaterialTheme.colorScheme.primaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
+                            if (stopStatus == com.androidfung.departureboard.data.model.VehicleStopStatus.INCOMING_AT) {
+                                PulsingRadarHalo(haloColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                            }
                             Icon(
                                 imageVector = Icons.Rounded.LocationOn,
                                 contentDescription = null,
@@ -435,15 +441,28 @@ private fun TrainJourneyContent(
                         Spacer(modifier = Modifier.width(12.dp))
 
                         Column {
-                            Text(
-                                text = stringResource(R.string.train_journey_current_location),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
-                                    letterSpacing = 0.5.sp
-                                ),
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            val statusTag = when (stopStatus) {
+                                com.androidfung.departureboard.data.model.VehicleStopStatus.STOPPED_AT -> stringResource(R.string.status_at_platform)
+                                com.androidfung.departureboard.data.model.VehicleStopStatus.INCOMING_AT -> stringResource(R.string.status_approaching)
+                                com.androidfung.departureboard.data.model.VehicleStopStatus.IN_TRANSIT_TO -> stringResource(R.string.status_in_transit)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = stringResource(R.string.train_journey_current_location),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        letterSpacing = 0.5.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "• $statusTag",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                )
+                            }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = location,
@@ -452,6 +471,90 @@ private fun TrainJourneyContent(
                                 ),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
+                        }
+                    }
+                }
+            }
+
+            // Train Carriage Formation Diagram
+            val formation = departure.formation
+            if (formation != null && formation.coaches.isNotEmpty()) {
+                item(key = "train_formation_diagram") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "${stringResource(R.string.train_formation_coaches)} (${formation.displayCoachCount})",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            formation.coaches.forEachIndexed { coachIdx, coach ->
+                                val coachTitle = coach.coachNumber ?: "${coachIdx + 1}"
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.coach_label, coachTitle),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        // Amenities row
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            if (coach.isWheelchairAccessible == true) {
+                                                Text(text = "♿", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp))
+                                            }
+                                            if (coach.hasBicycleRack == true) {
+                                                Text(text = "🚲", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp))
+                                            }
+                                            if (coach.hasToilet == true) {
+                                                Text(text = "🚻", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp))
+                                            }
+                                            if (coach.isQuietCoach == true) {
+                                                Text(text = "🤫", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp))
+                                            }
+                                        }
+                                        // Coach crowding status
+                                        val coachOccupancy = coach.parsedOccupancyStatus
+                                        if (coachOccupancy != null) {
+                                            val occupancyColor = when (coachOccupancy) {
+                                                com.androidfung.departureboard.data.model.OccupancyStatus.EMPTY,
+                                                com.androidfung.departureboard.data.model.OccupancyStatus.MANY_SEATS_AVAILABLE -> Color(0xFF4CAF50)
+                                                com.androidfung.departureboard.data.model.OccupancyStatus.FEW_SEATS_AVAILABLE,
+                                                com.androidfung.departureboard.data.model.OccupancyStatus.STANDING_ROOM_ONLY -> Color(0xFFFF9800)
+                                                else -> Color(0xFFF44336)
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(width = 24.dp, height = 3.dp)
+                                                    .clip(RoundedCornerShape(1.5.dp))
+                                                    .background(occupancyColor)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -26,6 +26,17 @@
     <string name="status_full">만석</string>
     <string name="status_set_down_only">하차 전용</string>
     <string name="status_pick_up_only">승차 전용</string>
+    <string name="status_level_boarding">단차 없는 평면 탑승</string>
+    <string name="status_ramp_boarding">이동식 경사로 지원</string>
+    <string name="status_not_accessible">교통약자 비지원</string>
+    <string name="transfer_recommended">추천 환승</string>
+    <string name="transfer_timed">연계 환승</string>
+    <string name="train_formation_coaches">열차 편성</string>
+    <string name="coach_label">%1$s호차</string>
+    <string name="amenity_quiet">정숙 차실</string>
+    <string name="amenity_bike">자전거 거치 공간</string>
+    <string name="amenity_toilet">화장실</string>
+    <string name="amenity_wheelchair">휠체어 공간</string>
     <string name="unit_min">분</string>
 
     <!-- Transit Directions -->

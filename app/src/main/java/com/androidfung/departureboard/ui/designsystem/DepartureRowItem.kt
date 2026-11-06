@@ -103,20 +103,39 @@ fun DepartureRowItem(
         // Destination & Platform details
         Column(modifier = Modifier.weight(1f)) {
             val destinationText = departure.destinationName.ifBlank { departure.lineName }
+            val viaText = departure.resolvedDestination.displayViaSubtitle
             val isCancelled = departure.status == DepartureStatus.CANCELLED
 
-            Text(
-                text = destinationText,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = if (isFirst || variant == DepartureRowVariant.DETAILED) FontWeight.Bold else FontWeight.Medium,
-                    fontSize = if (isFirst || variant == DepartureRowVariant.DETAILED) 15.sp else 14.5.sp,
-                    lineHeight = 18.sp,
-                    textDecoration = if (isCancelled) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None
-                ),
-                color = if (isCancelled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f) else MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = destinationText,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = if (isFirst || variant == DepartureRowVariant.DETAILED) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = if (isFirst || variant == DepartureRowVariant.DETAILED) 15.sp else 14.5.sp,
+                        lineHeight = 18.sp,
+                        textDecoration = if (isCancelled) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None
+                    ),
+                    color = if (isCancelled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f) else MaterialTheme.colorScheme.onSurface,
+                    maxLines = if (!viaText.isNullOrBlank()) 1 else 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+
+                if (!viaText.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = viaText,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Normal,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
 
             // Subtitle row: [Platform Pill Tag / Towards / Formation / Operator / Boarding Semantics]
             if (departure.platformName.isNotBlank() || departure.isWheelchairAccessible == true || !departure.occupancyStatus.isNullOrBlank() || departure.formation != null || departure.isSetDownOnly || departure.isPickUpOnly) {
@@ -180,7 +199,8 @@ fun DepartureRowItem(
                     }
 
                     if (!departure.occupancyStatus.isNullOrBlank()) {
-                        val occupancyLabel = when (departure.parsedOccupancyStatus) {
+                        val parsed = departure.parsedOccupancyStatus
+                        val occupancyLabel = when (parsed) {
                             OccupancyStatus.EMPTY,
                             OccupancyStatus.MANY_SEATS_AVAILABLE,
                             OccupancyStatus.FEW_SEATS_AVAILABLE -> stringResource(R.string.status_seats)
@@ -190,14 +210,34 @@ fun DepartureRowItem(
                             OccupancyStatus.NOT_ACCEPTING_PASSENGERS -> stringResource(R.string.status_full)
                             null -> departure.occupancyStatus
                         }
+                        val occupancyContainerColor = when (parsed) {
+                            OccupancyStatus.EMPTY,
+                            OccupancyStatus.MANY_SEATS_AVAILABLE -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            OccupancyStatus.FEW_SEATS_AVAILABLE,
+                            OccupancyStatus.STANDING_ROOM_ONLY -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                            OccupancyStatus.CRUSHED_STANDING_ROOM_ONLY,
+                            OccupancyStatus.FULL,
+                            OccupancyStatus.NOT_ACCEPTING_PASSENGERS -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f)
+                            null -> MaterialTheme.colorScheme.surfaceVariant
+                        }
+                        val occupancyTextColor = when (parsed) {
+                            OccupancyStatus.EMPTY,
+                            OccupancyStatus.MANY_SEATS_AVAILABLE -> MaterialTheme.colorScheme.onPrimaryContainer
+                            OccupancyStatus.FEW_SEATS_AVAILABLE,
+                            OccupancyStatus.STANDING_ROOM_ONLY -> MaterialTheme.colorScheme.onTertiaryContainer
+                            OccupancyStatus.CRUSHED_STANDING_ROOM_ONLY,
+                            OccupancyStatus.FULL,
+                            OccupancyStatus.NOT_ACCEPTING_PASSENGERS -> MaterialTheme.colorScheme.onErrorContainer
+                            null -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant
+                            color = occupancyContainerColor
                         ) {
                             Text(
                                 text = occupancyLabel,
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                color = occupancyTextColor,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                             )
                         }

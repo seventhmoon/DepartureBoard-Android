@@ -25,6 +25,17 @@
     <string name="status_full">客滿</string>
     <string name="status_set_down_only">只供落客</string>
     <string name="status_pick_up_only">只供上客</string>
+    <string name="status_level_boarding">無階級水平登車</string>
+    <string name="status_ramp_boarding">提供無障礙活動摺板</string>
+    <string name="status_not_accessible">非無障礙車站</string>
+    <string name="transfer_recommended">建議轉乘</string>
+    <string name="transfer_timed">定時轉乘銜接</string>
+    <string name="train_formation_coaches">列車編組</string>
+    <string name="coach_label">%1$s 號車廂</string>
+    <string name="amenity_quiet">靜音車廂</string>
+    <string name="amenity_bike">單車停泊處</string>
+    <string name="amenity_toilet">洗手間</string>
+    <string name="amenity_wheelchair">輪椅停泊位</string>
     <string name="unit_min">分鐘</string>
 
     <!-- Transit Directions -->
