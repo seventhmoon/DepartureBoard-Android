@@ -1,21 +1,25 @@
 package com.androidfung.departureboard.data.model
 
+import androidx.annotation.StringRes
+import com.androidfung.departureboard.R
+
 /**
  * Standardized cardinal and transit directions.
  */
 enum class TransitDirection(
     val displayName: String,
     val shortCode: String,
-    val indicatorArrow: String
+    val indicatorArrow: String,
+    @StringRes val labelResId: Int
 ) {
-    NORTHBOUND("Northbound", "NB", "↑ NB"),
-    SOUTHBOUND("Southbound", "SB", "↓ SB"),
-    EASTBOUND("Eastbound", "EB", "→ EB"),
-    WESTBOUND("Westbound", "WB", "← WB"),
-    INBOUND("Inbound", "IN", "IN"),
-    OUTBOUND("Outbound", "OUT", "OUT"),
-    CLOCKWISE("Clockwise", "CW", "↻ CW"),
-    ANTI_CLOCKWISE("Anti-Clockwise", "CCW", "↺ CCW");
+    NORTHBOUND("Northbound", "NB", "↑ NB", R.string.dir_northbound),
+    SOUTHBOUND("Southbound", "SB", "↓ SB", R.string.dir_southbound),
+    EASTBOUND("Eastbound", "EB", "→ EB", R.string.dir_eastbound),
+    WESTBOUND("Westbound", "WB", "← WB", R.string.dir_westbound),
+    INBOUND("Inbound", "IN", "IN", R.string.dir_inbound),
+    OUTBOUND("Outbound", "OUT", "OUT", R.string.dir_outbound),
+    CLOCKWISE("Clockwise", "CW", "↻ CW", R.string.dir_clockwise),
+    ANTI_CLOCKWISE("Anti-Clockwise", "CCW", "↺ CCW", R.string.dir_anti_clockwise);
 
     companion object {
         fun fromString(value: String?): TransitDirection? {

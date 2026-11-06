@@ -135,4 +135,14 @@ class TransitModelsTest {
         assertTrue(TransitMode.RAIL.isRail)
         assertTrue(TransitMode.METRO.isRail)
     }
+
+    @Test
+    fun testTransitDirectionEnumAndResIds() {
+        for (dir in com.androidfung.departureboard.data.model.TransitDirection.entries) {
+            assertTrue("Expected valid string resource ID for direction: ${dir.name}", dir.labelResId != 0)
+        }
+        assertEquals(com.androidfung.departureboard.data.model.TransitDirection.NORTHBOUND, com.androidfung.departureboard.data.model.TransitDirection.fromString("northbound"))
+        assertEquals(com.androidfung.departureboard.data.model.TransitDirection.ANTI_CLOCKWISE, com.androidfung.departureboard.data.model.TransitDirection.fromString("Outer"))
+        assertEquals(com.androidfung.departureboard.data.model.TransitDirection.CLOCKWISE, com.androidfung.departureboard.data.model.TransitDirection.fromString("Inner"))
+    }
 }
