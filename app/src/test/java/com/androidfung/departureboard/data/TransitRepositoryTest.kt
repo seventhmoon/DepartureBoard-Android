@@ -178,7 +178,7 @@ class TransitRepositoryTest {
         assertEquals("Edinburgh", departures[0].destinationName)
         assertEquals("LNER", departures[0].lineName)
         assertEquals("Platform 1", departures[0].platformName)
-        assertEquals(com.androidfung.departureboard.data.model.TransitMode.NATIONAL_RAIL, departures[0].lineBadge.mode)
+        assertEquals(com.androidfung.departureboard.data.model.TransitMode.RAIL, departures[0].lineBadge.mode)
     }
 
     @Test

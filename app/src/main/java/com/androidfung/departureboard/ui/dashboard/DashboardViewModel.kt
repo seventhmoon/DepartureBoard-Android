@@ -37,8 +37,10 @@ class DashboardViewModel @JvmOverloads constructor(
     application: Application,
     // Exposed (internal) so the AI assistant sheet can reuse the same repository instance
     // and its in-memory caches instead of constructing a second one.
-    internal val repository: TransitRepository = (application as? com.androidfung.departureboard.DepartureBoardApp)?.repository ?: TransitRepositoryImpl(application),
-    internal val billingRepository: BillingDataSource = BillingRepository.getInstance(application),
+    internal val repository: TransitRepository = (application as? com.androidfung.departureboard.DepartureBoardApp)?.container?.transitRepository
+        ?: (application as? com.androidfung.departureboard.DepartureBoardApp)?.repository ?: TransitRepositoryImpl(application),
+    internal val billingRepository: BillingDataSource = (application as? com.androidfung.departureboard.DepartureBoardApp)?.container?.billingRepository
+        ?: BillingRepository.getInstance(application),
     internal val networkConnectivityObserver: com.androidfung.departureboard.util.NetworkConnectivityObserver =
         com.androidfung.departureboard.util.NetworkConnectivityObserverImpl(application),
     internal val locationDataSource: com.androidfung.departureboard.util.LocationDataSource =

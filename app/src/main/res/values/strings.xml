@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">EkiBoard</string>
     <string name="launcher_name">EkiBoard</string>
     <string name="widget_name">EkiBoard</string>
@@ -65,8 +65,8 @@
     <string name="tracking_at_platform_boarding">At platform • Boarding</string>
     <string name="tracking_subtext_to">%1$s to %2$s</string>
     <string name="tracking_stops_away_one">1 stop away</string>
-    <string name="tracking_stops_away_other">%1$s stops away</string>
-    <string name="tracking_chip_min">%1$s min</string>
+    <string name="tracking_stops_away_other">%1$d stops away</string>
+    <string name="tracking_chip_min">%1$d min</string>
     <string name="tracking_default_destination">Destination</string>
     <string name="tracking_default_train">Train</string>
     <string name="tracking_platform_default">Platform</string>
@@ -154,7 +154,7 @@
     <string name="search_stations_subtitle">View live departures &amp; pin to your dashboard</string>
     <string name="search_stations_close">Close search</string>
     <string name="search_stations_placeholder_hk">Search station or bus route (e.g. Central, 1A, 104)…</string>
-    <string name="search_stations_placeholder_general">Search station or bus route (e.g. 221, SL1)…</string>
+    <string name="search_stations_placeholder_general" tools:ignore="Typos">Search station or bus route (e.g. 221, SL1)…</string>
     <string name="search_stations_clear">Clear search</string>
     <string name="search_stations_popular">Popular Stations</string>
     <string name="search_stations_results_count">Search Results (%1$d)</string>
@@ -242,7 +242,7 @@
     <string name="journey_service_delayed_desc">This service is experiencing delays.</string>
     <string name="journey_calling_points_header">Calling Points</string>
     <string name="journey_calling_points_count">%1$d stops</string>
-    <string name="journey_loading_calling_points">Loading calling points...</string>
+    <string name="journey_loading_calling_points">Loading calling points&#8230;</string>
     <string name="journey_calling_points_unavailable">Calling points details not available for this service.</string>
     <string name="journey_your_station">Your station</string>
     <string name="journey_notify_stop">Stop Live Notification</string>
@@ -271,7 +271,7 @@
     <string name="paywall_continue_annual">Continue with Annual</string>
     <string name="paywall_continue_monthly">Continue with Monthly</string>
     <string name="paywall_restore_purchases">Restore Purchases</string>
-    <string name="paywall_checking_google_play">Checking Google Play...</string>
+    <string name="paywall_checking_google_play">Checking Google Play&#8230;</string>
     <string name="paywall_error_play_store">Unable to start Google Play purchase flow. Check Play Store connection.</string>
     <string name="paywall_debug_pro_activated">Pro activated! (Google Play products not yet live in Console)</string>
 
@@ -330,11 +330,11 @@
     <string name="debug_action_clear_cache_fail">Failed to clear cache</string>
     <string name="debug_module_installed">Installed (On-Device LLM &amp; LiteRT runtime ready)</string>
     <string name="debug_module_not_installed">Not installed (On-demand Play feature)</string>
-    <string name="debug_module_downloading">Downloading module...</string>
+    <string name="debug_module_downloading">Downloading module&#8230;</string>
     <string name="debug_module_trigger_install">Trigger Feature Delivery Install</string>
     <string name="debug_module_trigger_desc">Requests SplitInstallManager to download AI feature</string>
     <string name="debug_module_status_downloading">Downloading: %1$d%%</string>
-    <string name="debug_module_status_initiating">Initiating SplitInstall request...</string>
+    <string name="debug_module_status_initiating">Initiating SplitInstall request&#8230;</string>
     <string name="debug_module_toast_success">AI Feature Module installed successfully</string>
     <string name="debug_module_toast_fail">Install failed (code %1$d)</string>
     <string name="update_downloaded_message">An update has just been downloaded.</string>

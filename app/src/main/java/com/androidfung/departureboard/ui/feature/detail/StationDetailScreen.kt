@@ -60,8 +60,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -235,8 +236,11 @@ private fun StationDetailContent(
         )
     }
 
-    val configuration = LocalConfiguration.current
-    val screenHeightDp = configuration.screenHeightDp
+    val density = LocalDensity.current
+    val windowInfo = LocalWindowInfo.current
+    val screenHeightDp = remember(density, windowInfo) {
+        with(density) { windowInfo.containerSize.height.toDp().value.toInt() }
+    }
 
     // Dynamically calculate whether the departures fit with ample space for a rich media Card ad,
     // or whether they fill/overflow the viewport, requiring in-stream compact ROW ads.

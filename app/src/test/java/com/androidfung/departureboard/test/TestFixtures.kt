@@ -53,7 +53,7 @@ object TestFixtures {
             lineId = lineId,
             displayName = lineName,
             backgroundColor = Color.Cyan,
-            mode = TransitMode.TUBE
+            mode = TransitMode.METRO
         ),
         callingPoints: List<CallingPoint> = emptyList(),
         vehicleId: String? = null,

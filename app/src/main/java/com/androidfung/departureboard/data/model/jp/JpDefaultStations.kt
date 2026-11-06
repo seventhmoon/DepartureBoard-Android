@@ -352,7 +352,7 @@ object JpDefaultStations {
                         timeToStationSeconds = waitSec,
                         expectedArrivalIso = formattedArrival,
                         currentLocation = if (waitSec <= 60) "Approaching" else "In Transit",
-                        modeName = if (tokyoLine.mode == TransitMode.NATIONAL_RAIL) "national-rail" else "tube",
+                        modeName = if (tokyoLine.mode == TransitMode.RAIL) "rail" else "metro",
                         lineBadge = tokyoLine.toLineBadge(),
                         status = if (waitSec <= 60) DepartureStatus.DUE else DepartureStatus.ON_TIME,
                         callingPoints = listOf(

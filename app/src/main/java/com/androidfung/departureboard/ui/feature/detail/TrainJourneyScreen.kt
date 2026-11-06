@@ -46,8 +46,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -158,8 +159,11 @@ private fun TrainJourneyContent(
         }
     }
 
-    val configuration = LocalConfiguration.current
-    val screenHeightDp = configuration.screenHeightDp
+    val density = LocalDensity.current
+    val windowInfo = LocalWindowInfo.current
+    val screenHeightDp = remember(density, windowInfo) {
+        with(density) { windowInfo.containerSize.height.toDp().value.toInt() }
+    }
 
     val timelineItems = remember(callingPoints, isPro, screenHeightDp) {
         buildList<JourneyTimelineListItem> {

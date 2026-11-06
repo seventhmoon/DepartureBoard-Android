@@ -16,7 +16,7 @@ class TransitModelsTest {
         val victoriaBadge = TflLineColors.getLineBadge("victoria", "Victoria", "tube")
         assertEquals("Victoria", victoriaBadge.displayName)
         assertEquals(TflLineColors.Victoria, victoriaBadge.backgroundColor)
-        assertEquals(TransitMode.TUBE, victoriaBadge.mode)
+        assertEquals(TransitMode.METRO, victoriaBadge.mode)
 
         val centralBadge = TflLineColors.getLineBadge("central", "Central", "tube")
         assertEquals("Central", centralBadge.displayName)
@@ -24,7 +24,7 @@ class TransitModelsTest {
 
         val elizabethBadge = TflLineColors.getLineBadge("elizabeth-line", "Elizabeth line", "elizabeth-line")
         assertEquals(TflLineColors.ElizabethLine, elizabethBadge.backgroundColor)
-        assertEquals(TransitMode.ELIZABETH_LINE, elizabethBadge.mode)
+        assertEquals(TransitMode.RAIL, elizabethBadge.mode)
 
         val dlrBadge = TflLineColors.getLineBadge("dlr", "DLR", "dlr")
         assertEquals(TflLineColors.Dlr, dlrBadge.backgroundColor)
@@ -107,7 +107,7 @@ class TransitModelsTest {
         assertEquals(2, badges.size)
         assertEquals("Central", badges[0].displayName)
         assertEquals("Weaver", badges[1].displayName)
-        assertEquals(TransitMode.OVERGROUND, badges[1].mode)
+        assertEquals(TransitMode.RAIL, badges[1].mode)
     }
 
     @Test

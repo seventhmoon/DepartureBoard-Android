@@ -23,7 +23,7 @@ object TyneAndWearMetroRoute : TransitLineNetwork {
     private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
 
     override val timeZone: ZoneId = UK_ZONE
-    override val defaultMode: String = TransitMode.TUBE.id
+    override val defaultMode: String = TransitMode.METRO.id
     override val loopLineCodes: Set<String> = setOf("metro-yellow")
     override val lineSequences: Map<String, List<String>>
         get() = mapOf(
@@ -187,7 +187,7 @@ object TyneAndWearMetroRoute : TransitLineNetwork {
                 estimatedTime = estBadge,
                 isCurrentStation = idx == 0,
                 isDestination = idx == sliced.lastIndex,
-                modes = listOf(TransitMode.TUBE.id)
+                modes = listOf(TransitMode.METRO.id)
             )
         }
     }

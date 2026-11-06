@@ -75,7 +75,7 @@ android {
     lint {
         warningsAsErrors = false
         abortOnError = false
-        disable += "InvalidFragmentVersionForActivityResult"
+        disable += setOf("InvalidFragmentVersionForActivityResult", "MissingTranslation")
     }
     testOptions {
         unitTests {
@@ -175,6 +175,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
 
     // Testing
+    testImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.core)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

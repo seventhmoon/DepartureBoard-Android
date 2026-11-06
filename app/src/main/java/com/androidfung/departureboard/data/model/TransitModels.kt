@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
 /**
- * Clean domain representation of a transit station or stop.
+ * Clean domain representation of a transit station or stop, adhering to GTFS (stops.txt) specifications.
  */
 @Immutable
 data class Station(
@@ -15,7 +15,11 @@ data class Station(
     val lat: Double? = null,
     val lon: Double? = null,
     val isFavorite: Boolean = false,
-    val lines: List<StationLineInfo> = emptyList()
+    val lines: List<StationLineInfo> = emptyList(),
+    val locationType: GtfsLocationType = GtfsLocationType.STATION,
+    val parentStationId: String? = null,
+    val platformCode: String? = null,
+    val wheelchairBoarding: WheelchairAccessibility = WheelchairAccessibility.UNKNOWN
 ) {
     val isBusOnly: Boolean get() = TransitMode.isBusOnly(modes)
 
@@ -97,7 +101,12 @@ data class Departure(
     val vehicleId: String? = null,
     val destinationStationId: String? = null,
     val isWheelchairAccessible: Boolean? = null,
-    val occupancyStatus: String? = null
+    val occupancyStatus: String? = null,
+    val scheduleRelationship: GtfsScheduleRelationship = GtfsScheduleRelationship.SCHEDULED,
+    val occupancy: GtfsOccupancyStatus? = GtfsOccupancyStatus.fromString(occupancyStatus),
+    val tripId: String? = null,
+    val routeId: String? = null,
+    val stopSequence: Int? = null
 ) {
     /**
      * Human-friendly formatted arrival string, e.g. "Due", "1 min", "4 mins".
@@ -172,6 +181,109 @@ data class LineBadgeInfo(
             }
         }
     }
+}
+
+/**
+ * GTFS Location Type according to stops.txt specification.
+ */
+enum class GtfsLocationType(val code: Int) {
+    STOP_OR_PLATFORM(0),
+    STATION(1),
+    ENTRANCE_EXIT(2),
+    GENERIC_NODE(3),
+    BOARDING_AREA(4);
+
+    companion object {
+        fun fromCode(code: Int?): GtfsLocationType =
+            entries.firstOrNull { it.code == code } ?: STOP_OR_PLATFORM
+    }
+}
+
+/**
+ * GTFS Wheelchair accessibility indicator according to stops.txt and trips.txt.
+ */
+enum class WheelchairAccessibility(val code: Int) {
+    UNKNOWN(0),
+    ACCESSIBLE(1),
+    NOT_ACCESSIBLE(2);
+
+    companion object {
+        fun fromCode(code: Int?): WheelchairAccessibility =
+            entries.firstOrNull { it.code == code } ?: UNKNOWN
+
+        fun fromBoolean(accessible: Boolean?): WheelchairAccessibility = when (accessible) {
+            true -> ACCESSIBLE
+            false -> NOT_ACCESSIBLE
+            null -> UNKNOWN
+        }
+    }
+}
+
+/**
+ * GTFS-RT Realtime Occupancy Status.
+ */
+enum class GtfsOccupancyStatus {
+    EMPTY,
+    MANY_SEATS_AVAILABLE,
+    FEW_SEATS_AVAILABLE,
+    STANDING_ROOM_ONLY,
+    CRUSHED_STANDING_ROOM_ONLY,
+    FULL,
+    NOT_ACCEPTING_PASSENGERS,
+    NO_DATA_AVAILABLE;
+
+    companion object {
+        fun fromString(value: String?): GtfsOccupancyStatus? {
+            if (value.isNullOrBlank()) return null
+            val normalized = value.trim().uppercase().replace(" ", "_").replace("-", "_")
+            return entries.firstOrNull { it.name == normalized }
+        }
+    }
+}
+
+/**
+ * GTFS-RT Realtime Schedule Relationship.
+ */
+enum class GtfsScheduleRelationship {
+    SCHEDULED,
+    SKIPPED,
+    NO_DATA,
+    UNSCHEDULED,
+    CANCELLED,
+    REPLACEMENT;
+
+    companion object {
+        fun fromString(value: String?): GtfsScheduleRelationship {
+            if (value.isNullOrBlank()) return SCHEDULED
+            val normalized = value.trim().uppercase()
+            return entries.firstOrNull { it.name == normalized } ?: SCHEDULED
+        }
+    }
+}
+
+/**
+ * GTFS-RT Realtime Alert Severity Level.
+ */
+enum class GtfsAlertSeverity {
+    UNKNOWN,
+    INFO,
+    WARNING,
+    SEVERE
+}
+
+/**
+ * GTFS-RT Realtime Alert Effect on transit service.
+ */
+enum class GtfsAlertEffect {
+    NO_SERVICE,
+    REDUCED_SERVICE,
+    SIGNIFICANT_DELAYS,
+    DETOUR,
+    ADDITIONAL_SERVICE,
+    MODIFIED_SERVICE,
+    OTHER_EFFECT,
+    UNKNOWN_EFFECT,
+    STOP_MOVED
 }
 
 /**

@@ -120,7 +120,7 @@ class RegionalArchitectureTest {
         assertEquals(TransitMode.BUS, busStation.primaryTransitMode)
 
         val mtrStation = Station(id = "HK_MTR_ISL_CEN", name = "Central", modes = listOf("mtr"))
-        assertEquals(TransitMode.TUBE, mtrStation.primaryTransitMode)
+        assertEquals(TransitMode.METRO, mtrStation.primaryTransitMode)
 
         val busDeparture = Departure(
             id = "1",
@@ -159,11 +159,11 @@ class RegionalArchitectureTest {
 
         val gbOvergroundBadge = GbTransitLine.getLineBadge("windrush")
         assertEquals("windrush", gbOvergroundBadge.lineId)
-        assertEquals(TransitMode.OVERGROUND, gbOvergroundBadge.mode)
+        assertEquals(TransitMode.RAIL, gbOvergroundBadge.mode)
 
         val hkBadge = HkMtrLine.getLineBadge("TWL")
         assertEquals("TWL", hkBadge.lineCode)
-        assertEquals(TransitMode.TUBE, hkBadge.mode)
+        assertEquals(TransitMode.METRO, hkBadge.mode)
 
         val sgBadge = SgMrtLine.getLineBadge("EWL")
         assertEquals("EWL", sgBadge.lineId)

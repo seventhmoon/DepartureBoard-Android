@@ -65,8 +65,8 @@
     <string name="tracking_at_platform_boarding">正在月台 • 請盡快登車</string>
     <string name="tracking_subtext_to">%1$s 往 %2$s</string>
     <string name="tracking_stops_away_one">還有 1 站</string>
-    <string name="tracking_stops_away_other">還有 %1$s 站</string>
-    <string name="tracking_chip_min">%1$s 分鐘</string>
+    <string name="tracking_stops_away_other">還有 %1$d 站</string>
+    <string name="tracking_chip_min">%1$d 分鐘</string>
     <string name="tracking_default_destination">目的地</string>
     <string name="tracking_default_train">列車</string>
     <string name="tracking_platform_default">月台</string>

@@ -12,6 +12,8 @@ import com.androidfung.departureboard.data.db.gb.GbStationCrsDao
 import com.androidfung.departureboard.data.db.gb.StationCrsDao
 import com.androidfung.departureboard.data.db.hk.HkBusStopDao
 import com.androidfung.departureboard.data.db.hk.HkStationDatabase
+import com.androidfung.departureboard.data.gtfs.db.GtfsDao
+import com.androidfung.departureboard.data.gtfs.db.GtfsDatabase
 import com.androidfung.departureboard.data.network.gb.BodsApiService
 import com.androidfung.departureboard.data.network.gb.BodsNetworkClient
 import com.androidfung.departureboard.data.network.gb.NationalRailApiService
@@ -45,6 +47,8 @@ interface AppContainer {
     val stationCrsDao: GbStationCrsDao
     val gbStationCrsDao: GbStationCrsDao get() = stationCrsDao
     val hkBusStopDao: HkBusStopDao
+    val gtfsDatabase: GtfsDatabase
+    val gtfsDao: GtfsDao
     val transitRepository: TransitRepository
     val billingRepository: BillingDataSource
 }
@@ -97,6 +101,14 @@ class DefaultAppContainer(
 
     override val hkBusStopDao: HkBusStopDao by lazy {
         HkStationDatabase.getInstance(applicationContext).hkBusStopDao()
+    }
+
+    override val gtfsDatabase: GtfsDatabase by lazy {
+        GtfsDatabase.getInstance(applicationContext)
+    }
+
+    override val gtfsDao: GtfsDao by lazy {
+        gtfsDatabase.gtfsDao()
     }
 
     override val transitRepository: TransitRepository by lazy {

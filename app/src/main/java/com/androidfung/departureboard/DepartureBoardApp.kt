@@ -26,6 +26,9 @@ class DepartureBoardApp : Application() {
             private set
 
         val repository: TransitRepository
-            get() = instance.repository
+            get() = instance.container.transitRepository
     }
 }
+
+val android.content.Context.appContainer: AppContainer
+    get() = (applicationContext as DepartureBoardApp).container

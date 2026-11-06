@@ -102,7 +102,7 @@ class FinchleyToBatterseaCallingPointsTest {
             expectedArrivalIso = null,
             currentLocation = "Approaching",
             modeName = "tube",
-            lineBadge = LineBadgeInfo("northern", "Northern", androidx.compose.ui.graphics.Color.Black, mode = TransitMode.TUBE)
+            lineBadge = LineBadgeInfo("northern", "Northern", androidx.compose.ui.graphics.Color.Black, mode = TransitMode.METRO)
         )
 
         val callingPoints = repository.getCallingPoints(departure)
@@ -184,7 +184,7 @@ class FinchleyToBatterseaCallingPointsTest {
             timeToStationSeconds = 1200, // 20 mins
             currentLocation = "Between Angel and Kings Cross",
             modeName = "tube",
-            lineBadge = LineBadgeInfo("northern", "Northern", androidx.compose.ui.graphics.Color.Black, mode = TransitMode.TUBE),
+            lineBadge = LineBadgeInfo("northern", "Northern", androidx.compose.ui.graphics.Color.Black, mode = TransitMode.METRO),
             vehicleId = inboundVehicleId
         )
 
@@ -307,7 +307,7 @@ class FinchleyToBatterseaCallingPointsTest {
             destinationStationId = "940GZZLUMDN",
             timeToStationSeconds = 120,
             modeName = "tube",
-            lineBadge = LineBadgeInfo("northern", "Northern", androidx.compose.ui.graphics.Color.Black, mode = TransitMode.TUBE)
+            lineBadge = LineBadgeInfo("northern", "Northern", androidx.compose.ui.graphics.Color.Black, mode = TransitMode.METRO)
         )
 
         val callingPoints = repository.getCallingPoints(departure)
@@ -370,7 +370,7 @@ class FinchleyToBatterseaCallingPointsTest {
             destinationStationId = "940GZZLUBKG",
             timeToStationSeconds = 60,
             modeName = "tube",
-            lineBadge = LineBadgeInfo("district", "District", androidx.compose.ui.graphics.Color.Green, mode = TransitMode.TUBE)
+            lineBadge = LineBadgeInfo("district", "District", androidx.compose.ui.graphics.Color.Green, mode = TransitMode.METRO)
         )
 
         val callingPoints = repository.getCallingPoints(departure)

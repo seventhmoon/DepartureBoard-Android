@@ -226,8 +226,8 @@ class TrainTrackingService : Service() {
             } catch (_: CancellationException) {
             }
 
-            val repository = (applicationContext as? DepartureBoardApp)?.repository
-                ?: TransitRepositoryImpl(applicationContext)
+            val repository = (applicationContext as? DepartureBoardApp)?.container?.transitRepository
+                ?: DepartureBoardApp.repository
             var remainingSeconds = initialSeconds
             var currentDestination = destination
             var currentPlatform = platform

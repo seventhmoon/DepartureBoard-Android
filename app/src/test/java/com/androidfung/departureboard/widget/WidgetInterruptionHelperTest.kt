@@ -24,7 +24,7 @@ class WidgetInterruptionHelperTest {
         val dep = TestFixtures.createTestDeparture(
             lineId = "victoria",
             lineName = "Victoria",
-            lineBadge = LineBadgeInfo("victoria", "Victoria", Color.Cyan, mode = TransitMode.TUBE)
+            lineBadge = LineBadgeInfo("victoria", "Victoria", Color.Cyan, mode = TransitMode.METRO)
         )
         val statuses = mapOf(
             "victoria" to TflLineStatusItem(
@@ -54,7 +54,7 @@ class WidgetInterruptionHelperTest {
         val dep = TestFixtures.createTestDeparture(
             lineId = "victoria",
             lineName = "Victoria",
-            lineBadge = LineBadgeInfo("victoria", "Victoria", Color.Cyan, mode = TransitMode.TUBE)
+            lineBadge = LineBadgeInfo("victoria", "Victoria", Color.Cyan, mode = TransitMode.METRO)
         )
         val statuses = mapOf(
             "victoria" to TflLineStatusItem(
@@ -84,12 +84,12 @@ class WidgetInterruptionHelperTest {
         val vic = TestFixtures.createTestDeparture(
             lineId = "victoria",
             lineName = "Victoria",
-            lineBadge = LineBadgeInfo("victoria", "Victoria", Color.Cyan, mode = TransitMode.TUBE)
+            lineBadge = LineBadgeInfo("victoria", "Victoria", Color.Cyan, mode = TransitMode.METRO)
         )
         val cen = TestFixtures.createTestDeparture(
             lineId = "central",
             lineName = "Central",
-            lineBadge = LineBadgeInfo("central", "Central", Color.Red, mode = TransitMode.TUBE)
+            lineBadge = LineBadgeInfo("central", "Central", Color.Red, mode = TransitMode.METRO)
         )
         val statuses = mapOf(
             "victoria" to TflLineStatusItem(

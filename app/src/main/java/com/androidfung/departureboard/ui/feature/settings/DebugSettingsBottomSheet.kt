@@ -136,14 +136,14 @@ fun DebugSettingsContent(
     onSelectAiModel: (AiModelType) -> Unit,
     selectedRegion: com.androidfung.departureboard.data.model.TransitRegion,
     onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit,
-    onOpenRegionPicker: (() -> Unit)? = null,
     isHkRegionEnabled: Boolean,
     onToggleHkRegionEnabled: (Boolean) -> Unit,
     onResetStations: () -> Unit,
     onTriggerInAppReview: () -> Unit,
     onResetInAppReviewData: () -> Unit,
     sheetState: SheetState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenRegionPicker: (() -> Unit)? = null
 ) {
     var remainingAiQueries by remember { mutableIntStateOf(0) }
 
@@ -185,14 +185,14 @@ fun DebugSettingsBody(
     onSelectAiModel: (AiModelType) -> Unit,
     selectedRegion: com.androidfung.departureboard.data.model.TransitRegion,
     onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit,
-    onOpenRegionPicker: (() -> Unit)? = null,
     isHkRegionEnabled: Boolean,
     onToggleHkRegionEnabled: (Boolean) -> Unit,
     remainingAiQueries: Int,
     onResetStations: () -> Unit,
     onTriggerInAppReview: () -> Unit,
     onResetInAppReviewData: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenRegionPicker: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()

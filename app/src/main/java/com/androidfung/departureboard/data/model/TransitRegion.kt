@@ -36,11 +36,8 @@ enum class TransitRegion(
         subtitle = "National Rail & TfL",
         supportedModes = listOf(
             RegionTransitMode(null, "All"),
-            RegionTransitMode(TransitMode.TUBE, "Tube"),
-            RegionTransitMode(TransitMode.ELIZABETH_LINE, "Elizabeth line"),
-            RegionTransitMode(TransitMode.OVERGROUND, "Overground"),
-            RegionTransitMode(TransitMode.DLR, "DLR"),
-            RegionTransitMode(TransitMode.NATIONAL_RAIL, "National Rail"),
+            RegionTransitMode(TransitMode.METRO, "Tube"),
+            RegionTransitMode(TransitMode.RAIL, "Rail"),
             RegionTransitMode(TransitMode.TRAM, "Tram"),
             RegionTransitMode(TransitMode.BUS, "Bus")
         )
@@ -53,7 +50,7 @@ enum class TransitRegion(
         subtitle = "MTR & Franchised Buses",
         supportedModes = listOf(
             RegionTransitMode(null, "All"),
-            RegionTransitMode(TransitMode.TUBE, "MTR"),
+            RegionTransitMode(TransitMode.METRO, "MTR"),
             RegionTransitMode(TransitMode.BUS, "Bus")
         )
     ),
@@ -65,7 +62,7 @@ enum class TransitRegion(
         subtitle = "MRT & Buses",
         supportedModes = listOf(
             RegionTransitMode(null, "All"),
-            RegionTransitMode(TransitMode.TUBE, "MRT"),
+            RegionTransitMode(TransitMode.METRO, "MRT"),
             RegionTransitMode(TransitMode.BUS, "Bus")
         )
     ),
@@ -77,8 +74,8 @@ enum class TransitRegion(
         subtitle = "Sydney Trains & Metro",
         supportedModes = listOf(
             RegionTransitMode(null, "All"),
-            RegionTransitMode(TransitMode.TUBE, "Metro"),
-            RegionTransitMode(TransitMode.NATIONAL_RAIL, "Train"),
+            RegionTransitMode(TransitMode.METRO, "Metro"),
+            RegionTransitMode(TransitMode.RAIL, "Train"),
             RegionTransitMode(TransitMode.BUS, "Bus")
         )
     ),
@@ -90,8 +87,8 @@ enum class TransitRegion(
         subtitle = "Tokyo Metro & JR East",
         supportedModes = listOf(
             RegionTransitMode(null, "All"),
-            RegionTransitMode(TransitMode.TUBE, "Metro"),
-            RegionTransitMode(TransitMode.NATIONAL_RAIL, "JR / Rail"),
+            RegionTransitMode(TransitMode.METRO, "Metro"),
+            RegionTransitMode(TransitMode.RAIL, "JR / Rail"),
             RegionTransitMode(TransitMode.BUS, "Bus")
         )
     );

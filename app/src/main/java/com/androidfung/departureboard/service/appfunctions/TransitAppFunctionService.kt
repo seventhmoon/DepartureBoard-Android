@@ -8,6 +8,7 @@ import androidx.appfunctions.AppFunctionElementNotFoundException
 import androidx.appfunctions.AppFunctionInvalidArgumentException
 import androidx.appfunctions.AppFunctionService
 import androidx.appfunctions.AppFunctionServiceEntryPoint
+import com.androidfung.departureboard.DepartureBoardApp
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
 import com.androidfung.departureboard.service.TrainTrackingService
 import com.androidfung.departureboard.widget.DepartureBoardWidgetReceiver
@@ -22,8 +23,8 @@ import kotlinx.coroutines.withContext
 abstract class BaseTransitAppFunctionService : AppFunctionService() {
 
     private val transitRepository by lazy {
-        (applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.repository
-            ?: TransitRepositoryImpl(applicationContext)
+        (applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.container?.transitRepository
+            ?: DepartureBoardApp.repository
     }
 
     /**

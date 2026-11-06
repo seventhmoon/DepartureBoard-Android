@@ -71,12 +71,12 @@ class TransitRegionTest {
         val gbModes = TransitRegion.GB.supportedModes
         assertEquals("All", gbModes.first().displayName)
         org.junit.Assert.assertNull(gbModes.first().mode)
-        assertTrue(gbModes.any { it.displayName == "Tube" && it.mode == com.androidfung.departureboard.data.model.TransitMode.TUBE })
-        assertTrue(gbModes.any { it.displayName == "Elizabeth line" })
+        assertTrue(gbModes.any { it.displayName == "Tube" && it.mode == com.androidfung.departureboard.data.model.TransitMode.METRO })
+        assertTrue(gbModes.any { it.displayName == "Rail" && it.mode == com.androidfung.departureboard.data.model.TransitMode.RAIL })
 
         val hkModes = TransitRegion.HK.supportedModes
         assertEquals("All", hkModes.first().displayName)
-        assertTrue(hkModes.any { it.displayName == "MTR" && it.mode == com.androidfung.departureboard.data.model.TransitMode.TUBE })
+        assertTrue(hkModes.any { it.displayName == "MTR" && it.mode == com.androidfung.departureboard.data.model.TransitMode.METRO })
         assertTrue(hkModes.any { it.displayName == "Bus" && it.mode == com.androidfung.departureboard.data.model.TransitMode.BUS })
         org.junit.Assert.assertFalse(hkModes.any { it.displayName == "Tube" })
         org.junit.Assert.assertFalse(hkModes.any { it.displayName == "Elizabeth line" })

@@ -80,7 +80,7 @@ class TrainCallingPointsTest {
             expectedArrivalIso = null,
             currentLocation = "Between Pimlico and Victoria",
             modeName = "tube",
-            lineBadge = LineBadgeInfo("victoria", "Victoria", androidx.compose.ui.graphics.Color.Blue, mode = TransitMode.TUBE),
+            lineBadge = LineBadgeInfo("victoria", "Victoria", androidx.compose.ui.graphics.Color.Blue, mode = TransitMode.METRO),
             callingPoints = listOf(
                 CallingPoint("Victoria", isCurrentStation = true),
                 CallingPoint("Green Park"),

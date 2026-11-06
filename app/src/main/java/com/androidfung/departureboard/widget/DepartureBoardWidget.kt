@@ -42,6 +42,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import com.androidfung.departureboard.DepartureBoardApp
 import com.androidfung.departureboard.MainActivity
 import com.androidfung.departureboard.R as AppR
 import com.androidfung.departureboard.data.model.Departure
@@ -84,8 +85,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val repository = (context.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.repository
-            ?: TransitRepositoryImpl(context)
+        val repository = (context.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.container?.transitRepository
+            ?: DepartureBoardApp.repository
 
         val appWidgetId = try {
             androidx.glance.appwidget.GlanceAppWidgetManager(context).getAppWidgetId(id)

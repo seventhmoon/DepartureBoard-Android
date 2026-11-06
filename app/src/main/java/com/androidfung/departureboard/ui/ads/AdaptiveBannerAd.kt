@@ -39,6 +39,7 @@ fun AdaptiveBannerAd(
     val containerWidthDp = with(density) { windowInfo.containerSize.width.toDp().value.toInt() }
 
     // Calculate anchored adaptive banner ad size based on current container width
+    @Suppress("DEPRECATION")
     val adSize = remember(containerWidthDp) {
         AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, containerWidthDp)
     }

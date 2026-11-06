@@ -23,7 +23,7 @@ class StationBadgeSynthesizerTest {
         val departure = TestFixtures.createTestDeparture(
             lineId = "victoria",
             lineName = "Victoria",
-            lineBadge = LineBadgeInfo("victoria", "Victoria", Color.Cyan, mode = TransitMode.TUBE)
+            lineBadge = LineBadgeInfo("victoria", "Victoria", Color.Cyan, mode = TransitMode.METRO)
         )
 
         val statuses = mapOf(
@@ -65,7 +65,7 @@ class StationBadgeSynthesizerTest {
         val hcDepotDeparture = TestFixtures.createTestDeparture(
             lineId = "hammersmith-city",
             lineName = "Hammersmith & City",
-            lineBadge = LineBadgeInfo("hammersmith-city", "Hammersmith & City", Color.Magenta, mode = TransitMode.TUBE)
+            lineBadge = LineBadgeInfo("hammersmith-city", "Hammersmith & City", Color.Magenta, mode = TransitMode.METRO)
         )
 
         val badges = StationBadgeSynthesizer.buildStationLineBadges(

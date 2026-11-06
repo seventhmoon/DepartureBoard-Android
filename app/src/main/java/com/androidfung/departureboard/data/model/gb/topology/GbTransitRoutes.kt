@@ -24,7 +24,7 @@ import java.time.ZoneId
 object GbTransitRoutes : TransitLineNetwork {
 
     override val timeZone: ZoneId = ZoneId.of("Europe/London")
-    override val defaultMode: String = TransitMode.TUBE.id
+    override val defaultMode: String = TransitMode.METRO.id
     override val averageSecondsBetweenStops: Long = 120L
 
     /**
