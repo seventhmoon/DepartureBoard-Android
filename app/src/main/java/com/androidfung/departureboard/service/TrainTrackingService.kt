@@ -13,9 +13,9 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.getSystemService
-import com.androidfung.departureboard.DepartureBoardApp
 import com.androidfung.departureboard.MainActivity
 import com.androidfung.departureboard.R
+import com.androidfung.departureboard.appContainer
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
@@ -226,8 +226,7 @@ class TrainTrackingService : Service() {
             } catch (_: CancellationException) {
             }
 
-            val repository = (applicationContext as? DepartureBoardApp)?.container?.transitRepository
-                ?: DepartureBoardApp.repository
+            val repository = applicationContext.appContainer.transitRepository
             var remainingSeconds = initialSeconds
             var currentDestination = destination
             var currentPlatform = platform

@@ -37,7 +37,10 @@ enum class TransitRegion(
         supportedModes = listOf(
             RegionTransitMode(null, "All"),
             RegionTransitMode(TransitMode.METRO, "Tube"),
-            RegionTransitMode(TransitMode.RAIL, "Rail"),
+            RegionTransitMode(TransitMode.RAIL, "Elizabeth line"),
+            RegionTransitMode(TransitMode.RAIL, "Overground"),
+            RegionTransitMode(TransitMode.TRAM, "DLR"),
+            RegionTransitMode(TransitMode.RAIL, "National Rail"),
             RegionTransitMode(TransitMode.TRAM, "Tram"),
             RegionTransitMode(TransitMode.BUS, "Bus")
         )

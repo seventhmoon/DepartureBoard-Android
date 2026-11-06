@@ -65,8 +65,8 @@ import androidx.datastore.preferences.core.Preferences.Key
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
-import com.androidfung.departureboard.DepartureBoardApp
 import com.androidfung.departureboard.R
+import com.androidfung.departureboard.appContainer
 import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.BillingRepository
 import com.androidfung.departureboard.billing.SubscriptionTier
@@ -329,8 +329,7 @@ fun WidgetStationPickerScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val repository = remember(context) {
-        (context.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.container?.transitRepository
-            ?: DepartureBoardApp.repository
+        context.appContainer.transitRepository
     }
     var searchQuery by remember { mutableStateOf("") }
     var stations by remember { mutableStateOf<List<Station>>(emptyList()) }

@@ -72,7 +72,10 @@ class TransitRegionTest {
         assertEquals("All", gbModes.first().displayName)
         org.junit.Assert.assertNull(gbModes.first().mode)
         assertTrue(gbModes.any { it.displayName == "Tube" && it.mode == com.androidfung.departureboard.data.model.TransitMode.METRO })
-        assertTrue(gbModes.any { it.displayName == "Rail" && it.mode == com.androidfung.departureboard.data.model.TransitMode.RAIL })
+        assertTrue(gbModes.any { it.displayName == "Elizabeth line" && it.mode == com.androidfung.departureboard.data.model.TransitMode.RAIL })
+        assertTrue(gbModes.any { it.displayName == "Overground" && it.mode == com.androidfung.departureboard.data.model.TransitMode.RAIL })
+        assertTrue(gbModes.any { it.displayName == "DLR" && it.mode == com.androidfung.departureboard.data.model.TransitMode.TRAM })
+        assertTrue(gbModes.any { it.displayName == "National Rail" && it.mode == com.androidfung.departureboard.data.model.TransitMode.RAIL })
 
         val hkModes = TransitRegion.HK.supportedModes
         assertEquals("All", hkModes.first().displayName)
