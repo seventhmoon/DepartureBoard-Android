@@ -94,3 +94,74 @@ data class LoopRoute<T>(
         return LoopRouteResolver.resolveDirection(stations.size, startIdx, endIdx, rawDirection)
     }
 }
+
+/**
+ * A specific physical station sequence representing one corridor or branch of a transit line.
+ */
+data class RoutePattern<T>(
+    val patternId: String,
+    val stations: List<T>,
+    val name: String? = null
+)
+
+/**
+ * A transit route with multiple diverging or converging branches (e.g. Northern Line, Thameslink).
+ * Resolves calling points and directions by matching the appropriate [RoutePattern].
+ */
+data class BranchedRoute<T>(
+    override val lineId: String,
+    val patterns: List<RoutePattern<T>>,
+    override val directionResolver: DirectionResolver
+) : TransitRoute<T>() {
+
+    override val stations: List<T> by lazy {
+        patterns.flatMap { it.stations }.distinct()
+    }
+
+    override fun slice(origin: T, dest: T, preferredDirection: TransitDirection?): List<T> {
+        // Find pattern(s) that contain both origin and dest
+        val candidateSlices = mutableListOf<List<T>>()
+
+        for (pattern in patterns) {
+            val startIdx = pattern.stations.indexOf(origin)
+            val endIdx = pattern.stations.indexOf(dest)
+            if (startIdx != -1 && endIdx != -1) {
+                val slice = if (startIdx <= endIdx) {
+                    pattern.stations.subList(startIdx, endIdx + 1)
+                } else {
+                    pattern.stations.subList(endIdx, startIdx + 1).reversed()
+                }
+                candidateSlices.add(slice)
+            }
+        }
+
+        if (candidateSlices.isEmpty()) return emptyList()
+
+        // If preferred direction specified, filter matching candidates
+        if (preferredDirection != null) {
+            val matching = candidateSlices.filter { slice ->
+                resolveDirection(slice.first(), slice.last(), null) == preferredDirection
+            }
+            if (matching.isNotEmpty()) return matching.minByOrNull { it.size } ?: matching.first()
+        }
+
+        // Return shortest valid corridor slice
+        return candidateSlices.minByOrNull { it.size } ?: candidateSlices.first()
+    }
+
+    override fun resolveDirection(
+        origin: T,
+        dest: T,
+        rawDirection: String?
+    ): TransitDirection? {
+        for (pattern in patterns) {
+            val startIdx = pattern.stations.indexOf(origin)
+            val endIdx = pattern.stations.indexOf(dest)
+            if (startIdx != -1 && endIdx != -1 && startIdx != endIdx) {
+                return if (startIdx < endIdx) TransitDirection.OUTBOUND else TransitDirection.INBOUND
+            }
+        }
+        return null
+    }
+}
+

@@ -98,4 +98,34 @@ class CallingPointsEngineTest {
         val result = engine.resolveCallingPoints(dep)
         assertTrue(result.isEmpty())
     }
+
+    @Test
+    fun testResolveCallingPoints_railModeFallback_returnsOriginAndDestinationOnly() = runBlocking {
+        // Inter-city / National Rail train without live calling points and without matching resolver
+        val railDep = createDeparture(
+            id = "rail_1",
+            lineId = "LNER",
+            stationId = "KGX"
+        ).copy(
+            stationName = "London King's Cross",
+            destinationName = "Edinburgh",
+            destinationStationId = "EDB",
+            modeName = TransitMode.RAIL.id,
+            lineBadge = LineBadgeInfo(
+                lineId = "LNER",
+                displayName = "LNER",
+                backgroundColor = Color.Red,
+                mode = TransitMode.RAIL
+            )
+        )
+
+        val engine = CallingPointsEngine(emptyList())
+        val result = engine.resolveCallingPoints(railDep)
+
+        assertEquals(2, result.size)
+        assertEquals("London King's Cross", result[0].stationName)
+        assertTrue(result[0].isCurrentStation)
+        assertEquals("Edinburgh", result[1].stationName)
+        assertTrue(result[1].isDestination)
+    }
 }

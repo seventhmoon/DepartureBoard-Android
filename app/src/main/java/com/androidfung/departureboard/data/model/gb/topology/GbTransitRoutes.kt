@@ -356,8 +356,12 @@ object GbTransitRoutes : TransitLineNetwork {
             "RVC", "CUS", "PRR", "RAL", "BEP", "CYP_D", "GAL", "BCK"
         ),
 
-        // Thameslink (3-letter CRS codes from ThameslinkRoute)
-        "THAMESLINK" to ThameslinkRoute.STATIONS.mapNotNull { it.crs },
+        // Thameslink branch corridors
+        "THAMESLINK" to ThameslinkRoute.PATTERN_BEDFORD_BRIGHTON.stations,
+        "THAMESLINK_BEDFORD_BRIGHTON" to ThameslinkRoute.PATTERN_BEDFORD_BRIGHTON.stations,
+        "THAMESLINK_PETERBOROUGH_HORSHAM" to ThameslinkRoute.PATTERN_PETERBOROUGH_HORSHAM.stations,
+        "THAMESLINK_CAMBRIDGE_BRIGHTON" to ThameslinkRoute.PATTERN_CAMBRIDGE_BRIGHTON.stations,
+        "THAMESLINK_LUTON_RAINHAM" to ThameslinkRoute.PATTERN_LUTON_RAINHAM.stations,
 
         // Tyne and Wear Metro (3-letter Nexus Metro codes)
         "METRO-GREEN" to listOf(
@@ -411,6 +415,28 @@ object GbTransitRoutes : TransitLineNetwork {
             ) {
                 return "DISTRICT_WIMBLEDON"
             }
+        }
+
+        if (lineUpper == "THAMESLINK") {
+            if (origLower.contains("peterborough") || destLower.contains("peterborough") ||
+                origLower.contains("horsham") || destLower.contains("horsham") ||
+                origLower == "pbo" || destLower == "pbo" || origLower == "hrh" || destLower == "hrh"
+            ) {
+                return "THAMESLINK_PETERBOROUGH_HORSHAM"
+            }
+            if (origLower.contains("cambridge") || destLower.contains("cambridge") ||
+                origLower.contains("royston") || destLower.contains("royston") ||
+                origLower == "cbg" || destLower == "cbg" || origLower == "rsy" || destLower == "rsy"
+            ) {
+                return "THAMESLINK_CAMBRIDGE_BRIGHTON"
+            }
+            if (origLower.contains("rainham") || destLower.contains("rainham") ||
+                origLower.contains("greenwich") || destLower.contains("greenwich") ||
+                origLower == "rnh" || destLower == "rnh" || origLower == "grh" || destLower == "grh"
+            ) {
+                return "THAMESLINK_LUTON_RAINHAM"
+            }
+            return "THAMESLINK_BEDFORD_BRIGHTON"
         }
 
         return lineUpper

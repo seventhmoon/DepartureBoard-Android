@@ -4,6 +4,15 @@ import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.i18n.LocalizedNameProvider
 
 /**
+ * Commercial transit operator or authority (e.g. Govia Thameslink Railway, TfL, LNER, MTR Corporation).
+ */
+data class TransitOperator(
+    val id: String,
+    val name: String,
+    val region: TransitRegion? = null
+)
+
+/**
  * Unified domain contract for a transit line across all supported regions (GB, HK, SG, AU, JP).
  * Provides standardized localization, brand colors, transit mode, and [LineBadgeInfo] conversion.
  */
@@ -13,6 +22,7 @@ interface TransitLineDefinition : LocalizedNameProvider {
     val color: Color
     val textColor: Color get() = Color.White
     val mode: TransitMode get() = TransitMode.METRO
+    val operatorId: String? get() = null
 
     fun toLineBadge(): LineBadgeInfo = LineBadgeInfo(
         lineId = code,

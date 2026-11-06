@@ -1,5 +1,9 @@
 package com.androidfung.departureboard.data.model.gb.topology
 
+import com.androidfung.departureboard.data.model.TransitDirection
+import com.androidfung.departureboard.data.topology.BranchedRoute
+import com.androidfung.departureboard.data.topology.DirectionResolver
+import com.androidfung.departureboard.data.topology.RoutePattern
 import com.androidfung.departureboard.data.topology.RouteStation
 /**
  * Ordered linear station sequence for the Thameslink corridor from North (index 0) to South.
@@ -92,5 +96,77 @@ object ThameslinkRoute {
         RouteStation(name = "Burgess Hill", crs = "BUG", naptanId = "910GBURGSSH"),
         RouteStation(name = "Hassocks", crs = "HGS", naptanId = "910GHASSOCKS"),
         RouteStation(name = "Brighton", crs = "BTN", naptanId = "910GBRIGHTN")
+    )
+
+    /**
+     * Distinct branch patterns reflecting actual Thameslink service corridors.
+     */
+    val PATTERN_BEDFORD_BRIGHTON = RoutePattern(
+        patternId = "thameslink_bedford_brighton",
+        name = "Bedford to Brighton",
+        stations = listOf(
+            "BED", "FLT", "HRP", "LUT", "LTN", "SAC", "RDT", "STP", "ZFD",
+            "CTK", "BFR", "LBG", "ECR", "GTW", "TBD", "HHE", "BUG", "HGS", "BTN"
+        )
+    )
+
+    val PATTERN_PETERBOROUGH_HORSHAM = RoutePattern(
+        patternId = "thameslink_peterborough_horsham",
+        name = "Peterborough to Horsham",
+        stations = listOf(
+            "PBO", "STV", "FPK", "STP", "ZFD", "CTK", "BFR", "LBG",
+            "ECR", "PUR", "GTW", "TBD", "HRH"
+        )
+    )
+
+    val PATTERN_CAMBRIDGE_BRIGHTON = RoutePattern(
+        patternId = "thameslink_cambridge_brighton",
+        name = "Cambridge to Brighton",
+        stations = listOf(
+            "CBG", "RSY", "STV", "FPK", "STP", "ZFD", "CTK", "BFR",
+            "LBG", "ECR", "GTW", "HHE", "BTN"
+        )
+    )
+
+    val PATTERN_LUTON_RAINHAM = RoutePattern(
+        patternId = "thameslink_luton_rainham",
+        name = "Luton to Rainham",
+        stations = listOf(
+            "LUT", "LTN", "SAC", "RDT", "STP", "ZFD", "CTK", "BFR",
+            "LBG", "DMK", "GRH", "WWA", "RNH"
+        )
+    )
+
+    val DIRECTION_RESOLVER: DirectionResolver = object : DirectionResolver {
+        override fun resolve(
+            destinationName: String?,
+            destinationCrs: String?,
+            destinationNaptanId: String?,
+            currentStationId: String?,
+            currentStationName: String?,
+            platformName: String?,
+            apiDirection: String?
+        ): TransitDirection? {
+            val dir = com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver.resolve(
+                destinationCrs = destinationCrs,
+                destinationName = destinationName
+            )
+            return when (dir) {
+                com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver.NORTHBOUND -> TransitDirection.INBOUND
+                com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver.SOUTHBOUND -> TransitDirection.OUTBOUND
+                else -> null
+            }
+        }
+    }
+
+    val BRANCHED_ROUTE: BranchedRoute<String> = BranchedRoute(
+        lineId = "THAMESLINK",
+        patterns = listOf(
+            PATTERN_BEDFORD_BRIGHTON,
+            PATTERN_PETERBOROUGH_HORSHAM,
+            PATTERN_CAMBRIDGE_BRIGHTON,
+            PATTERN_LUTON_RAINHAM
+        ),
+        directionResolver = DIRECTION_RESOLVER
     )
 }
