@@ -156,7 +156,7 @@ class TurnaroundTimeTrackerTest {
 
         assertEquals(1, departures.size)
         val dep = departures.first()
-        assertEquals("Battersea Power Station", dep.destinationName)
+        assertEquals("Battersea Power Station via Charing Cross", dep.destinationName)
         assertEquals("940GZZBPSUST", dep.destinationStationId)
         assertEquals("Southbound", dep.direction)
         assertEquals("Plat 1 • Southbound", dep.platformName)
