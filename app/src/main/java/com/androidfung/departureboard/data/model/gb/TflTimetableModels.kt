@@ -72,11 +72,6 @@ data class TflDisambiguationOption(
 )
 
 /**
- * Result representing scheduled timetable info when station is closed/overnight.
+ * Typealias for backward compatibility: [StationServiceHoursInfo] now lives in the common domain models.
  */
-data class StationServiceHoursInfo(
-    val isClosedForNight: Boolean,
-    val lastTrainTime: String? = null,
-    val firstTrainTime: String? = null,
-    val lineName: String? = null
-)
+typealias StationServiceHoursInfo = com.androidfung.departureboard.data.model.StationServiceHoursInfo

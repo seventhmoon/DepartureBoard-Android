@@ -128,7 +128,8 @@ abstract class LinearRouteCallingPointsResolver(
                 isCurrentStation = idx == 0,
                 isDestination = idx == range.lastIndex,
                 stationId = network.resolveStationId(line, stationIdentifier),
-                modes = listOf(network.defaultMode)
+                modes = listOf(network.defaultMode),
+                localizedNames = network.resolveLocalizedStationNames(stationIdentifier)
             )
         }
     }

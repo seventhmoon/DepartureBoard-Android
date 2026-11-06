@@ -195,7 +195,7 @@ class HkBusDepartureSource(
     companion object {
         private val HK_ZONE = java.time.ZoneId.of("Asia/Hong_Kong")
 
-        fun checkStationServiceHours(stationId: String, stationName: String? = null): com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo? {
+        fun checkStationServiceHours(stationId: String, stationName: String? = null): com.androidfung.departureboard.data.model.StationServiceHoursInfo? {
             if (!stationId.isHkBusStationId && (stationName?.contains("海底隧道") != true) && (stationName?.contains("轉車站") != true)) {
                 return null
             }
@@ -207,7 +207,7 @@ class HkBusDepartureSource(
             val isLateNight = (hour == 1 && minute >= 15) || (hour in 2..4) || (hour == 5 && minute < 15)
 
             return if (isLateNight) {
-                com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo(
+                com.androidfung.departureboard.data.model.StationServiceHoursInfo(
                     isClosedForNight = true,
                     lastTrainTime = "01:00",
                     firstTrainTime = "05:30",

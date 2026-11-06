@@ -47,6 +47,7 @@ object HkStationDirectory : StationDirectory {
         return Station(
             id = "HK_MTR_${primaryLine}_${station.code}",
             name = station.displayName,
+            localizedNames = station.localizedNames,
             modes = listOf("mtr"),
             zone = null,
             lat = station.lat,

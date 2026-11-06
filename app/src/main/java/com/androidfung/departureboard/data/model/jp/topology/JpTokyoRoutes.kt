@@ -105,6 +105,20 @@ object JpTokyoRoutes : TransitLineNetwork {
             ?: stationCodeOrName
     }
 
+    override fun resolveLocalizedStationNames(stationCodeOrName: String): Map<String, String> {
+        val clean = stationCodeOrName.trim().uppercase()
+        val entry = JpStationDirectory.ALL_STATIONS.firstOrNull { it.code.contains(clean) || it.code.equals(clean, ignoreCase = true) }
+        if (entry != null) {
+            return mapOf(
+                "en" to entry.englishName,
+                "ja" to entry.japaneseName,
+                "ja-Hrkt" to entry.hiragana
+            )
+        }
+        val enName = STATION_NAMES_BY_CODE[clean]
+        return if (enName != null) mapOf("en" to enName) else emptyMap()
+    }
+
     override fun resolveStationId(lineCode: String, stationCodeOrName: String): String {
         val clean = stationCodeOrName.trim().uppercase()
         return JpStationDirectory.getStationById("JP_METRO_$clean")?.id

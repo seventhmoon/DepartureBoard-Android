@@ -111,6 +111,11 @@ object HkMtrRoutes : TransitLineNetwork {
     override fun resolveStationId(lineCode: String, stationCodeOrName: String): String =
         "HK_MTR_${lineCode.uppercase()}_${stationCodeOrName.uppercase()}"
 
+    override fun resolveLocalizedStationNames(stationCodeOrName: String): Map<String, String> {
+        val mtr = HkMtrStationRegistry.getStation(stationCodeOrName) ?: return emptyMap()
+        return mtr.localizedNames
+    }
+
     private val sharedCallingPointsResolver = object : LinearRouteCallingPointsResolver(this) {
         override fun canHandle(departure: Departure): Boolean = departure.isHkMtr
     }

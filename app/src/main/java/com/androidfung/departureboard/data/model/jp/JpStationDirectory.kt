@@ -38,6 +38,11 @@ object JpStationDirectory : BaseStationDirectory<JpStationDirectory.JpStationEnt
         override fun toStation(): Station = Station(
             id = "JP_METRO_$code",
             name = "$englishName ($japaneseName)",
+            localizedNames = mapOf(
+                "en" to englishName,
+                "ja" to japaneseName,
+                "ja-Hrkt" to hiragana
+            ),
             modes = modes,
             lines = lines.map { StationLineInfo(it.first, it.second) }
         )

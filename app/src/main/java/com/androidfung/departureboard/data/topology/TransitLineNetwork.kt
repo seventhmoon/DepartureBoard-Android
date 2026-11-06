@@ -68,6 +68,11 @@ interface TransitLineNetwork {
     fun resolveStationName(stationCodeOrName: String): String = stationCodeOrName
 
     /**
+     * Resolves multilingual localized names for a code or raw identifier, if available.
+     */
+    fun resolveLocalizedStationNames(stationCodeOrName: String): Map<String, String> = emptyMap()
+
+    /**
      * Resolves station ID if available.
      */
     fun resolveStationId(lineCode: String, stationCodeOrName: String): String? = null

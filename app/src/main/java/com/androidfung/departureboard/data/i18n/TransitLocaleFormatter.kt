@@ -11,6 +11,14 @@ object TransitLocaleFormatter {
         return locale.language.equals("zh", ignoreCase = true)
     }
 
+    fun isJapanese(locale: Locale = Locale.getDefault()): Boolean {
+        return locale.language.equals("ja", ignoreCase = true)
+    }
+
+    fun isWelsh(locale: Locale = Locale.getDefault()): Boolean {
+        return locale.language.equals("cy", ignoreCase = true)
+    }
+
     fun isSimplifiedChinese(locale: Locale = Locale.getDefault()): Boolean {
         if (!isChinese(locale)) return false
         val script = locale.script
@@ -36,10 +44,26 @@ object TransitLocaleFormatter {
             }
         }
 
+        if (isJapanese(locale)) {
+            val ja = (names["ja"] ?: names["ja-Jpan"] ?: names["ja-Hrkt"] ?: names["ja-Kana"] ?: names["ja-Latn"])?.trim()?.takeIf { it.isNotBlank() }
+            if (ja != null) {
+                return if (fallbackToBilingual && cleanEn != null) "$ja ($cleanEn)" else ja
+            }
+        }
+
+        if (isWelsh(locale)) {
+            val cy = names["cy"]?.trim()?.takeIf { it.isNotBlank() }
+            if (cy != null) {
+                return if (fallbackToBilingual && cleanEn != null) "$cy ($cleanEn)" else cy
+            }
+        }
+
         if (cleanEn != null) {
             val primaryChinese = if (isSimplifiedChinese(locale)) cleanSc ?: cleanTc else cleanTc ?: cleanSc
-            return if (fallbackToBilingual && primaryChinese != null) {
-                formatBilingual(cleanEn, primaryChinese, parentheses = true)
+            val primaryJapanese = (names["ja"] ?: names["ja-Jpan"])?.trim()?.takeIf { it.isNotBlank() }
+            val primarySecondary = primaryChinese ?: primaryJapanese ?: names["cy"]?.trim()?.takeIf { it.isNotBlank() }
+            return if (fallbackToBilingual && primarySecondary != null) {
+                formatBilingual(cleanEn, primarySecondary, parentheses = true)
             } else {
                 cleanEn
             }
@@ -52,7 +76,7 @@ object TransitLocaleFormatter {
             if (valForLang != null) return valForLang
         }
 
-        return cleanTc ?: cleanSc ?: names.values.firstOrNull { it.isNotBlank() }?.trim() ?: ""
+        return cleanTc ?: cleanSc ?: names["ja"] ?: names.values.firstOrNull { it.isNotBlank() }?.trim() ?: ""
     }
 
     fun formatBilingual(
@@ -61,8 +85,11 @@ object TransitLocaleFormatter {
     ): String {
         val en = names["en"]?.trim()?.takeIf { it.isNotBlank() }
         val zh = (names["zh-Hant"] ?: names["zh-Hans"] ?: names["zh-HK"] ?: names["zh-TW"] ?: names["zh-CN"] ?: names["zh"])?.trim()?.takeIf { it.isNotBlank() }
+        val ja = (names["ja"] ?: names["ja-Jpan"])?.trim()?.takeIf { it.isNotBlank() }
+        val cy = names["cy"]?.trim()?.takeIf { it.isNotBlank() }
+        val secondary = zh ?: ja ?: cy
 
-        return formatBilingual(en, zh, parentheses)
+        return formatBilingual(en, secondary, parentheses)
     }
 
     fun formatBilingual(

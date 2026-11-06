@@ -137,10 +137,6 @@ tasks.register<JacocoReport>("jacocoTestReport") {
             fileTree("${buildRoot.get()}/intermediates/javac/debug") {
                 exclude(*generatedOrSynthetic)
             },
-            // ASM-transformed classes (what the JVM loads when AGP routes unit tests through the transform pipeline)
-            fileTree("${buildRoot.get()}/intermediates/classes/debug/transformDebugClassesWithAsm/dirs") {
-                exclude(*generatedOrSynthetic)
-            },
             // Legacy KGP layout — matches nothing on AGP 9+, kept as a fallback for older toolchains.
             fileTree("${buildRoot.get()}/tmp/kotlin-classes/debug") {
                 exclude(*generatedOrSynthetic)

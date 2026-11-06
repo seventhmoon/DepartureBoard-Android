@@ -2,6 +2,20 @@ package com.androidfung.departureboard.data.model
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import com.androidfung.departureboard.data.i18n.LocalizedNameProvider
+import com.androidfung.departureboard.util.LocaleHelper
+import java.util.Locale
+
+/**
+ * Generic transit service hours status indicating whether a station or line is closed for the night.
+ */
+@Immutable
+data class StationServiceHoursInfo(
+    val isClosedForNight: Boolean,
+    val lastTrainTime: String? = null,
+    val firstTrainTime: String? = null,
+    val lineName: String? = null
+)
 
 /**
  * Clean domain representation of a transit station or stop.
@@ -10,13 +24,14 @@ import androidx.compose.ui.graphics.Color
 data class Station(
     val id: String,
     val name: String,
+    override val localizedNames: Map<String, String> = emptyMap(),
     val modes: List<String> = emptyList(),
     val zone: String? = null,
     val lat: Double? = null,
     val lon: Double? = null,
     val isFavorite: Boolean = false,
     val lines: List<StationLineInfo> = emptyList()
-) {
+) : LocalizedNameProvider {
     val isBusOnly: Boolean get() = TransitMode.isBusOnly(modes)
 
     val primaryTransitMode: TransitMode
@@ -24,6 +39,26 @@ data class Station(
             val norm = raw.trim().lowercase()
             if (norm.isEmpty()) null else TransitMode.fromModeString(norm)
         } ?: TransitMode.METRO
+
+    /**
+     * Resolves the display name according to the active locale or bilingual setting.
+     */
+    fun resolveDisplayName(
+        showBilingual: Boolean = false,
+        locale: Locale = LocaleHelper.getAppLocale() ?: Locale.getDefault()
+    ): String {
+        if (localizedNames.isEmpty()) return displayName
+        val baseName = if (showBilingual) getBilingualName(parentheses = true) else getLocalizedName(locale)
+        if (!isBusOnly) return baseName
+
+        val letter = com.androidfung.departureboard.data.repository.region.gb.TflStopPointUtils.extractBusStopLetter(id)
+        if (letter != null) {
+            if (!baseName.contains(Regex("\\bStop\\s+$letter\\b", RegexOption.IGNORE_CASE)) && !baseName.contains("(")) {
+                return "$baseName (Stop $letter)"
+            }
+        }
+        return baseName
+    }
 
     /**
      * Clean, valid TfL fare zone description (e.g. "1", "2/3"), or null if not applicable (e.g. bus stops or "NA").
@@ -76,8 +111,20 @@ data class CallingPoint(
     val isCurrentStation: Boolean = false,
     val isDestination: Boolean = false,
     val stationId: String? = null,
-    val modes: List<String> = emptyList()
-)
+    val modes: List<String> = emptyList(),
+    override val localizedNames: Map<String, String> = emptyMap()
+) : LocalizedNameProvider {
+    /**
+     * Resolves the calling point display name according to the active locale or bilingual setting.
+     */
+    fun resolveDisplayName(
+        showBilingual: Boolean = false,
+        locale: Locale = LocaleHelper.getAppLocale() ?: Locale.getDefault()
+    ): String {
+        if (localizedNames.isEmpty()) return stationName
+        return if (showBilingual) getBilingualName(parentheses = true) else getLocalizedName(locale)
+    }
+}
 
 /**
  * Structured platform or berth representation adhering to GTFS stops.txt platform_code.

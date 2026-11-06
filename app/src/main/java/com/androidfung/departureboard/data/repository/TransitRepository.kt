@@ -13,7 +13,7 @@ import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.gb.BodsDisruptionXmlParser
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
-import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
+import com.androidfung.departureboard.data.model.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.gb.TflLineStatusDetail
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.data.network.gb.BodsApiService

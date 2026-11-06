@@ -9,8 +9,17 @@ import com.androidfung.departureboard.data.i18n.LocalizedNameProvider
 data class TransitOperator(
     val id: String,
     val name: String,
-    val region: TransitRegion? = null
-)
+    val region: TransitRegion? = null,
+    override val localizedNames: Map<String, String> = emptyMap()
+) : LocalizedNameProvider {
+    fun resolveDisplayName(
+        showBilingual: Boolean = false,
+        locale: java.util.Locale = com.androidfung.departureboard.util.LocaleHelper.getAppLocale() ?: java.util.Locale.getDefault()
+    ): String {
+        if (localizedNames.isEmpty()) return name
+        return if (showBilingual) getBilingualName(parentheses = true) else getLocalizedName(locale)
+    }
+}
 
 /**
  * Unified domain contract for a transit line across all supported regions (GB, HK, SG, AU, JP).

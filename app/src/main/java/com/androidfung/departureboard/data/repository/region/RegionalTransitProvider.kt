@@ -3,8 +3,8 @@ package com.androidfung.departureboard.data.repository.region
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.TransitRegion
-import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
 import com.androidfung.departureboard.data.repository.DepartureSource
 import com.androidfung.departureboard.data.topology.CallingPointsResolver
 

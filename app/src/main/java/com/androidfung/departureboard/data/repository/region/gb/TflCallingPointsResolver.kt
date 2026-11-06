@@ -136,15 +136,17 @@ class TflCallingPointsResolver(
                 val isNorthSouth = depDirLower.contains("northbound") || depDirLower.contains("southbound")
 
                 if (isEastWest) {
-                    if (curLon == null || nextLon == null) return null
-                    val lonDiff = nextLon - curLon
-                    return if (depDirLower.contains("eastbound")) lonDiff > 0.0001 else lonDiff < -0.0001
+                    if (curLon != null && nextLon != null) {
+                        val lonDiff = nextLon - curLon
+                        return if (depDirLower.contains("eastbound")) lonDiff > 0.0001 else lonDiff < -0.0001
+                    }
                 }
 
                 if (isNorthSouth) {
-                    if (curLat == null || nextLat == null) return null
-                    val latDiff = nextLat - curLat
-                    return if (depDirLower.contains("northbound")) latDiff > 0.0001 else latDiff < -0.0001
+                    if (curLat != null && nextLat != null) {
+                        val latDiff = nextLat - curLat
+                        return if (depDirLower.contains("northbound")) latDiff > 0.0001 else latDiff < -0.0001
+                    }
                 }
 
                 return null
@@ -248,8 +250,8 @@ class TflCallingPointsResolver(
                     directionMatches(it.direction)
                 }
 
-                for (branch in prioritizedStartBranches) {
-                    val branchPath = findBranchPath(branch.branchId, emptySet())
+                for ((branchId) in prioritizedStartBranches) {
+                    val branchPath = findBranchPath(branchId, emptySet())
                     if (branchPath != null) {
                         val combined = mutableListOf<TflMatchedStop>()
                         for (bId in branchPath) {

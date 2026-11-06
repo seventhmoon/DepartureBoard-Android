@@ -111,4 +111,47 @@ class LocalizationAndRegionTest {
         assertNotNull(hkClockTime)
         assertEquals("18:30", hkClockTime)
     }
+
+    @Test
+    fun testStationAndCallingPointMultilingualResolution() {
+        val station = com.androidfung.departureboard.data.model.Station(
+            id = "JP_METRO_M17",
+            name = "Tokyo (東京)",
+            localizedNames = mapOf(
+                "en" to "Tokyo",
+                "ja" to "東京",
+                "ja-Hrkt" to "とうきょう"
+            )
+        )
+
+        // Japanese locale
+        assertEquals("東京", station.resolveDisplayName(showBilingual = false, locale = Locale.JAPANESE))
+        // English locale
+        assertEquals("Tokyo", station.resolveDisplayName(showBilingual = false, locale = Locale.ENGLISH))
+        // Bilingual
+        assertEquals("Tokyo (東京)", station.resolveDisplayName(showBilingual = true, locale = Locale.ENGLISH))
+
+        val callingPoint = com.androidfung.departureboard.data.model.CallingPoint(
+            stationName = "Central",
+            localizedNames = mapOf(
+                "en" to "Central",
+                "zh-Hant" to "中環"
+            )
+        )
+
+        assertEquals("中環", callingPoint.resolveDisplayName(showBilingual = false, locale = Locale.TRADITIONAL_CHINESE))
+        assertEquals("Central", callingPoint.resolveDisplayName(showBilingual = false, locale = Locale.ENGLISH))
+        assertEquals("Central (中環)", callingPoint.resolveDisplayName(showBilingual = true))
+
+        val operator = com.androidfung.departureboard.data.model.TransitOperator(
+            id = "MTR",
+            name = "MTR",
+            localizedNames = mapOf(
+                "en" to "MTR",
+                "zh-Hant" to "港鐵"
+            )
+        )
+        assertEquals("港鐵", operator.resolveDisplayName(showBilingual = false, locale = Locale.TRADITIONAL_CHINESE))
+        assertEquals("MTR (港鐵)", operator.resolveDisplayName(showBilingual = true))
+    }
 }

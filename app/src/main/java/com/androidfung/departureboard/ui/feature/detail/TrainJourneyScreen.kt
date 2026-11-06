@@ -909,7 +909,7 @@ private fun CallingPointTimelineItem(
                 }
 
                 Text(
-                    text = callingPoint.stationName,
+                    text = callingPoint.resolveDisplayName(),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = if (callingPoint.isCurrentStation || isLast || isTrainLocation) FontWeight.Bold else FontWeight.Normal,
                         fontSize = 15.sp
