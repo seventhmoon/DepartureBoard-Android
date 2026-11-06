@@ -73,6 +73,7 @@ data class DashboardUiState(
     val detectedCountryCode: String? = null,
     val isLocationUnsupported: Boolean = false,
     val isHkRegionEnabled: Boolean = false,
+    val isBilingualEnabled: Boolean = true,
     val lineStatuses: Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = emptyMap(),
     val isAutoSortByLocation: Boolean = false
 )

@@ -108,8 +108,9 @@ kotlin {
 
 // Robolectric's sandbox classloader can produce orphan probe entries; drop them.
 tasks.withType<Test>().matching { it.name.endsWith("UnitTest") }.configureEach {
-    extensions.configure(JacocoTaskExtension::class.java) {
-        includeNoLocationClasses = false
+    configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
     }
 }
 

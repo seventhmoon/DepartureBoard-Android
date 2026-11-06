@@ -86,6 +86,8 @@
     <string name="settings_section_about_help">정보 및 도움말</string>
     <string name="settings_close">닫기</string>
     <string name="settings_section_region_language">지역 및 언어</string>
+    <string name="settings_bilingual_title">이중 언어 역명 표시</string>
+    <string name="settings_bilingual_desc">영어 및 현지 역명 동시 표시 (예: 홍콩)</string>
     <string name="settings_theme_system">시스템</string>
     <string name="settings_theme_light">라이트</string>
     <string name="settings_theme_dark">다크</string>

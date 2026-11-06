@@ -26,6 +26,7 @@ open class FakeStationPreferencesDataSource(
     private val _dynamicColor = MutableStateFlow(initialDynamicColor)
     private val _selectedRegion = MutableStateFlow(com.androidfung.departureboard.data.model.TransitRegion.GB)
     private val _isHkRegionEnabled = MutableStateFlow(false)
+    private val _isBilingualEnabled = MutableStateFlow(true)
     private val _autoSortByLocation = MutableStateFlow(false)
 
     override val savedStationsFlow: Flow<List<Station>> = _stations.asStateFlow()
@@ -35,6 +36,7 @@ open class FakeStationPreferencesDataSource(
     override val dynamicColorFlow: Flow<Boolean> = _dynamicColor.asStateFlow()
     override val selectedRegionFlow: Flow<com.androidfung.departureboard.data.model.TransitRegion> = _selectedRegion.asStateFlow()
     override val isHkRegionEnabledFlow: Flow<Boolean> = _isHkRegionEnabled.asStateFlow()
+    override val isBilingualEnabledFlow: Flow<Boolean> = _isBilingualEnabled.asStateFlow()
     override val autoSortByLocationFlow: Flow<Boolean> = _autoSortByLocation.asStateFlow()
 
     override suspend fun setAutoSortByLocation(enabled: Boolean) {
@@ -47,6 +49,10 @@ open class FakeStationPreferencesDataSource(
 
     override suspend fun setHkRegionEnabled(enabled: Boolean) {
         _isHkRegionEnabled.value = enabled
+    }
+
+    override suspend fun setBilingualEnabled(enabled: Boolean) {
+        _isBilingualEnabled.value = enabled
     }
 
     override suspend fun setThemeMode(mode: AppThemeMode) {

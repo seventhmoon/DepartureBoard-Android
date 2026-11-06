@@ -74,6 +74,7 @@ interface TransitRepository {
     val dynamicColorFlow: Flow<Boolean>
     val selectedRegionFlow: Flow<TransitRegion>
     val isHkRegionEnabledFlow: Flow<Boolean>
+    val isBilingualEnabledFlow: Flow<Boolean>
     val autoSortByLocationFlow: Flow<Boolean>
     val recentSearchedStationsFlow: Flow<List<Station>>
 
@@ -98,6 +99,7 @@ interface TransitRepository {
     suspend fun setDynamicColor(enabled: Boolean)
     suspend fun setSelectedRegion(region: TransitRegion)
     suspend fun setHkRegionEnabled(enabled: Boolean)
+    suspend fun setBilingualEnabled(enabled: Boolean)
     suspend fun setAutoSortByLocation(enabled: Boolean)
     suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int = 1500): List<Station>
 }
@@ -163,6 +165,7 @@ class TransitRepositoryImpl(
     override val dynamicColorFlow: Flow<Boolean> = dataStore.dynamicColorFlow
     override val selectedRegionFlow: Flow<TransitRegion> = dataStore.selectedRegionFlow
     override val isHkRegionEnabledFlow: Flow<Boolean> = dataStore.isHkRegionEnabledFlow
+    override val isBilingualEnabledFlow: Flow<Boolean> = dataStore.isBilingualEnabledFlow
     override val autoSortByLocationFlow: Flow<Boolean> = dataStore.autoSortByLocationFlow
     override val recentSearchedStationsFlow: Flow<List<Station>> = dataStore.recentSearchedStationsFlow
 
@@ -170,6 +173,7 @@ class TransitRepositoryImpl(
     override suspend fun setDynamicColor(enabled: Boolean) = dataStore.setDynamicColor(enabled)
     override suspend fun setSelectedRegion(region: TransitRegion) = dataStore.setSelectedRegion(region)
     override suspend fun setHkRegionEnabled(enabled: Boolean) = dataStore.setHkRegionEnabled(enabled)
+    override suspend fun setBilingualEnabled(enabled: Boolean) = dataStore.setBilingualEnabled(enabled)
     override suspend fun setAutoSortByLocation(enabled: Boolean) = dataStore.setAutoSortByLocation(enabled)
 
     override suspend fun searchStations(query: String): Result<List<Station>> = withContext(Dispatchers.IO) {

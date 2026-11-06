@@ -44,6 +44,7 @@ open class FakeTransitRepository(
     val dynamicColorStateFlow = MutableStateFlow(initialDynamicColor)
     val selectedRegionStateFlow = MutableStateFlow(com.androidfung.departureboard.data.model.TransitRegion.GB)
     val isHkRegionEnabledStateFlow = MutableStateFlow(false)
+    val isBilingualEnabledStateFlow = MutableStateFlow(true)
     val autoSortByLocationStateFlow = MutableStateFlow(false)
     val recentSearchedStationsStateFlow = MutableStateFlow<List<Station>>(emptyList())
 
@@ -57,6 +58,7 @@ open class FakeTransitRepository(
     override val dynamicColorFlow: Flow<Boolean> = dynamicColorStateFlow.asStateFlow()
     override val selectedRegionFlow: Flow<com.androidfung.departureboard.data.model.TransitRegion> = selectedRegionStateFlow.asStateFlow()
     override val isHkRegionEnabledFlow: Flow<Boolean> = isHkRegionEnabledStateFlow.asStateFlow()
+    override val isBilingualEnabledFlow: Flow<Boolean> = isBilingualEnabledStateFlow.asStateFlow()
     override val autoSortByLocationFlow: Flow<Boolean> = autoSortByLocationStateFlow.asStateFlow()
     override val recentSearchedStationsFlow: Flow<List<Station>> = recentSearchedStationsStateFlow.asStateFlow()
 
@@ -71,6 +73,10 @@ open class FakeTransitRepository(
 
     override suspend fun setHkRegionEnabled(enabled: Boolean) {
         isHkRegionEnabledStateFlow.value = enabled
+    }
+
+    override suspend fun setBilingualEnabled(enabled: Boolean) {
+        isBilingualEnabledStateFlow.value = enabled
     }
 
     override suspend fun setDepartureRowsCount(count: Int) {

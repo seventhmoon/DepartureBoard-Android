@@ -86,6 +86,8 @@
     <string name="settings_section_about_help">アプリについて・ヘルプ</string>
     <string name="settings_close">閉じる</string>
     <string name="settings_section_region_language">地域と言語</string>
+    <string name="settings_bilingual_title">2言語駅名表示</string>
+    <string name="settings_bilingual_desc">英語と現地の駅名の両方を表示（例：香港）</string>
     <string name="settings_theme_system">システム</string>
     <string name="settings_theme_light">ライト</string>
     <string name="settings_theme_dark">ダーク</string>
