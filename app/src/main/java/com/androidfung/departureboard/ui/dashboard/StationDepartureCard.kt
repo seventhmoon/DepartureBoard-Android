@@ -46,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -140,7 +141,7 @@ fun StationDepartureCard(
         modifier = modifier.fillMaxWidth(),
         backgroundContent = {
             val direction = dismissState.dismissDirection
-            val color by animateColorAsState(
+            val colorState = animateColorAsState(
                 targetValue = when (dismissState.targetValue) {
                     SwipeToDismissBoxValue.Settled -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
                     else -> MaterialTheme.colorScheme.errorContainer
@@ -166,7 +167,7 @@ fun StationDepartureCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(32.dp))
-                    .background(color)
+                    .drawBehind { drawRect(colorState.value) }
                     .padding(horizontal = 24.dp),
                 contentAlignment = alignment
             ) {

@@ -36,7 +36,74 @@ enum class WheelchairBoardingStatus(val gtfsCode: Int) {
     UNKNOWN(0),
     STEP_FREE_LEVEL_BOARDING(1),  // Level boarding without ramp
     STEP_FREE_WITH_RAMP(1),       // Accessible via lift/ramp, staff boarding ramp required
-    NOT_ACCESSIBLE(2)             // Inaccessible / stairs only
+    NOT_ACCESSIBLE(2);            // Inaccessible / stairs only
+
+    companion object {
+        fun fromGtfsCode(code: Int?): WheelchairBoardingStatus = when (code) {
+            1 -> STEP_FREE_LEVEL_BOARDING
+            2 -> NOT_ACCESSIBLE
+            else -> UNKNOWN
+        }
+    }
+}
+
+/**
+ * Standard GTFS-RT VehiclePosition / TripUpdate OccupancyStatus.
+ */
+enum class OccupancyStatus(val gtfsCode: Int) {
+    EMPTY(0),
+    MANY_SEATS_AVAILABLE(1),
+    FEW_SEATS_AVAILABLE(2),
+    STANDING_ROOM_ONLY(3),
+    CRUSHED_STANDING_ROOM_ONLY(4),
+    FULL(5),
+    NOT_ACCEPTING_PASSENGERS(6);
+
+    companion object {
+        fun fromString(raw: String?): OccupancyStatus? {
+            if (raw.isNullOrBlank()) return null
+            return when (raw.trim().uppercase().replace("-", "_").replace(" ", "_")) {
+                "EMPTY", "0" -> EMPTY
+                "MANY_SEATS_AVAILABLE", "SEATS_AVAILABLE", "SEATSAVAILABLE", "SEATS", "1" -> MANY_SEATS_AVAILABLE
+                "FEW_SEATS_AVAILABLE", "FEWSEATSAVAILABLE", "LIMITED_SEATS", "2" -> FEW_SEATS_AVAILABLE
+                "STANDING_ROOM_ONLY", "STANDING_AVAILABLE", "STANDINGAVAILABLE", "STANDING", "3" -> STANDING_ROOM_ONLY
+                "CRUSHED_STANDING_ROOM_ONLY", "CRUSHEDSTANDINGROOMONLY", "VERY_CROWDED", "4" -> CRUSHED_STANDING_ROOM_ONLY
+                "FULL", "5" -> FULL
+                "NOT_ACCEPTING_PASSENGERS", "NOTACCEPTINGPASSENGERS", "6" -> NOT_ACCEPTING_PASSENGERS
+                else -> entries.firstOrNull { it.name.equals(raw.trim(), ignoreCase = true) }
+            }
+        }
+    }
+}
+
+/**
+ * Standard GTFS-RT TripUpdate.StopTimeUpdate.ScheduleRelationship for individual calling points.
+ */
+enum class StopScheduleRelationship(val gtfsCode: Int) {
+    SCHEDULED(0),   // Vehicle stops according to schedule
+    SKIPPED(1),     // Stop is cancelled/bypassed on this trip
+    NO_DATA(2),     // No real-time prediction available for this stop
+    UNSCHEDULED(3)  // Additional stop added dynamically to the trip
+}
+
+/**
+ * Standard GTFS-RT VehiclePosition.VehicleStopStatus indicating vehicle progress relative to a stop.
+ */
+enum class VehicleStopStatus(val gtfsCode: Int) {
+    INCOMING_AT(0),   // Vehicle is about to arrive at the stop
+    STOPPED_AT(1),    // Vehicle is standing at the stop / platform
+    IN_TRANSIT_TO(2); // Vehicle has departed previous stop and is in transit
+
+    companion object {
+        fun fromLocationAndTime(currentLocation: String?, timeToStationSeconds: Int): VehicleStopStatus {
+            val loc = currentLocation?.trim()?.lowercase() ?: ""
+            return when {
+                loc.contains("at platform") || loc.contains("at stop") || loc.startsWith("at ") || timeToStationSeconds <= 30 -> STOPPED_AT
+                loc.contains("approaching") || loc.contains("arriving") || timeToStationSeconds <= 90 -> INCOMING_AT
+                else -> IN_TRANSIT_TO
+            }
+        }
+    }
 }
 
 /**
@@ -199,8 +266,13 @@ data class CallingPoint(
     val stationId: String? = null,
     val modes: List<String> = emptyList(),
     override val localizedNames: Map<String, String> = emptyMap(),
-    val stopActivity: StopActivityType = StopActivityType.NORMAL
+    val stopActivity: StopActivityType = StopActivityType.NORMAL,
+    val scheduleRelationship: StopScheduleRelationship = StopScheduleRelationship.SCHEDULED
 ) : LocalizedNameProvider {
+    val isCancelled: Boolean
+        get() = scheduleRelationship == StopScheduleRelationship.SKIPPED ||
+            estimatedTime.equals("Cancelled", ignoreCase = true)
+
     /**
      * Resolves the calling point display name according to the active locale or bilingual setting.
      */
@@ -248,7 +320,10 @@ data class CoachInfo(
     val hasBicycleRack: Boolean? = null,
     val hasToilet: Boolean? = null,
     val isQuietCoach: Boolean? = null
-)
+) {
+    val parsedOccupancyStatus: OccupancyStatus?
+        get() = OccupancyStatus.fromString(occupancyStatus)
+}
 
 /**
  * Train composition / formation details (e.g. 8 coaches, carriage layout).
@@ -332,6 +407,12 @@ data class Departure(
 
     val isPickUpOnly: Boolean
         get() = stopActivity == StopActivityType.BOARDING_ONLY
+
+    val parsedOccupancyStatus: OccupancyStatus?
+        get() = OccupancyStatus.fromString(occupancyStatus)
+
+    val vehicleStopStatus: VehicleStopStatus
+        get() = VehicleStopStatus.fromLocationAndTime(currentLocation, timeToStationSeconds)
 
     val operator: TransitOperator? get() = train?.operator
     val formation: TrainFormation? get() = train?.formation
@@ -498,6 +579,18 @@ enum class TransitMode(
 
         fun fromModes(modes: List<String>): List<TransitMode> =
             modes.map { fromModeString(it) }
+
+        fun fromGtfsRouteType(routeType: Int): TransitMode = when (routeType) {
+            0, in 900..999 -> TRAM
+            1, in 400..499 -> METRO
+            2, in 100..199 -> RAIL
+            3, 11, in 700..799, in 800..899 -> BUS
+            4, in 1000..1099 -> FERRY
+            5, 6, in 1300..1399 -> CABLE_CAR
+            7, in 1400..1499 -> FUNICULAR
+            12, 405 -> MONORAIL
+            else -> OTHER
+        }
 
         fun isBusOnly(modes: List<String>): Boolean =
             modes.isNotEmpty() && modes.all { it.equals(BUS.id, ignoreCase = true) }

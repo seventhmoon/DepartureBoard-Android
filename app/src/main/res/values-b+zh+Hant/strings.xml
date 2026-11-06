@@ -23,6 +23,8 @@
     <string name="status_seats">有座</string>
     <string name="status_standing">企位</string>
     <string name="status_full">客滿</string>
+    <string name="status_set_down_only">只供落客</string>
+    <string name="status_pick_up_only">只供上客</string>
     <string name="unit_min">分鐘</string>
 
     <!-- Transit Directions -->

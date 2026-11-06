@@ -20,8 +20,11 @@ data class GtfsStopEntity(
     val stopName: String,
     val stopLat: Double? = null,
     val stopLon: Double? = null,
-    val locationType: Int = 0, // 0 = stop/platform, 1 = station
-    val parentStation: String? = null
+    val locationType: Int = 0, // 0 = stop/platform, 1 = station, 2 = entrance/exit, 3 = generic node, 4 = boarding area
+    val parentStation: String? = null,
+    val platformCode: String? = null,
+    val wheelchairBoarding: Int = 0, // 0 = unknown/inherit, 1 = accessible, 2 = not accessible
+    val zoneId: String? = null
 )
 
 /**
@@ -60,7 +63,10 @@ data class GtfsTripEntity(
     val routeId: String,
     val serviceId: String,
     val tripHeadsign: String? = null,
-    val directionId: Int? = null
+    val directionId: Int? = null,
+    val wheelchairAccessible: Int = 0, // 0 = unknown, 1 = accessible, 2 = not accessible
+    val bikesAllowed: Int = 0,         // 0 = unknown, 1 = allowed, 2 = not allowed
+    val blockId: String? = null
 )
 
 /**
@@ -81,5 +87,40 @@ data class GtfsStopTimeEntity(
     val stopSequence: Int,
     val arrivalTimeSeconds: Int,
     val departureTimeSeconds: Int,
-    val stopHeadsign: String? = null
+    val stopHeadsign: String? = null,
+    val pickupType: Int = 0,  // 0 = regular, 1 = none, 2 = phone agency, 3 = coordinate with driver
+    val dropOffType: Int = 0, // 0 = regular, 1 = none, 2 = phone agency, 3 = coordinate with driver
+    val timepoint: Int = 1    // 0 = approximate times, 1 = exact times
+)
+
+/**
+ * GTFS calendar.txt entity defining weekly service patterns and validity dates (YYYYMMDD).
+ */
+@Entity(tableName = "gtfs_calendar")
+data class GtfsCalendarEntity(
+    @PrimaryKey
+    val serviceId: String,
+    val monday: Int = 0,
+    val tuesday: Int = 0,
+    val wednesday: Int = 0,
+    val thursday: Int = 0,
+    val friday: Int = 0,
+    val saturday: Int = 0,
+    val sunday: Int = 0,
+    val startDate: String, // YYYYMMDD
+    val endDate: String    // YYYYMMDD
+)
+
+/**
+ * GTFS calendar_dates.txt entity defining date-specific service additions (1) or removals (2).
+ */
+@Entity(
+    tableName = "gtfs_calendar_dates",
+    primaryKeys = ["serviceId", "date"],
+    indices = [Index(value = ["date"])]
+)
+data class GtfsCalendarDateEntity(
+    val serviceId: String,
+    val date: String,      // YYYYMMDD
+    val exceptionType: Int // 1 = Service added for date, 2 = Service removed for date
 )

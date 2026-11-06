@@ -17,11 +17,20 @@ interface GtfsDao {
     @Query("SELECT * FROM gtfs_stops WHERE stopName LIKE '%' || :query || '%' LIMIT :limit")
     suspend fun searchStopsByName(query: String, limit: Int = 20): List<GtfsStopEntity>
 
+    @Query("SELECT * FROM gtfs_stops WHERE parentStation = :parentStationId")
+    suspend fun getChildStops(parentStationId: String): List<GtfsStopEntity>
+
     @Query("SELECT * FROM gtfs_routes WHERE routeId = :routeId LIMIT 1")
     suspend fun getRouteById(routeId: String): GtfsRouteEntity?
 
     @Query("SELECT * FROM gtfs_trips WHERE tripId = :tripId LIMIT 1")
     suspend fun getTripById(tripId: String): GtfsTripEntity?
+
+    @Query("SELECT * FROM gtfs_calendar")
+    suspend fun getAllCalendars(): List<GtfsCalendarEntity>
+
+    @Query("SELECT * FROM gtfs_calendar_dates WHERE date = :date")
+    suspend fun getCalendarDatesForDate(date: String): List<GtfsCalendarDateEntity>
 
     @Query(
         """
@@ -47,6 +56,24 @@ interface GtfsDao {
         limit: Int = 10
     ): List<GtfsStopTimeEntity>
 
+    @Query(
+        """
+        SELECT st.* FROM gtfs_stop_times st
+        INNER JOIN gtfs_trips t ON st.tripId = t.tripId
+        WHERE st.stopId IN (:stopIds)
+          AND t.serviceId IN (:serviceIds)
+          AND st.departureTimeSeconds >= :afterTimeSeconds
+        ORDER BY st.departureTimeSeconds ASC
+        LIMIT :limit
+        """
+    )
+    suspend fun getUpcomingStopTimesForServices(
+        stopIds: List<String>,
+        serviceIds: List<String>,
+        afterTimeSeconds: Int,
+        limit: Int = 10
+    ): List<GtfsStopTimeEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStops(stops: List<GtfsStopEntity>)
 
@@ -59,6 +86,12 @@ interface GtfsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStopTimes(stopTimes: List<GtfsStopTimeEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCalendars(calendars: List<GtfsCalendarEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCalendarDates(calendarDates: List<GtfsCalendarDateEntity>)
+
     @Query("DELETE FROM gtfs_stops")
     suspend fun clearStops()
 
@@ -70,4 +103,10 @@ interface GtfsDao {
 
     @Query("DELETE FROM gtfs_stop_times")
     suspend fun clearStopTimes()
+
+    @Query("DELETE FROM gtfs_calendar")
+    suspend fun clearCalendars()
+
+    @Query("DELETE FROM gtfs_calendar_dates")
+    suspend fun clearCalendarDates()
 }

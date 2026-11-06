@@ -1,11 +1,14 @@
 package com.androidfung.departureboard
 
+import android.animation.ObjectAnimator
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -27,7 +30,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.core.animation.doOnEnd
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -38,6 +43,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.androidfung.departureboard.billing.BillingRepository
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.ui.dashboard.DashboardContent
 import com.androidfung.departureboard.ui.dashboard.DashboardViewModel
 import com.androidfung.departureboard.ui.feature.detail.ListDetailScene
@@ -96,7 +102,20 @@ class MainActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalSharedTransitionApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        // Custom smooth exit animation from splash screen to Compose UI
+        splashScreen.setOnExitAnimationListener { splashScreenViewProvider ->
+            val splashScreenView = splashScreenViewProvider.view
+            val fadeOut = ObjectAnimator.ofFloat(splashScreenView, View.ALPHA, 1f, 0f).apply {
+                interpolator = DecelerateInterpolator()
+                duration = 300L
+                doOnEnd { splashScreenViewProvider.remove() }
+            }
+            fadeOut.start()
+        }
+
         enableEdgeToEdge()
         handleIntent(intent)
         com.androidfung.departureboard.widget.WidgetUpdateWorker.enqueuePeriodicUpdate(applicationContext)
@@ -681,6 +700,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         handleIntent(intent)
     }
 
@@ -692,22 +712,25 @@ class MainActivity : AppCompatActivity() {
             ?: uri?.getQueryParameter("name")
 
         if (!stationId.isNullOrBlank()) {
-            // Reuse full metadata (modes/zone/lines) for known popular stations so a
-            // deep-linked card shows correct branding — previously every deep link was
-            // hard-coded as a "tube" station, which was wrong for National Rail hubs.
-            val known = com.androidfung.departureboard.data.model.gb.GbDefaultStations.POPULAR_STATIONS
-                .firstOrNull { (id) -> id == stationId }
+            val region = TransitRegion.fromStationId(stationId)
+            // Reuse full metadata (modes/zone/lines) for known stations across all supported regions
+            // so a deep-linked card shows correct branding immediately without awaiting network.
+            val known = region.directory?.getStationById(stationId)
+                ?: region.defaultStations.firstOrNull { it.id.equals(stationId, ignoreCase = true) }
+                ?: com.androidfung.departureboard.data.model.gb.GbDefaultStations.POPULAR_STATIONS
+                    .firstOrNull { it.id.equals(stationId, ignoreCase = true) }
+
             if (known != null) {
                 initialStation = known.copy(
                     name = stationName ?: known.name,
                     isFavorite = true
                 )
             } else {
-                // Initial placeholder
+                // Initial placeholder with region-appropriate defaults
                 initialStation = Station(
                     id = stationId,
                     name = stationName ?: "Station",
-                    modes = listOf("tube"),
+                    modes = if (region == TransitRegion.GB) listOf("tube") else emptyList(),
                     zone = null,
                     lat = null,
                     lon = null,

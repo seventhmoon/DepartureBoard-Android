@@ -893,7 +893,9 @@ private fun CallingPointTimelineItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val isSkipped = callingPoint.isCancelled
                 val nameColor = when {
+                    isSkipped -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                     isPassed -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.50f)
                     callingPoint.isCurrentStation -> MaterialTheme.colorScheme.primary
                     else -> MaterialTheme.colorScheme.onSurface
@@ -903,7 +905,8 @@ private fun CallingPointTimelineItem(
                     text = callingPoint.resolveDisplayName(),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = if (callingPoint.isCurrentStation || isLast || isTrainLocation) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 15.sp
+                        fontSize = 15.sp,
+                        textDecoration = if (isSkipped) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None
                     ),
                     color = nameColor,
                     maxLines = 1,
@@ -917,9 +920,25 @@ private fun CallingPointTimelineItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    val timeAlpha = if (isPassed) 0.45f else 1.0f
-                    // If there's an estimated countdown badge (e.g. "3 mins" or "Due") separate from clock time
-                    if (!callingPoint.estimatedTime.isNullOrBlank() && callingPoint.scheduledTime != null && callingPoint.estimatedTime != callingPoint.scheduledTime) {
+                    val timeAlpha = if (isPassed || isSkipped) 0.45f else 1.0f
+                    if (isSkipped) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.errorContainer)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.status_cancelled),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    } else if (!callingPoint.estimatedTime.isNullOrBlank() && callingPoint.scheduledTime != null && callingPoint.estimatedTime != callingPoint.scheduledTime) {
+                        // If there's an estimated countdown badge (e.g. "3 mins" or "Due") separate from clock time
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
@@ -943,13 +962,14 @@ private fun CallingPointTimelineItem(
                         }
                     }
 
-                    val timeDisplay = callingPoint.scheduledTime ?: callingPoint.estimatedTime
+                    val timeDisplay = callingPoint.scheduledTime ?: if (!isSkipped) callingPoint.estimatedTime else null
                     if (!timeDisplay.isNullOrBlank()) {
                         Text(
                             text = timeDisplay,
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                textDecoration = if (isSkipped) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = timeAlpha)
                         )

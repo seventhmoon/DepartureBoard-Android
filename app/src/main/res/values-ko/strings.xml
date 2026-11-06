@@ -24,6 +24,8 @@
     <string name="status_seats">좌석 여유</string>
     <string name="status_standing">입석</string>
     <string name="status_full">만석</string>
+    <string name="status_set_down_only">하차 전용</string>
+    <string name="status_pick_up_only">승차 전용</string>
     <string name="unit_min">분</string>
 
     <!-- Transit Directions -->

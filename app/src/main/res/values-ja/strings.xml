@@ -24,6 +24,8 @@
     <string name="status_seats">空席あり</string>
     <string name="status_standing">立席あり</string>
     <string name="status_full">満員</string>
+    <string name="status_set_down_only">降車専用</string>
+    <string name="status_pick_up_only">乗車専用</string>
     <string name="unit_min">分</string>
 
     <!-- Transit Directions -->

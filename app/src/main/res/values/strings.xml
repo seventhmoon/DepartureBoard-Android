@@ -23,6 +23,8 @@
     <string name="status_seats">Seats</string>
     <string name="status_standing">Standing</string>
     <string name="status_full">Full</string>
+    <string name="status_set_down_only">Set Down Only</string>
+    <string name="status_pick_up_only">Pick Up Only</string>
     <string name="unit_min">min</string>
 
     <!-- Transit Directions -->

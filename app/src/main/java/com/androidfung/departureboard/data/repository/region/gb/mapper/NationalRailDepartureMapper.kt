@@ -1,9 +1,12 @@
 package com.androidfung.departureboard.data.repository.region.gb.mapper
 
 import androidx.compose.ui.graphics.Color
+import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.JourneyDestination
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.PlatformInfo
+import com.androidfung.departureboard.data.model.StopScheduleRelationship
 import com.androidfung.departureboard.data.model.TrainFormation
 import com.androidfung.departureboard.data.model.TrainInfo
 import com.androidfung.departureboard.data.model.TransitMode
@@ -170,27 +173,31 @@ object NationalRailDepartureMapper {
         val modeId = TransitMode.RAIL.id
 
         val subsequentPoints = service.subsequentCallingPoints?.firstOrNull()?.callingPoint?.map { cp ->
-            com.androidfung.departureboard.data.model.CallingPoint(
+            val isSkipped = cp.isCancelled || cp.et.equals("Cancelled", ignoreCase = true)
+            CallingPoint(
                 stationName = cp.locationName,
                 scheduledTime = cp.st,
-                estimatedTime = cp.et,
+                estimatedTime = if (isSkipped) "Cancelled" else cp.et,
                 isCurrentStation = false,
                 isDestination = cp.locationName.equals(destination, ignoreCase = true),
                 stationId = cp.crs,
-                modes = listOf(modeId)
+                modes = listOf(modeId),
+                scheduleRelationship = if (isSkipped) StopScheduleRelationship.SKIPPED else StopScheduleRelationship.SCHEDULED
             )
         } ?: emptyList()
 
         val fullCallingPoints = if (subsequentPoints.isNotEmpty()) {
+            val isOriginSkipped = service.isCancelled || etd.equals("Cancelled", ignoreCase = true)
             listOf(
-                com.androidfung.departureboard.data.model.CallingPoint(
+                CallingPoint(
                     stationName = stationName,
                     scheduledTime = std,
-                    estimatedTime = etd,
+                    estimatedTime = if (isOriginSkipped) "Cancelled" else etd,
                     isCurrentStation = true,
                     isDestination = false,
                     stationId = stationId,
-                    modes = listOf(modeId)
+                    modes = listOf(modeId),
+                    scheduleRelationship = if (isOriginSkipped) StopScheduleRelationship.SKIPPED else StopScheduleRelationship.SCHEDULED
                 )
             ) + subsequentPoints
         } else {
@@ -212,6 +219,14 @@ object NationalRailDepartureMapper {
             cancelReason = service.cancelReason,
             delayReason = service.delayReason
         )
+        val rawVia = service.destination.firstOrNull()?.via
+        val normalizedVia = rawVia?.removePrefix("via ")?.removePrefix("Via ")?.trim()
+        val journeyDest = JourneyDestination(
+            terminusName = destination,
+            tripHeadsign = if (!normalizedVia.isNullOrBlank()) "$destination via $normalizedVia" else destination,
+            via = normalizedVia,
+            terminusStationId = destCrs
+        )
 
         return Departure(
             id = service.serviceId,
@@ -221,7 +236,7 @@ object NationalRailDepartureMapper {
             lineName = resolvedLineName,
             platformName = platformStr,
             destinationName = destination,
-            towards = service.destination.firstOrNull()?.via?.let { "via $it" },
+            towards = normalizedVia?.let { "via $it" },
             direction = resolvedDirection,
             timeToStationSeconds = timeToStationSeconds,
             expectedArrivalIso = expectedInstant?.toString(),
@@ -233,7 +248,8 @@ object NationalRailDepartureMapper {
             platform = platformInfo.copy(directionHint = resolvedDirection),
             train = trainInfo,
             scheduledDepartureInstant = scheduledInstant,
-            expectedDepartureInstant = expectedInstant
+            expectedDepartureInstant = expectedInstant,
+            journeyDestination = journeyDest
         )
     }
 

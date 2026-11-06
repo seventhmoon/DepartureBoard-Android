@@ -1,0 +1,50 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="50dp"
+    android:viewportWidth="200"
+    android:viewportHeight="50">
+
+    <!-- Stylized Dual Transit Rails -->
+    <path
+        android:pathData="M30,12L170,12"
+        android:strokeWidth="1.5"
+        android:strokeColor="@color/splash_branding_accent" />
+    <path
+        android:pathData="M30,16L170,16"
+        android:strokeWidth="1.0"
+        android:strokeColor="@color/splash_branding_accent"
+        android:strokeAlpha="0.6" />
+
+    <!-- Station Interchange Nodes along the Rail -->
+    <path
+        android:fillColor="@color/splash_branding_accent"
+        android:pathData="M60,14m-3,0a3,3 0 1,1 6,0a3,3 0 1,1 -6,0" />
+    <path
+        android:fillColor="@color/splash_background"
+        android:pathData="M60,14m-1.5,0a1.5,1.5 0 1,1 3,0a1.5,1.5 0 1,1 -3,0" />
+
+    <path
+        android:fillColor="@color/splash_branding_accent"
+        android:pathData="M100,14m-3,0a3,3 0 1,1 6,0a3,3 0 1,1 -6,0" />
+    <path
+        android:fillColor="@color/splash_background"
+        android:pathData="M100,14m-1.5,0a1.5,1.5 0 1,1 3,0a1.5,1.5 0 1,1 -3,0" />
+
+    <path
+        android:fillColor="@color/splash_branding_accent"
+        android:pathData="M140,14m-3,0a3,3 0 1,1 6,0a3,3 0 1,1 -6,0" />
+    <path
+        android:fillColor="@color/splash_background"
+        android:pathData="M140,14m-1.5,0a1.5,1.5 0 1,1 3,0a1.5,1.5 0 1,1 -3,0" />
+
+    <!-- Typography: "MIND THE BOARD" in clean geometric bar paths -->
+    <!-- Stylized Title Pill: "DEPARTURE BOARD" -->
+    <path
+        android:fillColor="@color/splash_branding_text"
+        android:pathData="M62,26L138,26A2.5,2.5 0 0,1 140.5,28.5L140.5,28.5A2.5,2.5 0 0,1 138,31L62,31A2.5,2.5 0 0,1 59.5,28.5L59.5,28.5A2.5,2.5 0 0,1 62,26Z" />
+
+    <!-- Subtitle Rail Indicator Pill -->
+    <path
+        android:fillColor="@color/splash_branding_subtext"
+        android:pathData="M78,36L122,36A1.8,1.8 0 0,1 123.8,37.8L123.8,37.8A1.8,1.8 0 0,1 122,39.6L78,39.6A1.8,1.8 0 0,1 76.2,37.8L76.2,37.8A1.8,1.8 0 0,1 78,36Z" />
+</vector>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_splash_logo">
+
+    <target
+        android:name="board_scale"
+        android:animation="@animator/splash_board_scale" />
+
+    <target
+        android:name="live_beacon"
+        android:animation="@animator/splash_beacon_pulse" />
+
+    <target
+        android:name="clock_colon"
+        android:animation="@animator/splash_clock_blink" />
+
+</animated-vector>

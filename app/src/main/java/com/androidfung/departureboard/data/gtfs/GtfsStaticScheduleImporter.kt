@@ -17,6 +17,8 @@ class GtfsStaticScheduleImporter(
         routes: List<GtfsRouteEntity> = emptyList(),
         trips: List<GtfsTripEntity> = emptyList(),
         stopTimes: List<GtfsStopTimeEntity> = emptyList(),
+        calendars: List<GtfsCalendarEntity> = emptyList(),
+        calendarDates: List<GtfsCalendarDateEntity> = emptyList(),
         clearExisting: Boolean = false
     ) {
         if (clearExisting) {
@@ -24,10 +26,14 @@ class GtfsStaticScheduleImporter(
             dao.clearTrips()
             dao.clearRoutes()
             dao.clearStops()
+            dao.clearCalendars()
+            dao.clearCalendarDates()
         }
         if (stops.isNotEmpty()) dao.insertStops(stops)
         if (routes.isNotEmpty()) dao.insertRoutes(routes)
         if (trips.isNotEmpty()) dao.insertTrips(trips)
         if (stopTimes.isNotEmpty()) dao.insertStopTimes(stopTimes)
+        if (calendars.isNotEmpty()) dao.insertCalendars(calendars)
+        if (calendarDates.isNotEmpty()) dao.insertCalendarDates(calendarDates)
     }
 }

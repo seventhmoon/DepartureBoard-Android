@@ -1,3 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Splash Screen Colors (Light Mode) -->
+    <color name="splash_background">#F8F9FE</color>
+    <color name="splash_branding_text">#191C20</color>
+    <color name="splash_branding_subtext">#5F6368</color>
+    <color name="splash_branding_accent">#0019A8</color>
 </resources>

@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
+import com.androidfung.departureboard.data.model.OccupancyStatus
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.ui.theme.dimensions
 
@@ -179,11 +180,15 @@ fun DepartureRowItem(
                     }
 
                     if (!departure.occupancyStatus.isNullOrBlank()) {
-                        val occupancyLabel = when (departure.occupancyStatus.lowercase()) {
-                            "seatsavailable", "seats" -> stringResource(R.string.status_seats)
-                            "standingavailable", "standing" -> stringResource(R.string.status_standing)
-                            "full" -> stringResource(R.string.status_full)
-                            else -> departure.occupancyStatus
+                        val occupancyLabel = when (departure.parsedOccupancyStatus) {
+                            OccupancyStatus.EMPTY,
+                            OccupancyStatus.MANY_SEATS_AVAILABLE,
+                            OccupancyStatus.FEW_SEATS_AVAILABLE -> stringResource(R.string.status_seats)
+                            OccupancyStatus.STANDING_ROOM_ONLY,
+                            OccupancyStatus.CRUSHED_STANDING_ROOM_ONLY -> stringResource(R.string.status_standing)
+                            OccupancyStatus.FULL,
+                            OccupancyStatus.NOT_ACCEPTING_PASSENGERS -> stringResource(R.string.status_full)
+                            null -> departure.occupancyStatus
                         }
                         Surface(
                             shape = RoundedCornerShape(4.dp),
@@ -218,7 +223,7 @@ fun DepartureRowItem(
                             color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
                         ) {
                             Text(
-                                text = "Set Down Only",
+                                text = stringResource(R.string.status_set_down_only),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
@@ -230,7 +235,7 @@ fun DepartureRowItem(
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
-                                text = "Pick Up Only",
+                                text = stringResource(R.string.status_pick_up_only),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
