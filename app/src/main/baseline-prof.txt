@@ -16,10 +16,10 @@ Lcom/androidfung/departureboard/di/DefaultAppContainer;
 HSPLcom/androidfung/departureboard/di/DefaultAppContainer;-><init>(Landroid/content/Context;)V
 HSPLcom/androidfung/departureboard/di/DefaultAppContainer;->getTransitRepository()Lcom/androidfung/departureboard/data/repository/TransitRepository;
 HSPLcom/androidfung/departureboard/di/DefaultAppContainer;->getStationPreferencesDataSource()Lcom/androidfung/departureboard/data/datastore/StationPreferencesDataSource;
+HSPLcom/androidfung/departureboard/di/DefaultAppContainer;->getBillingRepository()Lcom/androidfung/departureboard/billing/BillingDataSource;
 
 Lcom/androidfung/departureboard/data/repository/TransitRepository;
 Lcom/androidfung/departureboard/data/repository/TransitRepositoryImpl;
-HSPLcom/androidfung/departureboard/data/repository/TransitRepositoryImpl;-><init>(Lcom/androidfung/departureboard/data/network/gb/TflApiService;Lcom/androidfung/departureboard/data/network/gb/NationalRailApiService;Lcom/androidfung/departureboard/data/network/gb/BodsApiService;Lcom/androidfung/departureboard/data/datastore/StationPreferencesDataSource;Lcom/androidfung/departureboard/data/db/cache/DepartureDao;Lcom/androidfung/departureboard/data/repository/region/gb/TimetableScheduleResolver;Landroid/content/Context;Ljava/util/List;)V
 HSPLcom/androidfung/departureboard/data/repository/TransitRepositoryImpl;->getDepartures(Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 HSPLcom/androidfung/departureboard/data/repository/TransitRepositoryImpl;->getCachedDepartures(Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 
@@ -27,19 +27,35 @@ Lcom/androidfung/departureboard/data/repository/region/RegionalTransitProvider;
 Lcom/androidfung/departureboard/data/repository/region/gb/GbRegionalTransitProvider;
 Lcom/androidfung/departureboard/data/repository/region/hk/HkRegionalTransitProvider;
 
+Lcom/androidfung/departureboard/data/db/gb/GbStationDatabase;
+Lcom/androidfung/departureboard/data/db/gb/GbStationCrsDao;
+Lcom/androidfung/departureboard/data/db/hk/HkStationDatabase;
+Lcom/androidfung/departureboard/data/db/hk/HkBusStopDao;
+Lcom/androidfung/departureboard/data/db/cache/DepartureCacheDatabase;
+Lcom/androidfung/departureboard/data/db/cache/DepartureDao;
+
 Lcom/androidfung/departureboard/ui/dashboard/DashboardViewModel;
-HSPLcom/androidfung/departureboard/ui/dashboard/DashboardViewModel;-><init>(Lcom/androidfung/departureboard/data/repository/TransitRepository;Lcom/androidfung/departureboard/billing/BillingDataSource;Landroid/content/Context;Lcom/androidfung/departureboard/util/NetworkConnectivityObserver;)V
 HSPLcom/androidfung/departureboard/ui/dashboard/DashboardViewModel;->getUiState()Lkotlinx/coroutines/flow/StateFlow;
 
+Lcom/androidfung/departureboard/ui/dashboard/CountdownTicker;
+HSPLcom/androidfung/departureboard/ui/dashboard/CountdownTicker;->tick(Ljava/util/List;)Ljava/util/List;
+HSPLcom/androidfung/departureboard/ui/dashboard/CountdownTicker;->tickDeparture(Lcom/androidfung/departureboard/data/model/Departure;)Lcom/androidfung/departureboard/data/model/Departure;
+
+Lcom/androidfung/departureboard/ui/dashboard/StationBadgeSynthesizer;
 Lcom/androidfung/departureboard/ui/dashboard/DashboardScreenKt;
 Lcom/androidfung/departureboard/ui/dashboard/StationDepartureCardKt;
 Lcom/androidfung/departureboard/ui/designsystem/DepartureRowItemKt;
+Lcom/androidfung/departureboard/ui/feature/detail/StationDetailScreenKt;
+Lcom/androidfung/departureboard/ui/feature/detail/TrainJourneyScreenKt;
+Lcom/androidfung/departureboard/ui/feature/detail/DetailPaneScaffoldKt;
+Lcom/androidfung/departureboard/ui/feature/search/SearchStationBottomSheetKt;
 
 Lcom/androidfung/departureboard/data/model/Station;
 Lcom/androidfung/departureboard/data/model/Departure;
 Lcom/androidfung/departureboard/data/model/LineBadgeInfo;
 Lcom/androidfung/departureboard/data/model/TransitMode;
 Lcom/androidfung/departureboard/data/model/TransitRegion;
+Lcom/androidfung/departureboard/data/model/TransitDirection;
 
 Lcom/androidfung/departureboard/util/CoalescingTimedCache;
 HSPLcom/androidfung/departureboard/util/CoalescingTimedCache;-><init>(J)V

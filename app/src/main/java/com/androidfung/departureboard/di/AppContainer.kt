@@ -48,6 +48,7 @@ interface AppContainer {
     val transitRepository: TransitRepository
     val billingRepository: BillingDataSource
     val dynamicAiAssistantProvider: com.androidfung.departureboard.ai.DynamicAiAssistantProvider
+    val gtfsDatabase: com.androidfung.departureboard.data.gtfs.GtfsDatabase
 }
 
 class DefaultAppContainer(
@@ -117,5 +118,9 @@ class DefaultAppContainer(
 
     override val dynamicAiAssistantProvider: com.androidfung.departureboard.ai.DynamicAiAssistantProvider by lazy {
         com.androidfung.departureboard.ai.DynamicAiAssistantProvider(applicationContext)
+    }
+
+    override val gtfsDatabase: com.androidfung.departureboard.data.gtfs.GtfsDatabase by lazy {
+        com.androidfung.departureboard.data.gtfs.GtfsDatabase.getInstance(applicationContext)
     }
 }
