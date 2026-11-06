@@ -193,7 +193,11 @@ private fun TrainJourneyContent(
         }
     }
 
-    val activeTrainIndex = remember(callingPoints, departure.currentLocation) {
+    val currentStationIndex = remember(callingPoints) {
+        callingPoints.indexOfFirst { it.isCurrentStation }
+    }
+
+    val activeTrainIndex = remember(callingPoints, departure.currentLocation, departure.timeToStationSeconds, departure.status) {
         if (callingPoints.isEmpty()) return@remember -1
         val loc = departure.currentLocation?.trim()?.lowercase() ?: ""
         if (loc.isNotBlank()) {
@@ -203,7 +207,24 @@ private fun TrainJourneyContent(
             }
             if (matchIndex >= 0) return@remember matchIndex
         }
-        callingPoints.indexOfFirst { it.isCurrentStation }
+
+        // Only mark "Your station" if the train is actually at or arriving at the boarding platform right now
+        val isAtCurrentStation = departure.timeToStationSeconds <= 30 ||
+            departure.status == com.androidfung.departureboard.data.model.DepartureStatus.DUE ||
+            loc.contains("at platform") ||
+            (currentStationIndex >= 0 && loc.contains("at ${callingPoints[currentStationIndex].stationName.lowercase()}"))
+
+        if (isAtCurrentStation && currentStationIndex >= 0) {
+            currentStationIndex
+        } else {
+            // Train is en route / approaching before reaching the boarding station
+            -1
+        }
+    }
+
+    val isTrainApproachingBeforeBoarding = remember(activeTrainIndex, currentStationIndex, departure.status) {
+        activeTrainIndex == -1 && currentStationIndex >= 0 &&
+            departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -490,6 +511,15 @@ private fun TrainJourneyContent(
 
             // 5. Calling Points Timeline or Empty / Loading state
             if (callingPoints.isNotEmpty()) {
+                if (isTrainApproachingBeforeBoarding) {
+                    item(key = "incoming_train_beacon") {
+                        IncomingTrainTimelineNode(
+                            currentLocation = departure.currentLocation,
+                            lineColor = departure.lineBadge.backgroundColor
+                        )
+                    }
+                }
+
                 items(
                     items = timelineItems,
                     key = { item ->
@@ -516,6 +546,7 @@ private fun TrainJourneyContent(
                                 lineColor = departure.lineBadge.backgroundColor,
                                 isPassed = isPassed,
                                 isTrainLocation = isTrainLocation,
+                                hasIncomingTrainAbove = isTrainApproachingBeforeBoarding,
                                 onClick = if (!item.callingPoint.isCurrentStation) {
                                     { onCallingPointClick(item.callingPoint, callingPoints) }
                                 } else null
@@ -593,6 +624,121 @@ private fun TrainJourneyContent(
 }
 
 /**
+ * Visual timeline node indicating that the train is currently in transit/approaching
+ * before the user's boarding station ("Your station").
+ */
+@Composable
+private fun IncomingTrainTimelineNode(
+    currentLocation: String?,
+    lineColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "IncomingTrainRadar")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 2.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "IncomingPulseScale"
+    )
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.70f,
+        targetValue = 0.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "IncomingPulseAlpha"
+    )
+
+    val labelText = when {
+        !currentLocation.isNullOrBlank() && !currentLocation.equals("In transit", ignoreCase = true) -> currentLocation
+        else -> stringResource(R.string.status_in_transit)
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier
+                .width(30.dp)
+                .fillMaxHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Box(
+                modifier = Modifier.size(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Pulsing radar ripple halo
+                Box(
+                    modifier = Modifier
+                        .size(12.dp * pulseScale)
+                        .clip(CircleShape)
+                        .background(lineColor.copy(alpha = pulseAlpha))
+                )
+                // Core train location indicator
+                Box(
+                    modifier = Modifier
+                        .size(13.dp)
+                        .clip(CircleShape)
+                        .background(lineColor)
+                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                )
+            }
+            // Connecting line down to "Your station"
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .weight(1f)
+                    .background(lineColor.copy(alpha = 0.5f))
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(lineColor.copy(alpha = 0.14f))
+                    .border(1.dp, lineColor.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.LocationOn,
+                    contentDescription = null,
+                    tint = lineColor,
+                    modifier = Modifier.size(12.dp)
+                )
+                Text(
+                    text = labelText,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    ),
+                    color = lineColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/**
  * Vertical timeline step for each station where the train calls.
  */
 @Composable
@@ -604,6 +750,7 @@ private fun CallingPointTimelineItem(
     modifier: Modifier = Modifier,
     isPassed: Boolean = false,
     isTrainLocation: Boolean = false,
+    hasIncomingTrainAbove: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "TrainLocationTransition")
@@ -651,6 +798,7 @@ private fun CallingPointTimelineItem(
             ) {
                 // Upper connecting line segment
                 val upperLineColor = when {
+                    isFirst && hasIncomingTrainAbove -> lineColor.copy(alpha = 0.5f)
                     isFirst -> Color.Transparent
                     isPassed || isTrainLocation -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
                     else -> lineColor.copy(alpha = 0.5f)

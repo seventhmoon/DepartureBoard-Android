@@ -47,6 +47,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -101,6 +102,8 @@ fun DebugSettingsBottomSheet(
     onOpenRegionPicker: (() -> Unit)? = null,
     isHkRegionEnabled: Boolean = false,
     onToggleHkRegionEnabled: (Boolean) -> Unit = {},
+    isBilingualEnabled: Boolean = true,
+    onToggleBilingualEnabled: (Boolean) -> Unit = {},
     onTriggerInAppReview: () -> Unit = {},
     onResetInAppReviewData: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -117,6 +120,8 @@ fun DebugSettingsBottomSheet(
         onOpenRegionPicker = onOpenRegionPicker,
         isHkRegionEnabled = isHkRegionEnabled,
         onToggleHkRegionEnabled = onToggleHkRegionEnabled,
+        isBilingualEnabled = isBilingualEnabled,
+        onToggleBilingualEnabled = onToggleBilingualEnabled,
         onResetStations = onResetStations,
         onTriggerInAppReview = onTriggerInAppReview,
         onResetInAppReviewData = onResetInAppReviewData,
@@ -138,6 +143,8 @@ fun DebugSettingsContent(
     onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit,
     isHkRegionEnabled: Boolean,
     onToggleHkRegionEnabled: (Boolean) -> Unit,
+    isBilingualEnabled: Boolean = true,
+    onToggleBilingualEnabled: (Boolean) -> Unit = {},
     onResetStations: () -> Unit,
     onTriggerInAppReview: () -> Unit,
     onResetInAppReviewData: () -> Unit,
@@ -168,6 +175,8 @@ fun DebugSettingsContent(
             onOpenRegionPicker = onOpenRegionPicker,
             isHkRegionEnabled = isHkRegionEnabled,
             onToggleHkRegionEnabled = onToggleHkRegionEnabled,
+            isBilingualEnabled = isBilingualEnabled,
+            onToggleBilingualEnabled = onToggleBilingualEnabled,
             remainingAiQueries = remainingAiQueries,
             onResetStations = onResetStations,
             onTriggerInAppReview = onTriggerInAppReview,
@@ -187,6 +196,8 @@ fun DebugSettingsBody(
     onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit,
     isHkRegionEnabled: Boolean,
     onToggleHkRegionEnabled: (Boolean) -> Unit,
+    isBilingualEnabled: Boolean = true,
+    onToggleBilingualEnabled: (Boolean) -> Unit = {},
     remainingAiQueries: Int,
     onResetStations: () -> Unit,
     onTriggerInAppReview: () -> Unit,
@@ -544,6 +555,38 @@ fun DebugSettingsBody(
                                 LocaleHelper.setAppLanguage(tag.ifEmpty { null })
                             },
                             onDismissRequest = { showLanguagePicker = false }
+                        )
+                    }
+
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        modifier = Modifier.padding(vertical = dimensions.paddingExtraLarge)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = stringResource(R.string.settings_bilingual_title),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_bilingual_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isBilingualEnabled,
+                            onCheckedChange = onToggleBilingualEnabled,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
                         )
                     }
                 }

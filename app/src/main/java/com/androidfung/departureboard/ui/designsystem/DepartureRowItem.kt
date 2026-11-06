@@ -1,5 +1,11 @@
 package com.androidfung.departureboard.ui.designsystem
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -329,15 +335,28 @@ fun UnifiedDepartureTimeBadge(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Text(
-                            text = if (minutes < 1) "<1" else minutes.toString(),
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = if (isFirst) 14.sp else 13.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        AnimatedContent(
+                            targetState = if (minutes < 1) "<1" else minutes.toString(),
+                            transitionSpec = {
+                                if (targetState != initialState) {
+                                    (slideInVertically { height -> -height } + fadeIn()) togetherWith
+                                        (slideOutVertically { height -> height } + fadeOut())
+                                } else {
+                                    fadeIn() togetherWith fadeOut()
+                                }
+                            },
+                            label = "CountdownDigitRoll"
+                        ) { minText ->
+                            Text(
+                                text = minText,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = if (isFirst) 14.sp else 13.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                         Spacer(modifier = Modifier.width(2.dp))
                         Text(
                             text = stringResource(R.string.unit_min),
