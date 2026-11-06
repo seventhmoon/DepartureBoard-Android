@@ -33,6 +33,7 @@ interface StationPreferencesDataSource {
     val dynamicColorFlow: Flow<Boolean>
     val selectedRegionFlow: Flow<TransitRegion>
     val isHkRegionEnabledFlow: Flow<Boolean>
+    val isBilingualEnabledFlow: Flow<Boolean>
     val autoSortByLocationFlow: Flow<Boolean>
     val recentSearchedStationsFlow: Flow<List<Station>>
 
@@ -48,6 +49,7 @@ interface StationPreferencesDataSource {
     suspend fun setDynamicColor(enabled: Boolean)
     suspend fun setSelectedRegion(region: TransitRegion)
     suspend fun setHkRegionEnabled(enabled: Boolean)
+    suspend fun setBilingualEnabled(enabled: Boolean)
     suspend fun setAutoSortByLocation(enabled: Boolean)
 }
 
@@ -81,6 +83,7 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         private val KEY_DYNAMIC_COLOR = androidx.datastore.preferences.core.booleanPreferencesKey("dynamic_color")
         private val KEY_SELECTED_REGION = stringPreferencesKey("selected_region")
         private val KEY_HK_REGION_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("hk_region_enabled")
+        private val KEY_BILINGUAL_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("bilingual_enabled")
         private val KEY_AUTO_SORT_BY_LOCATION = androidx.datastore.preferences.core.booleanPreferencesKey("auto_sort_by_location")
         const val DEFAULT_DEPARTURE_ROWS = 5
         const val DEFAULT_DYNAMIC_COLOR = true
@@ -168,6 +171,24 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
             if (!enabled && preferences[KEY_SELECTED_REGION] != TransitRegion.GB.id) {
                 preferences[KEY_SELECTED_REGION] = TransitRegion.GB.id
             }
+        }
+    }
+
+    override val isBilingualEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_BILINGUAL_ENABLED] ?: true
+        }
+
+    override suspend fun setBilingualEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_BILINGUAL_ENABLED] = enabled
         }
     }
 

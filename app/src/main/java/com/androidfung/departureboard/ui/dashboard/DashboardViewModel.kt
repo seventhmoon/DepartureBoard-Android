@@ -80,6 +80,11 @@ class DashboardViewModel @JvmOverloads constructor(
                 _uiState.update { it.copy(isHkRegionEnabled = enabled) }
             }
         }
+        viewModelScope.launch {
+            repository.isBilingualEnabledFlow.collectLatest { enabled ->
+                _uiState.update { it.copy(isBilingualEnabled = enabled) }
+            }
+        }
     }
 
     fun setSelectedRegion(region: com.androidfung.departureboard.data.model.TransitRegion) {
@@ -99,6 +104,12 @@ class DashboardViewModel @JvmOverloads constructor(
                 refreshDepartures()
                 updateNearestStation(fetchApiNearby = true)
             }
+        }
+    }
+
+    fun setBilingualEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setBilingualEnabled(enabled)
         }
     }
 

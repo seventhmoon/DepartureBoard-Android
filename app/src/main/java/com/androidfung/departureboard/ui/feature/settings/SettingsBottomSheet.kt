@@ -93,6 +93,8 @@ fun SettingsBottomSheet(
     onDynamicColorChange: (Boolean) -> Unit = {},
     isAutoSortByLocation: Boolean = false,
     onAutoSortByLocationChange: (Boolean) -> Unit = {},
+    isBilingualEnabled: Boolean = true,
+    onToggleBilingualEnabled: (Boolean) -> Unit = {},
     onRateApp: () -> Unit = {},
     onOpenDebugSettings: (() -> Unit)? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -358,7 +360,57 @@ fun SettingsBottomSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Section 2: Subscription & Account
+            // Section 2: Language & Region
+            Text(
+                text = stringResource(R.string.settings_section_region_language),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = stringResource(R.string.settings_bilingual_title),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_bilingual_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isBilingualEnabled,
+                            onCheckedChange = onToggleBilingualEnabled,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Section 3: Subscription & Account
             Text(
                 text = stringResource(R.string.settings_section_subscription),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),

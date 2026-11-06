@@ -574,6 +574,8 @@ class MainActivity : AppCompatActivity() {
                                 }
                                 viewModel.setAutoSortByLocation(enabled)
                             },
+                            isBilingualEnabled = uiState.isBilingualEnabled,
+                            onToggleBilingualEnabled = { enabled -> viewModel.setBilingualEnabled(enabled) },
                             isPro = uiState.isPro,
                             billingRepository = viewModel.billingRepository,
                             onOpenHelpFaq = { showHelpSheet = true },

@@ -85,6 +85,8 @@
     <string name="settings_section_about_help">ABOUT &amp; HELP</string>
     <string name="settings_close">Close</string>
     <string name="settings_section_region_language">REGION &amp; LANGUAGE</string>
+    <string name="settings_bilingual_title">Bilingual Station Names</string>
+    <string name="settings_bilingual_desc">Show both English and local names (e.g. Hong Kong)</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
