@@ -369,13 +369,9 @@ private fun StationDetailContent(
             if (trackedDepartureId == dep.id) {
                 com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
             } else {
-                if (com.androidfung.departureboard.util.NotificationHelper.areNotificationsEnabled(context)) {
-                    com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, dep)
-                } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                    pendingTrackDeparture = dep
+                com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, dep) { pendingDep ->
+                    pendingTrackDeparture = pendingDep
                     notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                } else {
-                    com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, dep)
                 }
             }
         }
@@ -514,11 +510,11 @@ private fun StationDetailContent(
                         }
                         try {
                             context.startActivity(mapIntent)
-                        } catch (_: Exception) {
+                        } catch (_: android.content.ActivityNotFoundException) {
                             val fallbackIntent = Intent(Intent.ACTION_VIEW, geoUri)
                             try {
                                 context.startActivity(fallbackIntent)
-                            } catch (_: Exception) {
+                            } catch (_: android.content.ActivityNotFoundException) {
                                 val browserUri = if (station.lat != null && station.lon != null) {
                                     "https://www.google.com/maps/search/?api=1&query=$encodedQuery".toUri()
                                 } else {

@@ -134,7 +134,7 @@ class MainActivity : AppCompatActivity() {
 
                     LaunchedEffect(initialStation) {
                         if (initialStation != null) {
-                            viewModel.openStationDetail(initialStation!!)
+                            viewModel.openStationDetail(initialStation)
                         }
                     }
 

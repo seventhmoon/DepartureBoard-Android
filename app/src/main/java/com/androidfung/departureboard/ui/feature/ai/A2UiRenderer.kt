@@ -114,13 +114,9 @@ fun A2UiRenderer(
                             if (trackedDepartureId == dep.id) {
                                 TrainTrackingService.stopTracking(context)
                             } else {
-                                if (com.androidfung.departureboard.util.NotificationHelper.areNotificationsEnabled(context)) {
-                                    TrainTrackingService.startTracking(context, dep)
-                                } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                    pendingTrackDeparture = dep
+                                com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, dep) { pendingDep ->
+                                    pendingTrackDeparture = pendingDep
                                     notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                                } else {
-                                    TrainTrackingService.startTracking(context, dep)
                                 }
                             }
                             onActionClick(A2UiAction.TrackTrain(dep))

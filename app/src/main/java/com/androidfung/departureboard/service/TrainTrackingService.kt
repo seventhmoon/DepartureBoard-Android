@@ -299,6 +299,8 @@ class TrainTrackingService : Service() {
                             }
                         }
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.w(TAG, "API call failed for departure tracking", e)
                     val elapsedSeconds = getPollIntervalSeconds(remainingSeconds).toInt()
@@ -377,6 +379,8 @@ class TrainTrackingService : Service() {
                             computedStops
                         } else null
                     } else null
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to calculate stops away", e)
                     null
