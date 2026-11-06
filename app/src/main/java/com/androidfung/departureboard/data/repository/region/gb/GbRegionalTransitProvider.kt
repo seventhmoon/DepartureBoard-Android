@@ -2,6 +2,7 @@ package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TransitAlert
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
@@ -15,6 +16,7 @@ import com.androidfung.departureboard.data.network.gb.NationalRailApiService
 import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.DepartureSource
 import com.androidfung.departureboard.data.repository.region.RegionalTransitProvider
+import com.androidfung.departureboard.data.repository.region.gb.mapper.GbTransitAlertMapper
 import com.androidfung.departureboard.data.repository.region.gb.mapper.TflStationMapper
 import com.androidfung.departureboard.data.repository.region.gb.search.GbStationSearchEngine
 import com.androidfung.departureboard.data.topology.CallingPointsResolver
@@ -216,5 +218,9 @@ class GbRegionalTransitProvider(
                 lineStatusesCache.getStale("line_statuses").orEmpty()
             }
         }
+    }
+
+    override suspend fun getTransitAlerts(): List<TransitAlert> {
+        return getLineStatuses().values.flatMap { GbTransitAlertMapper.fromTflLineStatus(it) }
     }
 }

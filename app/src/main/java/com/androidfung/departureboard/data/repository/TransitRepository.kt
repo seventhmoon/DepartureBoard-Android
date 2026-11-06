@@ -10,6 +10,7 @@ import com.androidfung.departureboard.data.db.cache.DepartureDao
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TransitAlert
 import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.gb.BodsDisruptionXmlParser
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
@@ -85,6 +86,7 @@ interface TransitRepository {
     fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>>
     suspend fun getCachedDepartures(stationId: String): List<Departure>
     suspend fun getLineStatuses(): Map<String, TflLineStatusItem>
+    suspend fun getTransitAlerts(): List<TransitAlert> = emptyList()
     suspend fun getCallingPoints(departure: Departure): List<CallingPoint>
     suspend fun checkStationServiceHours(stationId: String, lineId: String? = null): StationServiceHoursInfo?
     suspend fun saveStation(station: Station)
@@ -252,6 +254,16 @@ class TransitRepositoryImpl(
         gb.getLineStatuses()
     }
 
+    override suspend fun getTransitAlerts(): List<TransitAlert> = withContext(Dispatchers.IO) {
+        val currentRegion = try {
+            dataStore.selectedRegionFlow.first()
+        } catch (_: Exception) {
+            TransitRegion.GB
+        }
+        val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
+        provider.getTransitAlerts()
+    }
+
     override suspend fun getCallingPoints(departure: Departure): List<CallingPoint> = withContext(Dispatchers.IO) {
         callingPointsEngine.resolveCallingPoints(departure)
     }
@@ -336,10 +348,5 @@ class TransitRepositoryImpl(
         } else {
             Result.failure(originalException)
         }
-    }
-
-    companion object {
-        private const val LINE_STATUS_CACHE_TTL_MS = 180_000L
-        private const val LINE_STATUS_CACHE_KEY = "ALL"
     }
 }

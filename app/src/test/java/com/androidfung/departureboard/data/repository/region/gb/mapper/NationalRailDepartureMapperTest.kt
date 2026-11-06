@@ -104,4 +104,63 @@ class NationalRailDepartureMapperTest {
         assertEquals("Track fault at Watford Junction", departure.cancelReason)
         assertEquals("11 coaches", departure.formation?.displayCoachCount)
     }
+
+    @Test
+    fun testMapToDeparture_skippedCallingPointAndVia_mapsScheduleRelationshipAndJourneyDestination() {
+        val service = NrTrainService(
+            serviceId = "RID_SKIPPED_CP",
+            std = "17:15",
+            etd = "On time",
+            platform = "1",
+            operator = "Thameslink",
+            operatorCode = "TL",
+            destination = listOf(
+                NrLocation(locationName = "Brighton", crs = "BTN", via = "via London Bridge")
+            ),
+            subsequentCallingPoints = listOf(
+                com.androidfung.departureboard.data.model.gb.NrCallingPointList(
+                    callingPoint = listOf(
+                        com.androidfung.departureboard.data.model.gb.NrCallingPoint(
+                            locationName = "Farringdon",
+                            crs = "ZFD",
+                            st = "17:20",
+                            et = "On time",
+                            isCancelled = false
+                        ),
+                        com.androidfung.departureboard.data.model.gb.NrCallingPoint(
+                            locationName = "City Thameslink",
+                            crs = "CTK",
+                            st = "17:22",
+                            et = "Cancelled",
+                            isCancelled = true
+                        ),
+                        com.androidfung.departureboard.data.model.gb.NrCallingPoint(
+                            locationName = "Brighton",
+                            crs = "BTN",
+                            st = "18:30",
+                            et = "On time",
+                            isCancelled = false
+                        )
+                    )
+                )
+            )
+        )
+
+        val departure = NationalRailDepartureMapper.mapToDeparture(
+            service = service,
+            stationId = "STP",
+            stationName = "London St Pancras"
+        )
+
+        assertEquals(4, departure.callingPoints.size)
+        val cityThameslink = departure.callingPoints[2]
+        assertEquals("City Thameslink", cityThameslink.stationName)
+        assertEquals(com.androidfung.departureboard.data.model.StopScheduleRelationship.SKIPPED, cityThameslink.scheduleRelationship)
+        assertTrue(cityThameslink.isCancelled)
+        assertFalse(departure.callingPoints[1].isCancelled)
+
+        assertNotNull(departure.journeyDestination)
+        assertEquals("Brighton via London Bridge", departure.resolvedDestination.displayDestination)
+        assertEquals("via London Bridge", departure.resolvedDestination.displayViaSubtitle)
+    }
 }

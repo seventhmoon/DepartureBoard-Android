@@ -4,6 +4,7 @@ import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationServiceHoursInfo
+import com.androidfung.departureboard.data.model.TransitAlert
 import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.repository.DepartureSource
 import com.androidfung.departureboard.data.topology.CallingPointsResolver
@@ -71,4 +72,9 @@ interface RegionalTransitProvider {
      * within [radiusMeters].
      */
     suspend fun getNearbyStations(lat: Double, lon: Double, radiusMeters: Int = 1500): List<Station> = emptyList()
+
+    /**
+     * Fetches active standardized [TransitAlert] disruptions for this region.
+     */
+    suspend fun getTransitAlerts(): List<TransitAlert> = emptyList()
 }

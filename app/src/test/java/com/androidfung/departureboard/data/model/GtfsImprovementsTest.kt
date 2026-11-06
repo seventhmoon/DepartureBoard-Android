@@ -167,4 +167,85 @@ class GtfsImprovementsTest {
         assertNotNull(restored.frequency)
         assertEquals("Every 2 mins", restored.frequency?.displayHeadway)
     }
+
+    @Test
+    fun testOccupancyStatusParsing() {
+        assertEquals(OccupancyStatus.EMPTY, OccupancyStatus.fromString("EMPTY"))
+        assertEquals(OccupancyStatus.MANY_SEATS_AVAILABLE, OccupancyStatus.fromString("MANY_SEATS_AVAILABLE"))
+        assertEquals(OccupancyStatus.MANY_SEATS_AVAILABLE, OccupancyStatus.fromString("SeatsAvailable"))
+        assertEquals(OccupancyStatus.FEW_SEATS_AVAILABLE, OccupancyStatus.fromString("FEW_SEATS_AVAILABLE"))
+        assertEquals(OccupancyStatus.STANDING_ROOM_ONLY, OccupancyStatus.fromString("STANDING_ROOM_ONLY"))
+        assertEquals(OccupancyStatus.STANDING_ROOM_ONLY, OccupancyStatus.fromString("StandingAvailable"))
+        assertEquals(OccupancyStatus.CRUSHED_STANDING_ROOM_ONLY, OccupancyStatus.fromString("CRUSHED_STANDING_ROOM_ONLY"))
+        assertEquals(OccupancyStatus.FULL, OccupancyStatus.fromString("FULL"))
+        assertEquals(OccupancyStatus.NOT_ACCEPTING_PASSENGERS, OccupancyStatus.fromString("NOT_ACCEPTING_PASSENGERS"))
+        assertNull(OccupancyStatus.fromString(null))
+    }
+
+    @Test
+    fun testVehicleStopStatusResolution() {
+        assertEquals(
+            VehicleStopStatus.STOPPED_AT,
+            VehicleStopStatus.fromLocationAndTime("At Platform 2", 45)
+        )
+        assertEquals(
+            VehicleStopStatus.STOPPED_AT,
+            VehicleStopStatus.fromLocationAndTime("Between stations", 20)
+        )
+        assertEquals(
+            VehicleStopStatus.INCOMING_AT,
+            VehicleStopStatus.fromLocationAndTime("Approaching Victoria", 120)
+        )
+        assertEquals(
+            VehicleStopStatus.IN_TRANSIT_TO,
+            VehicleStopStatus.fromLocationAndTime("Between Oval and Stockwell", 240)
+        )
+    }
+
+    @Test
+    fun testGbTransitAlertMapper_convertsTflBodsAndNrccAlerts() {
+        val tflItem = com.androidfung.departureboard.data.model.gb.TflLineStatusItem(
+            id = "northern",
+            name = "Northern",
+            modeName = "tube",
+            lineStatuses = listOf(
+                com.androidfung.departureboard.data.model.gb.TflLineStatusDetail(
+                    id = 1,
+                    statusSeverity = 6,
+                    statusSeverityDescription = "Severe Delays",
+                    reason = "Northern Line: Severe delays due to a signal failure at Camden Town."
+                )
+            )
+        )
+        val tflAlerts = com.androidfung.departureboard.data.repository.region.gb.mapper.GbTransitAlertMapper.fromTflLineStatus(tflItem)
+        assertEquals(1, tflAlerts.size)
+        val tflAlert = tflAlerts.first()
+        assertEquals(AlertCause.TECHNICAL_PROBLEM, tflAlert.cause)
+        assertEquals(AlertEffect.SIGNIFICANT_DELAYS, tflAlert.effect)
+        assertEquals(AlertSeverity.SEVERE, tflAlert.severity)
+        assertTrue(tflAlert.appliesToLine("northern"))
+
+        val bodsDisruption = com.androidfung.departureboard.data.model.gb.BodsDisruption(
+            situationNumber = "SIT_001",
+            lineRef = "24",
+            summary = "Route 24 diverted via Whitehall due to roadworks",
+            description = "Stops on Parliament Street are closed.",
+            reason = "Construction",
+            severity = "normal",
+            participantRef = "TFLO"
+        )
+        val bodsAlert = com.androidfung.departureboard.data.repository.region.gb.mapper.GbTransitAlertMapper.fromBodsDisruption(bodsDisruption)
+        assertEquals(AlertCause.CONSTRUCTION, bodsAlert.cause)
+        assertEquals(AlertEffect.DETOUR, bodsAlert.effect)
+        assertTrue(bodsAlert.appliesToLine("bods-24"))
+
+        val nrMessage = com.androidfung.departureboard.data.model.gb.NrMessage(
+            value = "<p>Disruption between London Paddington and Reading due to severe weather.</p>"
+        )
+        val nrAlert = com.androidfung.departureboard.data.repository.region.gb.mapper.GbTransitAlertMapper.fromNrccMessage(nrMessage, "PAD")
+        assertNotNull(nrAlert)
+        assertEquals(AlertCause.WEATHER, nrAlert!!.cause)
+        assertEquals(AlertEffect.SIGNIFICANT_DELAYS, nrAlert.effect)
+        assertTrue(nrAlert.appliesToStation("PAD"))
+    }
 }
