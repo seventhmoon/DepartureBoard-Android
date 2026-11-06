@@ -17,6 +17,7 @@ local.properties
 
 # Temporary scratch and audit artifacts
 .scratch/
+.kotlin/
 
 # Release outputs and obfuscation mappings
 /app/release/
