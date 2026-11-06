@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -305,12 +306,9 @@ private fun TrainJourneyContent(
                             if (isTracked) {
                                 com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
                             } else {
-                                if (com.androidfung.departureboard.util.NotificationHelper.areNotificationsEnabled(context)) {
-                                    com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
-                                } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, departure) { pendingDeparture ->
+                                    pendingTrackDeparture = pendingDeparture
                                     notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                                } else {
-                                    com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
                                 }
                             }
                         },
@@ -895,49 +893,17 @@ private fun CallingPointTimelineItem(
                     else -> MaterialTheme.colorScheme.onSurface
                 }
 
-                Row(
-                    modifier = Modifier.weight(1f, fill = false),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = callingPoint.stationName,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = if (callingPoint.isCurrentStation || isLast || isTrainLocation) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 15.sp
-                        ),
-                        color = nameColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    if (isTrainLocation) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(accessibleColors.badgeBackground)
-                                .border(1.dp, accessibleColors.badgeBorder, RoundedCornerShape(6.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.LocationOn,
-                                contentDescription = null,
-                                tint = accessibleColors.badgeContent,
-                                modifier = Modifier.size(11.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.train_journey_current_location),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = accessibleColors.badgeContent
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = callingPoint.stationName,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = if (callingPoint.isCurrentStation || isLast || isTrainLocation) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 15.sp
+                    ),
+                    color = nameColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
 
                 Spacer(modifier = Modifier.width(8.dp))
 
@@ -986,8 +952,9 @@ private fun CallingPointTimelineItem(
             }
         }
 
-        // Subtitle row for current station ("Your station")
-        if (callingPoint.isCurrentStation) {
+        // Subtitle row for current station and/or current train location
+        val showSubtitleRow = callingPoint.isCurrentStation || isTrainLocation
+        if (showSubtitleRow) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1013,12 +980,48 @@ private fun CallingPointTimelineItem(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Text(
-                    text = stringResource(R.string.train_journey_your_station),
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 6.dp)
-                )
+                FlowRow(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (callingPoint.isCurrentStation) {
+                        Text(
+                            text = stringResource(R.string.train_journey_your_station),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    if (isTrainLocation) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(accessibleColors.badgeBackground)
+                                .border(1.dp, accessibleColors.badgeBorder, RoundedCornerShape(6.dp))
+                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.LocationOn,
+                                contentDescription = null,
+                                tint = accessibleColors.badgeContent,
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.train_journey_current_location),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = accessibleColors.badgeContent
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -1076,8 +1079,8 @@ private fun CallingPointTimelinePreview() {
                     isFirst = index == 0,
                     isLast = index == sampleCallingPoints.lastIndex,
                     lineColor = bakerlooColor,
-                    isPassed = index < 2,
-                    isTrainLocation = index == 2
+                    isPassed = false,
+                    isTrainLocation = index == 0
                 )
             }
         }
