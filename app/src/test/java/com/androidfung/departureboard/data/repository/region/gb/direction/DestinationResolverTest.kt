@@ -141,6 +141,37 @@ class DestinationResolverTest {
             platformName = "Platform 1"
         )
         assertEquals("Morden via Bank", mordenViaShort)
+
+        // Outbound train with abbreviated "Battersea via CX" normalizes to canonical full name
+        val batterseaCxAbbrev = DestinationResolver.resolve(
+            stationName = "Mill Hill East",
+            itemDestination = "Battersea Power Station",
+            itemTowards = "Battersea via CX",
+            lineId = "northern",
+            platformName = "Platform 1"
+        )
+        assertEquals("Battersea Power Station via Charing Cross", batterseaCxAbbrev)
+
+        val batterseaCxShort = DestinationResolver.resolve(
+            stationName = "Mill Hill East",
+            itemDestination = "Battersea",
+            itemTowards = "via CX",
+            lineId = "northern",
+            platformName = "Platform 1"
+        )
+        assertEquals("Battersea Power Station via Charing Cross", batterseaCxShort)
+    }
+
+    @Test
+    fun normalizeCorridorDestination_expandsTflAbbreviations() {
+        assertEquals("Battersea Power Station via Charing Cross", DestinationResolver.normalizeCorridorDestination("Battersea via CX"))
+        assertEquals("Battersea Power Station via Charing Cross", DestinationResolver.normalizeCorridorDestination("Battersea Power Station via CX"))
+        assertEquals("Battersea Power Station via Charing Cross", DestinationResolver.normalizeCorridorDestination("BPS via CX"))
+        assertEquals("Morden via Charing Cross", DestinationResolver.normalizeCorridorDestination("Morden via CX"))
+        assertEquals("Edgware via Charing Cross", DestinationResolver.normalizeCorridorDestination("Edgware via cx"))
+        assertEquals("High Barnet via Bank", DestinationResolver.normalizeCorridorDestination("High Barnet via Bnk"))
+        assertEquals("Battersea Power Station", DestinationResolver.normalizeCorridorDestination("Battersea"))
+        assertEquals("Battersea Power Station", DestinationResolver.normalizeCorridorDestination("BPS"))
     }
 
     @Test

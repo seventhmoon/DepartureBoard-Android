@@ -130,7 +130,8 @@ object TflDepartureMapper {
             overrideDirection = terminusOutboundDirection
         )
         val cleanStation = StationNameFormatter.clean(stationName)
-        val rawCleanTowards = item.towards?.takeIf { !it.trim().equals("null", ignoreCase = true) }?.let { StationNameFormatter.clean(it) }
+        val rawCleanTowards = item.towards?.takeIf { !it.trim().equals("null", ignoreCase = true) }
+            ?.let { DestinationResolver.normalizeCorridorDestination(StationNameFormatter.clean(it)) }
         val cleanTowards = if (isTerminatingHere && rawCleanTowards != null && (
                 rawCleanTowards.equals(cleanStation, ignoreCase = true) ||
                 rawCleanTowards.startsWith("$cleanStation ", ignoreCase = true)

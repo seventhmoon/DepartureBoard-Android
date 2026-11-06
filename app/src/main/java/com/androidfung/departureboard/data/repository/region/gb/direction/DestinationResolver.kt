@@ -207,7 +207,55 @@ object DestinationResolver {
         lineId: String?
     ): String? = resolveTerminusOutboundTransitDirection(stationId, stationName, lineId)?.displayName
 
+    /**
+     * Canonicalizes corridor via and terminal names, expanding common TfL dot-matrix abbreviations:
+     * - "via CX" / "via Chx" -> "via Charing Cross"
+     * - "via Bnk" -> "via Bank"
+     * - "Battersea via ..." / "BPS via ..." -> "Battersea Power Station via ..."
+     * - "Battersea" / "BPS" -> "Battersea Power Station"
+     */
+    fun normalizeCorridorDestination(destination: String): String {
+        var result = destination.trim()
+
+        // 1. Expand "via CX" / "via Chx" to "via Charing Cross"
+        result = result.replace(Regex("""\bvia\s+(?:cx|chx)\b""", RegexOption.IGNORE_CASE), "via Charing Cross")
+
+        // 2. Expand "via Bnk" to "via Bank"
+        result = result.replace(Regex("""\bvia\s+bnk\b""", RegexOption.IGNORE_CASE), "via Bank")
+
+        // 3. Expand "Battersea via" or "BPS via" to "Battersea Power Station via"
+        result = result.replace(Regex("""^(?:Battersea|BPS)\s+via\b""", RegexOption.IGNORE_CASE), "Battersea Power Station via")
+
+        // 4. Expand lone "Battersea" or "BPS" (exact match) to "Battersea Power Station"
+        if (result.equals("Battersea", ignoreCase = true) || result.equals("BPS", ignoreCase = true)) {
+            result = "Battersea Power Station"
+        }
+
+        return result
+    }
+
     fun resolve(
+        stationName: String,
+        itemDestination: String?,
+        itemTowards: String?,
+        lineId: String?,
+        platformName: String? = null,
+        stationId: String? = null,
+        destinationNaptanId: String? = null
+    ): String {
+        val rawResolved = resolveInternal(
+            stationName = stationName,
+            itemDestination = itemDestination,
+            itemTowards = itemTowards,
+            lineId = lineId,
+            platformName = platformName,
+            stationId = stationId,
+            destinationNaptanId = destinationNaptanId
+        )
+        return normalizeCorridorDestination(rawResolved)
+    }
+
+    private fun resolveInternal(
         stationName: String,
         itemDestination: String?,
         itemTowards: String?,
