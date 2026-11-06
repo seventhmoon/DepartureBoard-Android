@@ -1,4 +1,7 @@
 import java.util.Properties
+import org.gradle.api.tasks.testing.Test
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,6 +11,11 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.firebase.perf)
+    jacoco
+}
+
+jacoco {
+    toolVersion = "0.8.13"
 }
 
 android {
@@ -95,6 +103,47 @@ android {
 
 kotlin {
     compilerOptions {
+    }
+}
+
+// Robolectric's sandbox classloader can produce orphan probe entries; drop them.
+tasks.withType<Test>().matching { it.name.endsWith("UnitTest") }.configureEach {
+    extensions.configure(JacocoTaskExtension::class.java) {
+        includeNoLocationClasses = false
+    }
+}
+
+// Usage: ./gradlew :app:jacocoTestReport  -> build/reports/jacoco/jacocoTestReport/index.html
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    group = "verification"
+    description = "Generates a JaCoCo coverage report for the debug unit tests."
+
+    val buildRoot = project.layout.buildDirectory
+    val generatedOrSynthetic = arrayOf(
+        "**/R.class",
+        "**/R\$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/kotlin/**"
+    )
+    classDirectories.setFrom(
+        files(
+            fileTree("${buildRoot.get()}/tmp/kotlin-classes/debug") {
+                exclude(*generatedOrSynthetic)
+            },
+            fileTree("${buildRoot.get()}/intermediates/javac/debug") {
+                exclude(*generatedOrSynthetic)
+            }
+        )
+    )
+    sourceDirectories.setFrom(files("${project.projectDir}/src/main/java"))
+    executionData.setFrom(
+        files("${buildRoot.get()}/jacoco/testDebugUnitTest.exec")
+    )
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
     }
 }
 
