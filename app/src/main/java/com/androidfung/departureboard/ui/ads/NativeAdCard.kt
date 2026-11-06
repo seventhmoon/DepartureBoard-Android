@@ -61,7 +61,7 @@ import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 
 // Official Google AdMob Test Ad Unit ID for Native Advanced Ads
-private const val TEST_NATIVE_AD_UNIT_ID = "ca-app-pub-3940256099942544/2247696110"
+const val TEST_NATIVE_AD_UNIT_ID = "ca-app-pub-3940256099942544/2247696110"
 
 // Production Native Ad Unit IDs per placement for distinct analytics and optimization
 object NativeAdUnits {
@@ -74,6 +74,77 @@ enum class NativeAdStyle {
     CARD, // Styled to look like a StationDepartureCard (for Dashboard feed/grid)
     ROW,  // Styled to look like a DepartureDetailItemRow (for Station Detail list)
     TIMELINE // Styled to integrate seamlessly with the Train Journey timeline
+}
+
+/**
+ * Loads and retains a list of [NativeAd] instances for the given [adUnitId].
+ * If ads fail to load or are still in flight, returns an empty list, allowing
+ * calling layouts to remain completely GONE and avoid leaving empty slots or gaps.
+ * All native ads are automatically destroyed when leaving composition.
+ */
+@Composable
+fun rememberNativeAds(
+    adUnitId: String = if (BuildConfig.DEBUG) {
+        TEST_NATIVE_AD_UNIT_ID
+    } else {
+        NativeAdUnits.DASHBOARD
+    },
+    count: Int = 1,
+    enabled: Boolean = true
+): List<NativeAd> {
+    if (!enabled || count <= 0) return emptyList()
+
+    val context = LocalContext.current
+    var loadedAds by remember(adUnitId, count) { mutableStateOf<List<NativeAd>>(emptyList()) }
+
+    DisposableEffect(context, adUnitId, count) {
+        val adsList = mutableListOf<NativeAd>()
+        val adLoader = AdLoader.Builder(context, adUnitId)
+            .forNativeAd { nativeAd ->
+                adsList.add(nativeAd)
+                loadedAds = adsList.toList()
+            }
+            .withAdListener(object : AdListener() {
+                override fun onAdFailedToLoad(error: LoadAdError) {
+                    android.util.Log.w(
+                        "NativeAdCard",
+                        "Failed to load native ad (unit: $adUnitId): [code=${error.code}] ${error.message} (domain: ${error.domain})"
+                    )
+                }
+            })
+            .withNativeAdOptions(
+                NativeAdOptions.Builder()
+                    .setAdChoicesPlacement(NativeAdOptions.ADCHOICES_TOP_RIGHT)
+                    .build()
+            )
+            .build()
+
+        adLoader.loadAds(AdRequest.Builder().build(), count)
+
+        onDispose {
+            adsList.forEach { it.destroy() }
+            adsList.clear()
+            loadedAds = emptyList()
+        }
+    }
+
+    return loadedAds
+}
+
+/**
+ * Loads and retains a single [NativeAd] instance for the given [adUnitId].
+ */
+@Composable
+fun rememberNativeAd(
+    adUnitId: String = if (BuildConfig.DEBUG) {
+        TEST_NATIVE_AD_UNIT_ID
+    } else {
+        NativeAdUnits.DASHBOARD
+    },
+    enabled: Boolean = true
+): NativeAd? {
+    val ads = rememberNativeAds(adUnitId = adUnitId, count = 1, enabled = enabled)
+    return ads.firstOrNull()
 }
 
 /**
@@ -95,42 +166,25 @@ fun NativeAdViewContainer(
         }
     },
 ) {
-    val context = LocalContext.current
-    var loadedNativeAd by remember { mutableStateOf<NativeAd?>(null) }
+    val nativeAd = rememberNativeAd(adUnitId = adUnitId) ?: return
+    NativeAdViewContainer(
+        nativeAd = nativeAd,
+        modifier = modifier,
+        style = style,
+        accentColor = accentColor
+    )
+}
 
-    LaunchedEffect(adUnitId) {
-        val adLoader = AdLoader.Builder(context, adUnitId)
-            .forNativeAd { nativeAd ->
-                loadedNativeAd?.destroy()
-                loadedNativeAd = nativeAd
-            }
-            .withAdListener(object : AdListener() {
-                override fun onAdFailedToLoad(error: LoadAdError) {
-                    android.util.Log.w(
-                        "NativeAdCard",
-                        "Failed to load native ad (unit: $adUnitId): [code=${error.code}] ${error.message} (domain: ${error.domain})"
-                    )
-                }
-            })
-            .withNativeAdOptions(
-                NativeAdOptions.Builder()
-                    .setAdChoicesPlacement(NativeAdOptions.ADCHOICES_TOP_RIGHT)
-                    .build()
-            )
-            .build()
-
-        adLoader.loadAd(AdRequest.Builder().build())
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            loadedNativeAd?.destroy()
-            loadedNativeAd = null
-        }
-    }
-
-    val nativeAd = loadedNativeAd ?: return
-
+/**
+ * Overload of [NativeAdViewContainer] that displays an already loaded [NativeAd].
+ */
+@Composable
+fun NativeAdViewContainer(
+    nativeAd: NativeAd,
+    modifier: Modifier = Modifier,
+    style: NativeAdStyle = NativeAdStyle.CARD,
+    accentColor: Color? = null,
+) {
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     val primaryColor = (accentColor ?: MaterialTheme.colorScheme.primary).toArgb()

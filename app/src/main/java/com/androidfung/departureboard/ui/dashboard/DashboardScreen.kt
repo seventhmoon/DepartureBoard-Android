@@ -395,6 +395,16 @@ fun DashboardContent(
         val adInterval = 3
         val initialAdOffset = 2
 
+        val maxAdsNeeded = remember(uiState.stationCards.size, showInGridAd) {
+            if (!showInGridAd || uiState.stationCards.size <= initialAdOffset) 0
+            else (1 + (uiState.stationCards.size - initialAdOffset - 1) / adInterval).coerceAtMost(2)
+        }
+
+        val nativeAds = com.androidfung.departureboard.ui.ads.rememberNativeAds(
+            count = maxAdsNeeded,
+            enabled = showInGridAd && maxAdsNeeded > 0
+        )
+
         val (firstChunk, remainingChunks) = remember(uiState.stationCards, showInGridAd) {
             val first = uiState.stationCards.take(initialAdOffset)
             val remaining = uiState.stationCards.drop(initialAdOffset).chunked(adInterval)
@@ -496,7 +506,7 @@ fun DashboardContent(
                     } else {
                         // Station Departure Cards in adaptive staggered grid.
                         // Dynamically interleave NativeAdCard: first after 2nd station, then every 3 stations thereafter.
-                        if (!showInGridAd) {
+                        if (nativeAds.isEmpty()) {
                             items(
                                 items = uiState.stationCards,
                                 key = { it.station.id + it.station.name },
@@ -541,19 +551,23 @@ fun DashboardContent(
                                 )
                             }
 
-                            // First Native Ad Card
-                            item(
-                                key = "native_ad_card_0",
-                                contentType = "native_ad_card",
-                                span = StaggeredGridItemSpan.SingleLane
-                            ) {
-                                com.androidfung.departureboard.ui.ads.NativeAdViewContainer(
-                                    style = com.androidfung.departureboard.ui.ads.NativeAdStyle.CARD,
-                                    modifier = Modifier.animateItem()
-                                )
+                            // First Native Ad Card - only inserted if loaded to avoid empty gaps in staggered grid
+                            val firstAd = nativeAds.getOrNull(0)
+                            if (firstAd != null) {
+                                item(
+                                    key = "native_ad_card_0",
+                                    contentType = "native_ad_card",
+                                    span = StaggeredGridItemSpan.SingleLane
+                                ) {
+                                    com.androidfung.departureboard.ui.ads.NativeAdViewContainer(
+                                        nativeAd = firstAd,
+                                        style = com.androidfung.departureboard.ui.ads.NativeAdStyle.CARD,
+                                        modifier = Modifier.animateItem()
+                                    )
+                                }
                             }
 
-                            // Subsequent chunks, each followed by a native ad card
+                            // Subsequent chunks, each followed by an ad only if loaded
                             remainingChunks.forEachIndexed { chunkIndex, chunk ->
                                 items(
                                     items = chunk,
@@ -577,15 +591,19 @@ fun DashboardContent(
                                     )
                                 }
 
-                                item(
-                                    key = "native_ad_card_${chunkIndex + 1}",
-                                    contentType = "native_ad_card",
-                                    span = StaggeredGridItemSpan.SingleLane
-                                ) {
-                                    com.androidfung.departureboard.ui.ads.NativeAdViewContainer(
-                                        style = com.androidfung.departureboard.ui.ads.NativeAdStyle.CARD,
-                                        modifier = Modifier.animateItem()
-                                    )
+                                val subsequentAd = nativeAds.getOrNull(chunkIndex + 1)
+                                if (subsequentAd != null) {
+                                    item(
+                                        key = "native_ad_card_${chunkIndex + 1}",
+                                        contentType = "native_ad_card",
+                                        span = StaggeredGridItemSpan.SingleLane
+                                    ) {
+                                        com.androidfung.departureboard.ui.ads.NativeAdViewContainer(
+                                            nativeAd = subsequentAd,
+                                            style = com.androidfung.departureboard.ui.ads.NativeAdStyle.CARD,
+                                            modifier = Modifier.animateItem()
+                                        )
+                                    }
                                 }
                             }
                         }
