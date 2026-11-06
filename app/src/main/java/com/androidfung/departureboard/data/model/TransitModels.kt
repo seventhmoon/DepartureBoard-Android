@@ -18,6 +18,90 @@ data class StationServiceHoursInfo(
 )
 
 /**
+ * GTFS stop_times.txt pickup_type and drop_off_type semantics.
+ */
+enum class StopActivityType(val gtfsCode: Int) {
+    NORMAL(0),            // Regular pickup and drop-off
+    NOT_ALLOWED(1),       // No pickup or drop-off available
+    CALL_AGENCY(2),       // Must phone agency to arrange pickup/drop-off
+    COORDINATE_DRIVER(3), // Must coordinate with driver (request/flag stop)
+    ALIGHTING_ONLY(1),    // Set down only
+    BOARDING_ONLY(1)      // Pick up only
+}
+
+/**
+ * Granular wheelchair boarding accessibility for stations and vehicles adhering to GTFS stops.txt wheelchair_boarding.
+ */
+enum class WheelchairBoardingStatus(val gtfsCode: Int) {
+    UNKNOWN(0),
+    STEP_FREE_LEVEL_BOARDING(1),  // Level boarding without ramp
+    STEP_FREE_WITH_RAMP(1),       // Accessible via lift/ramp, staff boarding ramp required
+    NOT_ACCESSIBLE(2)             // Inaccessible / stairs only
+}
+
+/**
+ * Headway / frequency based transit interval adhering to GTFS frequencies.txt.
+ */
+@Immutable
+data class ServiceFrequency(
+    val headwaySeconds: Int,
+    val exactTimes: Boolean = false
+) {
+    val displayHeadway: String
+        get() = when {
+            headwaySeconds <= 120 -> "Every 2 mins"
+            headwaySeconds <= 180 -> "Every 2–3 mins"
+            headwaySeconds <= 300 -> "Every 3–5 mins"
+            headwaySeconds <= 600 -> "Every 5–10 mins"
+            else -> "Every ${headwaySeconds / 60} mins"
+        }
+}
+
+/**
+ * Disentangled journey destination representation (GTFS trips.txt trip_headsign vs destination stop).
+ */
+@Immutable
+data class JourneyDestination(
+    val terminusName: String,
+    val tripHeadsign: String? = null,
+    val via: String? = null,
+    val terminusStationId: String? = null
+) {
+    val displayDestination: String
+        get() = tripHeadsign?.ifBlank { null } ?: terminusName
+
+    val displayViaSubtitle: String?
+        get() = when {
+            !via.isNullOrBlank() -> if (via.startsWith("via", ignoreCase = true)) via else "via $via"
+            tripHeadsign != null && tripHeadsign.contains(" via ", ignoreCase = true) ->
+                "via " + tripHeadsign.substringAfter(" via ").trim()
+            else -> null
+        }
+}
+
+/**
+ * Inter-platform / inter-route transfer rules adhering to GTFS transfers.txt.
+ */
+enum class TransferType(val gtfsCode: Int) {
+    RECOMMENDED(0),      // Recommended transfer point
+    TIMED_TRANSFER(1),   // Timed/guaranteed transfer connection
+    MIN_TIME(2),         // Minimum walking transfer time required
+    IN_SEAT(3),          // In-seat transfer (vehicle continues as another route)
+    NOT_POSSIBLE(4)      // Transfer forbidden/impossible
+}
+
+@Immutable
+data class StationTransfer(
+    val fromPlatform: String,
+    val toPlatform: String,
+    val type: TransferType = TransferType.RECOMMENDED,
+    val minTransferTimeSeconds: Int = 0
+) {
+    val displayTransferTime: String?
+        get() = if (minTransferTimeSeconds > 0) "${minTransferTimeSeconds / 60} min walk" else null
+}
+
+/**
  * Clean domain representation of a transit station or stop.
  */
 @Immutable
@@ -30,7 +114,9 @@ data class Station(
     val lat: Double? = null,
     val lon: Double? = null,
     val isFavorite: Boolean = false,
-    val lines: List<StationLineInfo> = emptyList()
+    val lines: List<StationLineInfo> = emptyList(),
+    val wheelchairStatus: WheelchairBoardingStatus = WheelchairBoardingStatus.UNKNOWN,
+    val transfers: List<StationTransfer> = emptyList()
 ) : LocalizedNameProvider {
     val isBusOnly: Boolean get() = TransitMode.isBusOnly(modes)
 
@@ -112,7 +198,8 @@ data class CallingPoint(
     val isDestination: Boolean = false,
     val stationId: String? = null,
     val modes: List<String> = emptyList(),
-    override val localizedNames: Map<String, String> = emptyMap()
+    override val localizedNames: Map<String, String> = emptyMap(),
+    val stopActivity: StopActivityType = StopActivityType.NORMAL
 ) : LocalizedNameProvider {
     /**
      * Resolves the calling point display name according to the active locale or bilingual setting.
@@ -220,13 +307,31 @@ data class Departure(
     val platform: PlatformInfo? = null,
     val train: TrainInfo? = null,
     val scheduledDepartureInstant: java.time.Instant? = null,
-    val expectedDepartureInstant: java.time.Instant? = null
+    val expectedDepartureInstant: java.time.Instant? = null,
+    val stopActivity: StopActivityType = StopActivityType.NORMAL,
+    val wheelchairStatus: WheelchairBoardingStatus = if (isWheelchairAccessible == true) WheelchairBoardingStatus.STEP_FREE_LEVEL_BOARDING else WheelchairBoardingStatus.UNKNOWN,
+    val frequency: ServiceFrequency? = null,
+    val journeyDestination: JourneyDestination? = null
 ) {
     val resolvedPlatform: PlatformInfo
         get() = platform ?: PlatformInfo(
             code = platformName.ifBlank { "TBD" },
             isConfirmed = !platformName.contains("TBD", ignoreCase = true)
         )
+
+    val resolvedDestination: JourneyDestination
+        get() = journeyDestination ?: JourneyDestination(
+            terminusName = destinationName,
+            tripHeadsign = destinationName,
+            via = towards,
+            terminusStationId = destinationStationId
+        )
+
+    val isSetDownOnly: Boolean
+        get() = stopActivity == StopActivityType.ALIGHTING_ONLY
+
+    val isPickUpOnly: Boolean
+        get() = stopActivity == StopActivityType.BOARDING_ONLY
 
     val operator: TransitOperator? get() = train?.operator
     val formation: TrainFormation? get() = train?.formation

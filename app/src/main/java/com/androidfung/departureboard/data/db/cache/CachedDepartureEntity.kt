@@ -9,6 +9,8 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.PlatformInfo
+import com.androidfung.departureboard.data.model.ServiceFrequency
+import com.androidfung.departureboard.data.model.StopActivityType
 import com.androidfung.departureboard.data.model.TrainFormation
 import com.androidfung.departureboard.data.model.TrainInfo
 import com.androidfung.departureboard.data.model.TransitMode
@@ -56,6 +58,8 @@ data class CachedDepartureEntity(
     val coachCount: Int? = null,
     val cancelReason: String? = null,
     val delayReason: String? = null,
+    val headwaySeconds: Int? = null,
+    val stopActivityName: String? = null,
     val cachedAtMillis: Long = System.currentTimeMillis()
 ) {
     fun toDeparture(nowMillis: Long = System.currentTimeMillis()): Departure {
@@ -104,6 +108,11 @@ data class CachedDepartureEntity(
             )
         } else null
 
+        val restoredStopActivity = stopActivityName?.let {
+            runCatching { StopActivityType.valueOf(it) }.getOrNull()
+        } ?: StopActivityType.NORMAL
+        val restoredFrequency = headwaySeconds?.let { ServiceFrequency(headwaySeconds = it) }
+
         return Departure(
             id = id,
             stationId = stationId,
@@ -124,7 +133,9 @@ data class CachedDepartureEntity(
             isWheelchairAccessible = isWheelchairAccessible,
             occupancyStatus = occupancyStatus,
             platform = restoredPlatform,
-            train = restoredTrain
+            train = restoredTrain,
+            stopActivity = restoredStopActivity,
+            frequency = restoredFrequency
         )
     }
 
@@ -186,6 +197,8 @@ data class CachedDepartureEntity(
                 coachCount = trainInfo?.formation?.coachCount,
                 cancelReason = trainInfo?.cancelReason ?: departure.cancelReason,
                 delayReason = trainInfo?.delayReason ?: departure.delayReason,
+                headwaySeconds = departure.frequency?.headwaySeconds,
+                stopActivityName = if (departure.stopActivity != StopActivityType.NORMAL) departure.stopActivity.name else null,
                 cachedAtMillis = nowMillis
             )
         }

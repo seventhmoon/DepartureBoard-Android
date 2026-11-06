@@ -117,8 +117,8 @@ fun DepartureRowItem(
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Subtitle row: [Platform Pill Tag / Towards / Formation / Operator]
-            if (departure.platformName.isNotBlank() || departure.isWheelchairAccessible == true || !departure.occupancyStatus.isNullOrBlank() || departure.formation != null) {
+            // Subtitle row: [Platform Pill Tag / Towards / Formation / Operator / Boarding Semantics]
+            if (departure.platformName.isNotBlank() || departure.isWheelchairAccessible == true || !departure.occupancyStatus.isNullOrBlank() || departure.formation != null || departure.isSetDownOnly || departure.isPickUpOnly) {
                 val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
                 val isNarrow = windowWidthClass.isNarrow
 
@@ -206,6 +206,32 @@ fun DepartureRowItem(
                             Text(
                                 text = departure.formation!!.displayCoachCount,
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+
+                    if (departure.isSetDownOnly) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+                        ) {
+                            Text(
+                                text = "Set Down Only",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    } else if (departure.isPickUpOnly) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = "Pick Up Only",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                             )
@@ -310,6 +336,25 @@ fun UnifiedDepartureTimeBadge(
                         fontSize = 11.sp
                     ),
                     color = Color(0xFFE32017)
+                )
+            }
+        }
+        departure.frequency != null && departure.timeToStationSeconds <= 0 -> {
+            Box(
+                modifier = modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = departure.frequency.displayHeadway,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
