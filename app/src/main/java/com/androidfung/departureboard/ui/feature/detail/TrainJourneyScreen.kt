@@ -917,13 +917,14 @@ private fun CallingPointTimelineItem(
                             horizontalArrangement = Arrangement.spacedBy(3.dp),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(lineColor.copy(alpha = 0.15f))
+                                .background(accessibleColors.badgeBackground)
+                                .border(1.dp, accessibleColors.badgeBorder, RoundedCornerShape(6.dp))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.LocationOn,
                                 contentDescription = null,
-                                tint = lineColor,
+                                tint = accessibleColors.badgeContent,
                                 modifier = Modifier.size(11.dp)
                             )
                             Text(
@@ -932,7 +933,7 @@ private fun CallingPointTimelineItem(
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = lineColor
+                                color = accessibleColors.badgeContent
                             )
                         }
                     }
@@ -1001,7 +1002,7 @@ private fun CallingPointTimelineItem(
                 ) {
                     val subtitleTrackColor = if (isLast) Color.Transparent
                     else if (isPassed) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                    else lineColor.copy(alpha = 0.5f)
+                    else accessibleColors.effectiveLineColor.copy(alpha = 0.5f)
                     Box(
                         modifier = Modifier
                             .width(3.dp)
