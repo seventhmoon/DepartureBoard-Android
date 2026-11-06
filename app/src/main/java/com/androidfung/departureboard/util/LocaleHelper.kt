@@ -24,14 +24,6 @@ object LocaleHelper {
     }
 
     /**
-     * Overload for backward compatibility with existing callers passing [Context].
-     */
-    @Suppress("UNUSED_PARAMETER")
-    fun getCurrentLanguageTag(context: Context, fallbackToDefault: Boolean = true): String {
-        return getCurrentLanguageTag(fallbackToDefault)
-    }
-
-    /**
      * Returns the current app-specific [Locale], or `null` if following system default.
      */
     fun getAppLocale(): Locale? {
@@ -63,13 +55,5 @@ object LocaleHelper {
             LocaleListCompat.create(locale)
         }
         AppCompatDelegate.setApplicationLocales(locales)
-    }
-
-    /**
-     * Overload for backward compatibility with existing callers passing [Context].
-     */
-    @Suppress("UNUSED_PARAMETER")
-    fun setAppLanguage(context: Context, languageTag: String?) {
-        setAppLanguage(languageTag)
     }
 }

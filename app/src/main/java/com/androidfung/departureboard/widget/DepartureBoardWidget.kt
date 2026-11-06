@@ -48,7 +48,6 @@ import com.androidfung.departureboard.appContainer
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
-import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers

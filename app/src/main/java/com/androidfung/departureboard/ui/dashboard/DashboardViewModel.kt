@@ -780,11 +780,6 @@ class DashboardViewModel @JvmOverloads constructor(
      * @param fetchApiNearby If true, queries the TfL StopPoint radius API (used when opening Search).
      *                        If false, computes distance quickly against local candidates without extra HTTP traffic.
      */
-    @Suppress("UNUSED_PARAMETER")
-    fun updateNearestStation(context: Context, fetchApiNearby: Boolean = false) {
-        updateNearestStation(fetchApiNearby)
-    }
-
     fun updateNearestStation(fetchApiNearby: Boolean = false) = viewModelScope.launch {
         refreshNearestStationInternal(fetchApiNearby)
     }

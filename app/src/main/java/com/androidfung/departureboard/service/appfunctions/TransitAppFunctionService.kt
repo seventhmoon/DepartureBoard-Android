@@ -9,7 +9,6 @@ import androidx.appfunctions.AppFunctionInvalidArgumentException
 import androidx.appfunctions.AppFunctionService
 import androidx.appfunctions.AppFunctionServiceEntryPoint
 import com.androidfung.departureboard.appContainer
-import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
 import com.androidfung.departureboard.service.TrainTrackingService
 import com.androidfung.departureboard.widget.DepartureBoardWidgetReceiver
 import kotlinx.coroutines.Dispatchers
