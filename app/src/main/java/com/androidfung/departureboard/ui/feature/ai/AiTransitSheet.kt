@@ -93,7 +93,10 @@ fun AiTransitSheet(
     val coroutineScope = rememberCoroutineScope()
     val localCtx = LocalContext.current
     val assistant = remember(repository, localCtx) { TransitAiAssistant(repository, localCtx) }
-    val dynamicAiProvider = remember(localCtx) { com.androidfung.departureboard.ai.DynamicAiAssistantProvider(localCtx) }
+    val dynamicAiProvider = remember(localCtx) {
+        (localCtx.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.container?.dynamicAiAssistantProvider
+            ?: com.androidfung.departureboard.ai.DynamicAiAssistantProvider(localCtx.applicationContext)
+    }
     var isInstallingModule by remember { mutableStateOf(false) }
     var installProgress by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
     var isFeatureInstalled by remember { mutableStateOf(dynamicAiProvider.isFeatureInstalled) }

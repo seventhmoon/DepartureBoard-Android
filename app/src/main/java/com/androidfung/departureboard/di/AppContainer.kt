@@ -47,6 +47,7 @@ interface AppContainer {
     val hkBusStopDao: HkBusStopDao
     val transitRepository: TransitRepository
     val billingRepository: BillingDataSource
+    val dynamicAiAssistantProvider: com.androidfung.departureboard.ai.DynamicAiAssistantProvider
 }
 
 class DefaultAppContainer(
@@ -112,5 +113,9 @@ class DefaultAppContainer(
 
     override val billingRepository: BillingDataSource by lazy {
         BillingRepository.getInstance(applicationContext)
+    }
+
+    override val dynamicAiAssistantProvider: com.androidfung.departureboard.ai.DynamicAiAssistantProvider by lazy {
+        com.androidfung.departureboard.ai.DynamicAiAssistantProvider(applicationContext)
     }
 }

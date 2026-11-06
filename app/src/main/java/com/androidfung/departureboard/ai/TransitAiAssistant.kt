@@ -49,8 +49,9 @@ class TransitAiAssistant(
         runCatching { LiteRtTransitClassifier(it.applicationContext) }.getOrNull()
     }
 
-    private val dynamicAiProvider: DynamicAiAssistantProvider? = context?.let {
-        DynamicAiAssistantProvider(it.applicationContext)
+    private val dynamicAiProvider: DynamicAiAssistantProvider? = context?.let { ctx ->
+        (ctx.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.container?.dynamicAiAssistantProvider
+            ?: DynamicAiAssistantProvider(ctx.applicationContext)
     }
 
     private val queryRouter: AiQueryRouter? = context?.let {

@@ -33,7 +33,7 @@ interface DynamicLmEngine {
  */
 class DynamicAiAssistantProvider(
     private val context: Context
-) {
+) : AutoCloseable {
     companion object {
         const val MODULE_NAME = "ai_assistant"
         private const val IMPL_CLASS = "com.androidfung.departureboard.features.ai.DynamicLmEngineImpl"
@@ -43,18 +43,33 @@ class DynamicAiAssistantProvider(
         SplitInstallManagerFactory.create(context)
     }
 
+    @Volatile
+    private var cachedEngine: DynamicLmEngine? = null
+
     val isFeatureInstalled: Boolean
         get() = splitInstallManager.installedModules.contains(MODULE_NAME)
 
     fun loadDynamicEngine(): DynamicLmEngine? {
         if (!isFeatureInstalled) return null
-        return try {
-            val clazz = Class.forName(IMPL_CLASS)
-            val constructor = clazz.getConstructor(Context::class.java)
-            constructor.newInstance(context) as? DynamicLmEngine
-        } catch (e: Exception) {
-            Log.w("DynamicAiAssistant", "Failed to instantiate DynamicLmEngine via reflection", e)
-            null
+        cachedEngine?.let { return it }
+        return synchronized(this) {
+            cachedEngine ?: try {
+                val clazz = Class.forName(IMPL_CLASS)
+                val constructor = clazz.getConstructor(Context::class.java)
+                (constructor.newInstance(context) as? DynamicLmEngine)?.also {
+                    cachedEngine = it
+                }
+            } catch (e: Exception) {
+                Log.w("DynamicAiAssistant", "Failed to instantiate DynamicLmEngine via reflection", e)
+                null
+            }
+        }
+    }
+
+    override fun close() {
+        synchronized(this) {
+            (cachedEngine as? AutoCloseable)?.close()
+            cachedEngine = null
         }
     }
 

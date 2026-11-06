@@ -46,7 +46,7 @@ class DynamicLmEngineImpl(
 
     private var engine: Engine? = null
     private var conversation: Conversation? = null
-    private var isBusy = false
+    private val isBusy = java.util.concurrent.atomic.AtomicBoolean(false)
 
     override val isReady: Boolean
         get() = engine != null && conversation != null
@@ -116,17 +116,18 @@ class DynamicLmEngineImpl(
 
     override fun streamReply(prompt: String): Flow<String> = callbackFlow {
         val job = scope.launch {
-            mutex.withLock {
+            val conv = mutex.withLock {
                 if (conversation == null) {
                     trySend("Local LLM model is not ready.")
                     close()
-                    return@withLock
+                    return@launch
                 }
-                isBusy = true
+                isBusy.set(true)
+                conversation
             }
 
             try {
-                val replies = checkNotNull(conversation).sendMessageAsync(prompt)
+                val replies = checkNotNull(conv).sendMessageAsync(prompt)
                 replies.collect { message ->
                     trySend(message.toString())
                 }
@@ -134,7 +135,7 @@ class DynamicLmEngineImpl(
                 Log.e(TAG, "Error during LiteRT-LM reply streaming", e)
                 trySend("\n[Inference error: ${e.localizedMessage}]")
             } finally {
-                mutex.withLock { isBusy = false }
+                isBusy.set(false)
                 close()
             }
         }
@@ -145,9 +146,12 @@ class DynamicLmEngineImpl(
     }
 
     private suspend fun releaseInternal() {
-        while (isBusy) {
+        if (isBusy.get()) {
             runCatching { conversation?.cancelProcess() }
-            delay(50L.milliseconds)
+            var waitCount = 0
+            while (isBusy.get() && waitCount++ < 30) {
+                delay(50L.milliseconds)
+            }
         }
         runCatching { conversation?.close() }
         conversation = null

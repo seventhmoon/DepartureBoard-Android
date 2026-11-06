@@ -65,7 +65,7 @@
     <string name="tracking_at_platform_boarding">At platform • Boarding</string>
     <string name="tracking_subtext_to">%1$s to %2$s</string>
     <string name="tracking_stops_away_one">1 stop away</string>
-    <string name="tracking_stops_away_other">%1$d stops away</string>
+    <string name="tracking_stops_away_other" tools:ignore="PluralsCandidate">%1$d stops away</string>
     <string name="tracking_chip_min">%1$d min</string>
     <string name="tracking_default_destination">Destination</string>
     <string name="tracking_default_train">Train</string>
@@ -202,7 +202,7 @@
     <string name="line_status_close_desc">Close network status</string>
     <string name="line_status_good_service_all">Good service across all monitored lines</string>
     <string name="line_status_disruptions_count_one">1 line reporting disruptions</string>
-    <string name="line_status_disruptions_count_many">%1$d lines reporting disruptions</string>
+    <string name="line_status_disruptions_count_many" tools:ignore="PluralsCandidate">%1$d lines reporting disruptions</string>
     <string name="line_status_filter_my_lines">My Lines</string>
     <string name="line_status_filter_show_all">Show All</string>
     <string name="line_status_filter_disrupted">Disrupted (%1$d)</string>
@@ -218,12 +218,12 @@
     <string name="station_detail_pin">Pin to Home</string>
     <string name="station_detail_unpin">Remove from Home</string>
     <string name="station_detail_filter_all">All</string>
-    <string name="station_detail_disruptions_title">%1$d Line Disruptions</string>
+    <string name="station_detail_disruptions_title" tools:ignore="PluralsCandidate">%1$d Line Disruptions</string>
     <string name="station_detail_disruptions_expand">Expand Disruptions</string>
     <string name="station_detail_disruptions_collapse">Collapse Disruptions</string>
     <string name="station_detail_stops_stands_header">Stops / Stands:</string>
     <string name="station_detail_live_departures">Live Departures</string>
-    <string name="station_detail_predictions_count">%1$d predictions</string>
+    <string name="station_detail_predictions_count" tools:ignore="PluralsCandidate">%1$d predictions</string>
     <string name="station_detail_service_ended_title">🌙 Service Ended for Today</string>
     <string name="station_detail_last_train">Last train departed at %1$s.</string>
     <string name="station_detail_first_train">Morning service starts at ~%1$s.</string>
@@ -241,7 +241,7 @@
     <string name="journey_service_delayed_title">Service Delayed</string>
     <string name="journey_service_delayed_desc">This service is experiencing delays.</string>
     <string name="journey_calling_points_header">Calling Points</string>
-    <string name="journey_calling_points_count">%1$d stops</string>
+    <string name="journey_calling_points_count" tools:ignore="PluralsCandidate">%1$d stops</string>
     <string name="journey_loading_calling_points">Loading calling points&#8230;</string>
     <string name="journey_calling_points_unavailable">Calling points details not available for this service.</string>
     <string name="journey_your_station">Your station</string>
@@ -260,9 +260,9 @@
     <!-- Paywall Bottom Sheet -->
     <string name="paywall_title">Upgrade to Pro</string>
     <string name="paywall_subtitle">Supercharge your daily commute</string>
-    <string name="paywall_feature_stations_title">Up to %1$d Saved Stations</string>
-    <string name="paywall_feature_stations_subtitle">Free tier is limited to %1$d stations</string>
-    <string name="paywall_feature_widgets_title">Up to %1$d Home Screen Widgets</string>
+    <string name="paywall_feature_stations_title" tools:ignore="PluralsCandidate">Up to %1$d Saved Stations</string>
+    <string name="paywall_feature_stations_subtitle" tools:ignore="PluralsCandidate">Free tier is limited to %1$d stations</string>
+    <string name="paywall_feature_widgets_title" tools:ignore="PluralsCandidate">Up to %1$d Home Screen Widgets</string>
     <string name="paywall_feature_widgets_subtitle">Track all your commute connections at a glance</string>
     <string name="paywall_feature_ai_title">Unlimited AI Transit Assistant</string>
     <string name="paywall_feature_ai_subtitle">Natural language queries &amp; live status updates</string>
@@ -362,14 +362,14 @@
     <!-- Widget Interruption Statuses -->
     <string name="widget_interruption_delays">Delays</string>
     <string name="widget_interruption_line_with_desc">%1$s: %2$s</string>
-    <string name="widget_interruption_lines_disrupted">%1$d lines disrupted</string>
+    <string name="widget_interruption_lines_disrupted" tools:ignore="PluralsCandidate">%1$d lines disrupted</string>
     <string name="widget_interruption_cancellations">Cancellations</string>
 
     <!-- Widget Configuration Screen -->
     <string name="widget_config_setting_up">Setting up your board…</string>
     <string name="widget_config_limit_title">Widget Limit Reached</string>
-    <string name="widget_config_limit_free">Free plan includes up to %1$d home screen widgets. Upgrade to Pro for up to %2$d widgets.</string>
-    <string name="widget_config_limit_max">Maximum limit of %1$d widgets reached to protect battery and API limits.</string>
+    <string name="widget_config_limit_free" tools:ignore="PluralsCandidate">Free plan includes up to %1$d home screen widgets. Upgrade to Pro for up to %2$d widgets.</string>
+    <string name="widget_config_limit_max" tools:ignore="PluralsCandidate">Maximum limit of %1$d widgets reached to protect battery and API limits.</string>
     <string name="widget_config_upgrade_pro">Upgrade to Pro</string>
     <string name="widget_config_cancel">Cancel</string>
     <string name="widget_config_select_station">Select Station</string>
