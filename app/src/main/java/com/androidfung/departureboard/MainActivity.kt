@@ -7,7 +7,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -67,7 +67,7 @@ data object StationDetailRoute : NavKey
 data object TrainJourneyRoute : NavKey
 
 @OptIn(ExperimentalMaterial3Api::class)
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_STATION_ID = "extra_station_id"
