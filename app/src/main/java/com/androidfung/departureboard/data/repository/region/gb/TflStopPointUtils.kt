@@ -65,20 +65,14 @@ internal object TflStopPointUtils {
      * Returns true if the station represents St Pancras International or King's Cross National Rail
      * (where Tube arrivals from the shared King's Cross St. Pancras Underground hub should be excluded).
      */
-    fun isStPancrasOrKingsCrossNR(stationId: String, stationName: String): Boolean {
-        if (stationId.equals("910GSTPX", ignoreCase = true) || stationId.equals("910GKNGX", ignoreCase = true)) {
-            return true
-        }
-        val lowerName = stationName.lowercase()
-        return lowerName == "st pancras international" || lowerName == "st pancras" || lowerName == "king's cross"
-    }
+    fun isStPancrasOrKingsCrossNR(stationId: String, stationName: String): Boolean =
+        com.androidfung.departureboard.data.model.gb.TflStationIds.isStPancrasOrKingsCrossNR(stationId, stationName)
 
     /**
      * Returns true if the station is Wembley Park (used to filter spurious H&C depot movements).
      */
-    fun isWembleyPark(stationId: String, stationName: String): Boolean {
-        return stationId.equals("940GZZLUWYP", ignoreCase = true) || "wembley park" in stationName.lowercase()
-    }
+    fun isWembleyPark(stationId: String, stationName: String): Boolean =
+        com.androidfung.departureboard.data.model.gb.TflStationIds.isWembleyPark(stationId, stationName)
 
     /**
      * Known inter-modal sibling NaPTAN IDs for unified stations with split modal IDs:

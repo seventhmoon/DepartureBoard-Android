@@ -10,7 +10,6 @@ import com.androidfung.departureboard.data.model.isAuTransitId
 import com.androidfung.departureboard.data.model.isHkTransitId
 import com.androidfung.departureboard.data.model.isJpTransitId
 import com.androidfung.departureboard.data.model.isSgTransitId
-import com.androidfung.departureboard.data.model.transitMode
 import com.androidfung.departureboard.data.network.gb.BodsApiService
 import com.androidfung.departureboard.data.network.gb.NationalRailApiService
 import com.androidfung.departureboard.data.network.gb.TflApiService

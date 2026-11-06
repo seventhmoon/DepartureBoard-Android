@@ -92,10 +92,6 @@ abstract class BaseStationDirectory<E : CatalogStationEntry> : StationDirectory 
 object StationSearchRanker {
 
     private val WORD_SPLIT_REGEX = Regex("[\\s/\\-()]+")
-    private val RAIL_MODES = setOf(
-        "tube", "underground", "mtr", "mrt", "metro",
-        "national-rail", "rail", "train", "elizabeth-line", "overground", "dlr", "tram", "lrt", "jr"
-    )
 
     fun isLikelyBusQuery(normalizedQuery: String): Boolean {
         return normalizedQuery.any { it.isDigit() } ||
@@ -127,9 +123,9 @@ object StationSearchRanker {
                     else -> 7
                 }
             }.thenBy { station ->
-                val isRail = station.modes.any { it.lowercase() in RAIL_MODES }
+                val isRail = station.primaryTransitMode.isRail
                 if (busQuery) {
-                    if (station.modes.any { it.equals("bus", ignoreCase = true) }) 0 else 1
+                    if (station.isBusOnly) 0 else 1
                 } else {
                     if (isRail) 0 else 1
                 }

@@ -34,7 +34,10 @@ object DepartureFilterHelper {
         }
 
         if (!direction.isNullOrBlank()) {
-            val matchesDirection = departure.direction.equals(direction, ignoreCase = true) ||
+            val targetDir = TransitDirection.fromString(direction)
+            val depDir = TransitDirection.fromString(departure.direction)
+            val matchesDirection = (targetDir != null && (targetDir == depDir || targetDir == TransitDirection.fromString(departure.towards))) ||
+                    departure.direction.equals(direction, ignoreCase = true) ||
                     departure.towards.equals(direction, ignoreCase = true) ||
                     departure.destinationName.contains(direction, ignoreCase = true) ||
                     departure.platformName.contains(direction, ignoreCase = true)

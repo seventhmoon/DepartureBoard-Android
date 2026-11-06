@@ -428,8 +428,8 @@ fun SettingsBottomSheet(
                     SettingsActionItem(
                         icon = Icons.Rounded.WorkspacePremium,
                         iconTint = if (isPro) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        title = if (isPro) "EkiBoard Pro" else "Free Plan",
-                        subtitle = if (isPro) "Active plan • Tap to view benefits" else "Upgrade for unlimited stations, AI & no ads",
+                        title = if (isPro) stringResource(R.string.settings_plan_pro_title) else stringResource(R.string.settings_plan_free_title),
+                        subtitle = if (isPro) stringResource(R.string.settings_plan_pro_subtitle) else stringResource(R.string.settings_plan_free_subtitle),
                         onClick = onUpgradeClick
                     )
 
@@ -438,7 +438,7 @@ fun SettingsBottomSheet(
                     SettingsActionItem(
                         icon = Icons.AutoMirrored.Rounded.OpenInNew,
                         title = stringResource(R.string.settings_manage_subscription_title),
-                        subtitle = "Opens Google Play Subscriptions Center",
+                        subtitle = stringResource(R.string.settings_manage_subscription_subtitle),
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
@@ -455,7 +455,7 @@ fun SettingsBottomSheet(
                     SettingsActionItem(
                         icon = Icons.Rounded.LockReset,
                         title = if (isRestoring) stringResource(R.string.paywall_checking_google_play) else stringResource(R.string.paywall_restore_purchases),
-                        subtitle = if (isRestoring) "Communicating with Google Play Store" else "Sync previous purchases from Google Play",
+                        subtitle = if (isRestoring) stringResource(R.string.settings_restore_purchases_busy) else stringResource(R.string.settings_restore_purchases_subtitle),
                         onClick = {
                             if (!isRestoring) {
                                 isRestoring = true
@@ -489,7 +489,7 @@ fun SettingsBottomSheet(
                     SettingsActionItem(
                         icon = Icons.AutoMirrored.Rounded.HelpOutline,
                         title = stringResource(R.string.help_faq_title),
-                        subtitle = "Frequently asked questions & usage tips",
+                        subtitle = stringResource(R.string.settings_help_faq_subtitle),
                         onClick = {
                             onDismissRequest()
                             onOpenHelpFaq()
@@ -501,7 +501,7 @@ fun SettingsBottomSheet(
                     SettingsActionItem(
                         icon = Icons.Rounded.StarRate,
                         title = stringResource(R.string.settings_rate_app_title),
-                        subtitle = "Share your review with other commuters",
+                        subtitle = stringResource(R.string.settings_rate_app_subtitle),
                         onClick = onRateApp
                     )
 
@@ -510,7 +510,7 @@ fun SettingsBottomSheet(
                     SettingsActionItem(
                         icon = Icons.Rounded.Policy,
                         title = stringResource(R.string.settings_privacy_policy_title),
-                        subtitle = "View privacy terms and data safety info",
+                        subtitle = stringResource(R.string.settings_privacy_policy_subtitle),
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
@@ -524,8 +524,8 @@ fun SettingsBottomSheet(
 
                     SettingsActionItem(
                         icon = Icons.Rounded.Info,
-                        title = "App Version",
-                        subtitle = "v${BuildConfig.VERSION_NAME} • TfL Open Data",
+                        title = stringResource(R.string.settings_app_version_title),
+                        subtitle = stringResource(R.string.settings_app_version_subtitle, BuildConfig.VERSION_NAME),
                         onClick = {}
                     )
 
@@ -534,8 +534,8 @@ fun SettingsBottomSheet(
 
                         SettingsActionItem(
                             icon = Icons.Rounded.Settings,
-                            title = "Developer Options",
-                            subtitle = "Debug toggles, AI engine, and testing tools",
+                            title = stringResource(R.string.settings_developer_options_title),
+                            subtitle = stringResource(R.string.settings_developer_options_subtitle),
                             onClick = {
                                 onDismissRequest()
                                 onOpenDebugSettings()

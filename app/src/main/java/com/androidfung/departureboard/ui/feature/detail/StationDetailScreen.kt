@@ -184,7 +184,7 @@ fun StationDetailScreen(
                 onDepartureClick = onDepartureClick,
                 serviceHoursInfo = if (pageStation.id == station.id) serviceHoursInfo else null,
                 isPro = isPro,
-                pageInfo = "${page + 1} of ${stationList.size}",
+                pageInfo = stringResource(R.string.pager_page_of_total, page + 1, stationList.size),
                 pageCount = stationList.size,
                 currentPage = page,
                 onPageClick = { targetPage ->
@@ -208,10 +208,11 @@ private fun StationDetailPagerIndicator(
     onPageClick: ((Int) -> Unit)? = null
 ) {
     val haptic = LocalHapticFeedback.current
+    val pagerStateDesc = stringResource(R.string.cd_station_pager_dot, currentPage + 1, pageCount)
     Row(
         modifier = modifier
             .semantics {
-                stateDescription = "Station ${currentPage + 1} of $pageCount"
+                stateDescription = pagerStateDesc
             },
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -232,22 +233,23 @@ private fun StationDetailPagerIndicator(
                 label = "dotColor_$i"
             )
 
+            val clickModifier = if (onPageClick != null) {
+                val switchLabel = stringResource(R.string.cd_station_pager_switch, i + 1)
+                Modifier.clickable(
+                    role = Role.Tab,
+                    onClickLabel = switchLabel
+                ) {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onPageClick(i)
+                }
+            } else Modifier
+
             Box(
                 modifier = Modifier
                     .size(width = dotWidth, height = 6.dp)
                     .clip(CircleShape)
                     .background(dotColor)
-                    .then(
-                        if (onPageClick != null) {
-                            Modifier.clickable(
-                                role = Role.Tab,
-                                onClickLabel = "Station ${i + 1}"
-                            ) {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onPageClick(i)
-                            }
-                        } else Modifier
-                    )
+                    .then(clickModifier)
             )
         }
     }
@@ -272,10 +274,7 @@ private fun StationDetailContent(
     currentPage: Int = 0,
     onPageClick: ((Int) -> Unit)? = null
 ) {
-    val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram")
-        .firstOrNull { it in station.modes }
-        ?: station.modes.firstOrNull() ?: "tube"
-    val modeIcon = TransitIconHelper.getTransitIconForMode(primaryMode)
+    val modeIcon = TransitIconHelper.getTransitIconForMode(station.primaryTransitMode)
 
     // Pulsing animation for live updates badge
     val transition = rememberInfiniteTransition(label = "LivePulseTransition")
@@ -568,7 +567,11 @@ private fun StationDetailContent(
             ) {
                 Icon(
                     imageVector = if (isSaved) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
-                    contentDescription = if (isSaved) "Remove from Home" else "Pin to Home",
+                    contentDescription = if (isSaved) {
+                        stringResource(R.string.cd_remove_from_home)
+                    } else {
+                        stringResource(R.string.cd_pin_to_home)
+                    },
                     tint = if (isSaved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(19.dp)
                 )
@@ -619,6 +622,8 @@ private fun StationDetailContent(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val chipSelectedDesc = stringResource(R.string.cd_selected)
+                        val chipNotSelectedDesc = stringResource(R.string.cd_not_selected)
                         distinctLines.forEach { badge ->
                             val isSelected = selectedLineId.equals(badge.lineId, ignoreCase = true)
                             val directionIndicator = com.androidfung.departureboard.data.model.TransitDirection.fromString(
@@ -683,7 +688,7 @@ private fun StationDetailContent(
                                     .semantics {
                                         this.selected = isSelected
                                         this.role = Role.Checkbox
-                                        this.stateDescription = if (isSelected) "Selected" else "Not selected"
+                                        this.stateDescription = if (isSelected) chipSelectedDesc else chipNotSelectedDesc
                                     }
                                     .padding(horizontal = 8.dp, vertical = 4.dp),
                                     contentAlignment = Alignment.Center
@@ -804,6 +809,8 @@ private fun StationDetailContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(end = 8.dp)
                         )
+                        val stopSelectedDesc = stringResource(R.string.cd_selected)
+                        val stopNotSelectedDesc = stringResource(R.string.cd_not_selected)
                         Row(
                             modifier = Modifier
                                 .weight(1f)
@@ -831,7 +838,7 @@ private fun StationDetailContent(
                                         .semantics {
                                             this.selected = isSelected
                                             this.role = Role.Checkbox
-                                            this.stateDescription = if (isSelected) "Selected" else "Not selected"
+                                            this.stateDescription = if (isSelected) stopSelectedDesc else stopNotSelectedDesc
                                         }
                                         .padding(horizontal = 8.dp, vertical = 3.dp)
                                 ) {
@@ -921,8 +928,12 @@ private fun StationDetailContent(
                                     color = MaterialTheme.colorScheme.onSurface,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
-                                val lastText = serviceHoursInfo.lastTrainTime?.let { "Last train departed at $it." } ?: ""
-                                val firstText = serviceHoursInfo.firstTrainTime?.let { "Morning service starts at ~$it." } ?: ""
+                                val lastText = serviceHoursInfo.lastTrainTime?.let {
+                                    stringResource(R.string.station_detail_last_train, it)
+                                } ?: ""
+                                val firstText = serviceHoursInfo.firstTrainTime?.let {
+                                    stringResource(R.string.station_detail_first_train, it)
+                                } ?: ""
                                 Text(
                                     text = listOf(lastText, firstText).filter { it.isNotBlank() }.joinToString("\n"),
                                     style = MaterialTheme.typography.bodyMedium,
@@ -933,7 +944,11 @@ private fun StationDetailContent(
                             }
                         } else {
                             Text(
-                                text = if (selectedLineId != null) "No departures for this line" else "No departures currently available.\nTap the refresh icon above to check for updates.",
+                                text = if (selectedLineId != null) {
+                                    stringResource(R.string.station_detail_no_departures_line)
+                                } else {
+                                    stringResource(R.string.station_detail_no_departures)
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 20.sp,
@@ -1030,7 +1045,11 @@ fun DepartureDetailItemRow(
                     ) {
                         Icon(
                             imageVector = if (isTracked) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsNone,
-                            contentDescription = if (isTracked) "Stop Live Notification" else "Notify with Live Update",
+                            contentDescription = if (isTracked) {
+                                stringResource(R.string.cd_stop_live_notification)
+                            } else {
+                                stringResource(R.string.cd_start_live_notification)
+                            },
                             modifier = Modifier.size(16.dp),
                             tint = if (isTracked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )

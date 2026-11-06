@@ -327,4 +327,80 @@
     <string name="widget_config_select_direction">2. Select Direction (Optional):</string>
     <string name="widget_config_all_directions">All Directions (Default)</string>
     <string name="widget_config_save">Save Widget</string>
+
+    <!-- Pager & Accessibility Content Descriptions -->
+    <string name="pager_page_of_total">%1$d of %2$d</string>
+    <string name="cd_station_pager_dot">Station %1$d of %2$d</string>
+    <string name="cd_station_pager_switch">Switch to station %1$d</string>
+    <string name="cd_pin_to_home">Pin to Home</string>
+    <string name="cd_remove_from_home">Remove from Home</string>
+    <string name="cd_start_live_notification">Notify with Live Updates</string>
+    <string name="cd_stop_live_notification">Stop Live Notification</string>
+    <string name="cd_not_selected">Not selected</string>
+
+    <!-- Station Detail Timetable & Fallbacks -->
+    <string name="station_detail_last_train">Last train departed at %1$s.</string>
+    <string name="station_detail_first_train">Morning service starts at ~%1$s.</string>
+    <string name="station_detail_no_departures">No departures currently available.\nTap the refresh icon above to check for updates.</string>
+    <string name="station_detail_no_departures_line">No departures for this line</string>
+
+    <!-- Settings Subtitles & Items -->
+    <string name="settings_plan_free_title">Free Plan</string>
+    <string name="settings_plan_free_subtitle">Upgrade for unlimited stations, AI &amp; no ads</string>
+    <string name="settings_plan_pro_title">EkiBoard Pro</string>
+    <string name="settings_plan_pro_subtitle">Active plan • Tap to view benefits</string>
+    <string name="settings_manage_subscription_subtitle">Opens Google Play Subscriptions Center</string>
+    <string name="settings_restore_purchases_subtitle">Sync previous purchases from Google Play</string>
+    <string name="settings_restore_purchases_busy">Communicating with Google Play Store</string>
+    <string name="settings_help_faq_subtitle">Frequently asked questions &amp; usage tips</string>
+    <string name="settings_rate_app_subtitle">Share your review with other commuters</string>
+    <string name="settings_privacy_policy_subtitle">View privacy terms and data safety info</string>
+    <string name="settings_app_version_title">App Version</string>
+    <string name="settings_app_version_subtitle">v%1$s • Official Transit Open Data</string>
+    <string name="settings_developer_options_title">Developer Options</string>
+    <string name="settings_developer_options_subtitle">Debug toggles, AI engine, and testing tools</string>
+
+    <!-- Paywall & Subscription Prompts -->
+    <string name="paywall_prompt_station_limit" tools:ignore="PluralsCandidate">Free plan includes up to %1$d saved stations. Upgrade to Pro for up to %2$d stations.</string>
+    <string name="paywall_prompt_ai_limit">Unlock unlimited EkiBoard AI queries with Pro</string>
+    <string name="paywall_prompt_default">Unlock EkiBoard Pro</string>
+    <string name="paywall_plan_annual_fallback">£9.99 / year</string>
+    <string name="paywall_plan_monthly_fallback">£1.49 / month</string>
+    <string name="paywall_plan_savings_tag">SAVE %1$d%%</string>
+    <string name="paywall_plan_annual_subtitle">1 Year of Pro Access (%1$s%2$.2f/mo)</string>
+    <string name="paywall_plan_annual_subtitle_fallback">1 Year of Pro Access (£0.83/mo)</string>
+    <string name="paywall_plan_monthly_subtitle">Billed monthly, cancel anytime</string>
+
+    <!-- General Feedback & Errors -->
+    <string name="departures_load_error">Unable to load departures</string>
+    <string name="app_update_downloaded_toast">An update is downloaded. Restart the app to finish installing.</string>
+
+    <!-- AI Assistant Actions & Feedback -->
+    <string name="ai_toast_engine_installed">On-device AI Engine installed!</string>
+    <string name="ai_toast_install_failed">AI installation failed or cancelled</string>
+    <string name="ai_toast_speech_unavailable">Speech recognition is not available on this device</string>
+    <string name="ai_speech_prompt">Prompt your departure question…</string>
+    <string name="tracking_action_track">Track</string>
+    <string name="tracking_action_untrack">Untrack</string>
+    <string name="ai_prompt_morning_commute">Morning commute status</string>
+    <string name="ai_prompt_evening_commute">Evening commute disruptions</string>
+    <string name="ai_prompt_evening_delays">Any delays heading home?</string>
+    <string name="ai_prompt_last_train">Last train tonight</string>
+    <string name="ai_prompt_last_tube">Last Tube tonight</string>
+    <string name="ai_prompt_night_bus">Night bus services</string>
+    <string name="ai_prompt_next_train_from">Next train from %1$s</string>
+    <string name="ai_prompt_next_bus_from">Next bus from %1$s</string>
+    <string name="ai_prompt_next_train_near_me">Next train near me</string>
+    <string name="ai_prompt_next_departure_near_me">Next departure near me</string>
+
+    <!-- Saved Station Snackbar Feedback -->
+    <string name="station_already_saved">%1$s is already saved</string>
+    <string name="station_max_limit_reached" tools:ignore="PluralsCandidate">Maximum limit of %1$d stations reached to protect live API limits.</string>
+    <string name="station_added">Added %1$s</string>
+    <string name="station_removed">Removed %1$s</string>
+    <string name="station_restored">Restored %1$s</string>
+
+    <!-- AI Quota Exceeded -->
+    <string name="ai_quota_exceeded" tools:ignore="PluralsCandidate">You\'ve reached your limit of %1$d free AI queries today. Upgrade to Pro for unlimited AI prompts, live journey disruption checks, and full calling points.</string>
+    <string name="ai_input_placeholder">Ask or speak: “train to Mill Hill East”…</string>
 </resources>

@@ -129,12 +129,6 @@ val Station.isHkBus: Boolean
 val Station.isNationalRail: Boolean
     get() = id.isNationalRailStationId
 
-val Station.primaryTransitMode: TransitMode
-    get() = modes.firstNotNullOfOrNull { raw ->
-        val norm = raw.trim().lowercase()
-        if (norm.isEmpty()) null else TransitMode.fromModeString(norm)
-    } ?: TransitMode.METRO
-
 /**
  * Convenience properties on [Departure].
  */
@@ -149,9 +143,3 @@ val Departure.isHkBus: Boolean
 
 val Departure.isBods: Boolean
     get() = lineId.isBodsTransitId
-
-val Departure.transitMode: TransitMode
-    get() = if (modeName.isNotBlank()) TransitMode.fromModeString(modeName) else lineBadge.mode
-
-val Departure.isBus: Boolean
-    get() = modeName.equals(TransitMode.BUS.id, ignoreCase = true) || lineBadge.mode == TransitMode.BUS

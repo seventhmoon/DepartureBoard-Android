@@ -367,7 +367,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
             else -> context.getString(AppR.string.widget_dep_minutes, minutes)
         }
 
-        val isBus = departure.modeName.equals("bus", ignoreCase = true) || departure.lineId.toIntOrNull() != null
+        val isBus = departure.isBus || departure.lineId.toIntOrNull() != null
         val badge = departure.lineBadge
         val routeLineLabel = departure.lineName.ifBlank { departure.lineId }
         val platformOrStand = departure.platformName.takeIf { it.isNotBlank() && it.lowercase() != "null" }

@@ -1,6 +1,7 @@
 package com.androidfung.departureboard.ui.designsystem
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DirectionsBoat
 import androidx.compose.material.icons.rounded.DirectionsBus
 import androidx.compose.material.icons.rounded.DirectionsRailway
 import androidx.compose.material.icons.rounded.DirectionsSubway
@@ -12,7 +13,6 @@ import com.androidfung.departureboard.data.model.TransitLineMatcher
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.isBodsTransitId
-import com.androidfung.departureboard.data.model.isBus
 
 /**
  * Shared transit UI helpers for icon resolution, mode display formatting,
@@ -21,17 +21,24 @@ import com.androidfung.departureboard.data.model.isBus
 object TransitIconHelper {
 
     /**
+     * Resolves an appropriate Material ImageVector for a given strongly-typed [TransitMode].
+     */
+    fun getTransitIconForMode(mode: TransitMode?): ImageVector = when (mode) {
+        TransitMode.METRO -> Icons.Rounded.DirectionsSubway
+        TransitMode.RAIL -> Icons.Rounded.DirectionsRailway
+        TransitMode.BUS -> Icons.Rounded.DirectionsBus
+        TransitMode.TRAM -> Icons.Rounded.Tram
+        TransitMode.FERRY -> Icons.Rounded.DirectionsBoat
+        TransitMode.CABLE_CAR, TransitMode.FUNICULAR, TransitMode.MONORAIL -> Icons.Rounded.Tram
+        TransitMode.OTHER, null -> Icons.Rounded.DirectionsSubway
+    }
+
+    /**
      * Resolves an appropriate Material ImageVector for a given transit mode string.
      */
     fun getTransitIconForMode(mode: String?): ImageVector {
         if (mode == null) return Icons.Rounded.DirectionsSubway
-        return when (mode.lowercase().trim()) {
-            "tube", "underground", "mtr", "mrt", "metro", "subway" -> Icons.Rounded.DirectionsSubway
-            "bus" -> Icons.Rounded.DirectionsBus
-            "national-rail", "overground", "elizabeth-line", "jr", "train", "rail" -> Icons.Rounded.DirectionsRailway
-            "dlr", "tram", "lrt", "light-rail" -> Icons.Rounded.Tram
-            else -> Icons.Rounded.DirectionsSubway
-        }
+        return getTransitIconForMode(TransitMode.fromModeString(mode))
     }
 
     /**
@@ -73,8 +80,7 @@ object TransitIconHelper {
      * Builds a region-aware search query for opening a [Station] in a map application.
      */
     fun buildStationMapsQuery(station: Station): String {
-        val isBusOnly = station.modes.isNotEmpty() &&
-            station.modes.all { it.equals("bus", ignoreCase = true) }
+        val isBusOnly = station.isBusOnly
         val hasStationSuffix = station.name.contains("Station", ignoreCase = true) ||
             station.name.contains("Bus Stop", ignoreCase = true)
         val typeSuffix = when {

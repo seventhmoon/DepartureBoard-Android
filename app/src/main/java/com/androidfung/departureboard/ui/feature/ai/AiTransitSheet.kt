@@ -69,6 +69,7 @@ import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.repository.TransitRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
@@ -93,11 +94,11 @@ fun AiTransitSheet(
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val localCtx = LocalContext.current
-    val assistant = remember(repository, localCtx) { TransitAiAssistant(repository, localCtx) }
-    val dynamicAiProvider = remember(localCtx) {
-        (localCtx.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.container?.dynamicAiAssistantProvider
-            ?: com.androidfung.departureboard.ai.DynamicAiAssistantProvider(localCtx.applicationContext)
+    val localContext = LocalContext.current
+    val assistant = remember(repository, localContext) { TransitAiAssistant(repository, localContext) }
+    val dynamicAiProvider = remember(localContext) {
+        (localContext.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.container?.dynamicAiAssistantProvider
+            ?: com.androidfung.departureboard.ai.DynamicAiAssistantProvider(localContext.applicationContext)
     }
     var isInstallingModule by remember { mutableStateOf(false) }
     var installProgress by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
@@ -114,11 +115,11 @@ fun AiTransitSheet(
                     is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Installed -> {
                         isInstallingModule = false
                         isFeatureInstalled = true
-                        Toast.makeText(localCtx, "On-device AI Engine installed!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(localContext, localContext.getString(R.string.ai_toast_engine_installed), Toast.LENGTH_SHORT).show()
                     }
                     is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Failed -> {
                         isInstallingModule = false
-                        Toast.makeText(localCtx, "AI installation failed or cancelled", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(localContext, localContext.getString(R.string.ai_toast_install_failed), Toast.LENGTH_SHORT).show()
                     }
                     else -> {}
                 }
@@ -131,34 +132,34 @@ fun AiTransitSheet(
     var aiResult by remember { mutableStateOf<AiTransitResult?>(null) }
 
     // Dynamic, location-aware & frequently asked suggestions
-    val quickPrompts = remember(nearestStation, savedStations, selectedRegion) {
+    val quickPrompts = remember(nearestStation, savedStations, selectedRegion, localContext) {
         val prompts = mutableListOf<String>()
-        val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        val currentHour = java.time.LocalTime.now().hour
 
         // 1. Time-of-day contextual prompts
         when (currentHour) {
             in 6..9 -> {
-                prompts.add("Morning commute status")
+                prompts.add(localContext.getString(R.string.ai_prompt_morning_commute))
                 if (nearestStation != null) {
                     val name = nearestStation.displayName.substringBefore("(").trim()
-                    prompts.add("Next train from $name")
+                    prompts.add(localContext.getString(R.string.ai_prompt_next_train_from, name))
                 } else {
-                    prompts.add("Next train near me")
+                    prompts.add(localContext.getString(R.string.ai_prompt_next_train_near_me))
                 }
             }
             in 16..19 -> {
-                prompts.add("Evening commute disruptions")
-                prompts.add("Any delays heading home?")
+                prompts.add(localContext.getString(R.string.ai_prompt_evening_commute))
+                prompts.add(localContext.getString(R.string.ai_prompt_evening_delays))
             }
             in 22..23, in 0..4 -> {
                 when (selectedRegion) {
-                    com.androidfung.departureboard.data.model.TransitRegion.HK -> prompts.add("Last MTR train tonight")
-                    com.androidfung.departureboard.data.model.TransitRegion.SG -> prompts.add("Last MRT train tonight")
-                    com.androidfung.departureboard.data.model.TransitRegion.JP -> prompts.add("Last train tonight")
-                    com.androidfung.departureboard.data.model.TransitRegion.AU -> prompts.add("Last train tonight")
+                    com.androidfung.departureboard.data.model.TransitRegion.HK -> prompts.add(localContext.getString(R.string.ai_prompt_last_train))
+                    com.androidfung.departureboard.data.model.TransitRegion.SG -> prompts.add(localContext.getString(R.string.ai_prompt_last_train))
+                    com.androidfung.departureboard.data.model.TransitRegion.JP -> prompts.add(localContext.getString(R.string.ai_prompt_last_train))
+                    com.androidfung.departureboard.data.model.TransitRegion.AU -> prompts.add(localContext.getString(R.string.ai_prompt_last_train))
                     com.androidfung.departureboard.data.model.TransitRegion.GB -> {
-                        prompts.add("Last Tube tonight")
-                        prompts.add("Night bus services")
+                        prompts.add(localContext.getString(R.string.ai_prompt_last_tube))
+                        prompts.add(localContext.getString(R.string.ai_prompt_night_bus))
                     }
                 }
             }
@@ -166,12 +167,12 @@ fun AiTransitSheet(
                 if (nearestStation != null) {
                     val shortName = nearestStation.displayName.substringBefore("(").trim()
                     if (nearestStation.isBusOnly) {
-                        prompts.add("Next bus from $shortName")
+                        prompts.add(localContext.getString(R.string.ai_prompt_next_bus_from, shortName))
                     } else {
-                        prompts.add("Next train from $shortName")
+                        prompts.add(localContext.getString(R.string.ai_prompt_next_train_from, shortName))
                     }
                 } else {
-                    prompts.add("Next departure near me")
+                    prompts.add(localContext.getString(R.string.ai_prompt_next_departure_near_me))
                 }
             }
         }
@@ -180,7 +181,7 @@ fun AiTransitSheet(
         val secondary = savedStations.firstOrNull { it.id != nearestStation?.id }
         if (secondary != null) {
             val shortName = secondary.displayName.substringBefore("(").trim()
-            prompts.add("Next train from $shortName")
+            prompts.add(localContext.getString(R.string.ai_prompt_next_train_from, shortName))
         }
 
         // 3. High-frequency transit corridors by region
@@ -229,7 +230,7 @@ fun AiTransitSheet(
                 if (!allowed) {
                     isQuotaExceeded = true
                     aiResult = AiTransitResult(
-                        answer = "You've reached your limit of ${SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES} free AI queries today. Upgrade to Pro for unlimited AI prompts, live journey disruption checks, and full calling points."
+                        answer = localContext.getString(R.string.ai_quota_exceeded, SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES)
                     )
                     isThinking = false
                     return@launch
@@ -266,6 +267,8 @@ fun AiTransitSheet(
                 val res = assistant.answerQuery(prompt, savedStations, effectiveNearest, aiModelType)
                 android.util.Log.d("AiTransitSheet", "got answer: ${res.answer}")
                 aiResult = res
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 android.util.Log.e("AiTransitSheet", "error answering query", e)
             } finally {
@@ -274,7 +277,6 @@ fun AiTransitSheet(
         }
     }
 
-    val context = LocalContext.current
     val speechRecognizerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -295,12 +297,12 @@ fun AiTransitSheet(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Prompt your departure question...")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, localContext.getString(R.string.ai_speech_prompt))
         }
         try {
             speechRecognizerLauncher.launch(intent)
-        } catch (_: Exception) {
-            Toast.makeText(context, "Speech recognition is not available on this device", Toast.LENGTH_SHORT).show()
+        } catch (_: android.content.ActivityNotFoundException) {
+            Toast.makeText(localContext, localContext.getString(R.string.ai_toast_speech_unavailable), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -460,87 +462,91 @@ fun AiTransitSheet(
                         )
                     }
                 }
-            } else if (aiResult != null) {
-                if (aiResult!!.a2uiResponse != null) {
-                    A2UiRenderer(
-                        response = aiResult!!.a2uiResponse!!,
-                        modifier = Modifier.fillMaxWidth(),
-                        onActionClick = { action ->
-                            if (action is com.androidfung.departureboard.ai.A2UiAction.QueryPrompt) {
-                                queryText = action.text
-                                submitQuery(action.text)
+            } else {
+                val result = aiResult
+                if (result != null) {
+                    val a2uiResponse = result.a2uiResponse
+                    if (a2uiResponse != null) {
+                        A2UiRenderer(
+                            response = a2uiResponse,
+                            modifier = Modifier.fillMaxWidth(),
+                            onActionClick = { action ->
+                                if (action is com.androidfung.departureboard.ai.A2UiAction.QueryPrompt) {
+                                    queryText = action.text
+                                    submitQuery(action.text)
+                                }
                             }
-                        }
-                    )
-                } else {
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = aiResult!!.answer,
-                                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 22.sp),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                        )
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = result.answer,
+                                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 22.sp),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
 
-                            if (aiResult!!.matchedDepartures.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(12.dp))
-                                aiResult!!.matchedDepartures.forEach { dep ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
+                                if (result.matchedDepartures.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    result.matchedDepartures.forEach { dep ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = dep.destinationName,
+                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "${dep.lineName} • ${dep.platformName}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                             Text(
-                                                text = dep.destinationName,
-                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            Text(
-                                                text = "${dep.lineName} • ${dep.platformName}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                text = dep.formattedTimeToArrival,
+                                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.primary
                                             )
                                         }
-                                        Text(
-                                            text = dep.formattedTimeToArrival,
-                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                if (isQuotaExceeded) {
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Button(
-                        onClick = onUpgradeClick,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.WorkspacePremium,
-                            contentDescription = null,
-                            tint = Color(0xFFFFB300),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.ai_upgrade_pro),
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                        )
+                    if (isQuotaExceeded) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Button(
+                            onClick = onUpgradeClick,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.WorkspacePremium,
+                                contentDescription = null,
+                                tint = Color(0xFFFFB300),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.ai_upgrade_pro),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
                     }
                 }
             }
@@ -583,7 +589,7 @@ fun AiTransitSheet(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(
-                        "Ask or speak: \"train to Mill Hill East\"...",
+                        stringResource(R.string.ai_input_placeholder),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                 },

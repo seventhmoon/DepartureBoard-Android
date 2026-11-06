@@ -164,13 +164,14 @@ enum class TransitRegion(
          * Resolves a TransitRegion from a system ZoneId.
          */
         fun fromTimeZone(zoneId: ZoneId): TransitRegion? {
+            entries.firstOrNull { it.timeZone == zoneId }?.let { return it }
             val id = zoneId.id
             return when {
-                id == "Asia/Hong_Kong" || id.startsWith("Asia/Hong_Kong") -> HK
-                id == "Asia/Singapore" || id.startsWith("Asia/Singapore") -> SG
-                id == "Asia/Tokyo" || id.startsWith("Asia/Tokyo") -> JP
-                id == "Australia/Sydney" || id == "Australia/Melbourne" || id == "Australia/Brisbane" -> AU
-                id == "Europe/London" || id == "Europe/Belfast" -> GB
+                id.startsWith("Asia/Hong_Kong") -> HK
+                id.startsWith("Asia/Singapore") -> SG
+                id.startsWith("Asia/Tokyo") -> JP
+                id.startsWith("Australia/") -> AU
+                id == "Europe/Belfast" -> GB
                 else -> null
             }
         }

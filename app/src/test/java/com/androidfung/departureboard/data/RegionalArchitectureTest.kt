@@ -12,16 +12,13 @@ import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.gb.topology.GbTransitRoutes
 import com.androidfung.departureboard.data.model.hk.HkMtrLine
 import com.androidfung.departureboard.data.model.hk.topology.HkMtrRoutes
-import com.androidfung.departureboard.data.model.isBus
 import com.androidfung.departureboard.data.model.jp.JpStationDirectory
 import com.androidfung.departureboard.data.model.jp.JpTokyoLine
 import com.androidfung.departureboard.data.model.jp.topology.JpTokyoRoutes
 import com.androidfung.departureboard.data.model.parseHkMtrStationId
-import com.androidfung.departureboard.data.model.primaryTransitMode
 import com.androidfung.departureboard.data.model.sg.SgMrtLine
 import com.androidfung.departureboard.data.model.sg.SgStationDirectory
 import com.androidfung.departureboard.data.model.sg.topology.SgMrtRoutes
-import com.androidfung.departureboard.data.model.transitMode
 import com.androidfung.departureboard.data.repository.region.au.AuRegionalTransitProvider
 import com.androidfung.departureboard.data.repository.region.hk.HkRegionalTransitProvider
 import com.androidfung.departureboard.data.repository.region.jp.JpCallingPointsResolver

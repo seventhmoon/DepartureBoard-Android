@@ -328,4 +328,80 @@
     <string name="widget_config_select_direction">2. 進行方向を選択 (任意):</string>
     <string name="widget_config_all_directions">すべての方向 (デフォルト)</string>
     <string name="widget_config_save">ウィジェットを保存</string>
+
+    <!-- Pager & Accessibility Content Descriptions -->
+    <string name="pager_page_of_total">%1$d / %2$d</string>
+    <string name="cd_station_pager_dot">駅 %1$d / %2$d</string>
+    <string name="cd_station_pager_switch">駅 %1$d に切り替え</string>
+    <string name="cd_pin_to_home">ホームに固定</string>
+    <string name="cd_remove_from_home">ホームから削除</string>
+    <string name="cd_start_live_notification">ライブ通知を有効化</string>
+    <string name="cd_stop_live_notification">ライブ通知を停止</string>
+    <string name="cd_not_selected">未選択</string>
+
+    <!-- Station Detail Timetable & Fallbacks -->
+    <string name="station_detail_last_train">終電は %1$s に出発しました。</string>
+    <string name="station_detail_first_train">始発電車は午前 %1$s 頃に開始します。</string>
+    <string name="station_detail_no_departures">現在利用可能な出発情報はありません。\n上の更新アイコンをタップして再読み込みしてください。</string>
+    <string name="station_detail_no_departures_line">この路線の出発情報はありません</string>
+
+    <!-- Settings Subtitles & Items -->
+    <string name="settings_plan_free_title">無料プラン</string>
+    <string name="settings_plan_free_subtitle">駅登録無制限・AI・広告非表示へアップグレード</string>
+    <string name="settings_plan_pro_title">EkiBoard Pro</string>
+    <string name="settings_plan_pro_subtitle">現在のプラン • 特典を表示</string>
+    <string name="settings_manage_subscription_subtitle">Google Play 定期購入センターを開く</string>
+    <string name="settings_restore_purchases_subtitle">Google Play から購入履歴を同期</string>
+    <string name="settings_restore_purchases_busy">Google Play ストアと通信中</string>
+    <string name="settings_help_faq_subtitle">よくある質問と使い方ガイド</string>
+    <string name="settings_rate_app_subtitle">Google Play でレビューを共有</string>
+    <string name="settings_privacy_policy_subtitle">プライバシーポリシーとデータ保護情報</string>
+    <string name="settings_app_version_title">アプリバージョン</string>
+    <string name="settings_app_version_subtitle">v%1$s • 公式オープンデータ</string>
+    <string name="settings_developer_options_title">開発者向けオプション</string>
+    <string name="settings_developer_options_subtitle">デバッグ設定、AIエンジン、テストツール</string>
+
+    <!-- Paywall & Subscription Prompts -->
+    <string name="paywall_prompt_station_limit">無料プランでは最大 %1$d 件の駅を登録できます。Pro にアップグレードすると最大 %2$d 件まで拡張できます。</string>
+    <string name="paywall_prompt_ai_limit">Pro にアップグレードして EkiBoard AI を無制限に利用</string>
+    <string name="paywall_prompt_default">EkiBoard Pro をアンロック</string>
+    <string name="paywall_plan_annual_fallback">£9.99 / 年</string>
+    <string name="paywall_plan_monthly_fallback">£1.49 / 月</string>
+    <string name="paywall_plan_savings_tag">%1$d%% お得</string>
+    <string name="paywall_plan_annual_subtitle">Pro 1年間アクセス（月額 %1$s%2$.2f）</string>
+    <string name="paywall_plan_annual_subtitle_fallback">Pro 1年間アクセス（月額 £0.83）</string>
+    <string name="paywall_plan_monthly_subtitle">月額請求・いつでもキャンセル可能</string>
+
+    <!-- General Feedback & Errors -->
+    <string name="departures_load_error">出発情報を読み込めません</string>
+    <string name="app_update_downloaded_toast">アップデートがダウンロードされました。アプリを再起動してインストールを完了してください。</string>
+
+    <!-- AI Assistant Actions & Feedback -->
+    <string name="ai_toast_engine_installed">オンデバイス AI エンジンのインストールが完了しました！</string>
+    <string name="ai_toast_install_failed">AI のインストールに失敗したか、キャンセルされました</string>
+    <string name="ai_toast_speech_unavailable">このデバイスでは音声認識を利用できません</string>
+    <string name="ai_speech_prompt">ご質問をお話しください…</string>
+    <string name="tracking_action_track">追跡</string>
+    <string name="tracking_action_untrack">追跡解除</string>
+    <string name="ai_prompt_morning_commute">朝の運行状況</string>
+    <string name="ai_prompt_evening_commute">夕方の運行乱れ情報</string>
+    <string name="ai_prompt_evening_delays">帰宅ルートに遅延はありますか？</string>
+    <string name="ai_prompt_last_train">今夜の終電時間</string>
+    <string name="ai_prompt_last_tube">地下鉄の終電</string>
+    <string name="ai_prompt_night_bus">深夜バスの運行状況</string>
+    <string name="ai_prompt_next_train_from">%1$s 発の次の電車</string>
+    <string name="ai_prompt_next_bus_from">%1$s 発の次のバス</string>
+    <string name="ai_prompt_next_train_near_me">最寄りの次の電車</string>
+    <string name="ai_prompt_next_departure_near_me">最寄りの次の出発情報</string>
+
+    <!-- Saved Station Snackbar Feedback -->
+    <string name="station_already_saved">%1$s はすでに保存されています</string>
+    <string name="station_max_limit_reached">API 制限保護のため、保存可能な駅数は最大 %1$d 駅です。</string>
+    <string name="station_added">%1$s を追加しました</string>
+    <string name="station_removed">%1$s を削除しました</string>
+    <string name="station_restored">%1$s を復元しました</string>
+
+    <!-- AI Quota Exceeded -->
+    <string name="ai_quota_exceeded">本日の無料 AI クエリ上限（%1$d 回）に達しました。Pro にアップグレードすると、無制限の AI プロンプト、リアルタイムの運行情報確認、停車駅案内をご利用いただけます。</string>
+    <string name="ai_input_placeholder">質問または音声入力:「Mill Hill East行きの電車」…</string>
 </resources>

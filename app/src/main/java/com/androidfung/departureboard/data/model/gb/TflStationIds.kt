@@ -88,6 +88,35 @@ object TflStationIds {
     const val LEWISHAM = "940GZZDLLEW"
     const val WOOLWICH_ARSENAL = "940GZZDLWLA"
 
+    // National Rail & Hubs
+    const val ST_PANCRAS_INTERNATIONAL = "910GSTPX"
+    const val KINGS_CROSS_NR = "910GKNGX"
+    const val KINGS_CROSS_ST_PANCRAS_HUB = "HUBKGX"
+    const val WEMBLEY_PARK = "940GZZLUWYP"
+
+    /**
+     * Returns true if the station represents St Pancras International or King's Cross National Rail.
+     */
+    fun isStPancrasOrKingsCrossNR(stationId: String?, stationName: String? = null): Boolean {
+        val idUpper = stationId?.uppercase()?.trim().orEmpty()
+        if (idUpper == ST_PANCRAS_INTERNATIONAL || idUpper == KINGS_CROSS_NR) return true
+        if (stationName != null) {
+            val lower = stationName.lowercase().trim()
+            if (lower == "st pancras international" || lower == "st pancras" || lower == "king's cross") return true
+        }
+        return false
+    }
+
+    /**
+     * Returns true if the station is Wembley Park.
+     */
+    fun isWembleyPark(stationId: String?, stationName: String? = null): Boolean {
+        val idUpper = stationId?.uppercase()?.trim().orEmpty()
+        if (idUpper == WEMBLEY_PARK) return true
+        if (stationName != null && "wembley park" in stationName.lowercase()) return true
+        return false
+    }
+
     /**
      * Map of canonical terminus station name (normalized lowercase) to its primary NaPTAN ID.
      */

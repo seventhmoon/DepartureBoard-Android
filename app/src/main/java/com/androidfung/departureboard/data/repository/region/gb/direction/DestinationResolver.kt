@@ -130,11 +130,11 @@ object DestinationResolver {
      * where TfL's API reports the inbound arrival track direction on platform labels (e.g.
      * "Northbound - Platform 1" at Mill Hill East where all departing trains travel Southbound).
      */
-    fun resolveTerminusOutboundDirection(
+    fun resolveTerminusOutboundTransitDirection(
         stationId: String?,
         stationName: String,
         lineId: String?
-    ): String? {
+    ): com.androidfung.departureboard.data.model.TransitDirection? {
         val stId = stationId?.uppercase()?.trim().orEmpty()
         val station = StationNameFormatter.clean(stationName).lowercase()
         val line = lineId?.lowercase()?.trim().orEmpty()
@@ -144,62 +144,68 @@ object DestinationResolver {
                 stId in setOf(TflStationIds.MILL_HILL_EAST, TflStationIds.HIGH_BARNET, TflStationIds.EDGWARE) ||
                 "mill hill east" in station ||
                 "high barnet" in station ||
-                ("edgware" in station && "edgware road" !in station) -> "Southbound"
+                ("edgware" in station && "edgware road" !in station) -> com.androidfung.departureboard.data.model.TransitDirection.SOUTHBOUND
                 stId in setOf(TflStationIds.MORDEN, TflStationIds.BATTERSEA_POWER_STATION, TflStationIds.BATTERSEA_POWER_STATION_ALT) ||
                 ("morden" in station && "south morden" !in station) ||
-                "battersea power station" in station -> "Northbound"
+                "battersea power station" in station -> com.androidfung.departureboard.data.model.TransitDirection.NORTHBOUND
                 else -> null
             }
             "victoria" in line -> when {
-                stId in setOf(TflStationIds.WALTHAMSTOW_CENTRAL, TflStationIds.WALTHAMSTOW_CENTRAL_ALT) || "walthamstow" in station -> "Southbound"
-                stId in setOf(TflStationIds.BRIXTON, TflStationIds.BRIXTON_ALT) || "brixton" in station -> "Northbound"
+                stId in setOf(TflStationIds.WALTHAMSTOW_CENTRAL, TflStationIds.WALTHAMSTOW_CENTRAL_ALT) || "walthamstow" in station -> com.androidfung.departureboard.data.model.TransitDirection.SOUTHBOUND
+                stId in setOf(TflStationIds.BRIXTON, TflStationIds.BRIXTON_ALT) || "brixton" in station -> com.androidfung.departureboard.data.model.TransitDirection.NORTHBOUND
                 else -> null
             }
             "jubilee" in line -> when {
-                stId == TflStationIds.STANMORE || "stanmore" in station -> "Southbound"
-                stId == TflStationIds.STRATFORD || ("stratford" in station && "stratford international" !in station) -> "Westbound"
+                stId == TflStationIds.STANMORE || "stanmore" in station -> com.androidfung.departureboard.data.model.TransitDirection.SOUTHBOUND
+                stId == TflStationIds.STRATFORD || ("stratford" in station && "stratford international" !in station) -> com.androidfung.departureboard.data.model.TransitDirection.WESTBOUND
                 else -> null
             }
             "bakerloo" in line -> when {
-                stId == TflStationIds.HARROW_AND_WEALDSTONE || "harrow & wealdstone" in station || "harrow and wealdstone" in station -> "Southbound"
-                stId in setOf(TflStationIds.ELEPHANT_AND_CASTLE, TflStationIds.ELEPHANT_AND_CASTLE_ALT) || "elephant & castle" in station || "elephant and castle" in station -> "Northbound"
+                stId == TflStationIds.HARROW_AND_WEALDSTONE || "harrow & wealdstone" in station || "harrow and wealdstone" in station -> com.androidfung.departureboard.data.model.TransitDirection.SOUTHBOUND
+                stId in setOf(TflStationIds.ELEPHANT_AND_CASTLE, TflStationIds.ELEPHANT_AND_CASTLE_ALT) || "elephant & castle" in station || "elephant and castle" in station -> com.androidfung.departureboard.data.model.TransitDirection.NORTHBOUND
                 else -> null
             }
             "central" in line -> when {
-                stId == TflStationIds.EPPING || "epping" in station -> "Westbound"
-                stId in setOf(TflStationIds.WEST_RUISLIP, TflStationIds.EALING_BROADWAY) || "west ruislip" in station || "ealing broadway" in station -> "Eastbound"
+                stId == TflStationIds.EPPING || "epping" in station -> com.androidfung.departureboard.data.model.TransitDirection.WESTBOUND
+                stId in setOf(TflStationIds.WEST_RUISLIP, TflStationIds.EALING_BROADWAY) || "west ruislip" in station || "ealing broadway" in station -> com.androidfung.departureboard.data.model.TransitDirection.EASTBOUND
                 else -> null
             }
             "piccadilly" in line -> when {
-                stId == TflStationIds.COCKFOSTERS || "cockfosters" in station -> "Westbound"
+                stId == TflStationIds.COCKFOSTERS || "cockfosters" in station -> com.androidfung.departureboard.data.model.TransitDirection.WESTBOUND
                 stId in setOf(TflStationIds.HEATHROW_TERMINAL_5, TflStationIds.HEATHROW_TERMINAL_4, TflStationIds.UXBRIDGE) ||
-                "heathrow terminal 5" in station || "heathrow terminal 4" in station || "uxbridge" in station -> "Eastbound"
+                "heathrow terminal 5" in station || "heathrow terminal 4" in station || "uxbridge" in station -> com.androidfung.departureboard.data.model.TransitDirection.EASTBOUND
                 else -> null
             }
             "district" in line -> when {
-                stId == TflStationIds.UPMINSTER || "upminster" in station -> "Westbound"
+                stId == TflStationIds.UPMINSTER || "upminster" in station -> com.androidfung.departureboard.data.model.TransitDirection.WESTBOUND
                 stId in setOf(TflStationIds.RICHMOND, TflStationIds.WIMBLEDON, TflStationIds.WIMBLEDON_ALT, TflStationIds.EALING_BROADWAY) ||
                 "richmond" in station || "ealing broadway" in station ||
-                ("wimbledon" in station && "wimbledon park" !in station && "south wimbledon" !in station) -> "Eastbound"
+                ("wimbledon" in station && "wimbledon park" !in station && "south wimbledon" !in station) -> com.androidfung.departureboard.data.model.TransitDirection.EASTBOUND
                 else -> null
             }
             "metropolitan" in line -> when {
-                stId == TflStationIds.ALDGATE || ("aldgate" in station && "aldgate east" !in station) -> "Northbound"
+                stId == TflStationIds.ALDGATE || ("aldgate" in station && "aldgate east" !in station) -> com.androidfung.departureboard.data.model.TransitDirection.NORTHBOUND
                 stId in setOf(TflStationIds.AMERSHAM, TflStationIds.CHESHAM, TflStationIds.WATFORD, TflStationIds.WATFORD_ALT) ||
-                "amersham" in station || "chesham" in station || "watford" in station -> "Southbound"
-                stId == TflStationIds.UXBRIDGE || "uxbridge" in station -> "Eastbound"
+                "amersham" in station || "chesham" in station || "watford" in station -> com.androidfung.departureboard.data.model.TransitDirection.SOUTHBOUND
+                stId == TflStationIds.UXBRIDGE || "uxbridge" in station -> com.androidfung.departureboard.data.model.TransitDirection.EASTBOUND
                 else -> null
             }
             "elizabeth" in line -> when {
                 stId in setOf(TflStationIds.READING, TflStationIds.HEATHROW_TERMINAL_5, TflStationIds.HEATHROW_TERMINAL_4) ||
-                "reading" in station || "heathrow terminal 5" in station || "heathrow terminal 4" in station -> "Eastbound"
+                "reading" in station || "heathrow terminal 5" in station || "heathrow terminal 4" in station -> com.androidfung.departureboard.data.model.TransitDirection.EASTBOUND
                 stId in setOf(TflStationIds.SHENFIELD, TflStationIds.ABBEY_WOOD, TflStationIds.ABBEY_WOOD_HUB) ||
-                "shenfield" in station || "abbey wood" in station -> "Westbound"
+                "shenfield" in station || "abbey wood" in station -> com.androidfung.departureboard.data.model.TransitDirection.WESTBOUND
                 else -> null
             }
             else -> null
         }
     }
+
+    fun resolveTerminusOutboundDirection(
+        stationId: String?,
+        stationName: String,
+        lineId: String?
+    ): String? = resolveTerminusOutboundTransitDirection(stationId, stationName, lineId)?.displayName
 
     fun resolve(
         stationName: String,
@@ -265,10 +271,10 @@ object DestinationResolver {
         val platLower = platformName?.lowercase().orEmpty()
 
         // 3. Symmetrical Line Endpoints Lookup (using Station ID first, then keyword fallback)
-        for ((lineKeyword, endAIds, endAKeywords, endADestination, endBIds, endBKeywords, endBDestination) in SIMPLE_LINE_TERMINI) {
-            if (lineLower.contains(lineKeyword)) {
-                if (endAIds.contains(stIdUpper) || endAKeywords.any { stationLower.contains(it) }) return endADestination
-                if (endBIds.contains(stIdUpper) || endBKeywords.any { stationLower.contains(it) }) return endBDestination
+        for (pair in SIMPLE_LINE_TERMINI) {
+            if (lineLower.contains(pair.lineId)) {
+                if (pair.endAIds.contains(stIdUpper) || pair.endAKeywords.any { stationLower.contains(it) }) return pair.endADestination
+                if (pair.endBIds.contains(stIdUpper) || pair.endBKeywords.any { stationLower.contains(it) }) return pair.endBDestination
             }
         }
 

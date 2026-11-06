@@ -1,5 +1,7 @@
 package com.androidfung.departureboard.data.repository.region.gb.direction
 
+import com.androidfung.departureboard.data.model.gb.GbTransitLine
+
 /**
  * Deterministic line resolver for London Overground services.
  *
@@ -12,11 +14,13 @@ package com.androidfung.departureboard.data.repository.region.gb.direction
 object OvergroundLineResolver {
 
     data class ResolvedLine(
-        val id: String,
-        val name: String
-    )
+        val line: GbTransitLine
+    ) {
+        val id: String get() = line.code
+        val name: String get() = line.lineName
+    }
 
-    val DEFAULT_OVERGROUND = ResolvedLine("overground", "London Overground")
+    val DEFAULT_OVERGROUND = ResolvedLine(GbTransitLine.OVERGROUND)
 
     // --- Line Definitions ---
 
@@ -117,20 +121,12 @@ object OvergroundLineResolver {
         "stratford", "shepherd's bush", "kensington olympia", "west brompton", "imperial wharf"
     )
 
-    /**
-     * Resolves the specific London Overground line.
-     *
-     * @param stationCrs Station 3-letter CRS code (e.g. "ROM", "WFJ", "EUS")
-     * @param stationName Display name of the current station
-     * @param destCrs Destination station CRS code if available
-     * @param destName Display name of the destination
-     */
-    fun resolve(
+    fun resolveLine(
         stationCrs: String? = null,
         stationName: String? = null,
         destCrs: String? = null,
         destName: String? = null
-    ): ResolvedLine {
+    ): GbTransitLine {
         val stCrsUpper = stationCrs?.trim()?.uppercase()
         val dstCrsUpper = destCrs?.trim()?.uppercase()
         val stNorm = stationName?.lowercase()?.trim() ?: ""
@@ -138,44 +134,54 @@ object OvergroundLineResolver {
 
         // 1. Direct CRS check on exclusive station codes
         when {
-            stCrsUpper in LIBERTY_CRS || dstCrsUpper in LIBERTY_CRS -> return ResolvedLine("liberty", "Liberty")
-            stCrsUpper in SUFFRAGETTE_CRS || dstCrsUpper in SUFFRAGETTE_CRS -> return ResolvedLine("suffragette", "Suffragette")
+            stCrsUpper in LIBERTY_CRS || dstCrsUpper in LIBERTY_CRS -> return GbTransitLine.LIBERTY
+            stCrsUpper in SUFFRAGETTE_CRS || dstCrsUpper in SUFFRAGETTE_CRS -> return GbTransitLine.SUFFRAGETTE
         }
 
         // 2. Terminus destination matching (high confidence disambiguation)
         when {
-            LIBERTY_TERMINI.any { dstNorm.contains(it) } -> return ResolvedLine("liberty", "Liberty")
-            SUFFRAGETTE_TERMINI.any { dstNorm.contains(it) } -> return ResolvedLine("suffragette", "Suffragette")
+            LIBERTY_TERMINI.any { dstNorm.contains(it) } -> return GbTransitLine.LIBERTY
+            SUFFRAGETTE_TERMINI.any { dstNorm.contains(it) } -> return GbTransitLine.SUFFRAGETTE
             LIONESS_TERMINI.any { dstNorm.contains(it) } && !isMildmayOrWindrush(stCrsUpper, stNorm) ->
-                return ResolvedLine("lioness", "Lioness")
+                return GbTransitLine.LIONESS
             WEAVER_TERMINI.any { dstNorm.contains(it) } && !dstNorm.contains("stratford") ->
-                return ResolvedLine("weaver", "Weaver")
+                return GbTransitLine.WEAVER
         }
 
         // 3. Current station CRS membership
         when {
-            stCrsUpper in LIONESS_CRS -> return ResolvedLine("lioness", "Lioness")
-            stCrsUpper in WEAVER_CRS -> return ResolvedLine("weaver", "Weaver")
-            stCrsUpper in WINDRUSH_CRS && !stCrsUpper.equals("CLJ") -> return ResolvedLine("windrush", "Windrush")
-            stCrsUpper in MILDMAY_CRS && !stCrsUpper.equals("CLJ") -> return ResolvedLine("mildmay", "Mildmay")
+            stCrsUpper in LIONESS_CRS -> return GbTransitLine.LIONESS
+            stCrsUpper in WEAVER_CRS -> return GbTransitLine.WEAVER
+            stCrsUpper in WINDRUSH_CRS && !stCrsUpper.equals("CLJ") -> return GbTransitLine.WINDRUSH
+            stCrsUpper in MILDMAY_CRS && !stCrsUpper.equals("CLJ") -> return GbTransitLine.MILDMAY
         }
 
         // 4. Station name keywords matching
         when {
-            LIBERTY_STATIONS.any { stNorm.contains(it) } -> return ResolvedLine("liberty", "Liberty")
-            SUFFRAGETTE_STATIONS.any { stNorm.contains(it) } -> return ResolvedLine("suffragette", "Suffragette")
-            LIONESS_STATIONS.any { stNorm.contains(it) } -> return ResolvedLine("lioness", "Lioness")
-            WEAVER_STATIONS.any { stNorm.contains(it) } -> return ResolvedLine("weaver", "Weaver")
+            LIBERTY_STATIONS.any { stNorm.contains(it) } -> return GbTransitLine.LIBERTY
+            SUFFRAGETTE_STATIONS.any { stNorm.contains(it) } -> return GbTransitLine.SUFFRAGETTE
+            LIONESS_STATIONS.any { stNorm.contains(it) } -> return GbTransitLine.LIONESS
+            WEAVER_STATIONS.any { stNorm.contains(it) } -> return GbTransitLine.WEAVER
             WINDRUSH_STATIONS.any { stNorm.contains(it) } && WINDRUSH_TERMINI.any { dstNorm.contains(it) } ->
-                return ResolvedLine("windrush", "Windrush")
+                return GbTransitLine.WINDRUSH
             MILDMAY_STATIONS.any { stNorm.contains(it) } && MILDMAY_TERMINI.any { dstNorm.contains(it) } ->
-                return ResolvedLine("mildmay", "Mildmay")
-            WINDRUSH_STATIONS.any { stNorm.contains(it) } -> return ResolvedLine("windrush", "Windrush")
-            MILDMAY_STATIONS.any { stNorm.contains(it) } -> return ResolvedLine("mildmay", "Mildmay")
+                return GbTransitLine.MILDMAY
+            WINDRUSH_STATIONS.any { stNorm.contains(it) } -> return GbTransitLine.WINDRUSH
+            MILDMAY_STATIONS.any { stNorm.contains(it) } -> return GbTransitLine.MILDMAY
         }
 
-        return DEFAULT_OVERGROUND
+        return GbTransitLine.OVERGROUND
     }
+
+    /**
+     * Resolves the specific London Overground line.
+     */
+    fun resolve(
+        stationCrs: String? = null,
+        stationName: String? = null,
+        destCrs: String? = null,
+        destName: String? = null
+    ): ResolvedLine = ResolvedLine(resolveLine(stationCrs, stationName, destCrs, destName))
 
     private fun isMildmayOrWindrush(crs: String?, name: String): Boolean {
         return (crs in MILDMAY_CRS || crs in WINDRUSH_CRS) ||

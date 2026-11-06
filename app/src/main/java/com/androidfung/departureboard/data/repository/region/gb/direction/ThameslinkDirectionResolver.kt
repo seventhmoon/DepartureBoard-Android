@@ -1,5 +1,7 @@
 package com.androidfung.departureboard.data.repository.region.gb.direction
 
+import com.androidfung.departureboard.data.model.TransitDirection
+
 /**
  * Deterministic O(1) cardinal direction resolver for Thameslink services (Northbound vs Southbound).
  * Prioritizes 3-letter National Rail CRS codes before falling back to destination name keywords.
@@ -54,19 +56,22 @@ object ThameslinkDirectionResolver {
         "brighton", "gatwick", "horsham", "sutton", "rainham", "three bridges", "east croydon", "gillingham"
     )
 
-    fun resolve(destinationCrs: String? = null, destinationName: String? = null): String? {
+    fun resolveDirection(destinationCrs: String? = null, destinationName: String? = null): TransitDirection? {
         if (!destinationCrs.isNullOrBlank()) {
             val upperCrs = destinationCrs.trim().uppercase()
-            if (upperCrs in NORTHBOUND_CRS) return NORTHBOUND
-            if (upperCrs in SOUTHBOUND_CRS) return SOUTHBOUND
+            if (upperCrs in NORTHBOUND_CRS) return TransitDirection.NORTHBOUND
+            if (upperCrs in SOUTHBOUND_CRS) return TransitDirection.SOUTHBOUND
         }
 
         if (!destinationName.isNullOrBlank()) {
             val destTrim = destinationName.trim()
-            if (NORTHBOUND_KEYWORDS.any { destTrim.contains(it, ignoreCase = true) }) return NORTHBOUND
-            if (SOUTHBOUND_KEYWORDS.any { destTrim.contains(it, ignoreCase = true) }) return SOUTHBOUND
+            if (NORTHBOUND_KEYWORDS.any { destTrim.contains(it, ignoreCase = true) }) return TransitDirection.NORTHBOUND
+            if (SOUTHBOUND_KEYWORDS.any { destTrim.contains(it, ignoreCase = true) }) return TransitDirection.SOUTHBOUND
         }
 
         return null
     }
+
+    fun resolve(destinationCrs: String? = null, destinationName: String? = null): String? =
+        resolveDirection(destinationCrs, destinationName)?.displayName
 }

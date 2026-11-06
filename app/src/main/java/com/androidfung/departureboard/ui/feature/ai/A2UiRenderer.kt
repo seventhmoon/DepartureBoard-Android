@@ -279,7 +279,12 @@ private fun DeparturesActionCard(
                         val isTracked = trackedDepartureId == dep.id
                         AssistChip(
                             onClick = { onTrackDeparture(dep) },
-                            label = { Text(if (isTracked) "Untrack" else "Track", fontSize = 11.sp) },
+                            label = {
+                                Text(
+                                    if (isTracked) stringResource(R.string.tracking_action_untrack) else stringResource(R.string.tracking_action_track),
+                                    fontSize = 11.sp
+                                )
+                            },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Rounded.NotificationsActive,

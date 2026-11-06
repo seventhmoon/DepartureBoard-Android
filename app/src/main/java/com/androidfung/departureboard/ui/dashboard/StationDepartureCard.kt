@@ -319,12 +319,8 @@ private fun StationHeaderSection(
             ) {
                 // Header Transport Mode Icon indicator:
                 // Prioritize Rail / Tube / Metro modes over Bus, or derive from active line badges if present
-                val badgeModes = lineBadges.map { it.mode.id }
-                val candidateModes = (badgeModes + station.modes).distinct()
-                val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram", "mtr")
-                    .firstOrNull { it in candidateModes }
-                    ?: station.modes.firstOrNull { it in listOf("tube", "overground", "elizabeth-line", "national-rail", "dlr", "tram", "mtr", "bus") }
-                    ?: station.modes.firstOrNull() ?: "tube"
+                val primaryMode = lineBadges.firstOrNull { it.mode != TransitMode.BUS }?.mode
+                    ?: station.primaryTransitMode
                 val modeIcon = TransitIconHelper.getTransitIconForMode(primaryMode)
 
                 Box(
@@ -336,7 +332,7 @@ private fun StationHeaderSection(
                 ) {
                     Icon(
                         imageVector = modeIcon,
-                        contentDescription = primaryMode,
+                        contentDescription = primaryMode.displayName,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -499,7 +495,7 @@ fun LineDisruptionBanner(
                                 .clickable {
                                     try {
                                         context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, url.toUri()))
-                                    } catch (_: Exception) {}
+                                    } catch (_: android.content.ActivityNotFoundException) {}
                                 }
                                 .padding(vertical = 1.dp)
                         )
@@ -528,7 +524,7 @@ fun LineDisruptionBanner(
                                     try {
                                         context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
                                             url.toUri()))
-                                    } catch (_: Exception) {}
+                                    } catch (_: android.content.ActivityNotFoundException) {}
                                 }
                                 .padding(top = 2.dp)
                         )

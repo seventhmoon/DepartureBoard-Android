@@ -133,9 +133,7 @@ class MainActivity : AppCompatActivity() {
                     var showRegionPickerSheet by rememberSaveable { mutableStateOf(false) }
 
                     LaunchedEffect(initialStation) {
-                        if (initialStation != null) {
-                            viewModel.openStationDetail(initialStation)
-                        }
+                        initialStation?.let { viewModel.openStationDetail(it) }
                     }
 
                     // Contextual smart review trigger for active users:
@@ -326,7 +324,7 @@ class MainActivity : AppCompatActivity() {
                                                 }
                                                 showAiSheet = true
                                             },
-                                            onUpgradeClick = { viewModel.showPaywall("Unlock EkiBoard Pro") },
+                                            onUpgradeClick = { viewModel.showPaywall(getString(R.string.paywall_prompt_default)) },
                                             onOpenLineStatus = {
                                                 viewModel.refreshLineStatuses()
                                                 showLineStatusSheet = true
@@ -440,7 +438,7 @@ class MainActivity : AppCompatActivity() {
                             billingRepository = viewModel.billingRepository,
                             aiModelType = uiState.aiModelType,
                             selectedRegion = uiState.selectedRegion,
-                            onUpgradeClick = { viewModel.showPaywall("Unlock unlimited EkiBoard AI queries with Pro") },
+                            onUpgradeClick = { viewModel.showPaywall(getString(R.string.paywall_prompt_ai_limit)) },
                             hasLocationPermission = hasLocationPermission,
                             onRequestLocationPermission = requestLocationWithRationale,
                             onRefreshNearestStation = {
@@ -584,7 +582,7 @@ class MainActivity : AppCompatActivity() {
                             },
                             onUpgradeClick = {
                                 showSettingsSheet = false
-                                viewModel.showPaywall("Unlock EkiBoard Pro")
+                                viewModel.showPaywall(getString(R.string.paywall_prompt_default))
                             },
                             onRateApp = {
                                 lifecycleScope.launch {
@@ -668,7 +666,7 @@ class MainActivity : AppCompatActivity() {
                     lifecycleScope.launch {
                         Toast.makeText(
                             this@MainActivity,
-                            "An update is downloaded. Restart the app to finish installing.",
+                            getString(R.string.app_update_downloaded_toast),
                             Toast.LENGTH_LONG
                         ).show()
                     }

@@ -312,9 +312,7 @@ internal fun buildDisplayLineStatusItems(
         if (relevantLineIds.isEmpty()) return false
         val normalized = lineId.lowercase()
         return relevantLineIds.any { rel ->
-            rel == normalized ||
-                (normalized == "elizabeth" && rel == "elizabeth-line") ||
-                (normalized == "elizabeth-line" && rel == "elizabeth") ||
+            com.androidfung.departureboard.data.model.TransitLineMatcher.isSameLine(normalized, rel) ||
                 normalized.contains(rel) ||
                 rel.contains(normalized)
         }
@@ -346,7 +344,7 @@ internal fun buildDisplayLineStatusItems(
     val canonicalResults = CANONICAL_GB_LINES.map { (lineId, fallbackName) ->
         val badge = TflLineColors.getLineBadge(lineId, fallbackName, null)
         val statusItem = lineStatuses[lineId]
-            ?: if (lineId == "elizabeth") lineStatuses["elizabeth-line"] else null
+            ?: lineStatuses.entries.firstOrNull { com.androidfung.departureboard.data.model.TransitLineMatcher.isSameLine(it.key, lineId) }?.value
         val primaryStatus: TflLineStatusDetail? = statusItem?.lineStatuses?.minByOrNull { it.statusSeverity }
         val severity = primaryStatus?.statusSeverity ?: 10
         val description = primaryStatus?.statusSeverityDescription ?: "Good Service"

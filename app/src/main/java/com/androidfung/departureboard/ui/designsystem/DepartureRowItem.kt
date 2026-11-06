@@ -247,7 +247,7 @@ fun DepartureRowItem(
             // Live Progress Track for upcoming departures on cards
             if (variant == DepartureRowVariant.COMPACT && departure.timeToStationSeconds <= 180) {
                 Spacer(modifier = Modifier.height(4.dp))
-                val isBus = departure.modeName.equals("bus", ignoreCase = true)
+                val isBus = departure.isBus
                 LiveTrainTrackIndicator(
                     timeToStationSeconds = departure.timeToStationSeconds,
                     isBus = isBus
@@ -496,7 +496,7 @@ fun DepartureLineRouteIndicator(
     departure: Departure,
     modifier: Modifier = Modifier
 ) {
-    val isBus = departure.modeName.equals(TransitMode.BUS.id, ignoreCase = true)
+    val isBus = departure.isBus
     val badge = departure.lineBadge
 
     if (isBus) {

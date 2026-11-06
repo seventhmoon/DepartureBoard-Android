@@ -19,6 +19,12 @@ data class Station(
 ) {
     val isBusOnly: Boolean get() = TransitMode.isBusOnly(modes)
 
+    val primaryTransitMode: TransitMode
+        get() = modes.firstNotNullOfOrNull { raw ->
+            val norm = raw.trim().lowercase()
+            if (norm.isEmpty()) null else TransitMode.fromModeString(norm)
+        } ?: TransitMode.METRO
+
     /**
      * Clean, valid TfL fare zone description (e.g. "1", "2/3"), or null if not applicable (e.g. bus stops or "NA").
      */
@@ -179,6 +185,15 @@ data class Departure(
     val formation: TrainFormation? get() = train?.formation
     val cancelReason: String? get() = train?.cancelReason
     val delayReason: String? get() = train?.delayReason
+
+    val isBus: Boolean
+        get() = modeName.equals(TransitMode.BUS.id, ignoreCase = true) || lineBadge.mode == TransitMode.BUS
+
+    val transitDirection: TransitDirection?
+        get() = TransitDirection.fromString(direction)
+
+    val transitMode: TransitMode
+        get() = if (modeName.isNotBlank()) TransitMode.fromModeString(modeName) else lineBadge.mode
 
     /**
      * Human-friendly formatted arrival string, e.g. "Due", "1 min", "4 mins".

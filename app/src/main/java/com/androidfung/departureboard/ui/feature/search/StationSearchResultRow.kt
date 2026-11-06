@@ -42,6 +42,7 @@ import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.isHkBus
 import com.androidfung.departureboard.data.model.isHkMtr
 import com.androidfung.departureboard.data.model.isHkStation
+import com.androidfung.departureboard.data.model.isSgTransitId
 import com.androidfung.departureboard.ui.designsystem.TransitIconHelper
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 
@@ -56,10 +57,7 @@ fun StationSearchResultRow(
     modifier: Modifier = Modifier,
     distanceText: String? = null
 ) {
-    val primaryMode = listOf("tube", "elizabeth-line", "national-rail", "overground", "dlr", "tram", "mtr")
-        .firstOrNull { it in station.modes }
-        ?: station.modes.firstOrNull() ?: "tube"
-    val modeIcon = TransitIconHelper.getTransitIconForMode(primaryMode)
+    val modeIcon = TransitIconHelper.getTransitIconForMode(station.primaryTransitMode)
 
     Surface(
         onClick = onAddClick,
@@ -188,7 +186,7 @@ fun StationSearchResultRow(
                         } else {
                             // Filter modes: For rail/tube/interchange stations, omit the generic "bus" mode tag
                             val displayModes = if (!station.isBusOnly && station.modes.size > 1) {
-                                station.modes.filter { !it.equals("bus", ignoreCase = true) }
+                                station.modes.filter { TransitMode.fromModeString(it) != TransitMode.BUS }
                             } else {
                                 station.modes
                             }
@@ -209,7 +207,7 @@ fun StationSearchResultRow(
                                 }
                                 val displayBadgeName = if (station.isHkMtr && transitMode == TransitMode.METRO) {
                                     "MTR"
-                                } else if (station.id.startsWith("SG_", ignoreCase = true) && transitMode == TransitMode.METRO) {
+                                } else if (station.id.isSgTransitId && transitMode == TransitMode.METRO) {
                                     "MRT"
                                 } else {
                                     transitMode.displayName

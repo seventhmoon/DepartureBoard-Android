@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.billing.BillingRepository
 import com.androidfung.departureboard.billing.SubscriptionTier
@@ -389,7 +390,7 @@ class DashboardViewModel @JvmOverloads constructor(
                 } else {
                     card.copy(
                         isLoading = false,
-                        errorMessage = if (card.departures.isEmpty()) "Unable to load departures" else null
+                        errorMessage = if (card.departures.isEmpty()) resolveString(R.string.departures_load_error) else null
                     )
                 }
             }
@@ -479,7 +480,7 @@ class DashboardViewModel @JvmOverloads constructor(
 
         // Already contains this station
         if (_uiState.value.stationCards.any { it.station.id == station.id }) {
-            _uiState.update { it.copy(userMessage = "${station.name} is already saved") }
+            _uiState.update { it.copy(userMessage = resolveString(R.string.station_already_saved, station.displayName)) }
             return
         }
 
@@ -487,7 +488,11 @@ class DashboardViewModel @JvmOverloads constructor(
         if (!currentPlan.isPaidOrAbove && currentCount >= currentPlan.maxStations) {
             _uiState.update {
                 it.copy(
-                    paywallPromptReason = "Free plan includes up to ${currentPlan.maxStations} saved stations. Upgrade to Pro for up to ${SubscriptionTier.PRO_MAX_STATIONS} stations."
+                    paywallPromptReason = resolveString(
+                        R.string.paywall_prompt_station_limit,
+                        currentPlan.maxStations,
+                        SubscriptionTier.PRO_MAX_STATIONS
+                    )
                 )
             }
             return
@@ -496,7 +501,10 @@ class DashboardViewModel @JvmOverloads constructor(
         if (currentPlan.isPaidOrAbove && currentCount >= currentPlan.maxStations) {
             _uiState.update {
                 it.copy(
-                    userMessage = "Maximum limit of ${currentPlan.maxStations} stations reached to protect live API limits."
+                    userMessage = resolveString(
+                        R.string.station_max_limit_reached,
+                        currentPlan.maxStations
+                    )
                 )
             }
             return
@@ -505,13 +513,13 @@ class DashboardViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             repository.saveStation(station)
             _uiState.update {
-                it.copy(userMessage = "Added ${station.name}")
+                it.copy(userMessage = resolveString(R.string.station_added, station.displayName))
             }
         }
     }
 
     fun showPaywall(reason: String? = null) {
-        _uiState.update { it.copy(paywallPromptReason = reason ?: "Unlock EkiBoard Pro") }
+        _uiState.update { it.copy(paywallPromptReason = reason ?: resolveString(R.string.paywall_prompt_default)) }
     }
 
     fun dismissPaywall() {
@@ -788,7 +796,7 @@ class DashboardViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             repository.removeStation(station.id)
             _uiState.update {
-                it.copy(userMessage = "Removed ${station.name}")
+                it.copy(userMessage = resolveString(R.string.station_removed, station.displayName))
             }
         }
     }
@@ -802,7 +810,7 @@ class DashboardViewModel @JvmOverloads constructor(
             repository.saveStation(stationToRestore)
             recentlyDeletedStation = null
             _uiState.update {
-                it.copy(userMessage = "Restored ${stationToRestore.name}")
+                it.copy(userMessage = resolveString(R.string.station_restored, stationToRestore.displayName))
             }
         }
     }
@@ -995,6 +1003,32 @@ class DashboardViewModel @JvmOverloads constructor(
      */
     private fun inferLineBadges(station: Station): List<LineBadgeInfo> {
         return com.androidfung.departureboard.data.model.StationLineInferrer.infer(station)
+    }
+
+    private fun resolveString(resId: Int, vararg formatArgs: Any?): String {
+        return try {
+            val app = getApplication<Application>()
+            val str = if (formatArgs.isEmpty()) app.getString(resId) else app.getString(resId, *formatArgs)
+            if (str.isNullOrBlank()) fallbackString(resId, *formatArgs) else str
+        } catch (_: Exception) {
+            fallbackString(resId, *formatArgs)
+        }
+    }
+
+    private fun fallbackString(resId: Int, vararg formatArgs: Any?): String {
+        return when (resId) {
+            R.string.station_already_saved -> "${formatArgs.getOrNull(0)} is already saved"
+            R.string.paywall_prompt_station_limit ->
+                "Free plan includes up to ${formatArgs.getOrNull(0)} saved stations. Upgrade to Pro for up to ${formatArgs.getOrNull(1)} stations."
+            R.string.station_max_limit_reached ->
+                "Maximum limit of ${formatArgs.getOrNull(0)} stations reached to protect live API limits."
+            R.string.station_added -> "Added ${formatArgs.getOrNull(0)}"
+            R.string.station_removed -> "Removed ${formatArgs.getOrNull(0)}"
+            R.string.station_restored -> "Restored ${formatArgs.getOrNull(0)}"
+            R.string.paywall_prompt_default -> "Unlock EkiBoard Pro"
+            R.string.departures_load_error -> "Unable to load departures"
+            else -> ""
+        }
     }
 
     override fun onCleared() {

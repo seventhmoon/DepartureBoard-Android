@@ -328,4 +328,80 @@
     <string name="widget_config_select_direction">2. 방향 선택 (선택 사항):</string>
     <string name="widget_config_all_directions">모든 방향 (기본값)</string>
     <string name="widget_config_save">위젯 저장</string>
+
+    <!-- Pager & Accessibility Content Descriptions -->
+    <string name="pager_page_of_total">%1$d / %2$d</string>
+    <string name="cd_station_pager_dot">역 %1$d / %2$d</string>
+    <string name="cd_station_pager_switch">역 %1$d(으)로 전환</string>
+    <string name="cd_pin_to_home">홈에 고정</string>
+    <string name="cd_remove_from_home">홈에서 제거</string>
+    <string name="cd_start_live_notification">실시간 알림 켜기</string>
+    <string name="cd_stop_live_notification">실시간 알림 중지</string>
+    <string name="cd_not_selected">선택되지 않음</string>
+
+    <!-- Station Detail Timetable & Fallbacks -->
+    <string name="station_detail_last_train">막차는 %1$s에 출발했습니다.</string>
+    <string name="station_detail_first_train">첫차는 약 %1$s에 운행을 시작합니다.</string>
+    <string name="station_detail_no_departures">현재 이용 가능한 출발 정보가 없습니다.\n위의 새로고침 아이콘을 눌러 확인하세요.</string>
+    <string name="station_detail_no_departures_line">이 노선의 출발 정보가 없습니다</string>
+
+    <!-- Settings Subtitles & Items -->
+    <string name="settings_plan_free_title">무료 플랜</string>
+    <string name="settings_plan_free_subtitle">역 저장 무제한·AI·광고 제거로 업그레이드</string>
+    <string name="settings_plan_pro_title">EkiBoard Pro</string>
+    <string name="settings_plan_pro_subtitle">현재 이용 중인 플랜 • 혜택 보기</string>
+    <string name="settings_manage_subscription_subtitle">Google Play 구독 관리 센터 열기</string>
+    <string name="settings_restore_purchases_subtitle">Google Play에서 이전 구매 내역 동기화</string>
+    <string name="settings_restore_purchases_busy">Google Play 스토어와 연결 중</string>
+    <string name="settings_help_faq_subtitle">자주 묻는 질문 및 이용 팁</string>
+    <string name="settings_rate_app_subtitle">Google Play에 리뷰 남기기</string>
+    <string name="settings_privacy_policy_subtitle">개인정보 처리방침 및 데이터 보안 정보</string>
+    <string name="settings_app_version_title">앱 버전</string>
+    <string name="settings_app_version_subtitle">v%1$s • 공식 대중교통 오픈데이터</string>
+    <string name="settings_developer_options_title">개발자 옵션</string>
+    <string name="settings_developer_options_subtitle">디버그 토글, AI 엔진 및 테스트 도구</string>
+
+    <!-- Paywall & Subscription Prompts -->
+    <string name="paywall_prompt_station_limit">무료 플랜에서는 최대 %1$d개 역을 저장할 수 있습니다. Pro로 업그레이드하여 최대 %2$d개까지 저장하세요.</string>
+    <string name="paywall_prompt_ai_limit">Pro로 업그레이드하여 EkiBoard AI를 무제한으로 이용하세요</string>
+    <string name="paywall_prompt_default">EkiBoard Pro 잠금 해제</string>
+    <string name="paywall_plan_annual_fallback">£9.99 / 년</string>
+    <string name="paywall_plan_monthly_fallback">£1.49 / 월</string>
+    <string name="paywall_plan_savings_tag">%1$d%% 절약</string>
+    <string name="paywall_plan_annual_subtitle">1년 Pro 이용권 (월 %1$s%2$.2f)</string>
+    <string name="paywall_plan_annual_subtitle_fallback">1년 Pro 이용권 (월 £0.83)</string>
+    <string name="paywall_plan_monthly_subtitle">매월 결제, 언제든지 취소 가능</string>
+
+    <!-- General Feedback & Errors -->
+    <string name="departures_load_error">출발 정보를 불러올 수 없습니다</string>
+    <string name="app_update_downloaded_toast">업데이트가 다운로드되었습니다. 앱을 다시 시작하여 설치를 완료하세요.</string>
+
+    <!-- AI Assistant Actions & Feedback -->
+    <string name="ai_toast_engine_installed">온디바이스 AI 엔진 설치 완료!</string>
+    <string name="ai_toast_install_failed">AI 설치에 실패했거나 취소되었습니다</string>
+    <string name="ai_toast_speech_unavailable">이 기기에서는 음성 인식을 사용할 수 없습니다</string>
+    <string name="ai_speech_prompt">출발 정보 관련 질문을 말씀해 주세요…</string>
+    <string name="tracking_action_track">추적</string>
+    <string name="tracking_action_untrack">추적 해제</string>
+    <string name="ai_prompt_morning_commute">아침 출근길 운행 상황</string>
+    <string name="ai_prompt_evening_commute">퇴근길 운행 지연 정보</string>
+    <string name="ai_prompt_evening_delays">퇴근길에 지연이 있나요?</string>
+    <string name="ai_prompt_last_train">오늘 밤 막차 시간</string>
+    <string name="ai_prompt_last_tube">오늘 밤 지하철 막차</string>
+    <string name="ai_prompt_night_bus">심야 버스 운행 정보</string>
+    <string name="ai_prompt_next_train_from">%1$s 출발 다음 열차</string>
+    <string name="ai_prompt_next_bus_from">%1$s 출발 다음 버스</string>
+    <string name="ai_prompt_next_train_near_me">내 주변 다음 열차</string>
+    <string name="ai_prompt_next_departure_near_me">내 주변 다음 출발</string>
+
+    <!-- Saved Station Snackbar Feedback -->
+    <string name="station_already_saved">%1$s(은)는 이미 저장되어 있습니다</string>
+    <string name="station_max_limit_reached">실시간 API 제한 보호를 위해 저장 가능한 역은 최대 %1$d개입니다.</string>
+    <string name="station_added">%1$s 추가됨</string>
+    <string name="station_removed">%1$s 삭제됨</string>
+    <string name="station_restored">%1$s 복원됨</string>
+
+    <!-- AI Quota Exceeded -->
+    <string name="ai_quota_exceeded">오늘 무료 AI 검색 한도(%1$d회)에 도달했습니다. Pro로 업그레이드하여 무제한 AI 질문, 실시간 지연 확인 및 전체 정차역 조회를 이용해 보세요.</string>
+    <string name="ai_input_placeholder">질문 또는 음성 입력: \"Mill Hill East행 열차\"…</string>
 </resources>

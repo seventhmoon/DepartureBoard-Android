@@ -137,7 +137,7 @@ fun DashboardContent(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "EkiBoard",
+                            text = stringResource(R.string.app_name),
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = titleFontSize,

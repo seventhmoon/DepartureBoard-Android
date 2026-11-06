@@ -14,7 +14,7 @@ object TflStationMapper {
 
     fun fromStopPointMatch(match: TflStopPointMatch): List<Station> {
         // Disambiguate King's Cross / St Pancras megahub into its distinct stations for user clarity
-        if (match.id == "HUBKGX" || match.name.contains("King's Cross & St Pancras", ignoreCase = true)) {
+        if (match.id == com.androidfung.departureboard.data.model.gb.TflStationIds.KINGS_CROSS_ST_PANCRAS_HUB || match.name.contains("King's Cross & St Pancras", ignoreCase = true)) {
             return listOf(
                 Station(
                     id = "940GZZLUKSX",
@@ -134,8 +134,7 @@ object TflStationMapper {
             }
         }
 
-        val isStPancrasInternational = detail.id == "910GSTPX" || detail.commonName?.equals("St Pancras International", ignoreCase = true) == true
-        val isKingsCrossNR = detail.id == "910GKNGX" || detail.commonName?.equals("King's Cross", ignoreCase = true) == true
+        val isStPancrasOrKingsCrossNR = com.androidfung.departureboard.data.model.gb.TflStationIds.isStPancrasOrKingsCrossNR(detail.id, detail.commonName)
 
         return detail.lines
             .filter { line ->
@@ -144,8 +143,8 @@ object TflStationMapper {
 
                 val mode = line.modeName?.lowercase() ?: modeMap[id]?.lowercase()
 
-                if (isStPancrasInternational || isKingsCrossNR) {
-                    if (mode == "tube" || id in listOf("circle", "hammersmith-city", "metropolitan", "northern", "piccadilly", "victoria", "tube")) {
+                if (isStPancrasOrKingsCrossNR) {
+                    if (mode == "tube" || id in com.androidfung.departureboard.data.model.gb.TflLineColors.TUBE_LINE_IDS) {
                         return@filter false
                     }
                 }

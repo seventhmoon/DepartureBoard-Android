@@ -95,8 +95,8 @@ fun PaywallBottomSheet(
         it.basePlanId == SubscriptionTier.BASE_PLAN_MONTHLY || it.basePlanId.contains("monthly", ignoreCase = true)
     }
 
-    val (annualPlanPricing, monthlyPlanPricing) = remember(annualOffer, monthlyOffer) {
-        calculateSubscriptionPricing(annualOffer, monthlyOffer)
+    val (annualPlanPricing, monthlyPlanPricing) = remember(annualOffer, monthlyOffer, context) {
+        calculateSubscriptionPricing(context, annualOffer, monthlyOffer)
     }
 
     val errorPlayStoreText = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_error_play_store)
@@ -457,6 +457,7 @@ private data class PlanPricingInfo(
  * [ProductDetails.SubscriptionOfferDetails], with graceful localized fallbacks for offline / local debug testing.
  */
 private fun calculateSubscriptionPricing(
+    context: Context,
     annualOffer: ProductDetails.SubscriptionOfferDetails?,
     monthlyOffer: ProductDetails.SubscriptionOfferDetails?
 ): Pair<PlanPricingInfo, PlanPricingInfo> {
@@ -464,17 +465,17 @@ private fun calculateSubscriptionPricing(
     val monthlyPhase = monthlyOffer?.pricingPhases?.pricingPhaseList?.firstOrNull()
 
     // 1. Live Google Play formatted prices (e.g. "£9.99", "$11.99", "€10.99")
-    val annualPrice = annualPhase?.formattedPrice ?: "£9.99 / year"
-    val monthlyPrice = monthlyPhase?.formattedPrice ?: "£1.49 / month"
+    val annualPrice = annualPhase?.formattedPrice ?: context.getString(R.string.paywall_plan_annual_fallback)
+    val monthlyPrice = monthlyPhase?.formattedPrice ?: context.getString(R.string.paywall_plan_monthly_fallback)
 
     // 2. Dynamic savings percentage calculated from Google Play pricing in micros
     val savingsTag: String? = if (annualPhase != null && monthlyPhase != null && monthlyPhase.priceAmountMicros > 0) {
         val annualMicros = annualPhase.priceAmountMicros
         val monthlyYearTotal = monthlyPhase.priceAmountMicros * 12
         val savings = ((1.0 - (annualMicros.toDouble() / monthlyYearTotal)) * 100).toInt()
-        if (savings > 0) "SAVE $savings%" else null
+        if (savings > 0) context.getString(R.string.paywall_plan_savings_tag, savings) else null
     } else {
-        "SAVE 44%"
+        context.getString(R.string.paywall_plan_savings_tag, 44)
     }
 
     // 3. Dynamic per-month equivalent breakdown based on currency code
@@ -485,12 +486,12 @@ private fun calculateSubscriptionPricing(
         } catch (_: Exception) {
             "£"
         }
-        "1 Year of Pro Access (${symbol}${"%.2f".format(java.util.Locale.UK, monthlyEquiv)}/mo)"
+        context.getString(R.string.paywall_plan_annual_subtitle, symbol, monthlyEquiv)
     } else {
-        "1 Year of Pro Access (£0.83/mo)"
+        context.getString(R.string.paywall_plan_annual_subtitle_fallback)
     }
 
-    val monthlySubtitle = "Billed monthly, cancel anytime"
+    val monthlySubtitle = context.getString(R.string.paywall_plan_monthly_subtitle)
 
     return Pair(
         PlanPricingInfo(annualPrice, annualSubtitle, savingsTag),

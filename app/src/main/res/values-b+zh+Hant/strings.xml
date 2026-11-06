@@ -327,4 +327,80 @@
     <string name="widget_config_select_direction">2. 選擇方向（選填）：</string>
     <string name="widget_config_all_directions">所有方向（預設）</string>
     <string name="widget_config_save">儲存小工具</string>
+
+    <!-- Pager & Accessibility Content Descriptions -->
+    <string name="pager_page_of_total">第 %1$d / %2$d 頁</string>
+    <string name="cd_station_pager_dot">車站 %1$d / %2$d</string>
+    <string name="cd_station_pager_switch">切換至車站 %1$d</string>
+    <string name="cd_pin_to_home">固定至主頁</string>
+    <string name="cd_remove_from_home">從主頁取消固定</string>
+    <string name="cd_start_live_notification">開啟即時動態通知</string>
+    <string name="cd_stop_live_notification">停止即時通知</string>
+    <string name="cd_not_selected">未選取</string>
+
+    <!-- Station Detail Timetable & Fallbacks -->
+    <string name="station_detail_last_train">尾班車已於 %1$s 開出。</string>
+    <string name="station_detail_first_train">清晨班次約於 %1$s 開始服務。</string>
+    <string name="station_detail_no_departures">目前沒有即時班次資料。\n請輕觸上方重新載入圖示以更新。</string>
+    <string name="station_detail_no_departures_line">此路線目前沒有即時班次</string>
+
+    <!-- Settings Subtitles & Items -->
+    <string name="settings_plan_free_title">免費方案</string>
+    <string name="settings_plan_free_subtitle">升級以解鎖無限車站、AI 助理及移除廣告</string>
+    <string name="settings_plan_pro_title">EkiBoard Pro</string>
+    <string name="settings_plan_pro_subtitle">目前方案 • 輕觸以查看權益</string>
+    <string name="settings_manage_subscription_subtitle">開啟 Google Play 訂閱管理中心</string>
+    <string name="settings_restore_purchases_subtitle">從 Google Play 同步先前的購買項目</string>
+    <string name="settings_restore_purchases_busy">正在連接 Google Play 商店</string>
+    <string name="settings_help_faq_subtitle">常見問題與使用技巧</string>
+    <string name="settings_rate_app_subtitle">在 Google Play 與其他通勤者分享您的評價</string>
+    <string name="settings_privacy_policy_subtitle">查看隱私條款與資料安全資訊</string>
+    <string name="settings_app_version_title">應用程式版本</string>
+    <string name="settings_app_version_subtitle">v%1$s • 官方開放交通資料</string>
+    <string name="settings_developer_options_title">開發人員選項</string>
+    <string name="settings_developer_options_subtitle">除錯開關、AI 引擎與測試工具</string>
+
+    <!-- Paywall & Subscription Prompts -->
+    <string name="paywall_prompt_station_limit">免費方案最多可儲存 %1$d 個車站。升級至 Pro 即可儲存最多 %2$d 個車站。</string>
+    <string name="paywall_prompt_ai_limit">升級至 Pro 解鎖無限 EkiBoard AI 查詢</string>
+    <string name="paywall_prompt_default">解鎖 EkiBoard Pro</string>
+    <string name="paywall_plan_annual_fallback">£9.99 / 年</string>
+    <string name="paywall_plan_monthly_fallback">£1.49 / 月</string>
+    <string name="paywall_plan_savings_tag">省下 %1$d%%</string>
+    <string name="paywall_plan_annual_subtitle">1 年 Pro 存取權限（每月 %1$s%2$.2f）</string>
+    <string name="paywall_plan_annual_subtitle_fallback">1 年 Pro 存取權限（每月 £0.83）</string>
+    <string name="paywall_plan_monthly_subtitle">按月扣款，隨時可取消</string>
+
+    <!-- General Feedback & Errors -->
+    <string name="departures_load_error">無法載入即時班次</string>
+    <string name="app_update_downloaded_toast">更新已下載完成。請重新啟動應用程式以完成安裝。</string>
+
+    <!-- AI Assistant Actions & Feedback -->
+    <string name="ai_toast_engine_installed">裝置端 AI 引擎已安裝完成！</string>
+    <string name="ai_toast_install_failed">AI 模組安裝失敗或已取消</string>
+    <string name="ai_toast_speech_unavailable">此裝置不支援語音辨識</string>
+    <string name="ai_speech_prompt">請說出您的班次問題…</string>
+    <string name="tracking_action_track">追蹤</string>
+    <string name="tracking_action_untrack">取消追蹤</string>
+    <string name="ai_prompt_morning_commute">早晨通勤狀況</string>
+    <string name="ai_prompt_evening_commute">黃昏通勤即時通報</string>
+    <string name="ai_prompt_evening_delays">回家路線是否有延誤？</string>
+    <string name="ai_prompt_last_train">今晚尾班車時間</string>
+    <string name="ai_prompt_last_tube">今晚地鐵尾班車</string>
+    <string name="ai_prompt_night_bus">通宵巴士服務</string>
+    <string name="ai_prompt_next_train_from">從 %1$s 出發的下班車</string>
+    <string name="ai_prompt_next_bus_from">從 %1$s 出發的下班巴士</string>
+    <string name="ai_prompt_next_train_near_me">附近車站的下班車</string>
+    <string name="ai_prompt_next_departure_near_me">附近的下一班車</string>
+
+    <!-- Saved Station Snackbar Feedback -->
+    <string name="station_already_saved">%1$s 已在儲存清單中</string>
+    <string name="station_max_limit_reached">已達儲存上限 %1$d 個車站，以保護即時 API 額度。</string>
+    <string name="station_added">已新增 %1$s</string>
+    <string name="station_removed">已移除 %1$s</string>
+    <string name="station_restored">已復原 %1$s</string>
+
+    <!-- AI Quota Exceeded -->
+    <string name="ai_quota_exceeded">您已達到今日 %1$d 次免費 AI 查詢上限。升級至 Pro 即可享用無限制 AI 提問、即時路線受阻查詢及完整停車站資訊。</string>
+    <string name="ai_input_placeholder">輸入或語音詢問：「前往 Mill Hill East 的列車」…</string>
 </resources>

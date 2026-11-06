@@ -357,47 +357,30 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         }
         .map { preferences ->
             val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
-            val key = getRecentSearchedStationsKey(region)
-            val json = preferences[key]
-            if (json.isNullOrBlank()) {
-                emptyList()
-            } else {
-                try {
-                    val dtos = stationListAdapter.fromJson(json) ?: emptyList()
-                    dtos.map { it.toStation() }
-                } catch (_: Exception) {
-                    emptyList()
-                }
-            }
+            parseRecentStations(preferences[getRecentSearchedStationsKey(region)]).map { it.toStation() }
         }
+
+    /**
+     * Parses a stored JSON list of [StationDto], returning an empty list when the value
+     * is missing, blank, or malformed.
+     */
+    private fun parseRecentStations(json: String?): List<StationDto> {
+        if (json.isNullOrBlank()) return emptyList()
+        return runCatching { stationListAdapter.fromJson(json) }.getOrNull() ?: emptyList()
+    }
 
     override suspend fun addRecentSearchedStation(station: Station) {
         context.dataStore.edit { preferences ->
             // Route to station's region or selected region
             val region = TransitRegion.fromStationId(station.id)
             val key = getRecentSearchedStationsKey(region)
-            val json = preferences[key]
-            val currentList = if (!json.isNullOrBlank()) {
-                try {
-                    stationListAdapter.fromJson(json)?.toMutableList() ?: mutableListOf()
-                } catch (_: Exception) {
-                    mutableListOf()
-                }
-            } else {
-                mutableListOf()
-            }
+            val currentList = parseRecentStations(preferences[key]).toMutableList()
 
             // Remove if already exists so we can move it to the top
             currentList.removeAll { it.id == station.id }
             currentList.add(0, station.toDto())
 
-            val trimmed = if (currentList.size > MAX_RECENT_SEARCHES) {
-                currentList.subList(0, MAX_RECENT_SEARCHES)
-            } else {
-                currentList
-            }
-
-            preferences[key] = stationListAdapter.toJson(trimmed)
+            preferences[key] = stationListAdapter.toJson(currentList.take(MAX_RECENT_SEARCHES))
         }
     }
 
@@ -405,12 +388,8 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         context.dataStore.edit { preferences ->
             val region = TransitRegion.fromStationId(stationId)
             val key = getRecentSearchedStationsKey(region)
-            val json = preferences[key] ?: return@edit
-            val currentList = try {
-                stationListAdapter.fromJson(json)?.toMutableList() ?: return@edit
-            } catch (_: Exception) {
-                return@edit
-            }
+            if (preferences[key].isNullOrBlank()) return@edit
+            val currentList = parseRecentStations(preferences[key]).toMutableList()
 
             currentList.removeAll { it.id == stationId }
             preferences[key] = stationListAdapter.toJson(currentList)

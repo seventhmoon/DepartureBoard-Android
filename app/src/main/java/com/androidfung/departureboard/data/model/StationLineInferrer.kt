@@ -54,9 +54,9 @@ object StationLineInferrer {
             "victoria" to "Victoria"
         ),
         "king's cross" to KINGS_CROSS_NR_LINES,
-        "910GKNGX" to KINGS_CROSS_NR_LINES,
+        com.androidfung.departureboard.data.model.gb.TflStationIds.KINGS_CROSS_NR to KINGS_CROSS_NR_LINES,
         "st pancras international" to ST_PANCRAS_INTERNATIONAL_LINES,
-        "910GSTPX" to ST_PANCRAS_INTERNATIONAL_LINES,
+        com.androidfung.departureboard.data.model.gb.TflStationIds.ST_PANCRAS_INTERNATIONAL to ST_PANCRAS_INTERNATIONAL_LINES,
         "st pancras" to ST_PANCRAS_DOMESTIC_LINES,
         "waterloo" to listOf(
             "bakerloo" to "Bakerloo",
@@ -259,9 +259,6 @@ object StationLineInferrer {
         else -> TransitMode.METRO.id
     }
 
-    private fun Station.isKingsCrossOrStPancrasNationalRail(): Boolean {
-        val normName = name.lowercase()
-        return id == "910GSTPX" || id == "910GKNGX" ||
-                normName == "st pancras international" || normName == "st pancras" || normName == "king's cross"
-    }
+    private fun Station.isKingsCrossOrStPancrasNationalRail(): Boolean =
+        com.androidfung.departureboard.data.model.gb.TflStationIds.isStPancrasOrKingsCrossNR(id, name)
 }

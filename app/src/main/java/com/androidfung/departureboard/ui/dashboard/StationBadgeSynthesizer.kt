@@ -32,7 +32,7 @@ object StationBadgeSynthesizer {
 
             departureBadges.filter { badge ->
                 // Guard: Filter out spurious depot movements (e.g. H&C depot run at Wembley Park)
-                if (isWembleyPark && badge.lineId.equals("hammersmith-city", ignoreCase = true)) return@filter false
+                if (isWembleyPark && badge.lineId.equals(com.androidfung.departureboard.data.model.gb.GbTransitLine.HAMMERSMITH_CITY.code, ignoreCase = true)) return@filter false
 
                 // Guard: Filter out Tube badges for St Pancras or King's Cross National Rail
                 if (isStPancrasOrKingsCrossNR) {

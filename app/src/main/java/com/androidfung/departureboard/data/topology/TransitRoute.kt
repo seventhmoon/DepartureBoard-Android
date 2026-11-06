@@ -120,18 +120,20 @@ data class BranchedRoute<T>(
 
     override fun slice(origin: T, dest: T, preferredDirection: TransitDirection?): List<T> {
         // Find pattern(s) that contain both origin and dest
-        val candidateSlices = mutableListOf<List<T>>()
-
-        for (pattern in patterns) {
-            val startIdx = pattern.stations.indexOf(origin)
-            val endIdx = pattern.stations.indexOf(dest)
-            if (startIdx != -1 && endIdx != -1) {
-                val slice = if (startIdx <= endIdx) {
-                    pattern.stations.subList(startIdx, endIdx + 1)
-                } else {
-                    pattern.stations.subList(endIdx, startIdx + 1).reversed()
+        val candidateSlices = buildList {
+            for (pattern in patterns) {
+                val startIdx = pattern.stations.indexOf(origin)
+                val endIdx = pattern.stations.indexOf(dest)
+                if (startIdx != -1 && endIdx != -1) {
+                    // Copy the slice: subList() returns a live view of the pattern's backing list
+                    add(
+                        if (startIdx <= endIdx) {
+                            pattern.stations.subList(startIdx, endIdx + 1).toList()
+                        } else {
+                            pattern.stations.subList(endIdx, startIdx + 1).reversed()
+                        }
+                    )
                 }
-                candidateSlices.add(slice)
             }
         }
 

@@ -154,11 +154,13 @@ class TransitAiAssistant(
                     var minDistance = Double.MAX_VALUE
 
                     for (cand in validCandidates) {
+                        val stationLat = cand.lat ?: continue
+                        val stationLon = cand.lon ?: continue
                         val dist = com.androidfung.departureboard.util.LocationHelper.calculateDistanceMeters(
                             userLat = userCoords.latitude,
                             userLon = userCoords.longitude,
-                            stationLat = cand.lat!!,
-                            stationLon = cand.lon!!
+                            stationLat = stationLat,
+                            stationLon = stationLon
                         )
                         if (dist < minDistance) {
                             minDistance = dist
@@ -184,11 +186,13 @@ class TransitAiAssistant(
                 var minDistance = Double.MAX_VALUE
 
                 for (cand in validCandidates) {
+                    val stationLat = cand.lat ?: continue
+                    val stationLon = cand.lon ?: continue
                     val dist = com.androidfung.departureboard.util.LocationHelper.calculateDistanceMeters(
                         userLat = userCoords.latitude,
                         userLon = userCoords.longitude,
-                        stationLat = cand.lat!!,
-                        stationLon = cand.lon!!
+                        stationLat = stationLat,
+                        stationLon = stationLon
                     )
                     if (dist < minDistance) {
                         minDistance = dist
@@ -315,24 +319,25 @@ class TransitAiAssistant(
             val answer = "$prefix next ${next.lineName} departure towards ${next.destinationName} leaves from ${next.stationName} (${next.platformName}) $nextMinutes$clockSuffix$subsequentText."
 
             val targetStation = departureStation ?: defaultOrigin
-            val actions = mutableListOf<A2UiAction>()
-            if (targetStation != null) {
-                actions.add(A2UiAction.PinStation(targetStation))
-            }
-            actions.add(A2UiAction.TrackTrain(next))
-            if (explicitOriginName != null && targetDestinationName != null) {
-                actions.add(A2UiAction.OpenGoogleMaps(explicitOriginName, targetDestinationName))
-                actions.add(A2UiAction.OpenTflJourneyPlanner(explicitOriginName, targetDestinationName))
+            val actions = buildList {
+                if (targetStation != null) {
+                    add(A2UiAction.PinStation(targetStation))
+                }
+                add(A2UiAction.TrackTrain(next))
+                if (explicitOriginName != null && targetDestinationName != null) {
+                    add(A2UiAction.OpenGoogleMaps(explicitOriginName, targetDestinationName))
+                    add(A2UiAction.OpenTflJourneyPlanner(explicitOriginName, targetDestinationName))
+                }
             }
 
-            val blocks = mutableListOf<A2UiBlock>(
-                A2UiBlock.TextSummary(answer)
-            )
-            if (targetStation != null) {
-                blocks.add(A2UiBlock.LiveDeparturesCard(targetStation, matchingDepartures.take(4)))
-            }
-            if (actions.isNotEmpty()) {
-                blocks.add(A2UiBlock.ActionButtons(actions))
+            val blocks = buildList {
+                add(A2UiBlock.TextSummary(answer))
+                if (targetStation != null) {
+                    add(A2UiBlock.LiveDeparturesCard(targetStation, matchingDepartures.take(4)))
+                }
+                if (actions.isNotEmpty()) {
+                    add(A2UiBlock.ActionButtons(actions))
+                }
             }
 
             AiTransitResult(

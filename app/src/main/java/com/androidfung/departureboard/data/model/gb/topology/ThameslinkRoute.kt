@@ -147,13 +147,13 @@ object ThameslinkRoute {
             platformName: String?,
             apiDirection: String?
         ): TransitDirection? {
-            val dir = com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver.resolve(
+            val dir = com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver.resolveDirection(
                 destinationCrs = destinationCrs,
                 destinationName = destinationName
             )
             return when (dir) {
-                com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver.NORTHBOUND -> TransitDirection.INBOUND
-                com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver.SOUTHBOUND -> TransitDirection.OUTBOUND
+                TransitDirection.NORTHBOUND -> TransitDirection.INBOUND
+                TransitDirection.SOUTHBOUND -> TransitDirection.OUTBOUND
                 else -> null
             }
         }

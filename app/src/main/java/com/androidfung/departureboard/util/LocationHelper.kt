@@ -82,11 +82,13 @@ object LocationHelper {
         var minDistance = Double.MAX_VALUE
 
         for (st in validStations) {
+            val stationLat = st.lat ?: continue
+            val stationLon = st.lon ?: continue
             val dist = calculateDistanceMeters(
                 userLat = userLocation.latitude,
                 userLon = userLocation.longitude,
-                stationLat = st.lat!!,
-                stationLon = st.lon!!
+                stationLat = stationLat,
+                stationLon = stationLon
             )
             if (dist < minDistance) {
                 minDistance = dist
@@ -108,11 +110,13 @@ object LocationHelper {
     ): List<Pair<Station, Double>> {
         val validStations = stations.filter { it.lat != null && it.lon != null }
         return validStations.mapNotNull { st ->
+            val stationLat = st.lat ?: return@mapNotNull null
+            val stationLon = st.lon ?: return@mapNotNull null
             val dist = calculateDistanceMeters(
                 userLat = userLocation.latitude,
                 userLon = userLocation.longitude,
-                stationLat = st.lat!!,
-                stationLon = st.lon!!
+                stationLat = stationLat,
+                stationLon = stationLon
             )
             if (dist <= maxDistanceMeters) {
                 st to dist

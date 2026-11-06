@@ -1,6 +1,7 @@
 package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.TransitLineMatcher
 import kotlin.math.abs
 
 /**
@@ -11,9 +12,6 @@ import kotlin.math.abs
 object GbFeedReconciliationEngine {
 
     private const val TIMESTAMP_TOLERANCE_SECONDS = 180
-    private val OVERGROUND_ALIASES = setOf(
-        "lioness", "mildmay", "weaver", "suffragette", "liberty", "windrush"
-    )
 
     /**
      * Merges TfL predictions and National Rail departures, avoiding duplicate entries for lines
@@ -29,18 +27,17 @@ object GbFeedReconciliationEngine {
         val result = tflDepartures.toMutableList()
 
         for (nr in nrDepartures) {
+            val cleanNrDest = StationNameFormatter.clean(nr.destinationName)
+
             // Check if TfL already has an equivalent prediction for the same line and destination within a 180s window
             val isDuplicate = result.any { tfl ->
-                val linesMatch = tfl.lineId == nr.lineId ||
-                        tfl.lineName.equals(nr.lineName, ignoreCase = true) ||
-                        // Check Overground alias match (Lioness vs London Overground)
-                        (tfl.lineId in OVERGROUND_ALIASES && nr.lineId == "overground") ||
-                        (nr.lineId in OVERGROUND_ALIASES && tfl.lineId == "overground")
+                val linesMatch = TransitLineMatcher.isSameLine(tfl.lineId, nr.lineId) ||
+                        tfl.lineName.equals(nr.lineName, ignoreCase = true)
 
-                val destsMatch = tfl.destinationName.contains(nr.destinationName, ignoreCase = true) ||
-                        nr.destinationName.contains(tfl.destinationName, ignoreCase = true) ||
-                        // Matches Euston / London Euston
-                        (tfl.destinationName.contains("Euston", ignoreCase = true) && nr.destinationName.contains("Euston", ignoreCase = true))
+                val cleanTflDest = StationNameFormatter.clean(tfl.destinationName)
+                val destsMatch = cleanTflDest.equals(cleanNrDest, ignoreCase = true) ||
+                        cleanTflDest.contains(cleanNrDest, ignoreCase = true) ||
+                        cleanNrDest.contains(cleanTflDest, ignoreCase = true)
 
                 linesMatch && destsMatch && abs(tfl.timeToStationSeconds - nr.timeToStationSeconds) < TIMESTAMP_TOLERANCE_SECONDS
             }

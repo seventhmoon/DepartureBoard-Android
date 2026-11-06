@@ -141,7 +141,7 @@ fun TrainJourneyScreen(
                 modifier = Modifier.fillMaxSize(),
                 isPro = isPro,
                 onCallingPointClick = onCallingPointClick,
-                pageInfo = "${page + 1} of ${departureList.size}"
+                pageInfo = stringResource(R.string.pager_page_of_total, page + 1, departureList.size)
             )
         }
     }
@@ -203,6 +203,9 @@ private fun TrainJourneyContent(
         val loc = departure.currentLocation?.trim()?.lowercase() ?: ""
         if (loc.isNotBlank()) {
             val matchIndex = callingPoints.indexOfFirst { cp ->
+                if (!cp.stationId.isNullOrBlank() && (loc.contains(cp.stationId, ignoreCase = true) || cp.stationId.equals(loc, ignoreCase = true))) {
+                    return@indexOfFirst true
+                }
                 val name = cp.stationName.trim().lowercase()
                 name.length >= 3 && (loc.contains(name) || name.contains(loc))
             }
@@ -316,7 +319,11 @@ private fun TrainJourneyContent(
                 ) {
                     Icon(
                         imageVector = if (isTracked) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
-                        contentDescription = if (isTracked) "Stop Live Notification" else "Notify with Live Updates",
+                        contentDescription = if (isTracked) {
+                            stringResource(R.string.cd_stop_live_notification)
+                        } else {
+                            stringResource(R.string.cd_start_live_notification)
+                        },
                         tint = if (isTracked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(19.dp)
                     )
@@ -389,7 +396,7 @@ private fun TrainJourneyContent(
 
             // 2. Where the train is NOW banner
             item(key = "current_location") {
-                val location = departure.currentLocation?.takeIf { it.isNotBlank() } ?: "In transit"
+                val location = departure.currentLocation?.takeIf { it.isNotBlank() } ?: stringResource(R.string.status_in_transit)
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
@@ -450,14 +457,16 @@ private fun TrainJourneyContent(
                         if (departure.status == com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
                             TrainTripAlertBanner(
                                 title = stringResource(R.string.tracking_service_cancelled_title),
-                                description = departure.currentLocation?.takeIf { it.isNotBlank() && !it.equals("Cancelled", ignoreCase = true) }
+                                description = departure.cancelReason?.takeIf { it.isNotBlank() }
+                                    ?: departure.currentLocation?.takeIf { it.isNotBlank() && !it.equals("Cancelled", ignoreCase = true) }
                                     ?: stringResource(R.string.tracking_service_cancelled_desc),
                                 isCancelled = true
                             )
                         } else if (departure.status == com.androidfung.departureboard.data.model.DepartureStatus.DELAYED) {
                             TrainTripAlertBanner(
                                 title = stringResource(R.string.status_delayed),
-                                description = departure.currentLocation?.takeIf { it.isNotBlank() && !it.equals("Delayed", ignoreCase = true) }
+                                description = departure.delayReason?.takeIf { it.isNotBlank() }
+                                    ?: departure.currentLocation?.takeIf { it.isNotBlank() && !it.equals("Delayed", ignoreCase = true) }
                                     ?: stringResource(R.string.widget_interruption_delays),
                                 isCancelled = false
                             )
