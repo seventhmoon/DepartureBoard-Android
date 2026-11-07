@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_splash_metro_pulse">
+
+    <target
+        android:name="board_scale"
+        android:animation="@animator/splash_board_scale" />
+
+    <target
+        android:name="signal_ring"
+        android:animation="@animator/splash_ring_sweep" />
+
+    <target
+        android:name="live_beacon"
+        android:animation="@animator/splash_beacon_pulse" />
+
+    <!-- Sequential lighting of the 4 transport mode icons one by one -->
+    <target
+        android:name="mode_1_subway"
+        android:animation="@animator/splash_row1_light" />
+
+    <target
+        android:name="mode_2_train"
+        android:animation="@animator/splash_row2_light" />
+
+    <target
+        android:name="mode_3_bus"
+        android:animation="@animator/splash_row3_light" />
+
+    <target
+        android:name="mode_4_tram"
+        android:animation="@animator/splash_row4_light" />
+
+</animated-vector>

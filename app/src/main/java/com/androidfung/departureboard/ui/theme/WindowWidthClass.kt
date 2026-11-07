@@ -1,7 +1,9 @@
 package com.androidfung.departureboard.ui.theme
 
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
@@ -48,7 +50,7 @@ enum class WindowWidthClass {
 /**
  * Foldable posture metadata for tabletop / half-opened horizontal hinge layouts.
  */
-@androidx.compose.runtime.Immutable
+@Immutable
 data class WindowPostureInfo(
     val isTabletop: Boolean = false,
     val hingeTopDp: Dp? = null,
@@ -67,7 +69,8 @@ val LocalWindowWidthClass = staticCompositionLocalOf { WindowWidthClass.REGULAR 
 val LocalWindowPosture = staticCompositionLocalOf { WindowPostureInfo() }
 
 /**
- * Wraps content with [CompositionLocalProvider] supplying the dynamic [WindowWidthClass].
+ * Wraps content with [CompositionLocalProvider] supplying the dynamic [WindowWidthClass]
+ * and dynamic foldable [WindowPostureInfo].
  */
 @Composable
 fun ProvideWindowWidthClass(
@@ -78,9 +81,33 @@ fun ProvideWindowWidthClass(
     val widthDp = with(density) { windowInfo.containerSize.width.toDp() }
     val windowClass = remember(widthDp) { WindowWidthClass.fromWidth(widthDp) }
 
+    val adaptiveInfo = currentWindowAdaptiveInfoV2()
+    val posture = adaptiveInfo.windowPosture
+    val horizontalHinge = posture.hingeList.firstOrNull { !it.isVertical }
+    val isTabletop = posture.isTabletop || (horizontalHinge != null && !horizontalHinge.isFlat)
+
+    val postureInfo = remember(isTabletop, horizontalHinge, density) {
+        if (isTabletop) {
+            if (horizontalHinge != null) {
+                val topDp = with(density) { horizontalHinge.bounds.top.toDp() }
+                val bottomDp = with(density) { horizontalHinge.bounds.bottom.toDp() }
+                WindowPostureInfo(
+                    isTabletop = true,
+                    hingeTopDp = topDp,
+                    hingeBottomDp = bottomDp,
+                    hingeHeightDp = (bottomDp - topDp).coerceAtLeast(0.dp)
+                )
+            } else {
+                WindowPostureInfo(isTabletop = true)
+            }
+        } else {
+            WindowPostureInfo(isTabletop = false)
+        }
+    }
+
     CompositionLocalProvider(
         LocalWindowWidthClass provides windowClass,
-        LocalWindowPosture provides WindowPostureInfo()
+        LocalWindowPosture provides postureInfo
     ) {
         content()
     }

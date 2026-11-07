@@ -1025,12 +1025,27 @@ private fun StationDetailContent(
                         LineDisruptionBanner(badge = disruptedBadgesToShow.first())
                     } else {
                         // Compact expandable banner when multiple lines have disruptions
+                        val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+                        val hasSevere = disruptedBadgesToShow.any { it.statusSeverity <= 6 }
+
+                        val summaryAccentColor = if (hasSevere) {
+                            if (isDark) Color(0xFFFFB4A9) else Color(0xFFBA1A1A)
+                        } else {
+                            if (isDark) Color(0xFFFFB74D) else Color(0xFFC05600)
+                        }
+                        val summaryBgColor = if (hasSevere) {
+                            if (isDark) Color(0xFF930006).copy(alpha = 0.20f) else Color(0xFFFFDAD6).copy(alpha = 0.45f)
+                        } else {
+                            if (isDark) Color(0xFFFFA000).copy(alpha = 0.12f) else Color(0xFFFFF3CD).copy(alpha = 0.65f)
+                        }
+                        val summaryBorderColor = summaryAccentColor.copy(alpha = if (isDark) 0.45f else 0.35f)
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFFFF3CD).copy(alpha = 0.15f))
-                                .border(1.dp, Color(0xFFFFC107).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .background(summaryBgColor)
+                                .border(1.dp, summaryBorderColor, RoundedCornerShape(12.dp))
                                 .clickable { isDisruptionsExpanded = !isDisruptionsExpanded }
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
@@ -1045,15 +1060,16 @@ private fun StationDetailContent(
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         Text(
-                                            text = "⚠",
-                                            color = Color(0xFFFFC107),
+                                            text = if (hasSevere) "✕" else "⚠",
+                                            color = summaryAccentColor,
                                             fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
                                             modifier = Modifier.padding(end = 6.dp)
                                         )
                                         Text(
                                             text = stringResource(R.string.station_detail_disruptions_count, disruptedBadgesToShow.size),
                                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = Color(0xFFFFC107)
+                                            color = summaryAccentColor
                                         )
                                         Text(
                                             text = " (${disruptedBadgesToShow.joinToString(", ") { it.displayName }})",
@@ -1066,7 +1082,7 @@ private fun StationDetailContent(
                                     Icon(
                                         imageVector = if (isDisruptionsExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                                         contentDescription = if (isDisruptionsExpanded) stringResource(R.string.line_status_collapse_desc) else stringResource(R.string.line_status_expand_desc),
-                                        tint = Color(0xFFFFC107),
+                                        tint = summaryAccentColor,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }

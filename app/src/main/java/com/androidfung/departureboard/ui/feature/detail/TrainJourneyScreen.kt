@@ -250,7 +250,8 @@ private fun TrainJourneyContent(
         contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, departure)
+            val targetDeparture = pendingTrackDeparture ?: departure
+            com.androidfung.departureboard.service.TrainTrackingService.startTracking(context, targetDeparture)
         }
         pendingTrackDeparture = null
     }
@@ -287,6 +288,29 @@ private fun TrainJourneyContent(
                         ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+
+                val trainCode = departure.displayTrainCode
+                if (!trainCode.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Text(
+                            text = stringResource(R.string.train_journey_train_code, trainCode),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
 
                 if (!pageInfo.isNullOrBlank()) {
@@ -378,97 +402,113 @@ private fun TrainJourneyContent(
                         )
                     }
 
-                    if (departure.stationName.isNotBlank()) {
+                    if (departure.stationName.isNotBlank() || departure.operator?.name?.isNotBlank() == true) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
-                                text = stringResource(R.string.train_journey_from),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = departure.stationName,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            if (departure.stationName.isNotBlank()) {
+                                Text(
+                                    text = stringResource(R.string.train_journey_from),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = departure.stationName,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            departure.operator?.name?.takeIf { it.isNotBlank() }?.let { operatorName ->
+                                if (departure.stationName.isNotBlank()) {
+                                    Text(
+                                        text = "•",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                }
+                                Text(
+                                    text = stringResource(R.string.train_journey_operated_by, operatorName),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // 2. Where the train is NOW banner
-            item(key = "current_location") {
-                val location = departure.currentLocation?.takeIf { it.isNotBlank() } ?: stringResource(R.string.status_in_transit)
-                val stopStatus = departure.vehicleStopStatus
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
-                    border = androidx.compose.foundation.BorderStroke(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+            // 2. Where the train is NOW banner (only show if it is a meaningful physical location and not a redundant status like 'Exp 16:52' or 'On time')
+            val rawLocation = departure.currentLocation?.trim().orEmpty()
+            val isTimeOrGenericStatus = rawLocation.startsWith("Exp ", ignoreCase = true) ||
+                rawLocation.equals("On time", ignoreCase = true) ||
+                rawLocation.equals("Delayed", ignoreCase = true) ||
+                rawLocation.equals("Cancelled", ignoreCase = true) ||
+                rawLocation.matches(Regex("^[0-9]{2}:[0-9]{2}$"))
+            val hasMeaningfulLocation = rawLocation.isNotBlank() && !isTimeOrGenericStatus
+
+            if (hasMeaningfulLocation) {
+                item(key = "current_location") {
+                    val stopStatus = departure.vehicleStopStatus
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        ),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (stopStatus == com.androidfung.departureboard.data.model.VehicleStopStatus.INCOMING_AT) {
-                                PulsingRadarHalo(haloColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (stopStatus == com.androidfung.departureboard.data.model.VehicleStopStatus.INCOMING_AT) {
+                                    PulsingRadarHalo(haloColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.LocationOn,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
-                            Icon(
-                                imageVector = Icons.Rounded.LocationOn,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
 
-                        Column {
-                            val statusTag = when (stopStatus) {
-                                com.androidfung.departureboard.data.model.VehicleStopStatus.STOPPED_AT -> stringResource(R.string.status_at_platform)
-                                com.androidfung.departureboard.data.model.VehicleStopStatus.INCOMING_AT -> stringResource(R.string.status_approaching)
-                                com.androidfung.departureboard.data.model.VehicleStopStatus.IN_TRANSIT_TO -> stringResource(R.string.status_in_transit)
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column {
+                                val statusTag = when (stopStatus) {
+                                    com.androidfung.departureboard.data.model.VehicleStopStatus.STOPPED_AT -> stringResource(R.string.status_at_platform)
+                                    com.androidfung.departureboard.data.model.VehicleStopStatus.INCOMING_AT -> stringResource(R.string.status_approaching)
+                                    com.androidfung.departureboard.data.model.VehicleStopStatus.IN_TRANSIT_TO -> stringResource(R.string.status_in_transit)
+                                }
                                 Text(
-                                    text = stringResource(R.string.train_journey_current_location),
+                                    text = "${stringResource(R.string.train_journey_live_location)} • $statusTag",
                                     style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
-                                        letterSpacing = 0.5.sp
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
                                     ),
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.height(1.dp))
                                 Text(
-                                    text = "• $statusTag",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                    text = rawLocation,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = location,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
                         }
                     }
                 }
@@ -621,10 +661,10 @@ private fun TrainJourneyContent(
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
                                     border = androidx.compose.foundation.BorderStroke(
                                         width = 1.dp,
-                                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)
+                                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
                                     )
                                 ) {
                                     Row(
@@ -633,7 +673,7 @@ private fun TrainJourneyContent(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         Text(
-                                            text = "✂️",
+                                            text = "🔀",
                                             style = MaterialTheme.typography.labelSmall
                                         )
                                         Text(
@@ -1202,41 +1242,68 @@ private fun CallingPointTimelineItem(
                     modifier = Modifier
                         .weight(1f)
                         .padding(bottom = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     if (callingPoint.isCurrentStation) {
-                        Text(
-                            text = stringResource(R.string.train_journey_your_station),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = 0.8.dp,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Text(
+                                    text = "👤",
+                                    fontSize = 10.sp
+                                )
+                                Text(
+                                    text = stringResource(R.string.train_journey_your_station),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
 
                     if (isTrainLocation) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(accessibleColors.badgeBackground)
-                                .border(1.dp, accessibleColors.badgeBorder, RoundedCornerShape(6.dp))
-                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = accessibleColors.badgeBackground,
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = 0.8.dp,
+                                color = accessibleColors.badgeBorder
+                            )
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.LocationOn,
-                                contentDescription = null,
-                                tint = accessibleColors.badgeContent,
-                                modifier = Modifier.size(11.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.train_journey_current_location),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = accessibleColors.badgeContent
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.LocationOn,
+                                    contentDescription = null,
+                                    tint = accessibleColors.badgeContent,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Text(
+                                    text = stringResource(R.string.train_journey_current_location),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = accessibleColors.badgeContent
+                                )
+                            }
                         }
                     }
                 }
@@ -1315,21 +1382,18 @@ private fun TrainTripAlertBanner(
     isCancelled: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val containerColor = if (isCancelled) {
-        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
+        if (isDark) Color(0xFF930006).copy(alpha = 0.20f) else Color(0xFFFFDAD6).copy(alpha = 0.45f)
     } else {
-        androidx.compose.ui.graphics.Color(0xFFFFF3CD).copy(alpha = 0.2f)
-    }
-    val borderColor = if (isCancelled) {
-        MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-    } else {
-        androidx.compose.ui.graphics.Color(0xFFFFC107).copy(alpha = 0.5f)
+        if (isDark) Color(0xFFFFA000).copy(alpha = 0.12f) else Color(0xFFFFF3CD).copy(alpha = 0.65f)
     }
     val contentColor = if (isCancelled) {
-        MaterialTheme.colorScheme.error
+        if (isDark) Color(0xFFFFB4A9) else Color(0xFFBA1A1A)
     } else {
-        androidx.compose.ui.graphics.Color(0xFFFFC107)
+        if (isDark) Color(0xFFFFB74D) else Color(0xFFC05600)
     }
+    val borderColor = contentColor.copy(alpha = if (isDark) 0.45f else 0.35f)
 
     Box(
         modifier = modifier

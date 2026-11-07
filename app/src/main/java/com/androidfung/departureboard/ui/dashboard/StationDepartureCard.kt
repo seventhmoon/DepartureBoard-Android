@@ -1,12 +1,16 @@
 package com.androidfung.departureboard.ui.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +28,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.NightsStay
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -261,13 +267,45 @@ fun StationDepartureCard(
 
                     val showLineBadgeOnEntries = selectedLineId == null && cardModel.availableLineBadges.size > 1
 
+                    // Alert Banners (Disruptions, Backlogs, Last Train)
+                    val platformBacklogAlerts = remember(filteredDepartures) {
+                        com.androidfung.departureboard.util.PlatformBacklogDetector.detectBacklogs(filteredDepartures)
+                    }
+                    val firstBacklog = platformBacklogAlerts.firstOrNull()
                     val serviceHours = cardModel.serviceHoursInfo
-                    if (serviceHours != null && (serviceHours.isApproachingLastTrain || serviceHours.isNightServiceActive)) {
+                    val showServiceHours = serviceHours != null && (serviceHours.isApproachingLastTrain || serviceHours.isNightServiceActive)
+
+                    // Disruption Banners (if any)
+                    val disruptedBadgesToShow = if (selectedLineId != null) {
+                        cardModel.availableLineBadges.filter { TransitIconHelper.isSameLine(it.lineId, selectedLineId) && it.isDisrupted }
+                    } else {
+                        cardModel.availableLineBadges.filter { it.isDisrupted }
+                    }
+
+                    val hasAnyAlerts = disruptedBadgesToShow.isNotEmpty() || firstBacklog != null || showServiceHours
+
+                    if (hasAnyAlerts) {
                         Spacer(modifier = Modifier.height(10.dp))
-                        LastTrainServiceBanner(
-                            serviceHoursInfo = serviceHours,
-                            modifier = Modifier.padding(horizontal = 22.dp)
-                        )
+                        Column(
+                            modifier = Modifier.padding(horizontal = 22.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            if (disruptedBadgesToShow.isNotEmpty()) {
+                                if (disruptedBadgesToShow.size == 1) {
+                                    LineDisruptionBanner(badge = disruptedBadgesToShow.first())
+                                } else {
+                                    MultipleDisruptionsBanner(disruptedBadges = disruptedBadgesToShow)
+                                }
+                            }
+
+                            if (firstBacklog != null) {
+                                PlatformBacklogBanner(alert = firstBacklog)
+                            }
+
+                            if (showServiceHours && serviceHours != null) {
+                                LastTrainServiceBanner(serviceHoursInfo = serviceHours)
+                            }
+                        }
                     }
 
                     Column {
@@ -429,22 +467,133 @@ private fun StationHeaderSection(
                     )
                 }
             }
+        }
+    }
+}
 
-            // Disruption Banners:
-            // If a specific line is selected and disrupted, show its banner.
-            // If no line is selected, show banners for all disrupted lines on this station.
-            val disruptedBadgesToShow = if (selectedLineId != null) {
-                lineBadges.filter { TransitIconHelper.isSameLine(it.lineId, selectedLineId) && it.isDisrupted }
-            } else {
-                lineBadges.filter { it.isDisrupted }
+/**
+ * Standardized Transit Alert Banner Container that enforces identical margins, padding,
+ * icon alignment, rounded corners, and typography across all disruption, backlog, and service banners.
+ */
+@Composable
+fun TransitAlertCard(
+    iconText: String,
+    title: String,
+    accentColor: Color,
+    backgroundColor: Color,
+    borderColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    trailingContent: (@Composable () -> Unit)? = null,
+    bodyContent: (@Composable () -> Unit)? = null
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 12.dp, vertical = 9.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(22.dp)
+                    .padding(top = 1.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Text(
+                    text = iconText,
+                    color = accentColor,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
             }
-
-            if (disruptedBadgesToShow.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    disruptedBadgesToShow.forEach { disruptedBadge ->
-                        LineDisruptionBanner(badge = disruptedBadge)
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = accentColor,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (trailingContent != null) {
+                        trailingContent()
                     }
+                }
+                if (bodyContent != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    bodyContent()
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Multiple disruptions rollup banner with expand/collapse chevron.
+ */
+@Composable
+fun MultipleDisruptionsBanner(
+    disruptedBadges: List<LineBadgeInfo>,
+    modifier: Modifier = Modifier
+) {
+    var isDisruptionsExpanded by rememberSaveable { mutableStateOf(false) }
+    val isDark = isSystemInDarkTheme()
+    val hasSevere = disruptedBadges.any { it.statusSeverity <= 6 }
+
+    val summaryAccentColor = if (hasSevere) {
+        if (isDark) Color(0xFFFFB4A9) else Color(0xFFBA1A1A)
+    } else {
+        if (isDark) Color(0xFFFFB74D) else Color(0xFFC05600)
+    }
+    val summaryBgColor = if (hasSevere) {
+        if (isDark) Color(0xFF930006).copy(alpha = 0.20f) else Color(0xFFFFDAD6).copy(alpha = 0.45f)
+    } else {
+        if (isDark) Color(0xFFFFA000).copy(alpha = 0.12f) else Color(0xFFFFF3CD).copy(alpha = 0.65f)
+    }
+    val summaryBorderColor = summaryAccentColor.copy(alpha = if (isDark) 0.45f else 0.35f)
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        TransitAlertCard(
+            iconText = if (hasSevere) "✕" else "⚠",
+            title = stringResource(R.string.station_detail_disruptions_count, disruptedBadges.size) +
+                " (${disruptedBadges.joinToString(", ") { it.displayName }})",
+            accentColor = summaryAccentColor,
+            backgroundColor = summaryBgColor,
+            borderColor = summaryBorderColor,
+            onClick = { isDisruptionsExpanded = !isDisruptionsExpanded },
+            trailingContent = {
+                Icon(
+                    imageVector = if (isDisruptionsExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = if (isDisruptionsExpanded) stringResource(R.string.line_status_collapse_desc) else stringResource(R.string.line_status_expand_desc),
+                    tint = summaryAccentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        )
+
+        AnimatedVisibility(
+            visible = isDisruptionsExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column(
+                modifier = Modifier.padding(top = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                disruptedBadges.forEach { disruptedBadge ->
+                    LineDisruptionBanner(badge = disruptedBadge)
                 }
             }
         }
@@ -454,6 +603,7 @@ private fun StationHeaderSection(
 /**
  * Line Disruption Alert Banner with warning icon and reason description.
  * Intelligently converts raw disruption URLs into clean, clickable travel alert links.
+ * Adapts high-contrast semantic colors for severe disruptions (error red) vs delays/minor issues (high-contrast amber).
  */
 @Composable
 fun LineDisruptionBanner(
@@ -461,98 +611,95 @@ fun LineDisruptionBanner(
     modifier: Modifier = Modifier
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val isDark = isSystemInDarkTheme()
+    val isSevere = badge.statusSeverity <= 6
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFFFFF3CD).copy(alpha = 0.15f))
-            .border(1.dp, Color(0xFFFFC107).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-    ) {
-        Row(verticalAlignment = Alignment.Top) {
-            Text(
-                text = "⚠",
-                color = Color(0xFFFFC107),
-                fontSize = 13.sp,
-                modifier = Modifier.padding(end = 6.dp)
-            )
-            Column {
-                val delayFallback = stringResource(R.string.travel_alert_delays)
-                Text(
-                    text = "${badge.displayName}: ${badge.statusDescription ?: delayFallback}",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color(0xFFFFC107)
-                )
-                val reason = badge.disruptionReason?.trim()
-                if (!reason.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(2.dp))
+    val accentColor = if (isSevere) {
+        if (isDark) Color(0xFFFFB4A9) else Color(0xFFBA1A1A)
+    } else {
+        if (isDark) Color(0xFFFFB74D) else Color(0xFFC05600)
+    }
+    val backgroundColor = if (isSevere) {
+        if (isDark) Color(0xFF930006).copy(alpha = 0.20f) else Color(0xFFFFDAD6).copy(alpha = 0.45f)
+    } else {
+        if (isDark) Color(0xFFFFA000).copy(alpha = 0.12f) else Color(0xFFFFF3CD).copy(alpha = 0.65f)
+    }
+    val borderColor = accentColor.copy(alpha = if (isDark) 0.45f else 0.35f)
+    val delayFallback = stringResource(R.string.travel_alert_delays)
 
-                    val urlRegex = Regex("""(https?://[^\s]+)""")
-                    val urlMatch = urlRegex.find(reason)
-                    val url = urlMatch?.value
+    TransitAlertCard(
+        iconText = if (isSevere) "✕" else "⚠",
+        title = "${badge.displayName}: ${badge.statusDescription ?: delayFallback}",
+        accentColor = accentColor,
+        backgroundColor = backgroundColor,
+        borderColor = borderColor,
+        modifier = modifier,
+        bodyContent = {
+            val reason = badge.disruptionReason?.trim()
+            if (!reason.isNullOrBlank()) {
+                val urlRegex = Regex("""(https?://[^\s]+)""")
+                val urlMatch = urlRegex.find(reason)
+                val url = urlMatch?.value
 
-                    if (url != null && (reason.startsWith("http://") || reason.startsWith("https://"))) {
-                        // Entire reason is a URL: show a clean clickable action link
+                if (url != null && (reason.startsWith("http://") || reason.startsWith("https://"))) {
+                    // Entire reason is a URL: show a clean clickable action link
+                    Text(
+                        text = stringResource(R.string.travel_alert_view_details),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                        ),
+                        color = accentColor,
+                        modifier = Modifier
+                            .clickable {
+                                try {
+                                    context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, url.toUri()))
+                                } catch (_: android.content.ActivityNotFoundException) {}
+                            }
+                            .padding(vertical = 1.dp)
+                    )
+                } else if (url != null) {
+                    // Mixed text and URL: display clean text with a trailing link button
+                    val textWithoutUrl = reason.replace(url, "").trim()
+                    if (textWithoutUrl.isNotBlank()) {
                         Text(
-                            text = stringResource(R.string.travel_alert_view_details),
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
-                            ),
-                            color = Color(0xFFFFC107),
-                            modifier = Modifier
-                                .clickable {
-                                    try {
-                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, url.toUri()))
-                                    } catch (_: android.content.ActivityNotFoundException) {}
-                                }
-                                .padding(vertical = 1.dp)
-                        )
-                    } else if (url != null) {
-                        // Mixed text and URL: display clean text with a trailing link button
-                        val textWithoutUrl = reason.replace(url, "").trim()
-                        if (textWithoutUrl.isNotBlank()) {
-                            Text(
-                                text = textWithoutUrl,
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Text(
-                            text = stringResource(R.string.travel_alert_more_details),
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
-                            ),
-                            color = Color(0xFFFFC107),
-                            modifier = Modifier
-                                .clickable {
-                                    try {
-                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW,
-                                            url.toUri()))
-                                    } catch (_: android.content.ActivityNotFoundException) {}
-                                }
-                                .padding(top = 2.dp)
-                        )
-                    } else {
-                        // Plain text disruption description
-                        Text(
-                            text = reason,
+                            text = textWithoutUrl,
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                    Text(
+                        text = stringResource(R.string.travel_alert_more_details),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                        ),
+                        color = accentColor,
+                        modifier = Modifier
+                            .clickable {
+                                try {
+                                    context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, url.toUri()))
+                                } catch (_: android.content.ActivityNotFoundException) {}
+                            }
+                            .padding(top = 2.dp)
+                    )
+                } else {
+                    // Plain text disruption description
+                    Text(
+                        text = reason,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
-    }
+    )
 }
 
 /**
@@ -676,6 +823,11 @@ private fun StationDeparturesContainer(
     ) {
         when {
             departures.isNotEmpty() -> {
+                val busSpacingMap = remember(departures) {
+                    if (departures.any { it.isBus }) {
+                        com.androidfung.departureboard.util.BusBunchingDetector.analyzeSpacing(departures)
+                    } else emptyMap()
+                }
                 Column(modifier = Modifier.fillMaxWidth()) {
                     val displayList = departures.take(maxRows)
                     displayList.forEachIndexed { index, departure ->
@@ -688,6 +840,7 @@ private fun StationDeparturesContainer(
                                 departure = departure,
                                 isFirst = index == 0,
                                 showLineBadge = showLineBadge,
+                                busSpacing = busSpacingMap[departure.id],
                                 onClick = { onDepartureClick?.invoke(departure) }
                             )
                         }
@@ -818,8 +971,42 @@ private fun StationDeparturesContainer(
 }
 
 /**
+ * Banner alerting commuters when a rapid transit platform experiences severe delay / headway backlog.
+ * Uses the unified TransitAlertCard template with high-contrast amber styling and matching alignment.
+ */
+@Composable
+fun PlatformBacklogBanner(
+    alert: com.androidfung.departureboard.util.PlatformBacklogAlert,
+    modifier: Modifier = Modifier
+) {
+    val isDark = isSystemInDarkTheme()
+    val accentColor = if (isDark) Color(0xFFFFB74D) else Color(0xFFC05600)
+    val backgroundColor = if (isDark) Color(0xFFFFA000).copy(alpha = 0.12f) else Color(0xFFFFF3CD).copy(alpha = 0.65f)
+    val borderColor = accentColor.copy(alpha = if (isDark) 0.45f else 0.35f)
+
+    TransitAlertCard(
+        iconText = "⏱️",
+        title = "Platform Backlog • ${alert.lineName}",
+        accentColor = accentColor,
+        backgroundColor = backgroundColor,
+        borderColor = borderColor,
+        modifier = modifier,
+        bodyContent = {
+            Text(
+                text = alert.message,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    )
+}
+
+/**
  * Banner alerting commuters when the final train of the night ("Last Train Home") is approaching
  * or when 24-hour Night Tube / Night Bus service is active.
+ * Uses the unified TransitAlertCard template with matching padding and alignment.
  */
 @Composable
 fun LastTrainServiceBanner(
@@ -831,59 +1018,46 @@ fun LastTrainServiceBanner(
     val bgColor = if (isNightService) Color(0xFF311B92).copy(alpha = 0.25f) else Color(0xFFFFB300).copy(alpha = 0.14f)
     val borderColor = accentColor.copy(alpha = 0.45f)
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
-            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                val titleText = if (isNightService) {
-                    stringResource(R.string.night_service_banner_title)
-                } else {
-                    stringResource(
-                        R.string.last_train_banner_title,
-                        serviceHoursInfo.lastTrainTime ?: "--:--"
-                    )
-                }
-                Text(
-                    text = titleText,
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = accentColor
-                )
+    val titleText = if (isNightService) {
+        stringResource(R.string.night_service_banner_title)
+    } else {
+        stringResource(
+            R.string.last_train_banner_title,
+            serviceHoursInfo.lastTrainTime ?: "--:--"
+        )
+    }
 
-                val subtitleParts = buildList {
-                    if (isNightService) {
-                        add(stringResource(R.string.night_service_banner_subtitle))
-                    } else {
-                        serviceHoursInfo.minutesUntilLastTrain?.let { mins ->
-                            add(stringResource(R.string.last_train_banner_countdown, mins))
-                        }
-                        serviceHoursInfo.firstTrainTime?.let { first ->
-                            add(stringResource(R.string.last_train_banner_first_train, first))
-                        }
+    TransitAlertCard(
+        iconText = if (isNightService) "🌙" else "🏁",
+        title = titleText,
+        accentColor = accentColor,
+        backgroundColor = bgColor,
+        borderColor = borderColor,
+        modifier = modifier,
+        bodyContent = {
+            val subtitleParts = buildList {
+                if (isNightService) {
+                    add(stringResource(R.string.night_service_banner_subtitle))
+                } else {
+                    serviceHoursInfo.minutesUntilLastTrain?.let { mins ->
+                        add(stringResource(R.string.last_train_banner_countdown, mins))
+                    }
+                    serviceHoursInfo.firstTrainTime?.let { first ->
+                        add(stringResource(R.string.last_train_banner_first_train, first))
                     }
                 }
-                if (subtitleParts.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = subtitleParts.joinToString(" • "),
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+            }
+            if (subtitleParts.isNotEmpty()) {
+                Text(
+                    text = subtitleParts.joinToString(" • "),
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
-    }
+    )
 }
 
 

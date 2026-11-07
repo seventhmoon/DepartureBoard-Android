@@ -1,8 +1,10 @@
 package com.androidfung.departureboard.util
 
+import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.getSystemService
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.service.TrainTrackingService
 
@@ -15,6 +17,21 @@ object NotificationHelper {
      */
     fun areNotificationsEnabled(context: Context): Boolean {
         return NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+
+    /**
+     * Checks whether the application is permitted to post promoted ongoing (Live Update)
+     * notifications on Android 16+ (API 36+). Returns false on older Android versions.
+     */
+    fun canPostPromotedNotifications(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT >= 36) {
+            return try {
+                context.getSystemService<NotificationManager>()?.canPostPromotedNotifications() ?: false
+            } catch (_: Throwable) {
+                false
+            }
+        }
+        return false
     }
 
     /**

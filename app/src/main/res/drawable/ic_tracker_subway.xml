@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+  <!-- Filled contrasting background badge circle (Metro / Underground Navy) -->
+  <path
+      android:fillColor="#FF003688"
+      android:pathData="M14,14m-13,0a13,13 0,1 1,26 0a13,13 0,1 1,-26 0"/>
+  <!-- White border stroke for crisp contrast on progress tracks -->
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="1.5"
+      android:fillColor="#00000000"
+      android:pathData="M14,14m-12.25,0a12.25,12.25 0,1 1,24.5 0a12.25,12.25 0,1 1,-24.5 0"/>
+  <!-- Subway silhouette centered inside circle (scaled ~0.65) -->
+  <group
+      android:scaleX="0.65"
+      android:scaleY="0.65"
+      android:translateX="6.2"
+      android:translateY="6.2">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M2,22V8.85Q2,6.72 3.1,5.16T6.2,2.8Q7.55,2.27 9.08,2.14T12,2t2.93,0.14T17.8,2.8q2,0.8 3.1,2.36T22,8.85V22H2Zm7.1-2h5.75l-1.5-1.5H10.6L9.1,20ZM7.5,13h9V9h-9v4Zm8.71,3.21q0.29-0.29 0.29-0.71t-0.29-0.71T15.5,14.5t-0.71,0.29T14.5,15.5t0.29,0.71T15.5,16.5t0.71-0.29Zm-7,0Q9.5,15.93 9.5,15.5T9.21,14.79T8.5,14.5q-0.42,0-0.71,0.29T7.5,15.5t0.29,0.71T8.5,16.5q0.43,0 0.71-0.29ZM4,20H7.5V19.5l1.05-1.05q-1.1-0.15-1.83-0.99Q6,16.63 6,15.5V9Q6,7.05 7.86,6.52T12,6q2.5,0 4.25,0.52T18,9v6.5q0,1.13-0.72,1.96t-1.83,0.99L16.5,19.5V20H20V8.85q0-1.5-0.74-2.56T17.05,4.65q-1.1-0.43-2.44-0.54T12,4T9.39,4.11T6.95,4.65Q5.48,5.22 4.74,6.29T4,8.85V20Zm0,0H20q0,0-0.74,0t-2.21,0q-1.1,0-2.44,0T12,20T9.39,20T6.95,20q-1.47,0-2.21,0T4,20Z"/>
+  </group>
+</vector>

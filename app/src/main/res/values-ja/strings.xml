@@ -75,12 +75,26 @@
     <string name="notification_channel_live_tracking_desc">追跡中の電車のリアルタイムカウントダウンを表示</string>
     <string name="notification_channel_alerts">列車運行アラート</string>
     <string name="notification_channel_alerts_desc">列車の運休や行先変更に関する通知</string>
+    <string name="notification_channel_widget_disruptions">ホーム画面運行情報アラート</string>
+    <string name="notification_channel_widget_disruptions_desc">ホーム画面に配置された駅や路線の遅延・運休・閉鎖通知</string>
+    <string name="settings_section_notifications">通知とアラート</string>
+    <string name="settings_widget_disruptions_title">ホーム画面の運行情報通知</string>
+    <string name="settings_widget_disruptions_desc">ホーム画面の駅や路線で遅延、運休、閉鎖が発生した際に通知します</string>
+    <string name="widget_notification_station_closed">駅は閉鎖中です</string>
+    <string name="widget_notification_service_closed">本日の運行は終了しました</string>
+    <string name="widget_notification_service_closed_with_time">本日の運行は終了しました • 始発 %1$s</string>
+    <string name="widget_notification_severe_delays">大幅な遅延</string>
     <string name="tracking_action_stop">追跡を停止</string>
     <string name="tracking_action_dismiss">閉じる</string>
     <string name="tracking_destination_changed_title">行先変更</string>
     <string name="tracking_destination_changed_message">%2$s 行きの %1$s は %3$s 行きに変更されました</string>
     <string name="tracking_platform_changed_title">のりば変更</string>
     <string name="tracking_platform_changed_message">%2$s 行きの %1$s は %3$s から %4$s に変更されました</string>
+    <string name="tracking_platform_announced_title">のりば確定</string>
+    <string name="tracking_platform_announced_message">%2$s 行きの %1$s は %3$s から発車します</string>
+    <string name="tracking_service_delayed_title">遅延発生</string>
+    <string name="tracking_service_delayed_message">%2$s 行きの %1$s は約 %3$d 分後に到着予定です</string>
+    <string name="tracking_unverified_live_status">予定 %1$d分後</string>
     <string name="tracking_service_cancelled_title">運休</string>
     <string name="tracking_service_cancelled_message">ご乗車予定の %2$s 行き %1$s は運休となりました。</string>
     <string name="tracking_service_cancelled_desc">この便は運休となりました</string>
@@ -159,12 +173,15 @@
     <!-- Train Journey Screen -->
     <string name="train_journey_title">%1$s 行き</string>
     <string name="train_journey_from">乗車駅</string>
-    <string name="train_journey_current_location">現在の走行位置</string>
+    <string name="train_journey_current_location">列車が到着中</string>
+    <string name="train_journey_live_location">現在の走行位置</string>
     <string name="train_journey_calling_points">停車駅案内</string>
     <string name="train_journey_stops_count">%1$d 駅</string>
     <string name="train_journey_loading_stops">停車駅を読み込み中…</string>
     <string name="train_journey_no_stops">この列車の停車駅詳細は利用できません。</string>
     <string name="train_journey_your_station">乗車駅</string>
+    <string name="train_journey_train_code">列車番号 %1$s</string>
+    <string name="train_journey_operated_by">運行会社：%1$s</string>
 
     <!-- Search Station Bottom Sheet -->
     <string name="search_stations_title">駅・バス停を検索</string>

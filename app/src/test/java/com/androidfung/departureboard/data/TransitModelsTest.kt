@@ -177,6 +177,14 @@ class TransitModelsTest {
         assertTrue(changedPlat.isChanged)
         assertEquals("4", changedPlat.previousPlatform)
         assertEquals("Platform 1b", changedPlat.formatDisplay())
+
+        val expectedPlat = com.androidfung.departureboard.data.model.PlatformInfo(
+            code = "9",
+            isHistoricalExpected = true,
+            expectedConfidencePercent = 90
+        )
+        assertTrue(expectedPlat.isHistoricalExpected)
+        assertEquals("Platform 9 (Expected)", expectedPlat.formatDisplay())
     }
 
     @Test

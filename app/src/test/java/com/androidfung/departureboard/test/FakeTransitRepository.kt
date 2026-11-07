@@ -4,7 +4,7 @@ import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
-import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
+import com.androidfung.departureboard.data.model.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.data.repository.TransitRepository
 import com.androidfung.departureboard.ui.theme.AppThemeMode
@@ -46,6 +46,7 @@ open class FakeTransitRepository(
     val isHkRegionEnabledStateFlow = MutableStateFlow(false)
     val isBilingualEnabledStateFlow = MutableStateFlow(true)
     val autoSortByLocationStateFlow = MutableStateFlow(false)
+    val widgetDisruptionsStateFlow = MutableStateFlow(true)
     val recentSearchedStationsStateFlow = MutableStateFlow<List<Station>>(emptyList())
 
     val savedStations = mutableListOf<Station>()
@@ -60,10 +61,15 @@ open class FakeTransitRepository(
     override val isHkRegionEnabledFlow: Flow<Boolean> = isHkRegionEnabledStateFlow.asStateFlow()
     override val isBilingualEnabledFlow: Flow<Boolean> = isBilingualEnabledStateFlow.asStateFlow()
     override val autoSortByLocationFlow: Flow<Boolean> = autoSortByLocationStateFlow.asStateFlow()
+    override val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean> = widgetDisruptionsStateFlow.asStateFlow()
     override val recentSearchedStationsFlow: Flow<List<Station>> = recentSearchedStationsStateFlow.asStateFlow()
 
     override suspend fun setAutoSortByLocation(enabled: Boolean) {
         autoSortByLocationStateFlow.value = enabled
+    }
+
+    override suspend fun setWidgetDisruptionNotificationsEnabled(enabled: Boolean) {
+        widgetDisruptionsStateFlow.value = enabled
     }
 
     override suspend fun setSelectedRegion(region: com.androidfung.departureboard.data.model.TransitRegion) {

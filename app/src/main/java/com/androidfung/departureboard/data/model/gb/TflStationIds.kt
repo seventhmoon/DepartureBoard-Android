@@ -95,6 +95,47 @@ object TflStationIds {
     const val WEMBLEY_PARK = "940GZZLUWYP"
 
     /**
+     * Complete mapping of TfL Interchange Hub IDs to their constituent platform NaPTAN stop IDs.
+     * This provides deterministic code-based resolution for multi-modal interchanges (e.g. HUBBAN -> Bank & Monument).
+     */
+    val HUB_TO_PLATFORM_NAPTAN: Map<String, List<String>> = mapOf(
+        "HUBBAN" to listOf("940GZZLUBNK", "940GZZLUMMT", "940GZZDLBNK"), // Bank (Central/Northern/W&C) + Monument (District/Circle) + DLR
+        "HUBKGX" to listOf("940GZZLUKSX", "910GKNGX", "910GSTPX"),       // King's Cross St. Pancras (Tube + King's Cross NR + St Pancras Int)
+        "HUBPAD" to listOf("940GZZLUPAC", "940GZZLUPAH", "910GPADTON"),  // Paddington (Bakerloo/District/Circle + H&C + NR/Elizabeth)
+        "HUBVIC" to listOf("940GZZLUVIC", "910GVICTRIC"),                // Victoria (Victoria/District/Circle + NR)
+        "HUBWAT" to listOf("940GZZLUWLO", "910GWATERLO"),                // Waterloo (Bakerloo/Jubilee/Northern/W&C + NR)
+        "HUBLST" to listOf("940GZZLULVT", "910GLIVST"),                  // Liverpool Street (Central/Circle/H&C/Met + Elizabeth/Overground/NR)
+        "HUBZFD" to listOf("940GZZLUFCN", "910GFARNDN"),                 // Farringdon (Circle/H&C/Met + Elizabeth + Thameslink)
+        "HUBSRA" to listOf("940GZZLUSTD", "940GZZDLSTR", "910GSTFD"),    // Stratford (Central/Jubilee + DLR + Elizabeth/Overground/NR)
+        "HUBCAW" to listOf("940GZZLUCYF", "940GZZDLCAN", "910GCANWHRF"), // Canary Wharf (Jubilee + DLR + Elizabeth line)
+        "HUBWMB" to listOf("940GZZLUWIM", "940GZZCRWMB", "910GWIMBLDN"), // Wimbledon (District + Tramlink + NR)
+        "HUBWEH" to listOf("940GZZLUWHM", "940GZZDLWHM", "910GWHAMHL"),  // West Ham (District/H&C/Jubilee + DLR + c2c)
+        "HUBWHD" to listOf("940GZZLUWHP", "910GWHMDSTD", "910GWSTHMPD", "910GWSTHMPT"), // West Hampstead (Jubilee + Overground + Thameslink)
+        "HUBWFJ" to listOf("910GWATFDJ", "910GWATFJDC"),                 // Watford Junction (NR + London Overground DC)
+        "HUBABW" to listOf("910GABWD"),                                  // Abbey Wood (Elizabeth line + Southeastern)
+        "HUBBFR" to listOf("940GZZLUBKF", "910GBLKFRS"),                 // Blackfriars (District/Circle + Thameslink)
+        "HUBCST" to listOf("940GZZLUCST", "910GCANONST"),                // Cannon Street (District/Circle + Southeastern)
+        "HUBCHX" to listOf("940GZZLUCHX", "910GCHRX"),                   // Charing Cross (Bakerloo/Northern + Southeastern)
+        "HUBEUF" to listOf("940GZZLUEUS", "910GEUSTON"),                 // Euston (Northern/Victoria + NR/Overground)
+        "HUBFCH" to listOf("910GFNCHSTR", "940GZZLUTWH"),                // Fenchurch Street / Tower Hill
+        "HUBLBG" to listOf("940GZZLULNB", "910GLNDNBDC"),                // London Bridge (Jubilee/Northern + Thameslink/Southern/Southeastern)
+        "HUBMYB" to listOf("940GZZLUMYB", "910GMARYLBN"),                // Marylebone (Bakerloo + Chiltern)
+        "HUBVAU" to listOf("940GZZLUVAU", "910GVAUXHL")                  // Vauxhall (Victoria + SWR)
+    )
+
+    /**
+     * Resolves all platform NaPTAN stop IDs for a given station or hub ID.
+     * If the ID is a known Hub (e.g. "HUBBAN"), returns its list of platform IDs.
+     * Otherwise, returns a single-element list containing the original ID.
+     */
+    fun resolvePlatformNaptanIds(stationOrHubId: String?): List<String> {
+        if (stationOrHubId.isNullOrBlank()) return emptyList()
+        val upper = stationOrHubId.uppercase().trim()
+        val mapped = HUB_TO_PLATFORM_NAPTAN[upper]
+        return if (!mapped.isNullOrEmpty()) mapped else listOf(upper)
+    }
+
+    /**
      * Returns true if the station represents St Pancras International or King's Cross National Rail.
      */
     fun isStPancrasOrKingsCrossNR(stationId: String?, stationName: String? = null): Boolean {

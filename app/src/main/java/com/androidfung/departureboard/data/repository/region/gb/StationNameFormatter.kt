@@ -42,7 +42,8 @@ internal object StationNameFormatter {
     private val SUBSTRING_COLLISION_PAIRS = listOf(
         "edgware" to setOf("edgware road"),
         "wimbledon" to setOf("wimbledon park", "south wimbledon"),
-        "aldgate" to setOf("aldgate east")
+        "aldgate" to setOf("aldgate east"),
+        "bank" to setOf("embankment")
     )
 
     /**

@@ -150,7 +150,9 @@
         <group
             android:name="row1_subway"
             android:pivotX="144"
-            android:pivotY="133">
+            android:pivotY="133"
+            android:scaleX="0.92"
+            android:scaleY="0.92">
             <path
                 android:fillColor="#0C121E"
                 android:pathData="M87.5,125L200.5,125A3.5,3.5 0 0,1 204,128.5L204,137.5A3.5,3.5 0 0,1 200.5,141L87.5,141A3.5,3.5 0 0,1 84,137.5L84,128.5A3.5,3.5 0 0,1 87.5,125Z" />
@@ -222,13 +224,22 @@
                     android:fillColor="#FFFFFF"
                     android:pathData="M179,131.8L194,131.8A1.2,1.2 0 0,1 195.2,133L195.2,133A1.2,1.2 0 0,1 194,134.2L179,134.2A1.2,1.2 0 0,1 177.8,133L177.8,133A1.2,1.2 0 0,1 179,131.8Z" />
             </group>
+
+            <!-- Dimmer Overlay Path (Animates fillAlpha 0.88 -> 0.0 for Row 1 illumination) -->
+            <path
+                android:name="row1_dimmer"
+                android:fillColor="#070A10"
+                android:fillAlpha="0.88"
+                android:pathData="M87.5,125L200.5,125A3.5,3.5 0 0,1 204,128.5L204,137.5A3.5,3.5 0 0,1 200.5,141L87.5,141A3.5,3.5 0 0,1 84,137.5L84,128.5A3.5,3.5 0 0,1 87.5,125Z" />
         </group>
 
         <!-- ==================== ROW 2: TRAIN (2 MIN) ==================== -->
         <group
             android:name="row2_train"
             android:pivotX="144"
-            android:pivotY="152">
+            android:pivotY="152"
+            android:scaleX="0.92"
+            android:scaleY="0.92">
             <path
                 android:fillColor="#0C121E"
                 android:pathData="M87.5,144L200.5,144A3.5,3.5 0 0,1 204,147.5L204,156.5A3.5,3.5 0 0,1 200.5,160L87.5,160A3.5,3.5 0 0,1 84,156.5L84,147.5A3.5,3.5 0 0,1 87.5,144Z" />
@@ -294,13 +305,22 @@
             <path
                 android:fillColor="#10141E"
                 android:pathData="M179,150.8L194,150.8A1.2,1.2 0 0,1 195.2,152L195.2,152A1.2,1.2 0 0,1 194,153.2L179,153.2A1.2,1.2 0 0,1 177.8,152L177.8,152A1.2,1.2 0 0,1 179,150.8Z" />
+
+            <!-- Dimmer Overlay Path (Animates fillAlpha 0.88 -> 0.0 for Row 2 illumination) -->
+            <path
+                android:name="row2_dimmer"
+                android:fillColor="#070A10"
+                android:fillAlpha="0.88"
+                android:pathData="M87.5,144L200.5,144A3.5,3.5 0 0,1 204,147.5L204,156.5A3.5,3.5 0 0,1 200.5,160L87.5,160A3.5,3.5 0 0,1 84,156.5L84,147.5A3.5,3.5 0 0,1 87.5,144Z" />
         </group>
 
         <!-- ==================== ROW 3: BUS (5 MIN) ==================== -->
         <group
             android:name="row3_bus"
             android:pivotX="144"
-            android:pivotY="171">
+            android:pivotY="171"
+            android:scaleX="0.92"
+            android:scaleY="0.92">
             <path
                 android:fillColor="#0C121E"
                 android:pathData="M87.5,163L200.5,163A3.5,3.5 0 0,1 204,166.5L204,175.5A3.5,3.5 0 0,1 200.5,179L87.5,179A3.5,3.5 0 0,1 84,175.5L84,166.5A3.5,3.5 0 0,1 87.5,163Z" />
@@ -366,6 +386,13 @@
             <path
                 android:fillColor="#10141E"
                 android:pathData="M179,169.8L194,169.8A1.2,1.2 0 0,1 195.2,171L195.2,171A1.2,1.2 0 0,1 194,172.2L179,172.2A1.2,1.2 0 0,1 177.8,171L177.8,171A1.2,1.2 0 0,1 179,169.8Z" />
+
+            <!-- Dimmer Overlay Path (Animates fillAlpha 0.88 -> 0.0 for Row 3 illumination) -->
+            <path
+                android:name="row3_dimmer"
+                android:fillColor="#070A10"
+                android:fillAlpha="0.88"
+                android:pathData="M87.5,163L200.5,163A3.5,3.5 0 0,1 204,166.5L204,175.5A3.5,3.5 0 0,1 200.5,179L87.5,179A3.5,3.5 0 0,1 84,175.5L84,166.5A3.5,3.5 0 0,1 87.5,163Z" />
         </group>
 
     </group>

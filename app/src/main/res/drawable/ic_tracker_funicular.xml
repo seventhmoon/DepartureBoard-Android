@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+  <!-- Filled contrasting background badge circle (Funicular Brown) -->
+  <path
+      android:fillColor="#FF5D4037"
+      android:pathData="M14,14m-13,0a13,13 0,1 1,26 0a13,13 0,1 1,-26 0"/>
+  <!-- White border stroke for crisp contrast on progress tracks -->
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="1.5"
+      android:fillColor="#00000000"
+      android:pathData="M14,14m-12.25,0a12.25,12.25 0,1 1,24.5 0a12.25,12.25 0,1 1,-24.5 0"/>
+  <!-- Funicular silhouette centered inside circle (scaled ~0.65) -->
+  <group
+      android:scaleX="0.65"
+      android:scaleY="0.65"
+      android:translateX="6.2"
+      android:translateY="6.2">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M1,23V21l5-1.38V17H3V6H2V4H5V2H19V4h3V6H21v9H18v1.38L23,15v2L1,23Zm8-4.18l6-1.65V15H13v2H9v1.82ZM5,15h6V14H5v1Zm8-2h6V12H13v1ZM5,12h6V6H5v6Zm8-2h6V6H13v4Zm-2,5V14v1Zm2-2V12v1Z"/>
+  </group>
+</vector>

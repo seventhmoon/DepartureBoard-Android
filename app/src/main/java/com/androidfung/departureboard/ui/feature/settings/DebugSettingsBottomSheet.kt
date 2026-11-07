@@ -24,6 +24,8 @@ import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.CompareArrows
+import androidx.compose.material.icons.rounded.DesktopWindows
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Language
@@ -103,6 +105,8 @@ fun DebugSettingsBottomSheet(
     onToggleBilingualEnabled: (Boolean) -> Unit = {},
     onTriggerInAppReview: () -> Unit = {},
     onResetInAppReviewData: () -> Unit = {},
+    onOpenDeskClock: (() -> Unit)? = null,
+    onOpenTwinConcourse: (() -> Unit)? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     DebugSettingsContent(
@@ -122,6 +126,8 @@ fun DebugSettingsBottomSheet(
         onResetStations = onResetStations,
         onTriggerInAppReview = onTriggerInAppReview,
         onResetInAppReviewData = onResetInAppReviewData,
+        onOpenDeskClock = onOpenDeskClock,
+        onOpenTwinConcourse = onOpenTwinConcourse,
         sheetState = sheetState,
         modifier = modifier
     )
@@ -147,7 +153,9 @@ fun DebugSettingsContent(
     modifier: Modifier = Modifier,
     isBilingualEnabled: Boolean = true,
     onToggleBilingualEnabled: (Boolean) -> Unit = {},
-    onOpenRegionPicker: (() -> Unit)? = null
+    onOpenRegionPicker: (() -> Unit)? = null,
+    onOpenDeskClock: (() -> Unit)? = null,
+    onOpenTwinConcourse: (() -> Unit)? = null
 ) {
     var remainingAiQueries by remember { mutableIntStateOf(0) }
 
@@ -177,7 +185,9 @@ fun DebugSettingsContent(
             remainingAiQueries = remainingAiQueries,
             onResetStations = onResetStations,
             onTriggerInAppReview = onTriggerInAppReview,
-            onResetInAppReviewData = onResetInAppReviewData
+            onResetInAppReviewData = onResetInAppReviewData,
+            onOpenDeskClock = onOpenDeskClock,
+            onOpenTwinConcourse = onOpenTwinConcourse
         )
     }
 }
@@ -200,7 +210,9 @@ fun DebugSettingsBody(
     modifier: Modifier = Modifier,
     isBilingualEnabled: Boolean = true,
     onToggleBilingualEnabled: (Boolean) -> Unit = {},
-    onOpenRegionPicker: (() -> Unit)? = null
+    onOpenRegionPicker: (() -> Unit)? = null,
+    onOpenDeskClock: (() -> Unit)? = null,
+    onOpenTwinConcourse: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -606,6 +618,34 @@ fun DebugSettingsBody(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
+                    if (onOpenDeskClock != null) {
+                        DebugActionItem(
+                            icon = Icons.Rounded.DesktopWindows,
+                            title = stringResource(R.string.desk_clock_menu_item),
+                            subtitle = "Full-screen Split-Flap / LED display & Tabletop mode",
+                            onClick = {
+                                onDismissRequest()
+                                onOpenDeskClock()
+                            }
+                        )
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                    }
+
+                    if (onOpenTwinConcourse != null) {
+                        DebugActionItem(
+                            icon = Icons.Rounded.CompareArrows,
+                            title = "Twin Concourse Race",
+                            subtitle = "Head-to-head live station comparison",
+                            onClick = {
+                                onDismissRequest()
+                                onOpenTwinConcourse()
+                            }
+                        )
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                    }
+
                     DebugActionItem(
                         icon = Icons.Rounded.RestartAlt,
                         title = "Reset Saved Stations",

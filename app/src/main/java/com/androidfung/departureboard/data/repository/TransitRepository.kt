@@ -58,6 +58,7 @@ interface TransitRepository {
     val isHkRegionEnabledFlow: Flow<Boolean>
     val isBilingualEnabledFlow: Flow<Boolean>
     val autoSortByLocationFlow: Flow<Boolean>
+    val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean>
     val recentSearchedStationsFlow: Flow<List<Station>>
 
     suspend fun searchStations(query: String): Result<List<Station>>
@@ -84,6 +85,7 @@ interface TransitRepository {
     suspend fun setHkRegionEnabled(enabled: Boolean)
     suspend fun setBilingualEnabled(enabled: Boolean)
     suspend fun setAutoSortByLocation(enabled: Boolean)
+    suspend fun setWidgetDisruptionNotificationsEnabled(enabled: Boolean)
     suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int = 1500): List<Station>
 }
 
@@ -150,6 +152,7 @@ class TransitRepositoryImpl(
     override val isHkRegionEnabledFlow: Flow<Boolean> = dataStore.isHkRegionEnabledFlow
     override val isBilingualEnabledFlow: Flow<Boolean> = dataStore.isBilingualEnabledFlow
     override val autoSortByLocationFlow: Flow<Boolean> = dataStore.autoSortByLocationFlow
+    override val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean> = dataStore.widgetDisruptionNotificationsEnabledFlow
     override val recentSearchedStationsFlow: Flow<List<Station>> = dataStore.recentSearchedStationsFlow
 
     override suspend fun setThemeMode(mode: AppThemeMode) = dataStore.setThemeMode(mode)
@@ -158,6 +161,8 @@ class TransitRepositoryImpl(
     override suspend fun setHkRegionEnabled(enabled: Boolean) = dataStore.setHkRegionEnabled(enabled)
     override suspend fun setBilingualEnabled(enabled: Boolean) = dataStore.setBilingualEnabled(enabled)
     override suspend fun setAutoSortByLocation(enabled: Boolean) = dataStore.setAutoSortByLocation(enabled)
+    override suspend fun setWidgetDisruptionNotificationsEnabled(enabled: Boolean) =
+        dataStore.setWidgetDisruptionNotificationsEnabled(enabled)
 
     override suspend fun searchStations(query: String): Result<List<Station>> = withContext(Dispatchers.IO) {
         val currentRegion = try {

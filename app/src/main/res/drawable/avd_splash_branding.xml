@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_splash_branding">
+
+    <target
+        android:name="brand_path_1"
+        android:animation="@animator/splash_brand_1" />
+
+    <target
+        android:name="brand_path_2"
+        android:animation="@animator/splash_brand_2" />
+
+    <target
+        android:name="brand_path_3"
+        android:animation="@animator/splash_brand_3" />
+
+    <target
+        android:name="brand_path_4"
+        android:animation="@animator/splash_brand_4" />
+
+    <target
+        android:name="brand_path_5"
+        android:animation="@animator/splash_brand_5" />
+
+</animated-vector>

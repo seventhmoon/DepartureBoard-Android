@@ -114,4 +114,52 @@ class StationDepartureCardUiTest {
         composeTestRule.onNodeWithText("5").assertIsDisplayed()
         composeTestRule.onNodeWithText("min").assertIsDisplayed()
     }
+
+    @Test
+    fun testMultipleDisruptionsRenderCollapsibleSummaryAndExpands() {
+        val testStation = TestFixtures.createTestStation(
+            id = "940GZZLUKSX",
+            name = "King's Cross St. Pancras"
+        )
+        val badge1 = com.androidfung.departureboard.data.model.LineBadgeInfo(
+            lineId = "victoria",
+            displayName = "Victoria",
+            backgroundColor = androidx.compose.ui.graphics.Color(0xFF0098D4),
+            statusSeverity = 9,
+            statusDescription = "Minor Delays",
+            disruptionReason = "Signal failure at Finsbury Park"
+        )
+        val badge2 = com.androidfung.departureboard.data.model.LineBadgeInfo(
+            lineId = "northern",
+            displayName = "Northern",
+            backgroundColor = androidx.compose.ui.graphics.Color(0xFF000000),
+            statusSeverity = 6,
+            statusDescription = "Severe Delays",
+            disruptionReason = "Points failure at Camden Town"
+        )
+
+        val cardModel = StationCardUiModel(
+            station = testStation,
+            departures = emptyList(),
+            availableLineBadges = listOf(badge1, badge2),
+            isLoading = false
+        )
+
+        composeTestRule.setContent {
+            StationDepartureCard(
+                cardModel = cardModel,
+                onDismissStation = {}
+            )
+        }
+
+        // Summary row displayed with count (%1$d Line Disruptions)
+        composeTestRule.onNodeWithText("2 Line Disruptions", substring = true).assertIsDisplayed()
+
+        // Click summary row to expand
+        composeTestRule.onNodeWithText("2 Line Disruptions", substring = true).performClick()
+
+        // Both lines' details are now displayed
+        composeTestRule.onNodeWithText("Victoria: Minor Delays", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Northern: Severe Delays", substring = true).assertIsDisplayed()
+    }
 }

@@ -9,6 +9,7 @@ import com.androidfung.departureboard.data.repository.region.gb.mapper.TflDepart
 import com.androidfung.departureboard.test.TestFixtures
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -307,6 +308,80 @@ class FinchleyToBatterseaCallingPointsTest {
         assertTrue(callingPoints.any { it.stationName == "Charing Cross" })
         assertTrue(callingPoints.any { it.stationName == "Kennington" })
         assertTrue(callingPoints.last().isDestination)
+    }
+
+    @Test
+    fun northernLine_bankToEdgwareViaBank_doesNotMatchEmbankmentAsOrigin() = runTest {
+        // Topology with Charing Cross branch (including Embankment) and Bank branch (including Bank)
+        val mockSequence = TflRouteSequenceResponse(
+            lineId = "northern",
+            stopPointSequences = listOf(
+                // Charing Cross branch heading North
+                TflStopPointSequence(
+                    branchId = 1,
+                    nextBranchIds = listOf(3),
+                    stopPoint = listOf(
+                        TflMatchedStop("940GZZLUEMB", "Embankment Underground Station"),
+                        TflMatchedStop("940GZZLUCHX", "Charing Cross Underground Station"),
+                        TflMatchedStop("940GZZLUEUS", "Euston Underground Station")
+                    )
+                ),
+                // Bank branch heading North
+                TflStopPointSequence(
+                    branchId = 2,
+                    nextBranchIds = listOf(3),
+                    stopPoint = listOf(
+                        TflMatchedStop("940GZZLULNB", "London Bridge Underground Station"),
+                        TflMatchedStop("940GZZLUBNK", "Bank Underground Station"),
+                        TflMatchedStop("940GZZLUMGT", "Moorgate Underground Station"),
+                        TflMatchedStop("940GZZLUEUS", "Euston Underground Station")
+                    )
+                ),
+                // Northbound to Edgware
+                TflStopPointSequence(
+                    branchId = 3,
+                    nextBranchIds = emptyList(),
+                    stopPoint = listOf(
+                        TflMatchedStop("940GZZLUEUS", "Euston Underground Station"),
+                        TflMatchedStop("940GZZLUCTN", "Camden Town Underground Station"),
+                        TflMatchedStop("940GZZLUEGW", "Edgware Underground Station")
+                    )
+                )
+            )
+        )
+
+        val fakeTflApi = com.androidfung.departureboard.test.FakeTflApiService(
+            routeSequenceResult = mockSequence
+        )
+
+        val repository = TransitRepositoryImpl(
+            apiService = fakeTflApi,
+            nrApiService = com.androidfung.departureboard.test.FakeNrApiService(),
+            dataStore = com.androidfung.departureboard.test.FakeStationPreferencesDataSource(emptyList(), null)
+        )
+
+        val departure = TestFixtures.createTestDeparture(
+            id = "dep_bank",
+            stationId = "HUBBAN",
+            stationName = "Bank",
+            lineId = "northern",
+            lineName = "Northern",
+            platformName = "Platform 4",
+            destinationName = "Edgware via Bank",
+            towards = "Edgware via Bank",
+            destinationStationId = "940GZZLUEGW",
+            timeToStationSeconds = 60,
+            modeName = "tube",
+            lineBadge = LineBadgeInfo("northern", "Northern", androidx.compose.ui.graphics.Color.Black, mode = TransitMode.METRO)
+        )
+
+        val callingPoints = repository.getCallingPoints(departure)
+
+        assertEquals("Bank", callingPoints.first().stationName)
+        assertEquals("Edgware", callingPoints.last().stationName)
+        assertTrue("Calling points must contain Bank branch stops like Moorgate", callingPoints.any { it.stationName == "Moorgate" })
+        assertFalse("Calling points must NOT contain Charing Cross branch stops like Embankment", callingPoints.any { it.stationName == "Embankment" })
+        assertFalse("Calling points must NOT contain Charing Cross", callingPoints.any { it.stationName == "Charing Cross" })
     }
 
     @Test

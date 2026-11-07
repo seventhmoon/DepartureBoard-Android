@@ -74,12 +74,27 @@
     <string name="notification_channel_live_tracking_desc">Shows live ongoing countdowns for tracked departures</string>
     <string name="notification_channel_alerts">Train Tracking Alerts</string>
     <string name="notification_channel_alerts_desc">Alerts for cancelled or altered journeys</string>
+    <string name="notification_channel_widget_disruptions">Home Screen Disruption Alerts</string>
+    <string name="notification_channel_widget_disruptions_desc">Alerts for delays, cancellations, and closures on your pinned home screen stations and lines</string>
+    <string name="settings_section_notifications">Notifications &amp; Alerts</string>
+    <string name="settings_widget_disruptions_title">Home Screen Disruption Alerts</string>
+    <string name="settings_widget_disruptions_desc">Notify when pinned stations or lines experience delays, cancellations, or closures</string>
+    <string name="widget_notification_disruption_title_line">%1$s (%2$s)</string>
+    <string name="widget_notification_station_closed">Station is closed</string>
+    <string name="widget_notification_service_closed">Service is closed for the night</string>
+    <string name="widget_notification_service_closed_with_time">Service is closed for the night • Next departure at %1$s</string>
+    <string name="widget_notification_severe_delays">Severe Delays</string>
     <string name="tracking_action_stop">Stop Tracking</string>
     <string name="tracking_action_dismiss">Dismiss</string>
     <string name="tracking_destination_changed_title">Destination Changed</string>
     <string name="tracking_destination_changed_message">%1$s to %2$s is now terminating at %3$s</string>
     <string name="tracking_platform_changed_title">Platform Changed</string>
     <string name="tracking_platform_changed_message">%1$s to %2$s moved from %3$s to %4$s</string>
+    <string name="tracking_platform_announced_title">Platform Announced</string>
+    <string name="tracking_platform_announced_message">%1$s to %2$s announced on %3$s</string>
+    <string name="tracking_service_delayed_title">Service Delayed</string>
+    <string name="tracking_service_delayed_message">%1$s to %2$s is now expected in %3$d min</string>
+    <string name="tracking_unverified_live_status">Scheduled in %1$d min</string>
     <string name="tracking_service_cancelled_title">Service Cancelled</string>
     <string name="tracking_service_cancelled_message">Your %1$s to %2$s has been cancelled.</string>
     <string name="tracking_service_cancelled_desc">This departure has been cancelled</string>
@@ -158,12 +173,15 @@
     <!-- Train Journey Screen -->
     <string name="train_journey_title">Train to %1$s</string>
     <string name="train_journey_from">From</string>
-    <string name="train_journey_current_location">CURRENT TRAIN LOCATION</string>
+    <string name="train_journey_current_location">Train is here</string>
+    <string name="train_journey_live_location">Live train location</string>
     <string name="train_journey_calling_points">Calling Points</string>
     <string name="train_journey_stops_count" tools:ignore="PluralsCandidate">%1$d stops</string>
     <string name="train_journey_loading_stops">Loading calling points…</string>
     <string name="train_journey_no_stops">Calling points details not available for this service.</string>
     <string name="train_journey_your_station">Your station</string>
+    <string name="train_journey_train_code">Train %1$s</string>
+    <string name="train_journey_operated_by">Operated by %1$s</string>
 
     <!-- Search Station Bottom Sheet -->
     <string name="search_stations_title">Search Stations</string>

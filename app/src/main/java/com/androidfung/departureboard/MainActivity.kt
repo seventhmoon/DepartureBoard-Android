@@ -77,10 +77,12 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_STATION_ID = "extra_station_id"
         const val EXTRA_STATION_NAME = "extra_station_name"
+        const val EXTRA_DEPARTURE_ID = "extra_departure_id"
         private const val TAG = "InAppUpdate"
     }
 
     private var initialStation by mutableStateOf<Station?>(null)
+    private var initialDepartureId by mutableStateOf<String?>(null)
     private lateinit var appUpdateManager: AppUpdateManager
     private var installStateUpdatedListener: InstallStateUpdatedListener? = null
     private var debugProReceiver: BroadcastReceiver? = null
@@ -104,20 +106,45 @@ class MainActivity : AppCompatActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        // Custom smooth exit animation from splash screen to Compose UI,
-        // waiting for the sequential row lighting in avd_splash_screen (~760ms) to finish
+        // Custom smooth exit animation from splash screen to Compose UI:
+        // Ensures both the center LED board (avd_splash_screen) and the bottom 5 transport mode
+        // icons below EkiBoard (avd_splash_branding) play their sequential one-by-one illumination.
         splashScreen.setOnExitAnimationListener { splashScreenViewProvider ->
             val splashScreenView = splashScreenViewProvider.view
-            val animStart = splashScreenViewProvider.iconAnimationStartMillis
-            val animDuration = splashScreenViewProvider.iconAnimationDurationMillis
-            val remainingMillis = if (animStart > 0L && animDuration > 0L) {
-                (animStart + animDuration - System.currentTimeMillis()).coerceIn(0L, 800L)
+            val iconView = splashScreenViewProvider.iconView
+
+            // 1. Start (or restart) the center Concourse LED sequential row animation
+            val avdLogo = androidx.appcompat.content.res.AppCompatResources.getDrawable(
+                this@MainActivity,
+                R.drawable.avd_splash_screen
+            )
+            if (iconView is android.widget.ImageView && iconView.drawable != null) {
+                iconView.setImageDrawable(avdLogo)
             } else {
-                0L
+                iconView.background = avdLogo
             }
+            (avdLogo as? android.graphics.drawable.Animatable)?.start()
+
+            // 2. Start the bottom branding 5-mode-icon sequential illumination (API 31+ Branding View)
+            val viewGroup = splashScreenView as? android.view.ViewGroup
+            if (viewGroup != null) {
+                for (i in 0 until viewGroup.childCount) {
+                    val child = viewGroup.getChildAt(i)
+                    if (child !== iconView && child.background != null) {
+                        val avdBranding = androidx.appcompat.content.res.AppCompatResources.getDrawable(
+                            this@MainActivity,
+                            R.drawable.avd_splash_branding
+                        )
+                        child.background = avdBranding
+                        (avdBranding as? android.graphics.drawable.Animatable)?.start()
+                    }
+                }
+            }
+
+            // 3. Hold for 850ms so all rows and all 5 mode icons light up one by one before fading out
             val fadeOut = ObjectAnimator.ofFloat(splashScreenView, View.ALPHA, 1f, 0f).apply {
                 interpolator = DecelerateInterpolator()
-                startDelay = remainingMillis
+                startDelay = 850L
                 duration = 300L
                 doOnEnd { splashScreenViewProvider.remove() }
             }
@@ -159,9 +186,15 @@ class MainActivity : AppCompatActivity() {
                     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
                     var showLineStatusSheet by rememberSaveable { mutableStateOf(false) }
                     var showRegionPickerSheet by rememberSaveable { mutableStateOf(false) }
+                    var showTwinConcourseSheet by rememberSaveable { mutableStateOf(false) }
 
-                    LaunchedEffect(initialStation) {
-                        initialStation?.let { viewModel.openStationDetail(it) }
+                    LaunchedEffect(initialStation, initialDepartureId) {
+                        initialStation?.let { station ->
+                            viewModel.openStationDetail(
+                                station = station,
+                                targetDepartureId = initialDepartureId
+                            )
+                        }
                     }
 
                     // Contextual smart review trigger for active users:
@@ -393,7 +426,9 @@ class MainActivity : AppCompatActivity() {
                                                 showDebugSheet = true
                                             },
                                             onOpenHelpFaq = { showHelpSheet = true },
-                                            onOpenDeskClock = { viewModel.openDeskClock() }
+                                            onOpenDeskClock = { viewModel.openDeskClock() },
+                                            onOpenTwinConcourse = { showTwinConcourseSheet = true },
+                                            onToggleSmartCommute = { viewModel.toggleSmartCommute() }
                                         )
                                     }
                                     entry<StationDetailRoute>(
@@ -458,26 +493,47 @@ class MainActivity : AppCompatActivity() {
                         }
 
                     // Full-screen Split-Flap Desk Clock & Foldable Tabletop Kiosk Mode
-                    val deskClockStation = uiState.deskClockStation
-                    if (deskClockStation != null) {
-                        androidx.activity.compose.BackHandler {
-                            viewModel.closeDeskClock()
+                    val windowPosture = com.androidfung.departureboard.ui.theme.LocalWindowPosture.current
+                    var userDismissedTabletop by rememberSaveable { mutableStateOf(false) }
+
+                    // When device unfolds flat again, reset userDismissedTabletop so the next tabletop fold triggers
+                    LaunchedEffect(windowPosture.isTabletop) {
+                        if (!windowPosture.isTabletop) {
+                            userDismissedTabletop = false
                         }
-                        val deskCard = uiState.stationCards.firstOrNull { it.station.id == deskClockStation.id }
+                    }
+
+                    val isTabletopAutoTriggered = windowPosture.isTabletop && !userDismissedTabletop
+                    val activeDeskStation = uiState.deskClockStation
+                        ?: if (isTabletopAutoTriggered) {
+                            uiState.selectedDetailStation
+                                ?: uiState.nearestStation?.takeIf { nearest -> uiState.stationCards.any { it.station.id == nearest.id } }
+                                ?: uiState.stationCards.firstOrNull()?.station
+                                ?: uiState.selectedRegion.defaultStations.firstOrNull()
+                        } else null
+
+                    if (activeDeskStation != null) {
+                        androidx.activity.compose.BackHandler {
+                            if (uiState.deskClockStation != null) {
+                                viewModel.closeDeskClock()
+                            }
+                            userDismissedTabletop = true
+                        }
+                        val deskCard = uiState.stationCards.firstOrNull { it.station.id == activeDeskStation.id }
                         val deskDepartures = when {
                             deskCard != null && deskCard.departures.isNotEmpty() -> deskCard.departures
-                            uiState.selectedDetailStation?.id == deskClockStation.id -> uiState.detailDepartures
+                            uiState.selectedDetailStation?.id == activeDeskStation.id -> uiState.detailDepartures
                             else -> emptyList()
                         }
                         val deskServiceHours = deskCard?.serviceHoursInfo
-                            ?: uiState.serviceHoursInfo.takeIf { uiState.selectedDetailStation?.id == deskClockStation.id }
+                            ?: uiState.serviceHoursInfo.takeIf { uiState.selectedDetailStation?.id == activeDeskStation.id }
                             ?: com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
-                                stationId = deskClockStation.id,
+                                stationId = activeDeskStation.id,
                                 departures = deskDepartures
                             )
 
                         com.androidfung.departureboard.ui.feature.deskclock.DeskClockScreen(
-                            station = deskClockStation,
+                            station = activeDeskStation,
                             stationCards = uiState.stationCards,
                             departures = deskDepartures,
                             serviceHoursInfo = deskServiceHours,
@@ -488,9 +544,14 @@ class MainActivity : AppCompatActivity() {
                                 }
                             },
                             onRefresh = {
-                                viewModel.refreshStation(deskClockStation)
+                                viewModel.refreshStation(activeDeskStation)
                             },
-                            onClose = { viewModel.closeDeskClock() }
+                            onClose = {
+                                if (uiState.deskClockStation != null) {
+                                    viewModel.closeDeskClock()
+                                }
+                                userDismissedTabletop = true
+                            }
                         )
                     }
 
@@ -600,6 +661,14 @@ class MainActivity : AppCompatActivity() {
                                         .resetReviewDataForTesting()
                                     Toast.makeText(applicationContext, "In-app review tracking reset", Toast.LENGTH_SHORT).show()
                                 }
+                            },
+                            onOpenDeskClock = {
+                                showDebugSheet = false
+                                viewModel.openDeskClock()
+                            },
+                            onOpenTwinConcourse = {
+                                showDebugSheet = false
+                                showTwinConcourseSheet = true
                             }
                         )
                     }
@@ -665,6 +734,10 @@ class MainActivity : AppCompatActivity() {
                                 }
                                 viewModel.setAutoSortByLocation(enabled)
                             },
+                            isWidgetDisruptionNotificationsEnabled = uiState.isWidgetDisruptionNotificationsEnabled,
+                            onToggleWidgetDisruptionNotifications = { enabled ->
+                                viewModel.setWidgetDisruptionNotificationsEnabled(enabled)
+                            },
                             isBilingualEnabled = uiState.isBilingualEnabled,
                             onToggleBilingualEnabled = { enabled -> viewModel.setBilingualEnabled(enabled) },
                             isPro = uiState.isPro,
@@ -686,6 +759,21 @@ class MainActivity : AppCompatActivity() {
                                             fallbackToPlayStore = true
                                         )
                                 }
+                            }
+                        )
+                    }
+
+                    if (showTwinConcourseSheet) {
+                        com.androidfung.departureboard.ui.feature.twinconcourse.TwinConcourseBottomSheet(
+                            onDismissRequest = { showTwinConcourseSheet = false },
+                            stationCards = uiState.stationCards,
+                            onSelectStation = { st ->
+                                showTwinConcourseSheet = false
+                                viewModel.openStationDetail(st)
+                            },
+                            onDepartureClick = { dep ->
+                                showTwinConcourseSheet = false
+                                viewModel.openTrainJourney(dep)
                             }
                         )
                     }
@@ -768,6 +856,9 @@ class MainActivity : AppCompatActivity() {
             ?: if ((uri != null) && (uri.scheme == "mindtheboard") && (uri.host == "station")) uri.lastPathSegment else null
         val stationName = intent?.getStringExtra(EXTRA_STATION_NAME)
             ?: uri?.getQueryParameter("name")
+        val departureId = intent?.getStringExtra(EXTRA_DEPARTURE_ID)
+            ?: uri?.getQueryParameter("departureId")
+        initialDepartureId = departureId?.takeIf { it.isNotBlank() }
 
         if (!stationId.isNullOrBlank()) {
             val region = TransitRegion.fromStationId(stationId)

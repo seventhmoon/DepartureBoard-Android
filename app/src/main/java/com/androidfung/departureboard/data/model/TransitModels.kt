@@ -294,7 +294,8 @@ data class Station(
     val transfers: List<StationTransfer> = emptyList(),
     val micromobilityHubs: List<MicromobilityHub> = emptyList(),
     val fare: FareEstimate? = null,
-    val accessibility: StationAccessibility? = null
+    val accessibility: StationAccessibility? = null,
+    val commuteTag: com.androidfung.departureboard.util.CommuteTag = com.androidfung.departureboard.util.CommuteTag.NONE
 ) : LocalizedNameProvider {
     val isBusOnly: Boolean get() = TransitMode.isBusOnly(modes)
 
@@ -413,18 +414,24 @@ data class PlatformInfo(
     val isConfirmed: Boolean = true,
     val directionHint: String? = null,
     val isChanged: Boolean = false,
-    val previousPlatform: String? = null
+    val previousPlatform: String? = null,
+    val isHistoricalExpected: Boolean = false,
+    val expectedConfidencePercent: Int? = null
 ) {
     /**
-     * Formats user-facing label (e.g. "Platform 4", "Stop B", "Plat 2 (Unconfirmed)").
+     * Formats user-facing label (e.g. "Platform 4", "Stop B", "Plat 2 (TBD)", "Platform 9 (Expected)").
      */
     fun formatDisplay(includeDirection: Boolean = false): String {
         val base = if (code.matches(Regex("""^\d+[A-Za-z]?$"""))) "Platform $code" else code
-        val confirmedSuffix = if (!isConfirmed) " (TBD)" else ""
+        val suffix = when {
+            isHistoricalExpected -> " (Expected)"
+            !isConfirmed -> " (TBD)"
+            else -> ""
+        }
         return if (includeDirection && !directionHint.isNullOrBlank()) {
-            "$directionHint • $base$confirmedSuffix"
+            "$directionHint • $base$suffix"
         } else {
-            "$base$confirmedSuffix"
+            "$base$suffix"
         }
     }
 }
@@ -562,6 +569,40 @@ data class Departure(
     val associations: List<TrainAssociation> get() = formation?.associations?.takeIf { it.isNotEmpty() } ?: train?.associations.orEmpty()
     val cancelReason: String? get() = train?.cancelReason
     val delayReason: String? get() = train?.delayReason
+
+    /**
+     * Resolves a clean, human-facing train identifier or reporting code (headcode, train number, or vehicle unit).
+     * Returns null if no suitable or human-friendly code is available, or if the identifier looks like an internal UUID/system hash.
+     */
+    val displayTrainCode: String?
+        get() {
+            // 1. Explicit headcode takes top priority (e.g., "1A23", "9T14", "Nozomi 42")
+            val headcode = train?.headcode?.trim()
+            if (!headcode.isNullOrBlank()) return headcode
+
+            // 2. Check serviceId if clean and human-readable (e.g., short service or train numbers)
+            val serviceId = train?.serviceId?.trim()
+            if (!serviceId.isNullOrBlank() &&
+                serviceId.length in 2..8 &&
+                !serviceId.startsWith("RID_", ignoreCase = true) &&
+                !serviceId.startsWith("AU_TRAIN_", ignoreCase = true) &&
+                !serviceId.contains("-") &&
+                !serviceId.contains("_")
+            ) {
+                return serviceId
+            }
+
+            // 3. Vehicle unit / carriage / fleet number if short and recognizable (e.g., "240")
+            val vehicle = vehicleId?.trim()
+            if (!vehicle.isNullOrBlank() &&
+                vehicle.length in 2..6 &&
+                vehicle.all { it.isLetterOrDigit() }
+            ) {
+                return vehicle
+            }
+
+            return null
+        }
 
     val isBus: Boolean
         get() = modeName.equals(TransitMode.BUS.id, ignoreCase = true) || lineBadge.mode == TransitMode.BUS

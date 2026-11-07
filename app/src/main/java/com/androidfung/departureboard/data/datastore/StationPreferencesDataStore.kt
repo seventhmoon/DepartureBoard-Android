@@ -33,6 +33,7 @@ interface StationPreferencesDataSource {
     val isHkRegionEnabledFlow: Flow<Boolean>
     val isBilingualEnabledFlow: Flow<Boolean>
     val autoSortByLocationFlow: Flow<Boolean>
+    val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean>
     val recentSearchedStationsFlow: Flow<List<Station>>
 
     suspend fun saveStation(station: Station)
@@ -49,6 +50,7 @@ interface StationPreferencesDataSource {
     suspend fun setHkRegionEnabled(enabled: Boolean)
     suspend fun setBilingualEnabled(enabled: Boolean)
     suspend fun setAutoSortByLocation(enabled: Boolean)
+    suspend fun setWidgetDisruptionNotificationsEnabled(enabled: Boolean)
 }
 
 /**
@@ -83,8 +85,10 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         private val KEY_HK_REGION_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("hk_region_enabled")
         private val KEY_BILINGUAL_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("bilingual_enabled")
         private val KEY_AUTO_SORT_BY_LOCATION = androidx.datastore.preferences.core.booleanPreferencesKey("auto_sort_by_location")
+        private val KEY_WIDGET_DISRUPTIONS_NOTIFICATIONS_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("widget_disruptions_notifications_enabled")
         const val DEFAULT_DEPARTURE_ROWS = 5
         const val DEFAULT_DYNAMIC_COLOR = true
+        const val DEFAULT_WIDGET_DISRUPTIONS_NOTIFICATIONS = true
         private const val MAX_RECENT_SEARCHES = 10
     }
 
@@ -224,6 +228,24 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
     override suspend fun setSelectedRegion(region: TransitRegion) {
         context.dataStore.edit { preferences ->
             preferences[KEY_SELECTED_REGION] = region.id
+        }
+    }
+
+    override val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_WIDGET_DISRUPTIONS_NOTIFICATIONS_ENABLED] ?: DEFAULT_WIDGET_DISRUPTIONS_NOTIFICATIONS
+        }
+
+    override suspend fun setWidgetDisruptionNotificationsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_WIDGET_DISRUPTIONS_NOTIFICATIONS_ENABLED] = enabled
         }
     }
 

@@ -172,4 +172,31 @@ class DebugSettingsBottomSheetTest {
         composeTestRule.onNodeWithText("Clear Offline HTTP Cache").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText("DYNAMIC FEATURE MODULES").performScrollTo().assertIsDisplayed()
     }
+
+    @Test
+    fun testDeskClockActionInvokesCallback() {
+        var deskClockClicked = false
+
+        composeTestRule.setContent {
+            DebugSettingsBody(
+                onDismissRequest = {},
+                userPlan = UserPlan.FREE,
+                onSelectPlan = {},
+                selectedAiModel = com.androidfung.departureboard.ai.AiModelType.DEFAULT,
+                onSelectAiModel = {},
+                selectedRegion = TransitRegion.GB,
+                onSelectRegion = {},
+                isHkRegionEnabled = false,
+                onToggleHkRegionEnabled = {},
+                remainingAiQueries = 3,
+                onResetStations = {},
+                onTriggerInAppReview = {},
+                onResetInAppReviewData = {},
+                onOpenDeskClock = { deskClockClicked = true }
+            )
+        }
+
+        composeTestRule.onNodeWithText("Desk Clock / Split-Flap Board").performScrollTo().performClick()
+        assertTrue(deskClockClicked)
+    }
 }

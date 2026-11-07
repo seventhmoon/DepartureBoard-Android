@@ -28,6 +28,7 @@ open class FakeStationPreferencesDataSource(
     private val _isHkRegionEnabled = MutableStateFlow(false)
     private val _isBilingualEnabled = MutableStateFlow(true)
     private val _autoSortByLocation = MutableStateFlow(false)
+    private val _widgetDisruptions = MutableStateFlow(true)
 
     override val savedStationsFlow: Flow<List<Station>> = _stations.asStateFlow()
     override val recentStationIdFlow: Flow<String?> = _recentId.asStateFlow()
@@ -38,6 +39,11 @@ open class FakeStationPreferencesDataSource(
     override val isHkRegionEnabledFlow: Flow<Boolean> = _isHkRegionEnabled.asStateFlow()
     override val isBilingualEnabledFlow: Flow<Boolean> = _isBilingualEnabled.asStateFlow()
     override val autoSortByLocationFlow: Flow<Boolean> = _autoSortByLocation.asStateFlow()
+    override val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean> = _widgetDisruptions.asStateFlow()
+
+    override suspend fun setWidgetDisruptionNotificationsEnabled(enabled: Boolean) {
+        _widgetDisruptions.value = enabled
+    }
 
     override suspend fun setAutoSortByLocation(enabled: Boolean) {
         _autoSortByLocation.value = enabled

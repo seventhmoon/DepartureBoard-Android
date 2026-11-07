@@ -87,6 +87,8 @@ fun SettingsBottomSheet(
     onDynamicColorChange: (Boolean) -> Unit = {},
     isAutoSortByLocation: Boolean = false,
     onAutoSortByLocationChange: (Boolean) -> Unit = {},
+    isWidgetDisruptionNotificationsEnabled: Boolean = true,
+    onToggleWidgetDisruptionNotifications: (Boolean) -> Unit = {},
     isBilingualEnabled: Boolean = true,
     onToggleBilingualEnabled: (Boolean) -> Unit = {},
     onRateApp: () -> Unit = {},
@@ -94,6 +96,13 @@ fun SettingsBottomSheet(
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     val context = LocalContext.current
+    val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            onToggleWidgetDisruptionNotifications(true)
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -341,6 +350,51 @@ fun SettingsBottomSheet(
                         Switch(
                             checked = isAutoSortByLocation,
                             onCheckedChange = onAutoSortByLocationChange,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+                    }
+
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+
+                    // Home Screen Widget Disruption Alerts
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = stringResource(R.string.settings_widget_disruptions_title),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_widget_disruptions_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isWidgetDisruptionNotificationsEnabled,
+                            onCheckedChange = { targetState ->
+                                if (targetState) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                        !com.androidfung.departureboard.util.NotificationHelper.areNotificationsEnabled(context)
+                                    ) {
+                                        notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        onToggleWidgetDisruptionNotifications(true)
+                                    }
+                                } else {
+                                    onToggleWidgetDisruptionNotifications(false)
+                                }
+                            },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = MaterialTheme.colorScheme.primary,
                                 checkedTrackColor = MaterialTheme.colorScheme.primaryContainer

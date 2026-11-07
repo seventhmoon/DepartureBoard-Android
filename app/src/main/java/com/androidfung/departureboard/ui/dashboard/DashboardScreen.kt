@@ -25,10 +25,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.CompareArrows
 import androidx.compose.material.icons.rounded.DesktopWindows
 import androidx.compose.material.icons.rounded.DevicesFold
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Traffic
@@ -97,6 +99,8 @@ fun DashboardContent(
     onOpenDebugSettings: () -> Unit = {},
     onOpenHelpFaq: () -> Unit = {},
     onOpenDeskClock: () -> Unit = {},
+    onOpenTwinConcourse: () -> Unit = {},
+    onToggleSmartCommute: () -> Unit = {},
     staggeredGridState: androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState = rememberLazyStaggeredGridState()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -289,17 +293,37 @@ fun DashboardContent(
                                 )
 
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.desk_clock_menu_item)) },
+                                    text = { Text("Twin Concourse Race") },
                                     leadingIcon = {
                                         Icon(
-                                            imageVector = Icons.Rounded.DesktopWindows,
+                                            imageVector = Icons.Rounded.CompareArrows,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                     },
                                     onClick = {
                                         showMenu = false
-                                        onOpenDeskClock()
+                                        onOpenTwinConcourse()
+                                    }
+                                )
+
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (uiState.isSmartCommuteEnabled) "Smart Commute (Active)"
+                                            else "Smart Commute Routine"
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Schedule,
+                                            contentDescription = null,
+                                            tint = if (uiState.isSmartCommuteEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onToggleSmartCommute()
                                     }
                                 )
 

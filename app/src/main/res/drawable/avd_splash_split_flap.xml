@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_splash_split_flap">
+
+    <target
+        android:name="board_scale"
+        android:animation="@animator/splash_board_scale" />
+
+    <target
+        android:name="flap_card"
+        android:animation="@animator/splash_flap_flip" />
+
+    <target
+        android:name="live_beacon"
+        android:animation="@animator/splash_beacon_pulse" />
+
+</animated-vector>

@@ -63,7 +63,8 @@ fun DepartureRowItem(
     variant: DepartureRowVariant = DepartureRowVariant.COMPACT,
     showLineBadge: Boolean = false,
     onClick: (() -> Unit)? = null,
-    trailingAction: (@Composable () -> Unit)? = null
+    trailingAction: (@Composable () -> Unit)? = null,
+    busSpacing: com.androidfung.departureboard.util.BusSpacingInfo? = null
 ) {
     val departureContentDescription = if (departure.status == DepartureStatus.CANCELLED) {
         stringResource(R.string.cd_departure_cancelled, departure.lineName, departure.destinationName)
@@ -254,20 +255,7 @@ fun DepartureRowItem(
                         }
                     }
 
-                    val association = departure.associations.firstOrNull()
-                    if (association != null) {
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)
-                        ) {
-                            Text(
-                                text = "✂️ ${stringResource(R.string.train_divides_tag, association.junctionStationName)}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                            )
-                        }
-                    }
+
 
                     if (departure.platform?.isChanged == true && !departure.platform.previousPlatform.isNullOrBlank()) {
                         Surface(
@@ -278,6 +266,22 @@ fun DepartureRowItem(
                                 text = "⚠️ " + stringResource(R.string.platform_changed_alert, departure.platform.code.orEmpty(), departure.platform?.previousPlatform.orEmpty()),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+
+                    if (departure.platform?.isHistoricalExpected == true) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                            border = androidx.compose.foundation.BorderStroke(0.8.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
+                        ) {
+                            val confidenceStr = departure.platform.expectedConfidencePercent?.let { " ($it%)" } ?: ""
+                            Text(
+                                text = "Typically Plt ${departure.platform.code}$confidenceStr",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                             )
                         }
@@ -307,6 +311,33 @@ fun DepartureRowItem(
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                                 color = Color(0xFFB388FF),
                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+
+                    if (busSpacing != null && busSpacing.isBunched) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f),
+                            border = androidx.compose.foundation.BorderStroke(0.8.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f))
+                        ) {
+                            Text(
+                                text = "⚠️ " + (busSpacing.displaySummary ?: "Bunched (2 buses together)"),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    } else if (busSpacing != null && busSpacing.severity == com.androidfung.departureboard.util.BusSpacingSeverity.LONG_GAP) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = "⏱️ ${busSpacing.displaySummary}",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                             )
                         }
                     }
@@ -355,6 +386,15 @@ fun DepartureRowItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Carriage Formation Crowding Bar
+            if (departure.formation != null && departure.formation!!.coaches.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                CarriageFormationBar(
+                    formation = departure.formation!!,
+                    isCompact = variant == DepartureRowVariant.COMPACT
                 )
             }
 
@@ -535,13 +575,15 @@ fun UnifiedDepartureTimeBadge(
 
                     if (isDelayed) {
                         Spacer(modifier = Modifier.height(1.dp))
+                        val isDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
+                        val delayedColor = if (isDarkTheme) Color(0xFFFFB74D) else Color(0xFFC05600)
                         Text(
                             text = stringResource(R.string.status_delayed),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             ),
-                            color = Color(0xFFFF9800)
+                            color = delayedColor
                         )
                     } else if (!clockTime.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(1.dp))

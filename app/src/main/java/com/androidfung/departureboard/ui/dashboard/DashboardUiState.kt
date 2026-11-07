@@ -77,5 +77,7 @@ data class DashboardUiState(
     val isBilingualEnabled: Boolean = true,
     val lineStatuses: Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = emptyMap(),
     val isAutoSortByLocation: Boolean = false,
+    val isWidgetDisruptionNotificationsEnabled: Boolean = true,
+    val isSmartCommuteEnabled: Boolean = false,
     val deskClockStation: Station? = null
 )

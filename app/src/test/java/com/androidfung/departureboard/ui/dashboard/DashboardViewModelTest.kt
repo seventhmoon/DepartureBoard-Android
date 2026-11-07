@@ -280,6 +280,21 @@ class DashboardViewModelTest {
     }
 
     @Test
+    fun testOpenStationDetailWithTargetDepartureIdOpensJourneyScreen() = runTest {
+        val fakeRepo = FakeTransitRepository()
+        val fakeBilling = FakeBillingRepository()
+        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+
+        val externalStation = Station(id = "EXTERNAL_ST", name = "Stratford")
+        viewModel.openStationDetail(externalStation, targetDepartureId = "fb_gen_1")
+
+        advanceUntilIdle()
+
+        assertNotNull(viewModel.uiState.value.selectedJourneyDeparture)
+        assertEquals("fb_gen_1", viewModel.uiState.value.selectedJourneyDeparture?.id)
+    }
+
+    @Test
     fun testThemeModeAndDynamicColorPreferences() = runTest {
         val themeModeFlow = MutableStateFlow(com.androidfung.departureboard.ui.theme.AppThemeMode.SYSTEM)
         val dynamicColorFlow = MutableStateFlow(true)

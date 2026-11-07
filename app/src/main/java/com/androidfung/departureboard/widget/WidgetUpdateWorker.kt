@@ -9,6 +9,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.androidfung.departureboard.appContainer
 import java.util.concurrent.TimeUnit
 
 /**
@@ -29,6 +30,15 @@ class WidgetUpdateWorker(
             glanceIds.forEach { glanceId ->
                 DepartureBoardWidget().update(appContext, glanceId)
             }
+
+            // Check for service interruptions or closures on pinned stations/lines and notify user
+            try {
+                val repository = appContext.appContainer.transitRepository
+                WidgetDisruptionNotificationManager.checkAndNotifyDisruptions(appContext, repository)
+            } catch (e: Exception) {
+                android.util.Log.w("WidgetUpdateWorker", "Disruption notification check encountered an error", e)
+            }
+
             Result.success()
         } catch (_: Exception) {
             Result.retry()
@@ -37,6 +47,10 @@ class WidgetUpdateWorker(
 
     companion object {
         private const val WORK_NAME = "DepartureBoardWidgetUpdateWork"
+
+        fun cancelPeriodicUpdate(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+        }
 
         fun enqueuePeriodicUpdate(context: Context) {
             val constraints = Constraints.Builder()

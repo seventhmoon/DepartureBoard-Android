@@ -59,6 +59,7 @@ class DashboardViewModel @JvmOverloads constructor(
         observeThemePreferences()
         observeRegionPreferences()
         observeAutoSortPreference()
+        observeWidgetDisruptionNotificationsPreference()
         observeRecentSearchedStations()
         observeNetworkConnectivity()
         // startAutoRefreshPolling() and startCountdownTicker() are driven lifecycle-aware
@@ -118,6 +119,20 @@ class DashboardViewModel @JvmOverloads constructor(
                     updateNearestStation(fetchApiNearby = false)
                 }
             }
+        }
+    }
+
+    private fun observeWidgetDisruptionNotificationsPreference() {
+        viewModelScope.launch {
+            repository.widgetDisruptionNotificationsEnabledFlow.collectLatest { enabled ->
+                _uiState.update { it.copy(isWidgetDisruptionNotificationsEnabled = enabled) }
+            }
+        }
+    }
+
+    fun setWidgetDisruptionNotificationsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setWidgetDisruptionNotificationsEnabled(enabled)
         }
     }
 
@@ -574,12 +589,18 @@ class DashboardViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Opens the detail bottom sheet for a station (whether from card click or widget launch),
+     * Opens the detail bottom sheet for a station (whether from card click, widget launch, or notification tap),
      * ensuring live departures are always fetched independently of saved dashboard cards.
      *
      * @param stationsContext The list of stations to allow swiping between (defaults to saved stations).
+     * @param targetDepartureId Optional departure ID to automatically open in [TrainJourneyScreen] once resolved.
      */
-    fun openStationDetail(station: Station, stationsContext: List<Station>? = null) {
+    @JvmOverloads
+    fun openStationDetail(
+        station: Station,
+        stationsContext: List<Station>? = null,
+        targetDepartureId: String? = null
+    ) {
         val existingCard = _uiState.value.stationCards.firstOrNull { it.station.id == station.id }
         val cachedDepartures = existingCard?.departures ?: emptyList()
 
@@ -587,14 +608,18 @@ class DashboardViewModel @JvmOverloads constructor(
             ?: _uiState.value.stationCards.map { it.station }.takeIf { it.isNotEmpty() }
             ?: listOf(station)
 
+        val initialMatchedJourney = targetDepartureId?.takeIf { it.isNotBlank() }?.let { depId ->
+            cachedDepartures.firstOrNull { it.id == depId }
+        }
+
         _uiState.update {
             it.copy(
                 selectedDetailStation = station,
                 detailStationsContext = resolvedStationsContext,
                 detailDepartures = cachedDepartures,
                 isDetailLoading = cachedDepartures.isEmpty(),
-                selectedJourneyDeparture = null,
-                journeyDeparturesContext = emptyList()
+                selectedJourneyDeparture = initialMatchedJourney,
+                journeyDeparturesContext = if (initialMatchedJourney != null) cachedDepartures else emptyList()
             )
         }
 
@@ -639,10 +664,15 @@ class DashboardViewModel @JvmOverloads constructor(
             _uiState.update { state ->
                 // Update detail sheet
                 val updatedState = if (state.selectedDetailStation?.id == station.id) {
+                    val resolvedTargetJourney = targetDepartureId?.takeIf { it.isNotBlank() }?.let { depId ->
+                        enrichedDepartures.firstOrNull { it.id == depId }
+                    } ?: state.selectedJourneyDeparture
                     state.copy(
                         detailDepartures = enrichedDepartures,
                         isDetailLoading = false,
-                        serviceHoursInfo = serviceHours
+                        serviceHoursInfo = serviceHours,
+                        selectedJourneyDeparture = resolvedTargetJourney,
+                        journeyDeparturesContext = if (resolvedTargetJourney != null) enrichedDepartures else state.journeyDeparturesContext
                     )
                 } else {
                     state
@@ -1019,6 +1049,26 @@ class DashboardViewModel @JvmOverloads constructor(
      */
     fun clearUserError() {
         clearUserMessage()
+    }
+
+    fun toggleSmartCommute() {
+        _uiState.update { state ->
+            val newEnabled = !state.isSmartCommuteEnabled
+            val currentCards = state.stationCards
+            val reordered = if (newEnabled) {
+                com.androidfung.departureboard.util.SmartCommuteHelper.reorderForCommute(
+                    items = currentCards,
+                    tagSelector = { it.station.commuteTag }
+                )
+            } else {
+                currentCards
+            }
+            state.copy(
+                isSmartCommuteEnabled = newEnabled,
+                stationCards = reordered,
+                userMessage = if (newEnabled) "Smart Commute active: Prioritizing ${com.androidfung.departureboard.util.SmartCommuteHelper.getCommutePeriod().name.lowercase()} stations" else "Smart Commute disabled"
+            )
+        }
     }
 
     /**

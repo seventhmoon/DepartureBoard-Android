@@ -70,10 +70,29 @@ class TflCallingPointsResolver(
             val explicitDestCode = departure.destinationStationId?.lowercase()?.trim()?.takeIf {
                 it.isNotBlank() && !it.equals(originCode, ignoreCase = true)
             }
+            val candidateOriginCodes = buildSet {
+                if (originCode != null) {
+                    add(originCode)
+                    for (pid in TflStationIds.resolvePlatformNaptanIds(originCode)) {
+                        add(pid.lowercase())
+                    }
+                }
+                TflStationIds.CANONICAL_TERMINALS_BY_NAME[currentStationClean]?.let { add(it.lowercase()) }
+            }
             val candidateDestCodes = buildSet {
-                if (explicitDestCode != null) add(explicitDestCode)
+                if (explicitDestCode != null) {
+                    add(explicitDestCode)
+                    for (pid in TflStationIds.resolvePlatformNaptanIds(explicitDestCode)) {
+                        add(pid.lowercase())
+                    }
+                }
                 for (target in targetTerminals) {
                     TflStationIds.CANONICAL_TERMINALS_BY_NAME[target]?.let { add(it.lowercase()) }
+                }
+            }
+            val candidateViaCodes = buildSet {
+                if (viaStation.isNotBlank()) {
+                    TflStationIds.CANONICAL_TERMINALS_BY_NAME[viaStation]?.let { add(it.lowercase()) }
                 }
             }
 
@@ -88,8 +107,12 @@ class TflCallingPointsResolver(
             }
 
             fun matchesOrigin(stop: TflMatchedStop): Boolean {
-                if (originCode != null && (stop.id.equals(originCode, ignoreCase = true) || stop.stationId?.equals(originCode, ignoreCase = true) == true)) {
-                    return true
+                if (candidateOriginCodes.isNotEmpty()) {
+                    val stopIdLower = stop.id.lowercase()
+                    val stopStationIdLower = stop.stationId?.lowercase()
+                    if (candidateOriginCodes.contains(stopIdLower) || (stopStationIdLower != null && candidateOriginCodes.contains(stopStationIdLower))) {
+                        return true
+                    }
                 }
                 val n = StationNameFormatter.clean(stop.name).lowercase()
                 return stationNamesMatch(n, currentStationClean)
@@ -106,6 +129,19 @@ class TflCallingPointsResolver(
                 }
                 val n = StationNameFormatter.clean(stop.name).lowercase()
                 return targetTerminals.any { candidate -> stationNamesMatch(n, candidate) }
+            }
+
+            fun matchesVia(stop: TflMatchedStop): Boolean {
+                if (candidateViaCodes.isNotEmpty()) {
+                    val stopIdLower = stop.id.lowercase()
+                    val stopStationIdLower = stop.stationId?.lowercase()
+                    if (candidateViaCodes.contains(stopIdLower) || (stopStationIdLower != null && candidateViaCodes.contains(stopStationIdLower))) {
+                        return true
+                    }
+                }
+                if (viaStation.isBlank()) return false
+                val n = StationNameFormatter.clean(stop.name).lowercase()
+                return stationNamesMatch(n, viaStation)
             }
 
             val branchMap = sequenceResponse.stopPointSequences.associateBy { it.branchId }
@@ -156,7 +192,8 @@ class TflCallingPointsResolver(
             data class SingleBranchCandidate(
                 val stops: List<TflMatchedStop>,
                 val matchesCardinal: Boolean?,
-                val matchesTflDir: Boolean
+                val matchesTflDir: Boolean,
+                val matchesVia: Boolean
             )
 
             val singleBranchMatches = mutableListOf<SingleBranchCandidate>()
@@ -169,11 +206,17 @@ class TflCallingPointsResolver(
                     val candidateStops = stopPoint.subList(curIndex, destIndex + 1)
                     val cardinalMatch = sequenceMatchesCardinalDirection(stopPoint, curIndex)
                     val tflDirMatch = directionMatches(seq.direction)
+                    val viaMatch = if (viaStation.isNotBlank()) {
+                        candidateStops.any { matchesVia(it) }
+                    } else {
+                        true
+                    }
                     singleBranchMatches.add(
                         SingleBranchCandidate(
                             stops = candidateStops,
                             matchesCardinal = cardinalMatch,
-                            matchesTflDir = tflDirMatch
+                            matchesTflDir = tflDirMatch,
+                            matchesVia = viaMatch
                         )
                     )
                 }
@@ -181,7 +224,8 @@ class TflCallingPointsResolver(
 
             var resolvedStops: List<TflMatchedStop>? = singleBranchMatches
                 .sortedWith(
-                    compareByDescending<SingleBranchCandidate> { it.matchesCardinal == true }
+                    compareByDescending<SingleBranchCandidate> { it.matchesVia }
+                        .thenByDescending { it.matchesCardinal == true }
                         .thenBy { it.matchesCardinal == false } // false is penalized after null
                         .thenByDescending { it.matchesTflDir }
                 )
@@ -218,10 +262,7 @@ class TflCallingPointsResolver(
                     if (viaStation.isNotBlank()) {
                         val matchingPath = candidatePaths.firstOrNull { path ->
                             path.any { bId ->
-                                branchMap[bId]?.stopPoint?.any { sp ->
-                                    val n = StationNameFormatter.clean(sp.name).lowercase()
-                                    n.contains(viaStation) || viaStation.contains(n)
-                                } == true
+                                branchMap[bId]?.stopPoint?.any { sp -> matchesVia(sp) } == true
                             }
                         }
                         if (matchingPath != null) {

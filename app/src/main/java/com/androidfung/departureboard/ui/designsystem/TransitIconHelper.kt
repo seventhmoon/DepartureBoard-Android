@@ -37,6 +37,23 @@ object TransitIconHelper {
     }
 
     /**
+     * Resolves the circular badge progress tracker drawable resource ID for Android 16+
+     * [androidx.core.app.NotificationCompat.ProgressStyle] notifications by [TransitMode].
+     */
+    @androidx.annotation.DrawableRes
+    fun getProgressTrackerIconRes(mode: TransitMode?): Int = when (mode) {
+        TransitMode.METRO -> com.androidfung.departureboard.R.drawable.ic_tracker_subway
+        TransitMode.RAIL -> com.androidfung.departureboard.R.drawable.ic_tracker_train
+        TransitMode.BUS -> com.androidfung.departureboard.R.drawable.ic_tracker_bus
+        TransitMode.TRAM -> com.androidfung.departureboard.R.drawable.ic_tracker_tram
+        TransitMode.FERRY -> com.androidfung.departureboard.R.drawable.ic_tracker_ferry
+        TransitMode.CABLE_CAR -> com.androidfung.departureboard.R.drawable.ic_tracker_cable_car
+        TransitMode.FUNICULAR -> com.androidfung.departureboard.R.drawable.ic_tracker_funicular
+        TransitMode.MONORAIL -> com.androidfung.departureboard.R.drawable.ic_tracker_monorail
+        TransitMode.OTHER, null -> com.androidfung.departureboard.R.drawable.ic_tracker_train
+    }
+
+    /**
      * Resolves an appropriate Material ImageVector for a given strongly-typed [TransitMode].
      */
     fun getTransitIconForMode(mode: TransitMode?): ImageVector = when (mode) {

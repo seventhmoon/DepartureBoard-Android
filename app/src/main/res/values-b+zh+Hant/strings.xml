@@ -74,12 +74,26 @@
     <string name="notification_channel_live_tracking_desc">顯示追蹤班次的即時抵達倒數</string>
     <string name="notification_channel_alerts">班次追蹤通知</string>
     <string name="notification_channel_alerts_desc">班次取消或異動的警示通知</string>
+    <string name="notification_channel_widget_disruptions">主畫面小工具異常通知</string>
+    <string name="notification_channel_widget_disruptions_desc">主畫面固定車站與路線的延誤、取消或關閉通知</string>
+    <string name="settings_section_notifications">通知與警示</string>
+    <string name="settings_widget_disruptions_title">主畫面異常通知</string>
+    <string name="settings_widget_disruptions_desc">當固定於主畫面的車站或路線發生延誤、取消或關閉時發送通知</string>
+    <string name="widget_notification_station_closed">車站已關閉</string>
+    <string name="widget_notification_service_closed">夜間服務已結束</string>
+    <string name="widget_notification_service_closed_with_time">夜間服務已結束 • 首班車時間為 %1$s</string>
+    <string name="widget_notification_severe_delays">嚴重延誤</string>
     <string name="tracking_action_stop">停止追蹤</string>
     <string name="tracking_action_dismiss">關閉</string>
     <string name="tracking_destination_changed_title">目的地異動</string>
     <string name="tracking_destination_changed_message">前往 %2$s 的 %1$s 現改為以 %3$s 為終點站</string>
     <string name="tracking_platform_changed_title">月台變更</string>
     <string name="tracking_platform_changed_message">前往 %2$s 的 %1$s 已由 %3$s 轉移至 %4$s</string>
+    <string name="tracking_platform_announced_title">月台已公佈</string>
+    <string name="tracking_platform_announced_message">前往 %2$s 的 %1$s 將於 %3$s 開出</string>
+    <string name="tracking_service_delayed_title">班次延誤</string>
+    <string name="tracking_service_delayed_message">前往 %2$s 的 %1$s 現預計於 %3$d 分鐘後抵達</string>
+    <string name="tracking_unverified_live_status">預計 %1$d 分鐘後抵達</string>
     <string name="tracking_service_cancelled_title">班次已取消</string>
     <string name="tracking_service_cancelled_message">您前往 %2$s 的 %1$s 已被取消。</string>
     <string name="tracking_service_cancelled_desc">此班次已被取消</string>
@@ -158,12 +172,15 @@
     <!-- Train Journey Screen -->
     <string name="train_journey_title">前往 %1$s 的列車</string>
     <string name="train_journey_from">出發站</string>
-    <string name="train_journey_current_location">目前列車位置</string>
+    <string name="train_journey_current_location">列車在此站</string>
+    <string name="train_journey_live_location">目前列車位置</string>
     <string name="train_journey_calling_points">沿途停靠站</string>
     <string name="train_journey_stops_count">%1$d 個停靠站</string>
     <string name="train_journey_loading_stops">正在載入停靠站…</string>
     <string name="train_journey_no_stops">此班次未提供停靠站詳細資料。</string>
     <string name="train_journey_your_station">您的車站</string>
+    <string name="train_journey_train_code">班次 %1$s</string>
+    <string name="train_journey_operated_by">營運機構：%1$s</string>
 
     <!-- Search Station Bottom Sheet -->
     <string name="search_stations_title">搜尋車站</string>

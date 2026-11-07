@@ -14,17 +14,26 @@
         android:name="clock_colon"
         android:animation="@animator/splash_clock_blink" />
 
-    <!-- Sequential Lighting Animation: Mode Icons and Rows Illuminate One-by-One -->
+    <!-- Sequential Lighting Animation: Mode Icons & Rows Scale + Illuminate One-by-One -->
     <target
         android:name="row1_subway"
         android:animation="@animator/splash_row1_light" />
+    <target
+        android:name="row1_dimmer"
+        android:animation="@animator/splash_row1_dimmer" />
 
     <target
         android:name="row2_train"
         android:animation="@animator/splash_row2_light" />
+    <target
+        android:name="row2_dimmer"
+        android:animation="@animator/splash_row2_dimmer" />
 
     <target
         android:name="row3_bus"
         android:animation="@animator/splash_row3_light" />
+    <target
+        android:name="row3_dimmer"
+        android:animation="@animator/splash_row3_dimmer" />
 
 </animated-vector>

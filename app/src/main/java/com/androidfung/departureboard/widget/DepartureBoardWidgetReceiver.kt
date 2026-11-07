@@ -10,5 +10,12 @@ class DepartureBoardWidgetReceiver : GlanceAppWidgetReceiver() {
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         WidgetUpdateWorker.enqueuePeriodicUpdate(context)
+        WidgetDisruptionNotificationManager.createNotificationChannel(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        WidgetUpdateWorker.cancelPeriodicUpdate(context)
+        WidgetDisruptionNotificationManager.cancelAllDisruptionNotifications(context)
     }
 }
