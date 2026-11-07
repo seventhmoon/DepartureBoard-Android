@@ -140,6 +140,7 @@ class MainActivity : AppCompatActivity() {
                 dynamicColor = uiState.isDynamicColor
             ) {
                 com.androidfung.departureboard.ui.theme.ProvideWindowWidthClass {
+                    val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
                     val snackbarHostState = remember { SnackbarHostState() }
 
                     var showSearchSheet by rememberSaveable { mutableStateOf(false) }
@@ -353,9 +354,15 @@ class MainActivity : AppCompatActivity() {
                                                 showSearchSheet = true
                                             },
                                             onStationClick = { station ->
+                                                viewModel.closeTrainJourney()
                                                 viewModel.openStationDetail(station)
                                             },
                                             onDepartureClick = { departure ->
+                                                val parentStation = uiState.stationCards
+                                                    .firstOrNull { it.station.id == departure.stationId }?.station
+                                                if (windowWidthClass == com.androidfung.departureboard.ui.theme.WindowWidthClass.EXTRA_LARGE && parentStation != null) {
+                                                    viewModel.openStationDetail(parentStation)
+                                                }
                                                 viewModel.openTrainJourney(departure)
                                             },
                                             onAiAssistantClick = {
