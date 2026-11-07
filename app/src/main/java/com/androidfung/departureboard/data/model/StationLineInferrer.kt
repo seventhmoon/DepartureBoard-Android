@@ -188,18 +188,52 @@ object StationLineInferrer {
 
     /**
      * 2. Fallback inference matching against known multi-line transit hubs.
+     * Bus stops/stands must never inherit rail/tube/metro interchange lines.
+     * Furthermore, station names are matched strictly (by exact ID or exact normalized name)
+     * rather than loose substring containment to prevent bus stops like "Stratford Park"
+     * or "Stratford Road" from falsely matching the "Stratford" interchange hub.
      */
     private fun inferFromKnownHubs(station: Station): List<LineBadgeInfo>? {
-        val stName = station.name.lowercase()
+        if (station.isBusOnly || com.androidfung.departureboard.data.repository.region.gb.TflStopPointUtils.isBusStop(station.id, station.name, station.modes)) {
+            return null
+        }
 
-        for ((stationKey, lines) in STATION_SPECIFIC_LINES) {
-            if (station.id.equals(stationKey, ignoreCase = true) || stName.contains(stationKey)) {
-                return lines.map { (id, name) ->
-                    val mode = resolveDefaultMode(id)
-                    TflLineColors.getLineBadge(id, name, mode)
-                }.sortedBy { it.displayName }
+        val cleanName = com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter.clean(station.name).lowercase().trim()
+        val stationIdUpper = station.id.uppercase().trim()
+
+        // 1. Direct match by station ID in STATION_SPECIFIC_LINES
+        val linesById = STATION_SPECIFIC_LINES[station.id] ?: STATION_SPECIFIC_LINES[stationIdUpper]
+        if (linesById != null) {
+            return linesById.map { (id, name) ->
+                val mode = resolveDefaultMode(id)
+                TflLineColors.getLineBadge(id, name, mode)
+            }.sortedBy { it.displayName }
+        }
+
+        // 2. Hub ID mapping lookup (e.g. HUBSRA or constituent platform IDs)
+        for ((hubId, platformIds) in com.androidfung.departureboard.data.model.gb.TflStationIds.HUB_TO_PLATFORM_NAPTAN) {
+            if (stationIdUpper == hubId || platformIds.any { it.equals(stationIdUpper, ignoreCase = true) }) {
+                // Check if the hub ID or its clean name exists in STATION_SPECIFIC_LINES
+                val mappedLines = STATION_SPECIFIC_LINES[hubId]
+                    ?: STATION_SPECIFIC_LINES[cleanName]
+                if (mappedLines != null) {
+                    return mappedLines.map { (id, name) ->
+                        val mode = resolveDefaultMode(id)
+                        TflLineColors.getLineBadge(id, name, mode)
+                    }.sortedBy { it.displayName }
+                }
             }
         }
+
+        // 3. Exact normalized station name match (strictly equal, never loose substring)
+        val linesByName = STATION_SPECIFIC_LINES[cleanName]
+        if (linesByName != null) {
+            return linesByName.map { (id, name) ->
+                val mode = resolveDefaultMode(id)
+                TflLineColors.getLineBadge(id, name, mode)
+            }.sortedBy { it.displayName }
+        }
+
         return null
     }
 

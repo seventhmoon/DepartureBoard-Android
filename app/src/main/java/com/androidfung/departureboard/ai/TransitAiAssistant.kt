@@ -135,7 +135,7 @@ class TransitAiAssistant(
                 cleanQuery.contains("around me") ||
                 cleanQuery.contains("closest") ||
                 cleanQuery.contains("nearest") ||
-                cleanQuery.contains("here")
+                Regex("""\bhere\b""").containsMatchIn(cleanQuery)
 
         // Dynamically resolve live nearest station via LocationDataSource if available and nearestStation is null or stale
         var resolvedNearestStation = nearestStation
@@ -194,6 +194,35 @@ class TransitAiAssistant(
             return answerStatusQuery(namedLine, defaultOrigin)
         }
 
+        // Intent classification for specialized concourse stationmaster inquiries
+        val isRunQuery = cleanQuery.contains("should i run") ||
+                cleanQuery.contains("can i make") ||
+                cleanQuery.contains("can i catch") ||
+                cleanQuery.contains("will i make") ||
+                cleanQuery.contains("do i need to run") ||
+                cleanQuery.contains("time to catch") ||
+                cleanQuery.contains("have time") ||
+                cleanQuery.contains("hurry")
+
+        val isLastTrainQuery = cleanQuery.contains("last train") ||
+                cleanQuery.contains("last tube") ||
+                cleanQuery.contains("final train") ||
+                cleanQuery.contains("last service") ||
+                cleanQuery.contains("final service") ||
+                cleanQuery.contains("night service") ||
+                cleanQuery.contains("night tube") ||
+                cleanQuery.contains("overnight")
+
+        val isFormationQuery = cleanQuery.contains("where to stand") ||
+                cleanQuery.contains("where should i stand") ||
+                cleanQuery.contains("how many coaches") ||
+                cleanQuery.contains("how many cars") ||
+                cleanQuery.contains("train formation") ||
+                cleanQuery.contains("quiet coach") ||
+                cleanQuery.contains("which carriage") ||
+                cleanQuery.contains("crowded") ||
+                cleanQuery.contains("occupancy")
+
         // Candidate origins: prioritize user's physical nearest station first, followed by saved stations
         val effectiveNearestStation = resolvedNearestStation
         val baseStationsToSearch = when {
@@ -250,6 +279,94 @@ class TransitAiAssistant(
                 departureStation = origin
                 break
             }
+        }
+
+        val primaryStation = departureStation ?: defaultOrigin ?: departuresByStation.firstOrNull()?.first
+        val primaryDeps = if (matchingDepartures.isNotEmpty()) matchingDepartures else (departuresByStation.firstOrNull { it.first.id == primaryStation?.id }?.second ?: departuresByStation.firstOrNull()?.second ?: emptyList())
+
+        // 7. Specialized Stationmaster Responses:
+        if (isRunQuery && primaryStation != null && primaryDeps.isNotEmpty()) {
+            val next = primaryDeps.first()
+            val sec = next.timeToStationSeconds
+            val mins = (sec + 30) / 60
+            val plat = next.platformName.ifBlank { "Platform" }
+            val subsequent = primaryDeps.getOrNull(1)
+            val subsequentSuffix = if (subsequent != null) {
+                val subClock = subsequent.formattedActualClockTime ?: subsequent.formattedTimeToArrival
+                ", or wait for the following service at $subClock (${subsequent.formattedTimeToArrival})"
+            } else ""
+
+            val advice = when {
+                sec <= 90 -> "🚨 [Stationmaster] Too tight! The ${next.lineName} towards ${next.destinationName} departs in less than 90 seconds from $plat (boarding doors close 1 min prior). Don't run—wait for the next service$subsequentSuffix."
+                sec in 91..240 -> "🏃 [Stationmaster] Run! The ${next.lineName} to ${next.destinationName} departs in ~$mins min from $plat. If you proceed through the ticket barriers now, you can catch it!"
+                else -> "✅ [Stationmaster] Plenty of time! The next ${next.lineName} to ${next.destinationName} departs in ~$mins min from $plat (scheduled at ${next.formattedActualClockTime ?: ""}). No need to rush."
+            }
+
+            val blocks = listOf(
+                A2UiBlock.TextSummary(advice),
+                A2UiBlock.LiveDeparturesCard(primaryStation, primaryDeps.take(3)),
+                A2UiBlock.ActionButtons(listOf(A2UiAction.TrackTrain(next)))
+            )
+            return AiTransitResult(
+                answer = advice,
+                matchedStation = primaryStation,
+                matchedDepartures = primaryDeps.take(3),
+                originQuery = explicitOriginName,
+                destinationQuery = targetDestinationName,
+                a2uiResponse = A2UiResponse(blocks)
+            )
+        }
+
+        if (isLastTrainQuery && primaryStation != null && primaryDeps.isNotEmpty()) {
+            val lastDep = primaryDeps.lastOrNull { it.isLastTrain } ?: primaryDeps.last()
+            val clock = lastDep.formattedActualClockTime ?: lastDep.formattedTimeToArrival
+            val advice = if (lastDep.isNightService) {
+                "🦉 [Stationmaster] 24-hour night transit operates on this route overnight. The next late departure to ${lastDep.destinationName} leaves at $clock from ${lastDep.platformName}."
+            } else {
+                "🌙 [Stationmaster] The final scheduled departure to ${lastDep.destinationName} leaves at $clock from ${lastDep.platformName} (${lastDep.formattedTimeToArrival}). After this, regular service closes for the night."
+            }
+
+            val blocks = listOf(
+                A2UiBlock.TextSummary(advice),
+                A2UiBlock.LiveDeparturesCard(primaryStation, listOf(lastDep)),
+                A2UiBlock.ActionButtons(listOf(A2UiAction.TrackTrain(lastDep)))
+            )
+            return AiTransitResult(
+                answer = advice,
+                matchedStation = primaryStation,
+                matchedDepartures = listOf(lastDep),
+                originQuery = explicitOriginName,
+                destinationQuery = targetDestinationName,
+                a2uiResponse = A2UiResponse(blocks)
+            )
+        }
+
+        if (isFormationQuery && primaryStation != null && primaryDeps.isNotEmpty()) {
+            val next = primaryDeps.first()
+            val plat = next.platformName.ifBlank { "Platform" }
+            val formation = next.train?.formation
+            val advice = if (formation != null && formation.coaches.isNotEmpty()) {
+                val coachCount = formation.coaches.size
+                val quietCoach = formation.coaches.firstOrNull { it.isQuietCoach == true }?.coachNumber
+                val quietMsg = if (quietCoach != null) " Quiet coach is Coach $quietCoach." else ""
+                "🚆 [Stationmaster] The upcoming ${next.lineName} to ${next.destinationName} is formed of $coachCount coaches.$quietMsg Board near the middle of $plat for the best seat availability."
+            } else {
+                "📍 [Stationmaster] For the ${next.lineName} to ${next.destinationName} on $plat, boarding near the middle of the platform offers the best seat availability and easiest egress at busy interchange stations."
+            }
+
+            val blocks = listOf(
+                A2UiBlock.TextSummary(advice),
+                A2UiBlock.LiveDeparturesCard(primaryStation, listOf(next)),
+                A2UiBlock.ActionButtons(listOf(A2UiAction.TrackTrain(next)))
+            )
+            return AiTransitResult(
+                answer = advice,
+                matchedStation = primaryStation,
+                matchedDepartures = listOf(next),
+                originQuery = explicitOriginName,
+                destinationQuery = targetDestinationName,
+                a2uiResponse = A2UiResponse(blocks)
+            )
         }
 
         return if (matchingDepartures.isNotEmpty()) {
@@ -389,16 +506,26 @@ class TransitAiAssistant(
                 val named = relevant.values.firstOrNull()
                 val detail = named?.lineStatuses?.firstOrNull()
                 if (named != null && detail != null && detail.statusSeverity != 10) {
-                    val reason = detail.reason?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""
+                    val rawReason = detail.reason?.takeIf { it.isNotBlank() }
+                    val decodedReason = rawReason?.let { decodeDisruptionReason(it) } ?: detail.statusSeverityDescription
+                    val concourseAlt = getConcourseAlternative(named.id, named.name)
+
+                    val bannerReason = if (concourseAlt != null) {
+                        "$decodedReason • Stationmaster advice: $concourseAlt"
+                    } else {
+                        decodedReason
+                    }
+
                     a2uiBlocks.add(
                         A2UiBlock.LineStatusBanner(
                             lineName = named.name,
                             statusDescription = detail.statusSeverityDescription,
-                            reason = detail.reason,
+                            reason = bannerReason,
                             severity = if (detail.statusSeverity <= 5) A2UiSeverity.DISRUPTION else A2UiSeverity.WARNING
                         )
                     )
-                    "${named.name} is currently experiencing ${detail.statusSeverityDescription.lowercase()}$reason"
+                    val altSuffix = if (concourseAlt != null) " Stationmaster advice: $concourseAlt" else ""
+                    "${named.name} is currently experiencing ${detail.statusSeverityDescription.lowercase()}: $decodedReason.$altSuffix"
                 } else {
                     a2uiBlocks.add(
                         A2UiBlock.LineStatusBanner(
@@ -493,4 +620,33 @@ class TransitAiAssistant(
     private val STATUS_KEYWORDS = listOf(
         "status", "delays", "delay", "disruption", "disruptions", "running", "good service", "problems"
     )
+
+    private fun decodeDisruptionReason(rawReason: String): String {
+        val lower = rawReason.lowercase()
+        return when {
+            "points failure" in lower -> "A track switching failure is temporarily preventing platform moves"
+            "signal failure" in lower || "signalling" in lower -> "A signalling system irregularity is holding train clearances"
+            "overhead wire" in lower || "power" in lower -> "Power supply or overhead cable issues are causing train halts"
+            "trespass" in lower || "safety inspection" in lower -> "Emergency safety checks along the railway are temporarily pausing traffic"
+            "customer incident" in lower || "casualty" in lower -> "Emergency services are attending a platform incident"
+            "train fault" in lower || "defective train" in lower -> "A stalled train ahead is causing queues on the line"
+            "speed restriction" in lower -> "Temporary speed limits are in place to ensure track safety"
+            else -> rawReason.replace(Regex("""\s+"""), " ").trim()
+        }
+    }
+
+    private fun getConcourseAlternative(lineId: String, lineName: String): String? {
+        val lower = lineName.lowercase()
+        return when {
+            "northern" in lower -> "Consider the Victoria or Piccadilly lines, Thameslink, or Great Northern departures for cross-London travel."
+            "central" in lower -> "The Elizabeth line and Jubilee line offer fast parallel alternatives across central London."
+            "victoria" in lower -> "Use the Piccadilly line, Northern line, or Thameslink downstairs as direct alternatives."
+            "piccadilly" in lower -> "Consider the Central line, District line, or the Elizabeth line towards Heathrow."
+            "jubilee" in lower -> "The Elizabeth line, Central line, or DLR provide nearby parallel connections."
+            "elizabeth" in lower -> "Central line, Jubilee line, or Great Western Railway departures can be used."
+            "district" in lower || "circle" in lower -> "Take the Piccadilly or Central line for east-west journeys across central London."
+            "bakerloo" in lower -> "Jubilee and Northern lines cover shared corridors between Waterloo and central London."
+            else -> null
+        }
+    }
 }

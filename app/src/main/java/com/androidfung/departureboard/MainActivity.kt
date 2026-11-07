@@ -187,6 +187,9 @@ class MainActivity : AppCompatActivity() {
                     var showLineStatusSheet by rememberSaveable { mutableStateOf(false) }
                     var showRegionPickerSheet by rememberSaveable { mutableStateOf(false) }
                     var showTwinConcourseSheet by rememberSaveable { mutableStateOf(false) }
+                    var showCorridorSheet by rememberSaveable { mutableStateOf(false) }
+                    var showLabsSheet by rememberSaveable { mutableStateOf(false) }
+                    var aiInitialQuery by rememberSaveable { mutableStateOf<String?>(null) }
 
                     LaunchedEffect(initialStation, initialDepartureId) {
                         initialStation?.let { station ->
@@ -200,6 +203,15 @@ class MainActivity : AppCompatActivity() {
                     // Contextual smart review trigger for active users:
                     // Checks if conditions are met after the dashboard loads with saved stations
                     // without interrupting the user during active navigation or urgent departure checks.
+                    LaunchedEffect(uiState.stationCards) {
+                        if (uiState.stationCards.isNotEmpty()) {
+                            com.androidfung.departureboard.util.DynamicShortcutHelper.updateShortcuts(
+                                context = applicationContext,
+                                stations = uiState.stationCards.map { it.station }
+                            )
+                        }
+                    }
+
                     LaunchedEffect(uiState.stationCards.size) {
                         if (uiState.stationCards.isNotEmpty() && !uiState.isInitialLoading && !uiState.isRefreshing) {
                             // Delay slightly after launch so the UI is calm and settled
@@ -427,8 +439,10 @@ class MainActivity : AppCompatActivity() {
                                             },
                                             onOpenHelpFaq = { showHelpSheet = true },
                                             onOpenDeskClock = { viewModel.openDeskClock() },
-                                            onOpenTwinConcourse = { showTwinConcourseSheet = true },
-                                            onToggleSmartCommute = { viewModel.toggleSmartCommute() }
+                                            onAskAiAlternative = { station, lineName ->
+                                                aiInitialQuery = "What are the best alternative routes or departures to avoid $lineName delays from ${station.displayName}?"
+                                                showAiSheet = true
+                                            }
                                         )
                                     }
                                     entry<StationDetailRoute>(
@@ -584,11 +598,15 @@ class MainActivity : AppCompatActivity() {
                             ?: uiState.nearbyStations.firstOrNull()?.first
                             ?: uiState.stationCards.firstOrNull { it.station.id == uiState.nearestStationId }?.station
                         com.androidfung.departureboard.ui.feature.ai.AiTransitSheet(
-                            onDismissRequest = { showAiSheet = false },
+                            onDismissRequest = {
+                                showAiSheet = false
+                                aiInitialQuery = null
+                            },
                             repository = viewModel.repository,
                             savedStations = uiState.stationCards.map { it.station },
                             nearestStation = nearest,
                             initialTriggerSpeech = false,
+                            initialQuery = aiInitialQuery,
                             billingRepository = viewModel.billingRepository,
                             aiModelType = uiState.aiModelType,
                             selectedRegion = uiState.selectedRegion,
@@ -666,9 +684,9 @@ class MainActivity : AppCompatActivity() {
                                 showDebugSheet = false
                                 viewModel.openDeskClock()
                             },
-                            onOpenTwinConcourse = {
+                            onOpenLabs = {
                                 showDebugSheet = false
-                                showTwinConcourseSheet = true
+                                showLabsSheet = true
                             }
                         )
                     }
@@ -740,6 +758,10 @@ class MainActivity : AppCompatActivity() {
                             },
                             isBilingualEnabled = uiState.isBilingualEnabled,
                             onToggleBilingualEnabled = { enabled -> viewModel.setBilingualEnabled(enabled) },
+                            onOpenLabs = {
+                                showSettingsSheet = false
+                                showLabsSheet = true
+                            },
                             isPro = uiState.isPro,
                             billingRepository = viewModel.billingRepository,
                             onOpenHelpFaq = { showHelpSheet = true },
@@ -759,6 +781,43 @@ class MainActivity : AppCompatActivity() {
                                             fallbackToPlayStore = true
                                         )
                                 }
+                            }
+                        )
+                    }
+
+                    if (showCorridorSheet) {
+                        com.androidfung.departureboard.ui.feature.corridor.CorridorComparisonBottomSheet(
+                            onDismissRequest = { showCorridorSheet = false },
+                            stationCards = uiState.stationCards,
+                            onDepartureClick = { dep ->
+                                showCorridorSheet = false
+                                viewModel.openTrainJourney(dep)
+                            }
+                        )
+                    }
+
+                    if (showLabsSheet) {
+                        com.androidfung.departureboard.ui.feature.labs.LabsBottomSheet(
+                            onDismissRequest = { showLabsSheet = false },
+                            isBilingualEnabled = uiState.isBilingualEnabled,
+                            onToggleBilingualEnabled = { enabled -> viewModel.setBilingualEnabled(enabled) },
+                            isSmartCommuteEnabled = uiState.isSmartCommuteEnabled,
+                            onToggleSmartCommute = { viewModel.toggleSmartCommute() },
+                            onOpenDeskClock = {
+                                showLabsSheet = false
+                                viewModel.openDeskClock()
+                            },
+                            onOpenTwinConcourse = {
+                                showLabsSheet = false
+                                showTwinConcourseSheet = true
+                            },
+                            onOpenCorridorRoute = {
+                                showLabsSheet = false
+                                showCorridorSheet = true
+                            },
+                            onOpenAiAssistant = {
+                                showLabsSheet = false
+                                showAiSheet = true
                             }
                         )
                     }

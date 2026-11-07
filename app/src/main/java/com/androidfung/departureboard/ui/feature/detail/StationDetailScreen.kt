@@ -872,7 +872,7 @@ private fun StationDetailContent(
                                     if (transfer.isStepFree) {
                                         Surface(
                                             shape = RoundedCornerShape(4.dp),
-                                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
+                                            color = MaterialTheme.colorScheme.tertiaryContainer
                                         ) {
                                             Text(
                                                 text = "♿ ${stringResource(R.string.transfer_step_free)}",
@@ -885,7 +885,7 @@ private fun StationDetailContent(
                                     if (transferTypeLabel != null) {
                                         Surface(
                                             shape = RoundedCornerShape(4.dp),
-                                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                            color = MaterialTheme.colorScheme.primaryContainer
                                         ) {
                                             Text(
                                                 text = transferTypeLabel,

@@ -261,4 +261,91 @@ class TransitAiAssistantTest {
                 result.answer.contains("location permissions", ignoreCase = true)
         )
     }
+
+    @Test
+    fun `should I run query returns urgency calculation and platform advice`() = runTest {
+        val tightDeparture = departure("central", "Central", "Epping", seconds = 60)
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(listOf(tightDeparture)) }
+        )
+        val assistant = TransitAiAssistant(repo)
+        val result = assistant.answerQuery("Should I run for the next train?", savedStations = listOf(oxfordCircus))
+
+        assertTrue(
+            "Expected 'Too tight' advice for 60s departure but got: ${result.answer}",
+            result.answer.contains("Too tight", ignoreCase = true) || result.answer.contains("Don't run", ignoreCase = true)
+        )
+        assertTrue(
+            "Expected platform reference in advice but got: ${result.answer}",
+            result.answer.contains("Platform 3", ignoreCase = true) || result.answer.contains("3")
+        )
+    }
+
+    @Test
+    fun `last train query identifies final departure and station closure notice`() = runTest {
+        val lastDeparture = departure("bakerloo", "Bakerloo", "Elephant & Castle", seconds = 2400).copy(
+            isLastTrain = true
+        )
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(listOf(lastDeparture)) }
+        )
+        val assistant = TransitAiAssistant(repo)
+        val result = assistant.answerQuery("When is the last train tonight?", savedStations = listOf(oxfordCircus))
+
+        assertTrue(
+            "Expected final departure notice but got: ${result.answer}",
+            result.answer.contains("final", ignoreCase = true) || result.answer.contains("last", ignoreCase = true)
+        )
+        assertTrue(
+            "Expected Elephant & Castle destination in answer but got: ${result.answer}",
+            result.answer.contains("Elephant & Castle", ignoreCase = true)
+        )
+    }
+
+    @Test
+    fun `formation query provides platform positioning advice`() = runTest {
+        val formationDeparture = departure("victoria", "Victoria", "Brixton", seconds = 300)
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(listOf(formationDeparture)) }
+        )
+        val assistant = TransitAiAssistant(repo)
+        val result = assistant.answerQuery("Where should I stand on the platform?", savedStations = listOf(oxfordCircus))
+
+        assertTrue(
+            "Expected platform boarding guidance but got: '${result.answer}'",
+            result.answer.contains("boarding", ignoreCase = true) || result.answer.contains("middle", ignoreCase = true)
+        )
+    }
+
+    @Test
+    fun `disrupted status query includes decoded reason and concourse alternatives`() = runTest {
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(emptyList()) },
+            lineStatuses = mapOf(
+                "northern" to TflLineStatusItem(
+                    id = "northern",
+                    name = "Northern line",
+                    modeName = "tube",
+                    lineStatuses = listOf(
+                        com.androidfung.departureboard.data.model.gb.TflLineStatusDetail(
+                            statusSeverity = 4,
+                            statusSeverityDescription = "Severe Delays",
+                            reason = "Signal failure at Camden Town"
+                        )
+                    )
+                )
+            )
+        )
+        val assistant = TransitAiAssistant(repo)
+        val result = assistant.answerQuery("Northern line status", savedStations = listOf(oxfordCircus))
+
+        assertTrue(
+            "Expected severe delays in answer but got: ${result.answer}",
+            result.answer.contains("severe delays", ignoreCase = true)
+        )
+        assertTrue(
+            "Expected concourse advice or decoded reason in answer but got: ${result.answer}",
+            result.answer.contains("Victoria", ignoreCase = true) || result.answer.contains("signalling", ignoreCase = true)
+        )
+    }
 }

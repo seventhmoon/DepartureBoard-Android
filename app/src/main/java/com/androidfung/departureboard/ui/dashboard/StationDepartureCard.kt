@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -96,7 +97,8 @@ fun StationDepartureCard(
     distanceMeters: Double? = null,
     onStationClick: ((Station) -> Unit)? = null,
     onDepartureClick: ((Departure) -> Unit)? = null,
-    maxDepartureRows: Int = 5
+    maxDepartureRows: Int = 5,
+    onAskAiAlternative: ((station: Station, lineName: String) -> Unit)? = null
 ) {
     var selectedLineId by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
     var selectedDirection by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
@@ -292,7 +294,10 @@ fun StationDepartureCard(
                         ) {
                             if (disruptedBadgesToShow.isNotEmpty()) {
                                 if (disruptedBadgesToShow.size == 1) {
-                                    LineDisruptionBanner(badge = disruptedBadgesToShow.first())
+                                    LineDisruptionBanner(
+                                        badge = disruptedBadgesToShow.first(),
+                                        onAskAiAlternative = { line -> onAskAiAlternative?.invoke(cardModel.station, line) }
+                                    )
                                 } else {
                                     MultipleDisruptionsBanner(disruptedBadges = disruptedBadgesToShow)
                                 }
@@ -498,13 +503,13 @@ fun TransitAlertCard(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top
+            verticalAlignment = if (bodyContent == null) Alignment.CenterVertically else Alignment.Top
         ) {
             Box(
                 modifier = Modifier
                     .width(22.dp)
-                    .padding(top = 1.dp),
-                contentAlignment = Alignment.TopCenter
+                    .padding(top = if (bodyContent == null) 0.dp else 1.dp),
+                contentAlignment = if (bodyContent == null) Alignment.Center else Alignment.TopCenter
             ) {
                 Text(
                     text = iconText,
@@ -515,7 +520,10 @@ fun TransitAlertCard(
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = if (bodyContent == null) Arrangement.Center else Arrangement.Top
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -523,7 +531,14 @@ fun TransitAlertCard(
                 ) {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false),
+                            lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                                alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                                trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.Both
+                            )
+                        ),
                         color = accentColor,
                         modifier = Modifier.weight(1f, fill = false)
                     )
@@ -608,7 +623,8 @@ fun MultipleDisruptionsBanner(
 @Composable
 fun LineDisruptionBanner(
     badge: LineBadgeInfo,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAskAiAlternative: ((lineName: String) -> Unit)? = null
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val isDark = isSystemInDarkTheme()
@@ -695,6 +711,31 @@ fun LineDisruptionBanner(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            if (onAskAiAlternative != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(accentColor.copy(alpha = 0.15f))
+                        .clickable { onAskAiAlternative(badge.displayName) }
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.AutoAwesome,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = "Ask AI for alternative routes",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                        color = accentColor
                     )
                 }
             }

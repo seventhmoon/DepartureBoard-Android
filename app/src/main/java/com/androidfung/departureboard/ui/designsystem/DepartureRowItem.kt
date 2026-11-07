@@ -184,12 +184,12 @@ fun DepartureRowItem(
                         }
                         val occupancyContainerColor = when (parsed) {
                             OccupancyStatus.EMPTY,
-                            OccupancyStatus.MANY_SEATS_AVAILABLE -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            OccupancyStatus.MANY_SEATS_AVAILABLE -> MaterialTheme.colorScheme.primaryContainer
                             OccupancyStatus.FEW_SEATS_AVAILABLE,
-                            OccupancyStatus.STANDING_ROOM_ONLY -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                            OccupancyStatus.STANDING_ROOM_ONLY -> MaterialTheme.colorScheme.tertiaryContainer
                             OccupancyStatus.CRUSHED_STANDING_ROOM_ONLY,
                             OccupancyStatus.FULL,
-                            OccupancyStatus.NOT_ACCEPTING_PASSENGERS -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f)
+                            OccupancyStatus.NOT_ACCEPTING_PASSENGERS -> MaterialTheme.colorScheme.errorContainer
                             null -> MaterialTheme.colorScheme.surfaceVariant
                         }
                         val occupancyTextColor = when (parsed) {
@@ -274,7 +274,7 @@ fun DepartureRowItem(
                     if (departure.platform?.isHistoricalExpected == true) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
                             border = androidx.compose.foundation.BorderStroke(0.8.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
                         ) {
                             val confidenceStr = departure.platform.expectedConfidencePercent?.let { " ($it%)" } ?: ""
@@ -318,7 +318,7 @@ fun DepartureRowItem(
                     if (busSpacing != null && busSpacing.isBunched) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
                             border = androidx.compose.foundation.BorderStroke(0.8.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f))
                         ) {
                             Text(

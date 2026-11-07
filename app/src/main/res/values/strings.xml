@@ -300,7 +300,7 @@
 
     <!-- AI Transit Assistant & Sheet -->
     <string name="ai_sheet_title">EkiBoard AI</string>
-    <string name="ai_sheet_subtitle">Ask about live trains, buses &amp; departures</string>
+    <string name="ai_sheet_subtitle">Virtual stationmaster &amp; live concourse platform advice</string>
     <string name="ai_module_title">On-Device Local AI Module</string>
     <string name="ai_module_desc">Download on-device generative LiteRT reasoning module (~35 MB) for complete offline privacy.</string>
     <string name="ai_module_download_button">Download On-Demand AI (35 MB)</string>
@@ -478,4 +478,32 @@
     <string name="desk_clock_col_platform">PLAT</string>
     <string name="desk_clock_col_time">TIME</string>
     <string name="cd_open_desk_clock">Open Split-Flap Desk Clock</string>
+
+    <!-- Platform & Ecosystem Extensions -->
+    <string name="quick_settings_tile_name">Live Departures</string>
+    <string name="corridor_route_menu_item">Corridor Route Comparison</string>
+
+    <!-- Labs & Experimental Features -->
+    <string name="settings_section_labs">Labs &amp; Previews</string>
+    <string name="settings_labs_title">Labs</string>
+    <string name="settings_labs_subtitle">Experimental features and early previews</string>
+    <string name="labs_title">EkiBoard Labs</string>
+    <string name="labs_subtitle">Try out experimental transit features under active development</string>
+    <string name="labs_disclaimer">Features in Labs are experimental previews. They may change, be redesigned, or evolve based on feedback.</string>
+    <string name="labs_section_display">Display &amp; Hardware</string>
+    <string name="labs_section_commute">Commute Intelligence</string>
+    <string name="labs_section_comparisons">Station &amp; Route Comparisons</string>
+    <string name="labs_section_ai">AI &amp; Speech</string>
+    <string name="labs_desk_clock_title">Desk Clock / Split-Flap Board</string>
+    <string name="labs_desk_clock_desc">Full-screen split-flap &amp; LED departure board with foldable Tabletop mode</string>
+    <string name="labs_bilingual_title">Bilingual Station Names</string>
+    <string name="labs_bilingual_desc">Dual English and Traditional Chinese names for MTR &amp; Hong Kong transit</string>
+    <string name="labs_smart_commute_title">Smart Commute Routine</string>
+    <string name="labs_smart_commute_desc">Auto-prioritizes morning vs evening stations based on commute hours</string>
+    <string name="labs_twin_concourse_title">Twin Concourse Race</string>
+    <string name="labs_twin_concourse_desc">Head-to-head live departure comparison between two nearby transit hubs</string>
+    <string name="labs_corridor_route_title">Corridor Route Comparison</string>
+    <string name="labs_corridor_route_desc">Compare multi-leg transfers and branch line departures along travel corridors</string>
+    <string name="labs_ai_assistant_title">AI Disruption Advisor &amp; Speech</string>
+    <string name="labs_ai_assistant_desc">Natural-language disruption advice with on-device Text-To-Speech voice readout</string>
 </resources>

@@ -112,6 +112,33 @@ class TransitModelsTest {
     }
 
     @Test
+    fun testStationLineInferrerDoesNotMatchBusStopsWithSubstringHubNames() {
+        // Bus stops with "Stratford" in their name (e.g. Stratford Park, Stratford Road)
+        // must NOT inherit the Stratford rail/metro interchange hub lines.
+        val busStop = com.androidfung.departureboard.data.model.Station(
+            id = "490012345A",
+            name = "Stratford Park (Stop A)",
+            modes = listOf("bus")
+        )
+        val badges = com.androidfung.departureboard.data.model.StationLineInferrer.infer(busStop)
+        assertEquals(1, badges.size)
+        assertEquals("Bus", badges[0].displayName)
+        assertEquals(TransitMode.BUS, badges[0].mode)
+
+        // However, the actual Stratford station hub itself should infer all its constituent interchange lines
+        val stratfordStation = com.androidfung.departureboard.data.model.Station(
+            id = "HUBSRA",
+            name = "Stratford Station",
+            modes = listOf("tube", "dlr", "elizabeth-line", "national-rail", "overground")
+        )
+        val stratfordBadges = com.androidfung.departureboard.data.model.StationLineInferrer.infer(stratfordStation)
+        assertTrue(stratfordBadges.any { it.displayName == "Central" })
+        assertTrue(stratfordBadges.any { it.displayName == "Jubilee" })
+        assertTrue(stratfordBadges.any { it.displayName == "DLR" })
+        assertTrue(stratfordBadges.any { it.displayName == "Elizabeth line" })
+    }
+
+    @Test
     fun testGtfsRouteTypesAndParsing() {
         assertEquals(TransitMode.METRO, TransitMode.fromModeString("metro"))
         assertEquals(TransitMode.METRO, TransitMode.fromModeString("subway"))

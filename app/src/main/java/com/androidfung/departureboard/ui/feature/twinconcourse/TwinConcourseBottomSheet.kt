@@ -80,6 +80,7 @@ fun TwinConcourseBottomSheet(
     }
 }
 
+@Suppress("DEPRECATION")
 @Composable
 fun TwinConcourseContent(
     onDismissRequest: () -> Unit,

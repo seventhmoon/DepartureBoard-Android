@@ -3,6 +3,7 @@ package com.androidfung.departureboard.ui.feature.ai
 import android.app.Activity
 import android.content.Intent
 import android.speech.RecognizerIntent
+import android.speech.tts.TextToSpeech
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,6 +26,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Mic
@@ -85,6 +88,7 @@ fun AiTransitSheet(
     modifier: Modifier = Modifier,
     nearestStation: Station? = null,
     initialTriggerSpeech: Boolean = false,
+    initialQuery: String? = null,
     billingRepository: BillingDataSource? = null,
     aiModelType: com.androidfung.departureboard.ai.AiModelType = com.androidfung.departureboard.ai.AiModelType.DEFAULT,
     selectedRegion: com.androidfung.departureboard.data.model.TransitRegion = com.androidfung.departureboard.data.model.TransitRegion.GB,
@@ -105,6 +109,28 @@ fun AiTransitSheet(
     var isInstallingModule by remember { mutableStateOf(false) }
     var installProgress by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
     var isFeatureInstalled by remember { mutableStateOf(dynamicAiProvider.isFeatureInstalled) }
+
+    var tts: TextToSpeech? by remember { mutableStateOf(null) }
+    var isSpeaking by remember { mutableStateOf(false) }
+
+    androidx.compose.runtime.DisposableEffect(localContext) {
+        val speech = TextToSpeech(localContext) { _ -> }
+        tts = speech
+        onDispose {
+            speech.stop()
+            speech.shutdown()
+        }
+    }
+
+    fun speakAnswer(text: String) {
+        if (isSpeaking) {
+            tts?.stop()
+            isSpeaking = false
+        } else {
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_answer")
+            isSpeaking = true
+        }
+    }
 
     fun installAiFeature() {
         isInstallingModule = true
@@ -138,9 +164,12 @@ fun AiTransitSheet(
         val prompts = mutableListOf<String>()
         val currentHour = java.time.LocalTime.now().hour
 
+        // Stationmaster High-Impact Prompts
+        prompts.add("🏃 Should I run for the next train?")
+
         // 1. Time-of-day contextual prompts
         when (currentHour) {
-            in 6..9 -> {
+            in 6..10 -> {
                 prompts.add(resources.getString(R.string.ai_prompt_morning_commute))
                 if (nearestStation != null) {
                     val name = nearestStation.displayName.substringBefore("(").trim()
@@ -148,21 +177,24 @@ fun AiTransitSheet(
                 } else {
                     prompts.add(resources.getString(R.string.ai_prompt_next_train_near_me))
                 }
+                prompts.add("⚠️ Any delays on my lines?")
             }
-            in 16..19 -> {
-                prompts.add(resources.getString(R.string.ai_prompt_evening_commute))
+            in 16..20 -> {
+                prompts.add("⚠️ Why is there a delay?")
                 prompts.add(resources.getString(R.string.ai_prompt_evening_delays))
+                if (nearestStation != null) {
+                    val name = nearestStation.displayName.substringBefore("(").trim()
+                    prompts.add(resources.getString(R.string.ai_prompt_next_train_from, name))
+                }
             }
-            in 22..23, in 0..4 -> {
+            in 21..23, in 0..4 -> {
+                prompts.add("🌙 Last train home countdown")
                 when (selectedRegion) {
-                    com.androidfung.departureboard.data.model.TransitRegion.HK -> prompts.add(resources.getString(R.string.ai_prompt_last_train))
-                    com.androidfung.departureboard.data.model.TransitRegion.SG -> prompts.add(resources.getString(R.string.ai_prompt_last_train))
-                    com.androidfung.departureboard.data.model.TransitRegion.JP -> prompts.add(resources.getString(R.string.ai_prompt_last_train))
-                    com.androidfung.departureboard.data.model.TransitRegion.AU -> prompts.add(resources.getString(R.string.ai_prompt_last_train))
                     com.androidfung.departureboard.data.model.TransitRegion.GB -> {
                         prompts.add(resources.getString(R.string.ai_prompt_last_tube))
                         prompts.add(resources.getString(R.string.ai_prompt_night_bus))
                     }
+                    else -> prompts.add(resources.getString(R.string.ai_prompt_last_train))
                 }
             }
             else -> {
@@ -176,6 +208,7 @@ fun AiTransitSheet(
                 } else {
                     prompts.add(resources.getString(R.string.ai_prompt_next_departure_near_me))
                 }
+                prompts.add("📍 Where to stand on platform")
             }
         }
 
@@ -314,6 +347,12 @@ fun AiTransitSheet(
         }
     }
 
+    androidx.compose.runtime.LaunchedEffect(initialQuery) {
+        if (!initialQuery.isNullOrBlank()) {
+            submitQuery(initialQuery)
+        }
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -384,7 +423,8 @@ fun AiTransitSheet(
             if (aiModelType == com.androidfung.departureboard.ai.AiModelType.LOCAL && !isFeatureInstalled) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -395,7 +435,7 @@ fun AiTransitSheet(
                             Icon(
                                 imageVector = Icons.Rounded.AutoAwesome,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                             Text(
                                 text = stringResource(R.string.ai_module_title),
@@ -472,6 +512,7 @@ fun AiTransitSheet(
                         A2UiRenderer(
                             response = a2uiResponse,
                             modifier = Modifier.fillMaxWidth(),
+                            onSpeak = { speakAnswer(it) },
                             onActionClick = { action ->
                                 if (action is com.androidfung.departureboard.ai.A2UiAction.QueryPrompt) {
                                     queryText = action.text
@@ -486,6 +527,29 @@ fun AiTransitSheet(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Virtual Stationmaster",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    IconButton(
+                                        onClick = { speakAnswer(result.answer) },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isSpeaking) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
+                                            contentDescription = "Read out answer",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = result.answer,
                                     style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 22.sp),

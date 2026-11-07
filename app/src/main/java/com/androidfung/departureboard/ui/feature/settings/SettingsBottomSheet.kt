@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.FormatListNumbered
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
@@ -91,6 +92,7 @@ fun SettingsBottomSheet(
     onToggleWidgetDisruptionNotifications: (Boolean) -> Unit = {},
     isBilingualEnabled: Boolean = true,
     onToggleBilingualEnabled: (Boolean) -> Unit = {},
+    onOpenLabs: () -> Unit = {},
     onRateApp: () -> Unit = {},
     onOpenDebugSettings: (() -> Unit)? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -408,9 +410,9 @@ fun SettingsBottomSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Section 2: Language & Region
+            // Section 2: Labs (Experimental Features)
             Text(
-                text = stringResource(R.string.settings_section_region_language),
+                text = stringResource(R.string.settings_section_labs),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
@@ -422,38 +424,16 @@ fun SettingsBottomSheet(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                            Text(
-                                text = stringResource(R.string.settings_bilingual_title),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = stringResource(R.string.settings_bilingual_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = isBilingualEnabled,
-                            onCheckedChange = onToggleBilingualEnabled,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        )
+                SettingsActionItem(
+                    icon = Icons.Rounded.Extension,
+                    iconTint = MaterialTheme.colorScheme.tertiary,
+                    title = stringResource(R.string.settings_labs_title),
+                    subtitle = stringResource(R.string.settings_labs_subtitle),
+                    onClick = {
+                        onDismissRequest()
+                        onOpenLabs()
                     }
-                }
+                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))

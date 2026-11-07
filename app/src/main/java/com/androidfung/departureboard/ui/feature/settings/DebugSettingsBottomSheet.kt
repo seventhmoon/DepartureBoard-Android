@@ -24,7 +24,6 @@ import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Cloud
-import androidx.compose.material.icons.rounded.CompareArrows
 import androidx.compose.material.icons.rounded.DesktopWindows
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Extension
@@ -106,7 +105,7 @@ fun DebugSettingsBottomSheet(
     onTriggerInAppReview: () -> Unit = {},
     onResetInAppReviewData: () -> Unit = {},
     onOpenDeskClock: (() -> Unit)? = null,
-    onOpenTwinConcourse: (() -> Unit)? = null,
+    onOpenLabs: (() -> Unit)? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     DebugSettingsContent(
@@ -127,7 +126,7 @@ fun DebugSettingsBottomSheet(
         onTriggerInAppReview = onTriggerInAppReview,
         onResetInAppReviewData = onResetInAppReviewData,
         onOpenDeskClock = onOpenDeskClock,
-        onOpenTwinConcourse = onOpenTwinConcourse,
+        onOpenLabs = onOpenLabs,
         sheetState = sheetState,
         modifier = modifier
     )
@@ -155,7 +154,7 @@ fun DebugSettingsContent(
     onToggleBilingualEnabled: (Boolean) -> Unit = {},
     onOpenRegionPicker: (() -> Unit)? = null,
     onOpenDeskClock: (() -> Unit)? = null,
-    onOpenTwinConcourse: (() -> Unit)? = null
+    onOpenLabs: (() -> Unit)? = null
 ) {
     var remainingAiQueries by remember { mutableIntStateOf(0) }
 
@@ -187,7 +186,7 @@ fun DebugSettingsContent(
             onTriggerInAppReview = onTriggerInAppReview,
             onResetInAppReviewData = onResetInAppReviewData,
             onOpenDeskClock = onOpenDeskClock,
-            onOpenTwinConcourse = onOpenTwinConcourse
+            onOpenLabs = onOpenLabs
         )
     }
 }
@@ -212,7 +211,7 @@ fun DebugSettingsBody(
     onToggleBilingualEnabled: (Boolean) -> Unit = {},
     onOpenRegionPicker: (() -> Unit)? = null,
     onOpenDeskClock: (() -> Unit)? = null,
-    onOpenTwinConcourse: (() -> Unit)? = null
+    onOpenLabs: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -632,14 +631,14 @@ fun DebugSettingsBody(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                     }
 
-                    if (onOpenTwinConcourse != null) {
+                    if (onOpenLabs != null) {
                         DebugActionItem(
-                            icon = Icons.Rounded.CompareArrows,
-                            title = "Twin Concourse Race",
-                            subtitle = "Head-to-head live station comparison",
+                            icon = Icons.Rounded.Extension,
+                            title = "EkiBoard Labs",
+                            subtitle = "Experimental transit features & previews",
                             onClick = {
                                 onDismissRequest()
-                                onOpenTwinConcourse()
+                                onOpenLabs()
                             }
                         )
 
