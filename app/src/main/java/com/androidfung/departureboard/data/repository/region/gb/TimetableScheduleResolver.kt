@@ -2,18 +2,20 @@ package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.gb.TflKnownJourney
+import com.androidfung.departureboard.data.model.gb.TflSchedule
 import com.androidfung.departureboard.data.model.gb.TflTimetableResponse
 import com.androidfung.departureboard.data.model.gb.TflTimetableRoute
 import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.region.gb.direction.DestinationResolver
+import java.time.DayOfWeek
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Collaborator responsible for inspecting timetable schedules to detect service hours,
- * late-night gaps, first morning trains, last night trains, and scheduled outbound destinations
- * at terminus and shuttle-branch stations (such as Mill Hill East).
+ * late-night gaps, first morning trains, last night trains, Night Tube verification,
+ * and scheduled outbound destinations at terminus and shuttle-branch stations (such as Mill Hill East).
  */
 class TimetableScheduleResolver(
     private val apiService: TflApiService
@@ -43,69 +45,165 @@ class TimetableScheduleResolver(
         if (cached != null && (now - cached.fetchedAtMillis) < CACHE_TTL_MILLIS) {
             return cached.response
         }
-        val response = apiService.getLineTimetable(lineId, stationId)
+        var response = apiService.getLineTimetable(lineId, stationId)
+        if (response.timetable == null && !response.disambiguation?.disambiguationOptions.isNullOrEmpty()) {
+            for (opt in response.disambiguation.disambiguationOptions) {
+                val uri = opt.uri ?: continue
+                val toStopId = uri.substringAfterLast("/to/", "").substringBefore("?").trim()
+                if (toStopId.isNotEmpty() && !toStopId.equals(stationId, ignoreCase = true)) {
+                    try {
+                        val disambiguated = apiService.getLineTimetableTo(lineId, stationId, toStopId)
+                        if (disambiguated.timetable != null) {
+                            response = disambiguated
+                            break
+                        }
+                    } catch (_: Exception) {
+                        // Try next disambiguation option
+                    }
+                }
+            }
+        }
         if (response.timetable != null) {
             timetableCache[key] = CachedTimetable(response, now)
         }
         return response
     }
 
+    private fun selectSchedulesForDay(
+        routes: List<TflTimetableRoute>,
+        dayOfWeek: DayOfWeek
+    ): List<TflSchedule> {
+        val allSchedules = routes.flatMap { it.schedules }
+        if (allSchedules.isEmpty()) return emptyList()
+
+        val matched = allSchedules.filter { sched ->
+            val name = sched.name.lowercase()
+            when (dayOfWeek) {
+                DayOfWeek.SATURDAY -> name.contains("saturday") || name.contains("sat")
+                DayOfWeek.SUNDAY -> name.contains("sunday") || name.contains("sun")
+                DayOfWeek.FRIDAY -> name.contains("friday") && !name.contains("good friday")
+                else -> name.contains("monday") || name.contains("mon") || name.contains("weekday")
+            }
+        }
+        return matched.ifEmpty { allSchedules }
+    }
+
     /**
-     * Checks scheduled timetables for a station to detect if service has concluded for the night
-     * and when the first morning train departs.
+     * Checks scheduled timetables for a station as an authoritative safety-net to detect:
+     * 1. Whether 24-hour Night Tube / Night Overground actually operates at this station tonight
+     *    (verified by checking for scheduled departures in the 02:00-04:29 AM window),
+     * 2. Whether service has concluded for the night and when the first morning train departs, or
+     * 3. Whether the station is approaching its final train of the night.
      */
     suspend fun checkStationServiceHours(
         stationId: String,
-        lineId: String? = null
+        lineId: String? = null,
+        nowOverride: ZonedDateTime? = null
     ): StationServiceHoursInfo? {
         try {
             // Determine candidate line to check
             val targetLineId = lineId ?: when {
                 stationId.startsWith("940GZZLU") -> {
-                    // Query StopPoint detail to find lines
                     val detail = apiService.getStopPointDetail(stationId)
                     detail.lines.firstOrNull { it.modeName.equals("tube", ignoreCase = true) }?.id
                         ?: detail.lineModeGroups.flatMap { it.lineIdentifier }.firstOrNull()
                 }
                 else -> null
-            } ?: return null
+            } ?: return com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
+                stationId = stationId,
+                lineId = lineId,
+                nowOverride = nowOverride
+            )
 
-            // Get current London time
             val londonZone = ZoneId.of("Europe/London")
-            val nowLondon = ZonedDateTime.now(londonZone)
+            val nowLondon = nowOverride ?: ZonedDateTime.now(londonZone)
 
             val timetableResponse = getCachedTimetable(targetLineId, stationId)
-            val schedules = timetableResponse.timetable?.routes?.flatMap { it.schedules } ?: emptyList()
+            val routes = timetableResponse.timetable?.routes.orEmpty()
+            if (routes.isEmpty()) {
+                return com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
+                    stationId = stationId,
+                    lineId = targetLineId,
+                    nowOverride = nowLondon
+                )
+            }
 
-            // Find all known journey departure times
-            val journeys = schedules.flatMap { it.knownJourneys }
-            if (journeys.isEmpty()) return null
+            // Between 00:00 and 04:29 AM, overnight service belongs to the previous service day
+            val effectiveServiceDay = if (nowLondon.hour < 4 || (nowLondon.hour == 4 && nowLondon.minute < 30)) {
+                nowLondon.dayOfWeek.minus(1)
+            } else {
+                nowLondon.dayOfWeek
+            }
 
-            // Sort journeys chronologically by service day (starts ~04:30 AM through ~01:30 AM next day)
-            // Normalize journeys: 00:00 - 04:00 are treated as late-night (add 24*60)
-            val normalizedTimes = journeys.map { kj ->
-                val h = kj.hour.toIntOrNull() ?: 0
-                val m = kj.minute.toIntOrNull() ?: 0
-                val normMin = if (h < 4) (h + 24) * 60 + m else h * 60 + m
+            val activeSchedules = selectSchedulesForDay(routes, effectiveServiceDay)
+            val journeys = activeSchedules.flatMap { it.knownJourneys }
+            if (journeys.isEmpty()) {
+                return com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
+                    stationId = stationId,
+                    lineId = targetLineId,
+                    nowOverride = nowLondon
+                )
+            }
+
+            // Timetable Safety-Net Crosscheck for 24hr Night Service:
+            // A station only operates Night Tube / 24hr overnight service if its schedule for tonight
+            // (or early tomorrow morning on the calendar day) contains journeys in the deep overnight
+            // 02:00 - 04:29 AM window (hours 2, 3, or 26, 27, or 04:00-04:29 / 28:00-28:29).
+            val nextMorningSchedules = selectSchedulesForDay(routes, effectiveServiceDay.plus(1))
+            val combinedOvernightCheckJourneys = journeys + nextMorningSchedules.flatMap { it.knownJourneys }
+            val hasOvernightTimetableTrips = combinedOvernightCheckJourneys.any { kj ->
+                val rawHour = kj.hour.toIntOrNull() ?: return@any false
+                val minute = kj.minute.toIntOrNull() ?: 0
+                val clockHour = rawHour % 24
+                clockHour in 2..3 || (clockHour == 4 && minute < 30)
+            } && com.androidfung.departureboard.util.LastTrainServiceCalculator.isGbNightTubeStation(
+                stationId = stationId,
+                lineId = targetLineId
+            )
+
+            val isNightServiceWindow = nowLondon.hour in 0..4 || (nowLondon.hour == 23 && nowLondon.minute >= 30)
+            if (hasOvernightTimetableTrips && isNightServiceWindow) {
+                return StationServiceHoursInfo(
+                    isClosedForNight = false,
+                    lastTrainTime = null,
+                    firstTrainTime = null,
+                    lineName = timetableResponse.lineName ?: targetLineId,
+                    minutesUntilLastTrain = null,
+                    isApproachingLastTrain = false,
+                    isNightServiceActive = true
+                )
+            }
+
+            // Sort journeys chronologically by service day (starts ~04:30 AM through ~01:59 AM next day)
+            // Normalize journeys: 00:00 - 04:29 are treated as late-night (add 24*60)
+            val normalizedTimes = journeys.mapNotNull { kj ->
+                val h = kj.hour.toIntOrNull() ?: return@mapNotNull null
+                val m = kj.minute.toIntOrNull() ?: return@mapNotNull null
+                val normMin = if (h < 4 || (h == 4 && m < 30)) (h + 24) * 60 + m else h * 60 + m
                 normMin to kj.formattedTime
             }.sortedBy { it.first }
 
-            val earliestMorning = normalizedTimes.firstOrNull { it.first in (4 * 60)..(7 * 60) }?.second
-            val latestNight = normalizedTimes.lastOrNull()?.second
+            val earliestMorning = normalizedTimes.firstOrNull { it.first in (4 * 60 + 30)..(8 * 60) }?.second
+            val latestNightPair = normalizedTimes.lastOrNull()
+            val latestNight = latestNightPair?.second
+            val lastNorm = latestNightPair?.first
+                ?: com.androidfung.departureboard.util.LastTrainServiceCalculator.parseNormalizedMinutes(latestNight)
 
-            // Check if current London time is in late night gap (typically after 00:30 and before 05:00)
-            val isLateNight = nowLondon.hour in 0..4 || (nowLondon.hour == 23 && nowLondon.minute >= 45)
-
-            val lastNorm = com.androidfung.departureboard.util.LastTrainServiceCalculator.parseNormalizedMinutes(latestNight)
-            val nowNorm = com.androidfung.departureboard.util.LastTrainServiceCalculator.normalizeServiceMinutes(nowLondon.hour, nowLondon.minute)
+            val nowNorm = com.androidfung.departureboard.util.LastTrainServiceCalculator.normalizeServiceMinutes(
+                nowLondon.hour,
+                nowLondon.minute
+            )
             val minutesUntilLast = if (lastNorm != null && lastNorm > nowNorm) (lastNorm - nowNorm) else null
+
+            val isLateNight = nowLondon.hour in 0..4 || (nowLondon.hour == 23 && nowLondon.minute >= 45)
 
             return if (isLateNight && (minutesUntilLast == null || minutesUntilLast <= 0)) {
                 StationServiceHoursInfo(
                     isClosedForNight = true,
                     lastTrainTime = latestNight,
                     firstTrainTime = earliestMorning,
-                    lineName = timetableResponse.lineName ?: targetLineId
+                    lineName = timetableResponse.lineName ?: targetLineId,
+                    isNightServiceActive = false
                 )
             } else if (minutesUntilLast != null && minutesUntilLast in 1..com.androidfung.departureboard.util.LastTrainServiceCalculator.APPROACHING_WINDOW_MINUTES) {
                 StationServiceHoursInfo(
@@ -114,19 +212,19 @@ class TimetableScheduleResolver(
                     firstTrainTime = earliestMorning,
                     lineName = timetableResponse.lineName ?: targetLineId,
                     minutesUntilLastTrain = minutesUntilLast,
-                    isApproachingLastTrain = true
+                    isApproachingLastTrain = true,
+                    isNightServiceActive = false
                 )
             } else {
-                com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
-                    stationId = stationId,
-                    lineId = targetLineId,
-                    nowOverride = nowLondon
-                )
+                // Authoritative timetable crosscheck confirms regular service is operating normally
+                // and last train is > 90 minutes away (and Night Tube is NOT active at this station).
+                null
             }
         } catch (_: Exception) {
             return com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
                 stationId = stationId,
-                lineId = lineId
+                lineId = lineId,
+                nowOverride = nowOverride
             )
         }
     }
@@ -151,12 +249,6 @@ class TimetableScheduleResolver(
     /**
      * Resolves the scheduled outbound destination, destination NaPTAN ID, and scheduled departure epoch time
      * from the line timetable by matching the earliest physically possible outbound departure time.
-     *
-     * @param stationId The station stopPointId (e.g. "940GZZLUMHL")
-     * @param lineId Line identifier (e.g. "northern")
-     * @param departureEpochSeconds The estimated departure timestamp in epoch seconds (UTC)
-     * @param earliestDepartureEpochSeconds Optional floor timestamp (e.g. arrival + minimum stepping-back dwell)
-     *                                      so an inbound train never matches a previous departure that already left.
      */
     suspend fun resolveScheduledDeparture(
         stationId: String,
@@ -190,9 +282,9 @@ class TimetableScheduleResolver(
                 val schedule = route.schedules.firstOrNull { sched ->
                     val name = sched.name.lowercase()
                     when (targetDayOfWeek) {
-                        java.time.DayOfWeek.SATURDAY -> name.contains("saturday")
-                        java.time.DayOfWeek.SUNDAY -> name.contains("sunday")
-                        java.time.DayOfWeek.FRIDAY -> name.contains("friday") && !name.contains("good friday")
+                        DayOfWeek.SATURDAY -> name.contains("saturday")
+                        DayOfWeek.SUNDAY -> name.contains("sunday")
+                        DayOfWeek.FRIDAY -> name.contains("friday") && !name.contains("good friday")
                         else -> name.contains("monday") || name.contains("mon")
                     }
                 } ?: route.schedules.first()
@@ -206,8 +298,6 @@ class TimetableScheduleResolver(
 
             if (candidates.isEmpty()) return null
 
-            // Prefer the earliest upcoming scheduled departure at or after (earliestMinutes - 1 min tolerance)
-            // within a 20-minute turnaround window; otherwise fall back to closest within ±15 minutes.
             val matchedCandidate = if (earliestMinutes != null) {
                 candidates
                     .filter { it.normalizedMinutes in (earliestMinutes - 1)..(earliestMinutes + 20) }

@@ -106,4 +106,15 @@ interface TflApiService {
         @Path("id") lineId: String,
         @Path("fromStopPointId") fromStopPointId: String
     ): com.androidfung.departureboard.data.model.gb.TflTimetableResponse
+
+    /**
+     * Fetches disambiguated directional timetable for a line from [fromStopPointId] to [toStopPointId].
+     */
+    @GET("Line/{id}/Timetable/{fromStopPointId}/to/{toStopPointId}")
+    suspend fun getLineTimetableTo(
+        @Path("id") lineId: String,
+        @Path("fromStopPointId") fromStopPointId: String,
+        @Path("toStopPointId") toStopPointId: String
+    ): com.androidfung.departureboard.data.model.gb.TflTimetableResponse =
+        getLineTimetable(lineId, fromStopPointId)
 }

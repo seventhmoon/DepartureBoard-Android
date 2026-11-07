@@ -28,7 +28,93 @@ object LastTrainServiceCalculator {
         "piccadilly",
         "victoria",
         "windrush",
-        "london-overground"
+        "london-overground",
+        "overground"
+    )
+
+    /**
+     * Northern line stations that do NOT receive Night Tube service:
+     * - Mill Hill East single-track branch
+     * - Bank branch (Angel, Old Street, Moorgate, Bank, London Bridge, Borough, Elephant & Castle)
+     * - Battersea Power Station extension (Nine Elms, Battersea Power Station)
+     */
+    private val NORTHERN_NON_NIGHT_TUBE_STATIONS = setOf(
+        "940GZZLUMHL", "MHL", "MHE", // Mill Hill East
+        "940GZZLUAGL", "ANG",        // Angel
+        "940GZZLUODS", "OLD",        // Old Street
+        "940GZZLUMGT", "MGT",        // Moorgate
+        "940GZZLUBNK", "HUBBAN", "BNK", // Bank
+        "940GZZLULNB", "HUBLBG", "LBG", // London Bridge
+        "940GZZLUBOR", "BOR",        // Borough
+        "940GZZLUEAC", "940GZZLUEHA", "EAC", // Elephant & Castle
+        "940GZZLUNEL", "NEL",        // Nine Elms
+        "940GZZBPSUST", "940GZZLUBPS", "BPS" // Battersea Power Station
+    )
+
+    /**
+     * Central line stations that do NOT receive Night Tube service:
+     * - West Ruislip branch west of North Acton (West Acton -> West Ruislip)
+     * - Hainault loop via Chigwell (Roding Valley, Chigwell, Grange Hill)
+     * - Epping section north of Loughton (Debden, Theydon Bois, Epping)
+     */
+    private val CENTRAL_NON_NIGHT_TUBE_STATIONS = setOf(
+        "940GZZLUWAC", "WAC", // West Acton
+        "940GZZLUHGR", "HGR", // Hanger Lane
+        "940GZZLUPVL", "PVL", // Perivale
+        "940GZZLUGFD", "GFD", // Greenford
+        "940GZZLUNHT", "NHT", // Northolt
+        "940GZZLUSRP", "SRP", // South Ruislip
+        "940GZZLURSG", "RSG", // Ruislip Gardens
+        "940GZZLUWRP", "WRP", // West Ruislip
+        "940GZZLURVY", "RVY", // Roding Valley
+        "940GZZLUCWL", "CWL", // Chigwell
+        "940GZZLUGGH", "GGH", // Grange Hill
+        "940GZZLUDBD", "DBD", // Debden
+        "940GZZLUTHB", "THB", // Theydon Bois
+        "940GZZLUEPG", "EPG"  // Epping
+    )
+
+    /**
+     * Piccadilly line stations that do NOT receive Night Tube service:
+     * - Heathrow Terminal 4 loop
+     * - Uxbridge branch west of Acton Town (Ealing Common -> Uxbridge)
+     */
+    private val PICCADILLY_NON_NIGHT_TUBE_STATIONS = setOf(
+        "940GZZLUHR4", "HR4", // Heathrow Terminal 4
+        "940GZZLUECM", "ECM", // Ealing Common
+        "940GZZLUNEN", "NEN", // North Ealing
+        "940GZZLUPKR", "PKR", // Park Royal
+        "940GZZLUALP", "ALP", // Alperton
+        "940GZZLUSUT", "SUT", // Sudbury Town
+        "940GZZLUSUH", "SUH", // Sudbury Hill
+        "940GZZLUSHH", "SHH", // South Harrow
+        "940GZZLURYL", "RYL", // Rayners Lane
+        "940GZZLUEAE", "EAE", // Eastcote
+        "940GZZLURSM", "RSM", // Ruislip Manor
+        "940GZZLURSP", "RSP", // Ruislip
+        "940GZZLUICK", "ICK", // Ickenham
+        "940GZZLUHGD", "HGD", // Hillingdon
+        "940GZZLUUXB", "UXB"  // Uxbridge
+    )
+
+    /**
+     * London Overground (Windrush line) Night Service ONLY operates between
+     * Highbury & Islington and New Cross Gate.
+     */
+    private val OVERGROUND_NIGHT_SERVICE_STATIONS = setOf(
+        "910GHGHI", "940GZZLUHBY", "HBY",    // Highbury & Islington
+        "910GCNNB", "CNN",                   // Canonbury
+        "910GDALS", "DLJ",                   // Dalston Junction
+        "910GHAGG", "HGG",                   // Haggerston
+        "910GHOXT", "HOX",                   // Hoxton
+        "910GSHRDHST", "SDC",                // Shoreditch High Street
+        "910GWCHAPEL", "940GZZLUWPL", "WPL", // Whitechapel
+        "910GSHADWEL", "SDE",                // Shadwell
+        "910GWAPPING", "WPE",                // Wapping
+        "910GRTHERHI", "ROE",                // Rotherhithe
+        "910GCANADAW", "940GZZLUCWR", "HUBCAW", "CWR", // Canada Water
+        "910GSURREYQ", "SQE",                // Surrey Quays
+        "910GNWCRELL", "NXG"                 // New Cross Gate
     )
 
     private val NIGHT_BUS_REGEX = Regex("""^(?:N|NA)\d+[A-Z]?$""", RegexOption.IGNORE_CASE)
@@ -45,6 +131,36 @@ object LastTrainServiceCalculator {
         "SIL" to ("01:05" to "06:00"),
         "DRL" to ("00:40" to "06:15")
     )
+
+    /**
+     * Checks whether a specific GB station and line actually receives Friday/Saturday Night Tube
+     * or Night Overground service.
+     */
+    fun isGbNightTubeStation(stationId: String, lineId: String?): Boolean {
+        val cleanLine = lineId?.trim()?.lowercase() ?: return false
+        if (!GB_NIGHT_TUBE_LINES.contains(cleanLine)) return false
+
+        val upperStation = stationId.trim().uppercase()
+        val shortCode = if (upperStation.startsWith("940GZZLU") && upperStation.length >= 11) {
+            upperStation.substring(8)
+        } else {
+            upperStation
+        }
+
+        return when (cleanLine) {
+            "victoria", "jubilee" -> true
+            "northern" -> upperStation !in NORTHERN_NON_NIGHT_TUBE_STATIONS &&
+                shortCode !in NORTHERN_NON_NIGHT_TUBE_STATIONS
+            "central" -> upperStation !in CENTRAL_NON_NIGHT_TUBE_STATIONS &&
+                shortCode !in CENTRAL_NON_NIGHT_TUBE_STATIONS
+            "piccadilly" -> upperStation !in PICCADILLY_NON_NIGHT_TUBE_STATIONS &&
+                shortCode !in PICCADILLY_NON_NIGHT_TUBE_STATIONS
+            "windrush", "london-overground", "overground" ->
+                upperStation in OVERGROUND_NIGHT_SERVICE_STATIONS ||
+                    shortCode in OVERGROUND_NIGHT_SERVICE_STATIONS
+            else -> false
+        }
+    }
 
     /**
      * Evaluates service hours, approaching last-train countdown, or active night service
@@ -68,15 +184,14 @@ object LastTrainServiceCalculator {
         )
 
         val isWeekendNight = isWeekendServiceNight(now)
-        val isNightTubeLine = region == TransitRegion.GB &&
+        val isNightTubeStationAndLine = region == TransitRegion.GB &&
             isWeekendNight &&
-            candidateLineId != null &&
-            GB_NIGHT_TUBE_LINES.contains(candidateLineId.lowercase())
+            isGbNightTubeStation(stationId, candidateLineId)
 
         val hasNightBus = departures.any { isNightBusRoute(it.lineId) || isNightBusRoute(it.lineName) }
-        val isNightHours = now.hour in 0..4 || now.hour == 23
+        val isNightHours = now.hour in 0..4 || (now.hour == 23 && now.minute >= 30)
 
-        if ((isNightTubeLine || hasNightBus) && isNightHours) {
+        if ((isNightTubeStationAndLine || hasNightBus) && isNightHours) {
             return StationServiceHoursInfo(
                 isClosedForNight = false,
                 lastTrainTime = defaultLastTrain,
@@ -142,21 +257,29 @@ object LastTrainServiceCalculator {
     /**
      * Enriches a list of [Departure] items with [Departure.isLastTrain] and [Departure.isNightService] flags,
      * and returns the station's [StationServiceHoursInfo] if in late-night / approaching-last-train hours.
+     *
+     * @param timetableChecked When true, [existingServiceHours] comes from an authoritative timetable
+     *                         safety-net check (where `null` means normal daytime/evening service verified by timetable).
      */
     fun enrichDeparturesAndServiceHours(
         station: Station,
         departures: List<Departure>,
         existingServiceHours: StationServiceHoursInfo? = null,
-        nowOverride: ZonedDateTime? = null
+        nowOverride: ZonedDateTime? = null,
+        timetableChecked: Boolean = false
     ): Pair<List<Departure>, StationServiceHoursInfo?> {
         val region = TransitRegion.fromStationId(station.id)
         val now = nowOverride ?: ZonedDateTime.now(region.timeZone)
-        val serviceHours = existingServiceHours ?: evaluateServiceHours(
-            stationId = station.id,
-            lineId = station.lines.firstOrNull()?.id ?: departures.firstOrNull()?.lineId,
-            departures = departures,
-            nowOverride = now
-        )
+        val serviceHours = if (timetableChecked) {
+            existingServiceHours
+        } else {
+            existingServiceHours ?: evaluateServiceHours(
+                stationId = station.id,
+                lineId = station.lines.firstOrNull()?.id ?: departures.firstOrNull()?.lineId,
+                departures = departures,
+                nowOverride = now
+            )
+        }
 
         if (departures.isEmpty()) {
             return emptyList<Departure>() to serviceHours
@@ -182,12 +305,19 @@ object LastTrainServiceCalculator {
             emptySet()
         }
 
+        val nightServiceAllowedByTimetable = if (timetableChecked) {
+            serviceHours?.isNightServiceActive == true
+        } else {
+            true
+        }
+
         val enriched = departures.map { dep ->
             val nightBus = isNightBusRoute(dep.lineId) || isNightBusRoute(dep.lineName)
-            val nightTube = region == TransitRegion.GB &&
+            val nightTube = nightServiceAllowedByTimetable &&
+                region == TransitRegion.GB &&
                 isWeekendNight &&
                 isLateNightServiceWindow &&
-                GB_NIGHT_TUBE_LINES.contains(dep.lineId.lowercase())
+                isGbNightTubeStation(station.id, dep.lineId)
 
             val isNight = dep.isNightService || nightBus || nightTube
             val isLast = dep.isLastTrain || (!isNight && lastDepartureIds.contains(dep.id))

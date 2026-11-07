@@ -57,7 +57,7 @@ data class TflKnownJourney(
         get() = (hour.toIntOrNull() ?: 0) * 60 + (minute.toIntOrNull() ?: 0)
     
     val formattedTime: String
-        get() = "%02d:%02d".format(hour.toIntOrNull() ?: 0, minute.toIntOrNull() ?: 0)
+        get() = "%02d:%02d".format((hour.toIntOrNull() ?: 0) % 24, minute.toIntOrNull() ?: 0)
 }
 
 @JsonClass(generateAdapter = true)

@@ -336,14 +336,15 @@ class DashboardViewModel @JvmOverloads constructor(
             val departuresDeferred = async { repository.getDepartures(station.id, station.name) }
             val lineStatuses = lineStatusesDeferred.await()
             val result = departuresDeferred.await()
+            val verifiedPair = if (result.isSuccess) {
+                resolveVerifiedServiceHours(station, result.getOrDefault(emptyList()))
+            } else null
 
             _uiState.update { state ->
                 val updatedCards = state.stationCards.map { card ->
                     if (card.station.id == station.id) {
-                        if (result.isSuccess) {
-                            val rawDepartures = result.getOrDefault(emptyList())
-                            val (departures, serviceHours) = com.androidfung.departureboard.util.LastTrainServiceCalculator
-                                .enrichDeparturesAndServiceHours(card.station, rawDepartures)
+                        if (result.isSuccess && verifiedPair != null) {
+                            val (departures, serviceHours) = verifiedPair
                             val badges = StationBadgeSynthesizer.buildStationLineBadges(card.station, departures, lineStatuses)
                             card.copy(
                                 departures = departures,
@@ -384,20 +385,57 @@ class DashboardViewModel @JvmOverloads constructor(
         return repository.getCallingPoints(departure)
     }
 
+    private suspend fun resolveVerifiedServiceHours(
+        station: Station,
+        departures: List<Departure>
+    ): Pair<List<Departure>, com.androidfung.departureboard.data.model.StationServiceHoursInfo?> {
+        val region = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(station.id)
+        val nowHour = java.time.ZonedDateTime.now(region.timeZone).hour
+        val isLateNightOrEarlyMorning = nowHour >= 22 || nowHour < 6
+        val candidateLineId = departures.firstOrNull { !it.isBus }?.lineId
+            ?: station.lines.firstOrNull()?.id
+            ?: departures.firstOrNull()?.lineId
+
+        return if (departures.isEmpty() || isLateNightOrEarlyMorning) {
+            val apiServiceHours = try {
+                repository.checkStationServiceHours(station.id, candidateLineId)
+            } catch (_: Exception) {
+                null
+            }
+            com.androidfung.departureboard.util.LastTrainServiceCalculator.enrichDeparturesAndServiceHours(
+                station = station,
+                departures = departures,
+                existingServiceHours = apiServiceHours,
+                timetableChecked = true
+            )
+        } else {
+            com.androidfung.departureboard.util.LastTrainServiceCalculator.enrichDeparturesAndServiceHours(
+                station = station,
+                departures = departures
+            )
+        }
+    }
+
     private suspend fun refreshDeparturesForStations(stations: List<Station>) {
         val lineStatusesDeferred = viewModelScope.async { repository.getLineStatuses() }
         val batchDeparturesDeferred = viewModelScope.async { repository.getBatchDepartures(stations) }
 
         val lineStatuses = lineStatusesDeferred.await()
         val results = batchDeparturesDeferred.await()
+        val stationsById = stations.associateBy { it.id }
+        val verifiedByStationId = results.mapNotNull { (stationId, res) ->
+            val st = stationsById[stationId] ?: _uiState.value.stationCards.firstOrNull { it.station.id == stationId }?.station
+            if (res.isSuccess && st != null) {
+                stationId to resolveVerifiedServiceHours(st, res.getOrDefault(emptyList()))
+            } else null
+        }.toMap()
 
         _uiState.update { state ->
             val updatedCards = state.stationCards.map { card ->
                 val res = results[card.station.id]
-                if (res != null && res.isSuccess) {
-                    val rawDepartures = res.getOrDefault(emptyList())
-                    val (departures, serviceHours) = com.androidfung.departureboard.util.LastTrainServiceCalculator
-                        .enrichDeparturesAndServiceHours(card.station, rawDepartures)
+                val verified = verifiedByStationId[card.station.id]
+                if (res != null && res.isSuccess && verified != null) {
+                    val (departures, serviceHours) = verified
                     val badgesWithStatus = StationBadgeSynthesizer.buildStationLineBadges(card.station, departures, lineStatuses)
 
                     card.copy(
@@ -652,14 +690,8 @@ class DashboardViewModel @JvmOverloads constructor(
                 rawDepartures
             }
 
-            // Check whether the station is closed for the night or approaching last train
-            val apiServiceHours = if (freshDepartures.isEmpty()) {
-                repository.checkStationServiceHours(station.id)
-            } else {
-                null
-            }
-            val (enrichedDepartures, serviceHours) = com.androidfung.departureboard.util.LastTrainServiceCalculator
-                .enrichDeparturesAndServiceHours(station, freshDepartures, apiServiceHours)
+            // Check whether the station is closed for the night, approaching last train, or verified Night Tube
+            val (enrichedDepartures, serviceHours) = resolveVerifiedServiceHours(station, freshDepartures)
 
             _uiState.update { state ->
                 // Update detail sheet
