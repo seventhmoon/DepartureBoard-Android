@@ -53,7 +53,7 @@
             android:strokeWidth="1.2"
             android:strokeColor="#48FFFFFF" />
 
-        <!-- Top Transit Line Color Strip (TfL Red + Blue + Amber) -->
+        <!-- Top Transit Line Color Strip (TfL Red + Blue) -->
         <path
             android:fillColor="#E32017"
             android:pathData="M88,98L124,98A2,2 0 0,1 126,100A2,2 0 0,1 124,102L88,102A2,2 0 0,1 86,100A2,2 0 0,1 88,98Z" />
@@ -74,13 +74,11 @@
                 android:pathData="M196,100m-2.5,0a2.5,2.5 0 1,1 5,0a2.5,2.5 0 1,1 -5,0" />
         </group>
 
-        <!-- ==================== LEFT SPLIT-FLAP DRUM (TRAIN / '0') ==================== -->
-        <!-- Recessed Drum Cavity -->
+        <!-- ==================== LEFT SPLIT-FLAP DRUM (MATERIAL SUBWAY ICON) ==================== -->
         <path
             android:fillColor="#060911"
             android:pathData="M92,108L134,108A6,6 0 0,1 140,114L140,182A6,6 0 0,1 134,188L92,188A6,6 0 0,1 86,182L86,114A6,6 0 0,1 92,108Z" />
 
-        <!-- Flap Card Surface -->
         <path android:pathData="M94,111L132,111A4,4 0 0,1 136,115L136,181A4,4 0 0,1 132,185L94,185A4,4 0 0,1 90,181L90,115A4,4 0 0,1 94,111Z">
             <aapt:attr name="android:fillColor">
                 <gradient
@@ -97,11 +95,16 @@
             </aapt:attr>
         </path>
 
-        <!-- Bold Amber Split-Flap Digit '0' -->
-        <path
-            android:pathData="M113,124A13,13 0 0,1 126,137L126,159A13,13 0 0,1 100,159L100,137A13,13 0 0,1 113,124Z"
-            android:strokeWidth="7.5"
-            android:strokeColor="#FFCA28" />
+        <!-- Material Symbols Outlined Subway Icon on Left Flap -->
+        <group
+            android:translateX="93.8"
+            android:translateY="128.8"
+            android:scaleX="1.6"
+            android:scaleY="1.6">
+            <path
+                android:fillColor="#FFCA28"
+                android:pathData="M2,22V8.85Q2,6.72 3.1,5.16T6.2,2.8Q7.55,2.27 9.08,2.14T12,2t2.93,0.14T17.8,2.8q2,0.8 3.1,2.36T22,8.85V22H2Zm7.1-2h5.75l-1.5-1.5H10.6L9.1,20ZM7.5,13h9V9h-9v4Zm8.71,3.21q0.29-0.29 0.29-0.71t-0.29-0.71T15.5,14.5t-0.71,0.29T14.5,15.5t0.29,0.71T15.5,16.5t0.71-0.29Zm-7,0Q9.5,15.93 9.5,15.5T9.21,14.79T8.5,14.5q-0.42,0-0.71,0.29T7.5,15.5t0.29,0.71T8.5,16.5q0.43,0 0.71-0.29ZM4,20H7.5V19.5l1.05-1.05q-1.1-0.15-1.83-0.99Q6,16.63 6,15.5V9Q6,7.05 7.86,6.52T12,6q2.5,0 4.25,0.52T18,9v6.5q0,1.13-0.72,1.96t-1.83,0.99L16.5,19.5V20H20V8.85q0-1.5-0.74-2.56T17.05,4.65q-1.1-0.43-2.44-0.54T12,4T9.39,4.11T6.95,4.65Q5.48,5.22 4.74,6.29T4,8.85V20Z" />
+        </group>
 
         <!-- Mechanical Horizontal Split Gap & Hinge Pins (Left Drum) -->
         <path
@@ -112,12 +115,10 @@
             android:pathData="M87,145L91,145L91,151L87,151ZM135,145L139,145L139,151L135,151Z" />
 
         <!-- ==================== RIGHT SPLIT-FLAP DRUM (FLIPPING '2') ==================== -->
-        <!-- Recessed Drum Cavity -->
         <path
             android:fillColor="#060911"
             android:pathData="M154,108L196,108A6,6 0 0,1 202,114L202,182A6,6 0 0,1 196,188L154,188A6,6 0 0,1 148,182L148,114A6,6 0 0,1 154,108Z" />
 
-        <!-- Animated Flipping Card Group -->
         <group
             android:name="flap_card"
             android:pivotX="175"
@@ -138,7 +139,6 @@
                 </aapt:attr>
             </path>
 
-            <!-- Bold Amber Split-Flap Digit '2' -->
             <path
                 android:pathData="M162,135A13,12 0 1,1 188,136C188,146 162,156 162,171L189,171"
                 android:strokeWidth="7.5"
@@ -147,7 +147,6 @@
                 android:strokeColor="#FFB300" />
         </group>
 
-        <!-- Mechanical Horizontal Split Gap & Hinge Pins (Right Drum) -->
         <path
             android:fillColor="#060911"
             android:pathData="M148,146.8L202,146.8L202,149.2L148,149.2Z" />

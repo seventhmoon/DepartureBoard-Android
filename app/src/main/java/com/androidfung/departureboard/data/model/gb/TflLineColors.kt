@@ -58,6 +58,15 @@ object TflLineColors {
     )
 
     /**
+     * Checks if a line ID or mode name belongs to London Underground (Tube).
+     */
+    fun isTube(lineId: String?, modeName: String?): Boolean {
+        val normMode = modeName?.lowercase()?.trim()
+        val normLine = lineId?.lowercase()?.trim()
+        return normMode == TransitMode.METRO.id || normMode == "tube" || normLine in TUBE_LINE_IDS
+    }
+
+    /**
      * Resolves the badge styling for a given line ID and/or mode name.
      */
     fun getLineBadge(lineId: String?, lineName: String?, modeName: String?): LineBadgeInfo {

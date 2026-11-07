@@ -26,24 +26,20 @@
         android:name="signal_ring"
         android:pivotX="144"
         android:pivotY="144">
-        <!-- Outer Transit Tunnel Ring -->
         <path
             android:pathData="M144,144m-66,0a66,66 0 1,1 132,0a66,66 0 1,1 -132,0"
             android:strokeWidth="4.5"
             android:strokeColor="#2A3B5C" />
-        <!-- Top Amber Signal Arc -->
         <path
             android:pathData="M97,97A66,66 0 0,1 191,97"
             android:strokeWidth="5.0"
             android:strokeLineCap="round"
             android:strokeColor="#FFB300" />
-        <!-- Left Red Line Arc -->
         <path
             android:pathData="M80,162A66,66 0 0,1 90,106"
             android:strokeWidth="5.0"
             android:strokeLineCap="round"
             android:strokeColor="#E32017" />
-        <!-- Right Blue Line Arc -->
         <path
             android:pathData="M198,106A66,66 0 0,1 208,162"
             android:strokeWidth="5.0"
@@ -56,89 +52,47 @@
         android:pivotX="144"
         android:pivotY="144">
 
-        <!-- Perspective Railway Sleepers & Dual Rails -->
-        <path
-            android:pathData="M114,194L174,194M119,186L169,186"
-            android:strokeWidth="3.0"
-            android:strokeLineCap="round"
-            android:strokeColor="#475569" />
-        <path
-            android:pathData="M124,178L108,202M164,178L180,202"
-            android:strokeWidth="3.5"
-            android:strokeLineCap="round"
-            android:strokeColor="#94A3B8" />
-
-        <!-- Train Shadow -->
-        <path
-            android:fillColor="#66000000"
-            android:pathData="M114,176L174,176L180,185L108,185Z" />
-
-        <!-- Aerodynamic Train Body Shell -->
-        <path android:pathData="M124,94L164,94A18,18 0 0,1 182,112L185,164A14,14 0 0,1 171,178L117,178A14,14 0 0,1 103,164L106,112A18,18 0 0,1 124,94Z">
+        <!-- Inner Dark Medallion -->
+        <path android:pathData="M144,144m-54,0a54,54 0 1,1 108,0a54,54 0 1,1 -108,0">
             <aapt:attr name="android:fillColor">
                 <gradient
-                    android:startX="103"
-                    android:startY="94"
-                    android:endX="185"
-                    android:endY="178"
+                    android:startX="96"
+                    android:startY="96"
+                    android:endX="192"
+                    android:endY="192"
                     android:type="linear">
-                    <item android:offset="0.0" android:color="#F1F5F9" />
-                    <item android:offset="0.55" android:color="#CBD5E1" />
-                    <item android:offset="1.0" android:color="#64748B" />
+                    <item android:offset="0.0" android:color="#1E293B" />
+                    <item android:offset="1.0" android:color="#090D16" />
                 </gradient>
             </aapt:attr>
         </path>
 
-        <!-- Crimson Express Livery Nose Band -->
-        <path
-            android:fillColor="#E32017"
-            android:pathData="M104,150L184,150L185,161L103,161Z" />
-        <!-- Corporate Navy Skirt -->
-        <path
-            android:fillColor="#0019A8"
-            android:pathData="M103,161L185,161L184,166A12,12 0 0,1 172,178L116,178A12,12 0 0,1 104,166Z" />
+        <!-- Official Google Material Symbols Outlined: subway (Centered & Scaled) -->
+        <group
+            android:translateX="106.8"
+            android:translateY="104.8"
+            android:scaleX="3.1"
+            android:scaleY="3.1">
+            <path
+                android:fillColor="#F8FAFC"
+                android:pathData="M2,22V8.85Q2,6.72 3.1,5.16T6.2,2.8Q7.55,2.27 9.08,2.14T12,2t2.93,0.14T17.8,2.8q2,0.8 3.1,2.36T22,8.85V22H2Zm7.1-2h5.75l-1.5-1.5H10.6L9.1,20ZM7.5,13h9V9h-9v4Zm8.71,3.21q0.29-0.29 0.29-0.71t-0.29-0.71T15.5,14.5t-0.71,0.29T14.5,15.5t0.29,0.71T15.5,16.5t0.71-0.29Zm-7,0Q9.5,15.93 9.5,15.5T9.21,14.79T8.5,14.5q-0.42,0-0.71,0.29T7.5,15.5t0.29,0.71T8.5,16.5q0.43,0 0.71-0.29ZM4,20H7.5V19.5l1.05-1.05q-1.1-0.15-1.83-0.99Q6,16.63 6,15.5V9Q6,7.05 7.86,6.52T12,6q2.5,0 4.25,0.52T18,9v6.5q0,1.13-0.72,1.96t-1.83,0.99L16.5,19.5V20H20V8.85q0-1.5-0.74-2.56T17.05,4.65q-1.1-0.43-2.44-0.54T12,4T9.39,4.11T6.95,4.65Q5.48,5.22 4.74,6.29T4,8.85V20Z" />
+        </group>
 
-        <!-- Panoramic Dark Cab Windscreen + Destination Headcode Box -->
-        <path
-            android:fillColor="#0B111E"
-            android:pathData="M124,100L164,100A12,12 0 0,1 176,112L177,142A6,6 0 0,1 171,148L117,148A6,6 0 0,1 111,142L112,112A12,12 0 0,1 124,100Z" />
-
-        <!-- Overhead Amber LED Destination Display in Cab ("DUE") -->
-        <path
-            android:fillColor="#162032"
-            android:pathData="M126,104L162,104A4,4 0 0,1 166,108L166,114A4,4 0 0,1 162,118L126,118A4,4 0 0,1 122,114L122,108A4,4 0 0,1 126,104Z" />
-        <!-- Amber LED Matrix Bar & Green Beacon inside Headcode -->
-        <path
-            android:fillColor="#00E676"
-            android:pathData="M128,111m-2.5,0a2.5,2.5 0 1,1 5,0a2.5,2.5 0 1,1 -5,0" />
-        <path
-            android:fillColor="#FFCA28"
-            android:pathData="M135,109L160,109A2,2 0 0,1 162,111A2,2 0 0,1 160,113L135,113A2,2 0 0,1 133,111A2,2 0 0,1 135,109Z" />
-
-        <!-- Windscreen Glass Reflection Slash -->
-        <path
-            android:fillColor="#22FFFFFF"
-            android:pathData="M118,122L136,122L126,144L114,144Z" />
-
-        <!-- Pulsing Twin LED Headlights -->
+        <!-- Glowing Twin Amber Headlight Accents on the Material Subway Icon -->
         <group
             android:name="live_beacon"
             android:pivotX="144"
-            android:pivotY="167">
-            <!-- Left Headlight Halo & Core -->
+            android:pivotY="153">
             <path
-                android:fillColor="#44FFE082"
-                android:pathData="M118,167m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" />
+                android:fillColor="#55FFB300"
+                android:pathData="M133.1,152.8m-5.5,0a5.5,5.5 0 1,1 11,0a5.5,5.5 0 1,1 -11,0M154.9,152.8m-5.5,0a5.5,5.5 0 1,1 11,0a5.5,5.5 0 1,1 -11,0" />
             <path
-                android:fillColor="#FFFFFF"
-                android:pathData="M118,167m-3.8,0a3.8,3.8 0 1,1 7.6,0a3.8,3.8 0 1,1 -7.6,0" />
-            <!-- Right Headlight Halo & Core -->
+                android:fillColor="#FFCA28"
+                android:pathData="M133.1,152.8m-2.8,0a2.8,2.8 0 1,1 5.6,0a2.8,2.8 0 1,1 -5.6,0M154.9,152.8m-2.8,0a2.8,2.8 0 1,1 5.6,0a2.8,2.8 0 1,1 -5.6,0" />
+            <!-- Emerald Live Dot Badge at Bottom of Roundel -->
             <path
-                android:fillColor="#44FFE082"
-                android:pathData="M170,167m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" />
-            <path
-                android:fillColor="#FFFFFF"
-                android:pathData="M170,167m-3.8,0a3.8,3.8 0 1,1 7.6,0a3.8,3.8 0 1,1 -7.6,0" />
+                android:fillColor="#00E676"
+                android:pathData="M144,186m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0" />
         </group>
 
     </group>

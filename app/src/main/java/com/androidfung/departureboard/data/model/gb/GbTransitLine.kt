@@ -33,7 +33,7 @@ enum class GbTransitLine(
         "H&C",
         TflLineColors.HammersmithAndCity,
         TflLineColors.DarkText,
-        aliases = setOf("hammersmith", "hammersmith & city", "hammersmith and city")
+        aliases = setOf("hammersmith", "hammersmith & city", "hammersmith and city", "h&c")
     ),
     JUBILEE("jubilee", "Jubilee", "JUB", TflLineColors.Jubilee),
     METROPOLITAN("metropolitan", "Metropolitan", "MET", TflLineColors.Metropolitan),
@@ -56,7 +56,7 @@ enum class GbTransitLine(
         "W&C",
         TflLineColors.WaterlooAndCity,
         TflLineColors.DarkText,
-        aliases = setOf("waterloo", "waterloo & city", "waterloo and city")
+        aliases = setOf("waterloo", "waterloo & city", "waterloo and city", "w&c")
     ),
 
     // Elizabeth line
@@ -67,12 +67,12 @@ enum class GbTransitLine(
         TflLineColors.ElizabethLine,
         TflLineColors.LightText,
         TransitMode.RAIL,
-        aliases = setOf("elizabeth", "elizabeth line")
+        aliases = setOf("elizabeth", "elizabeth line", "xr")
     ),
 
     // London Overground (6 named lines + generic)
     LIBERTY("liberty", "Liberty", "LIB", TflLineColors.OvergroundLiberty, TflLineColors.LightText, TransitMode.RAIL),
-    LIONESS("lioness", "Lioness", "LIO", TflLineColors.OvergroundLioness, TflLineColors.LightText, TransitMode.RAIL),
+    LIONESS("lioness", "Lioness", "LIO", TflLineColors.OvergroundLioness, TflLineColors.LightText, TransitMode.RAIL, aliases = setOf("lioness")),
     MILDMAY("mildmay", "Mildmay", "MIL", TflLineColors.OvergroundMildmay, TflLineColors.LightText, TransitMode.RAIL),
     SUFFRAGETTE("suffragette", "Suffragette", "SUF", TflLineColors.OvergroundSuffragette, TflLineColors.LightText, TransitMode.RAIL),
     WEAVER("weaver", "Weaver", "WEA", TflLineColors.OvergroundWeaver, TflLineColors.LightText, TransitMode.RAIL),
@@ -84,7 +84,7 @@ enum class GbTransitLine(
         TflLineColors.LondonOverground,
         TflLineColors.LightText,
         TransitMode.RAIL,
-        aliases = setOf("london-overground", "london overground")
+        aliases = setOf("london-overground", "london overground", "nr-lo", "lo")
     ),
 
     // DLR, Tram, Cable Car
@@ -138,6 +138,8 @@ enum class GbTransitLine(
 
     override val localizedNames: Map<String, String> get() = mapOf("en" to lineName)
 
+    val isOverground: Boolean get() = this in OVERGROUND_LINES
+
     fun matches(lineId: String?, lineName: String?): Boolean {
         val normId = lineId?.lowercase()?.trim().orEmpty()
         val normName = lineName?.lowercase()?.trim().orEmpty()
@@ -155,6 +157,10 @@ enum class GbTransitLine(
     }
 
     companion object : TransitLineRegistry {
+        val OVERGROUND_LINES: Set<GbTransitLine> = setOf(
+            LIBERTY, LIONESS, MILDMAY, SUFFRAGETTE, WEAVER, WINDRUSH, OVERGROUND
+        )
+
         override val allLines: Collection<GbTransitLine> get() = entries
 
         override fun fromCode(code: String?): GbTransitLine? {

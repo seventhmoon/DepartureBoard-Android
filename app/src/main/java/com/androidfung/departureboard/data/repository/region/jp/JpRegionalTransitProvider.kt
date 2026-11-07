@@ -32,4 +32,10 @@ object JpRegionalTransitProvider : RegionalTransitProvider {
     override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> {
         return departureSource.fetchDepartures(stationId, stationName, isBusStop = false)
     }
+
+    override suspend fun checkStationServiceHours(
+        stationId: String,
+        lineId: String?
+    ): com.androidfung.departureboard.data.model.StationServiceHoursInfo? =
+        com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(stationId, lineId)
 }

@@ -497,7 +497,9 @@ private fun TrainJourneyContent(
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Text(
-                                text = stringResource(R.string.platform_changed_alert, platformInfo.code, platformInfo.previousPlatform!!),
+                                text = stringResource(R.string.platform_changed_alert, platformInfo.code,
+                                    platformInfo.previousPlatform
+                                ),
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )

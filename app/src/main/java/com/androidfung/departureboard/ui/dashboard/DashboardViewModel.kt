@@ -258,16 +258,19 @@ class DashboardViewModel @JvmOverloads constructor(
                             existing.copy(station = station)
                         } else {
                             val cachedDepartures = repository.getCachedDepartures(station.id)
+                            val (enrichedCached, serviceHours) = com.androidfung.departureboard.util.LastTrainServiceCalculator
+                                .enrichDeparturesAndServiceHours(station, cachedDepartures)
                             StationCardUiModel(
                                 station = station,
-                                departures = cachedDepartures,
-                                availableLineBadges = if (cachedDepartures.isNotEmpty()) {
-                                    cachedDepartures.map { it.lineBadge }.distinctBy { it.displayName }
+                                departures = enrichedCached,
+                                availableLineBadges = if (enrichedCached.isNotEmpty()) {
+                                    enrichedCached.map { it.lineBadge }.distinctBy { it.displayName }
                                 } else {
                                     inferLineBadges(station)
                                 },
-                                isLoading = cachedDepartures.isEmpty(),
-                                distanceMeters = existing?.distanceMeters
+                                isLoading = enrichedCached.isEmpty(),
+                                distanceMeters = existing?.distanceMeters,
+                                serviceHoursInfo = serviceHours
                             )
                         }
                     }
@@ -323,13 +326,16 @@ class DashboardViewModel @JvmOverloads constructor(
                 val updatedCards = state.stationCards.map { card ->
                     if (card.station.id == station.id) {
                         if (result.isSuccess) {
-                            val departures = result.getOrDefault(emptyList())
+                            val rawDepartures = result.getOrDefault(emptyList())
+                            val (departures, serviceHours) = com.androidfung.departureboard.util.LastTrainServiceCalculator
+                                .enrichDeparturesAndServiceHours(card.station, rawDepartures)
                             val badges = StationBadgeSynthesizer.buildStationLineBadges(card.station, departures, lineStatuses)
                             card.copy(
                                 departures = departures,
                                 availableLineBadges = badges,
                                 isLoading = false,
-                                errorMessage = null
+                                errorMessage = null,
+                                serviceHoursInfo = serviceHours
                             )
                         } else {
                             card.copy(
@@ -374,14 +380,17 @@ class DashboardViewModel @JvmOverloads constructor(
             val updatedCards = state.stationCards.map { card ->
                 val res = results[card.station.id]
                 if (res != null && res.isSuccess) {
-                    val departures = res.getOrDefault(emptyList())
+                    val rawDepartures = res.getOrDefault(emptyList())
+                    val (departures, serviceHours) = com.androidfung.departureboard.util.LastTrainServiceCalculator
+                        .enrichDeparturesAndServiceHours(card.station, rawDepartures)
                     val badgesWithStatus = StationBadgeSynthesizer.buildStationLineBadges(card.station, departures, lineStatuses)
 
                     card.copy(
                         departures = departures,
                         availableLineBadges = badgesWithStatus,
                         isLoading = false,
-                        errorMessage = null
+                        errorMessage = null,
+                        serviceHoursInfo = serviceHours
                     )
                 } else {
                     card.copy(
@@ -618,18 +627,20 @@ class DashboardViewModel @JvmOverloads constructor(
                 rawDepartures
             }
 
-            // If no departures returned, check whether the station is closed for the night
-            val serviceHours = if (freshDepartures.isEmpty()) {
+            // Check whether the station is closed for the night or approaching last train
+            val apiServiceHours = if (freshDepartures.isEmpty()) {
                 repository.checkStationServiceHours(station.id)
             } else {
                 null
             }
+            val (enrichedDepartures, serviceHours) = com.androidfung.departureboard.util.LastTrainServiceCalculator
+                .enrichDeparturesAndServiceHours(station, freshDepartures, apiServiceHours)
 
             _uiState.update { state ->
                 // Update detail sheet
                 val updatedState = if (state.selectedDetailStation?.id == station.id) {
                     state.copy(
-                        detailDepartures = freshDepartures,
+                        detailDepartures = enrichedDepartures,
                         isDetailLoading = false,
                         serviceHoursInfo = serviceHours
                     )
@@ -640,12 +651,13 @@ class DashboardViewModel @JvmOverloads constructor(
                 // Also update card in dashboard if present
                 val updatedCards = updatedState.stationCards.map { card ->
                     if (card.station.id == station.id) {
-                        val badgesWithStatus = StationBadgeSynthesizer.buildStationLineBadges(card.station, freshDepartures, lineStatuses)
+                        val badgesWithStatus = StationBadgeSynthesizer.buildStationLineBadges(card.station, enrichedDepartures, lineStatuses)
                         card.copy(
-                            departures = freshDepartures,
+                            departures = enrichedDepartures,
                             availableLineBadges = badgesWithStatus,
                             isLoading = false,
-                            errorMessage = null
+                            errorMessage = null,
+                            serviceHoursInfo = serviceHours
                         )
                     } else card
                 }
@@ -656,6 +668,21 @@ class DashboardViewModel @JvmOverloads constructor(
                 )
             }
         }
+    }
+
+    fun openDeskClock(station: Station? = null) {
+        val targetStation = station
+            ?: _uiState.value.selectedDetailStation
+            ?: _uiState.value.nearestStation?.takeIf { nearest -> _uiState.value.stationCards.any { it.station.id == nearest.id } }
+            ?: _uiState.value.stationCards.firstOrNull()?.station
+            ?: _uiState.value.selectedRegion.defaultStations.firstOrNull()
+        if (targetStation != null) {
+            _uiState.update { it.copy(deskClockStation = targetStation) }
+        }
+    }
+
+    fun closeDeskClock() {
+        _uiState.update { it.copy(deskClockStation = null) }
     }
 
     fun closeStationDetail() {

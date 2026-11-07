@@ -231,8 +231,13 @@ class TransitRepositoryImpl(
     }.flowOn(Dispatchers.IO)
 
     override suspend fun getLineStatuses(): Map<String, TflLineStatusItem> = withContext(Dispatchers.IO) {
-        val gb = providersByRegion[TransitRegion.GB] as? GbRegionalTransitProvider ?: gbRegionalProvider
-        gb.getLineStatuses()
+        val currentRegion = try {
+            dataStore.selectedRegionFlow.first()
+        } catch (_: Exception) {
+            TransitRegion.GB
+        }
+        val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
+        provider.getLineStatuses()
     }
 
     override suspend fun getTransitAlerts(): List<TransitAlert> = withContext(Dispatchers.IO) {

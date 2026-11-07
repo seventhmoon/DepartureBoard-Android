@@ -13,6 +13,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.Image
+import androidx.glance.ImageProvider
+import androidx.glance.ColorFilter
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -237,6 +240,16 @@ class DepartureBoardWidget : GlanceAppWidget() {
                         .cornerRadius(5.dp)
                         .background(indicatorColor)
                 ) {}
+
+                Spacer(modifier = GlanceModifier.width(6.dp))
+
+                val modeIconRes = com.androidfung.departureboard.widget.util.WidgetBitmapUtils.getTransitModeIconRes(station.primaryTransitMode)
+                Image(
+                    provider = ImageProvider(modeIconRes),
+                    contentDescription = station.primaryTransitMode.displayName,
+                    modifier = GlanceModifier.size(16.dp),
+                    colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant)
+                )
 
                 Spacer(modifier = GlanceModifier.width(8.dp))
 

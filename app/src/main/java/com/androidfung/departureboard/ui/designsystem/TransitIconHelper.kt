@@ -21,6 +21,22 @@ import com.androidfung.departureboard.data.model.isBodsTransitId
 object TransitIconHelper {
 
     /**
+     * Resolves an appropriate Material Symbol drawable resource ID for a given strongly-typed [TransitMode].
+     */
+    @androidx.annotation.DrawableRes
+    fun getTransitModeIconRes(mode: TransitMode?): Int = when (mode) {
+        TransitMode.METRO -> com.androidfung.departureboard.R.drawable.ic_subway
+        TransitMode.RAIL -> com.androidfung.departureboard.R.drawable.ic_train
+        TransitMode.BUS -> com.androidfung.departureboard.R.drawable.ic_bus
+        TransitMode.TRAM -> com.androidfung.departureboard.R.drawable.ic_tram
+        TransitMode.FERRY -> com.androidfung.departureboard.R.drawable.ic_ferry
+        TransitMode.CABLE_CAR -> com.androidfung.departureboard.R.drawable.ic_cable_car
+        TransitMode.FUNICULAR -> com.androidfung.departureboard.R.drawable.ic_funicular
+        TransitMode.MONORAIL -> com.androidfung.departureboard.R.drawable.ic_monorail
+        TransitMode.OTHER, null -> com.androidfung.departureboard.R.drawable.ic_train
+    }
+
+    /**
      * Resolves an appropriate Material ImageVector for a given strongly-typed [TransitMode].
      */
     fun getTransitIconForMode(mode: TransitMode?): ImageVector = when (mode) {

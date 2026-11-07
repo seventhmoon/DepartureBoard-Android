@@ -57,7 +57,7 @@ fun StationSearchResultRow(
     modifier: Modifier = Modifier,
     distanceText: String? = null
 ) {
-    val modeIcon = TransitIconHelper.getTransitIconForMode(station.primaryTransitMode)
+    val modeIconRes = TransitIconHelper.getTransitModeIconRes(station.primaryTransitMode)
 
     Surface(
         onClick = onAddClick,
@@ -86,7 +86,7 @@ fun StationSearchResultRow(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = modeIcon,
+                        painter = androidx.compose.ui.res.painterResource(modeIconRes),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)

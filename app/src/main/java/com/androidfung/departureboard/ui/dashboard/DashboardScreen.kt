@@ -25,6 +25,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.DesktopWindows
+import androidx.compose.material.icons.rounded.DevicesFold
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Search
@@ -94,6 +96,7 @@ fun DashboardContent(
     onOpenSettings: () -> Unit = {},
     onOpenDebugSettings: () -> Unit = {},
     onOpenHelpFaq: () -> Unit = {},
+    onOpenDeskClock: () -> Unit = {},
     staggeredGridState: androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState = rememberLazyStaggeredGridState()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -122,6 +125,7 @@ fun DashboardContent(
             TopAppBar(
                 title = {
                     val windowWidthClass = LocalWindowWidthClass.current
+        val windowPosture = com.androidfung.departureboard.ui.theme.LocalWindowPosture.current
                     val isTwoPane = com.androidfung.departureboard.ui.feature.detail.LocalIsTwoPaneMode.current
                     val (titleFontSize, titleLineHeight) = when {
                         isTwoPane -> 20.sp to 24.sp
@@ -285,6 +289,21 @@ fun DashboardContent(
                                 )
 
                                 DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.desk_clock_menu_item)) },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Rounded.DesktopWindows,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onOpenDeskClock()
+                                    }
+                                )
+
+                                DropdownMenuItem(
                                     text = { Text(stringResource(R.string.dashboard_menu_settings)) },
                                     leadingIcon = {
                                         Icon(
@@ -379,6 +398,7 @@ fun DashboardContent(
         }
     ) { innerPadding ->
         val windowWidthClass = LocalWindowWidthClass.current
+        val windowPosture = com.androidfung.departureboard.ui.theme.LocalWindowPosture.current
         val isTwoPane = com.androidfung.departureboard.ui.feature.detail.LocalIsTwoPaneMode.current
         val isThreePane = com.androidfung.departureboard.ui.feature.detail.LocalIsThreePaneMode.current
         val gridColumns = when {
@@ -437,7 +457,7 @@ fun DashboardContent(
                     verticalItemSpacing = 20.dp
                 ) {
                     // Search bar as the first item spanning full line
-                    item(key = "search_bar", span = StaggeredGridItemSpan.FullLine) {
+                    item(key = DashboardItemKeys.SEARCH_BAR, span = StaggeredGridItemSpan.FullLine) {
                         DashboardSearchBar(
                             onClick = onAddStationClick,
                             lastUpdatedTimestamp = uiState.lastUpdatedTimestamp,
@@ -446,8 +466,39 @@ fun DashboardContent(
                         )
                     }
 
+                    // Foldable Tabletop Posture quick-launch banner
+                    if (windowPosture.isTabletop) {
+                        item(key = "tabletop_posture_banner", span = StaggeredGridItemSpan.FullLine) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onOpenDeskClock() }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.DevicesFold,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.desk_clock_tabletop_banner),
+                                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     if (!uiState.isOnline) {
-                        item(key = "offline_banner", span = StaggeredGridItemSpan.FullLine) {
+                        item(key = DashboardItemKeys.OFFLINE_BANNER, span = StaggeredGridItemSpan.FullLine) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
@@ -484,7 +535,7 @@ fun DashboardContent(
                         // Shimmer skeleton cards matching adaptive grid columns during initial load
                         items(
                             count = 4,
-                            key = { "skeleton_$it" },
+                            key = { "${DashboardItemKeys.SKELETON_PREFIX}$it" },
                             contentType = { "skeleton_card" },
                             span = { StaggeredGridItemSpan.SingleLane }
                         ) {
@@ -493,7 +544,7 @@ fun DashboardContent(
                     } else if (uiState.stationCards.isEmpty()) {
                         // Empty state when all stations removed spanning full width
                         item(
-                            key = "empty_state",
+                            key = DashboardItemKeys.EMPTY_STATE,
                             contentType = "empty_state",
                             span = StaggeredGridItemSpan.FullLine
                         ) {

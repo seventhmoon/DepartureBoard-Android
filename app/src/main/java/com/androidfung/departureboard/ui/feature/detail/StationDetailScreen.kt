@@ -40,6 +40,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
+import androidx.compose.material.icons.rounded.DesktopWindows
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Map
@@ -111,7 +112,8 @@ fun StationDetailScreen(
     serviceHoursInfo: com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo? = null,
     isPro: Boolean = false,
     stations: List<Station> = listOf(station),
-    onStationChange: ((Station) -> Unit)? = null
+    onStationChange: ((Station) -> Unit)? = null,
+    onOpenDeskClock: ((Station) -> Unit)? = null
 ) {
     val stationList = remember(stations, station) {
         if (stations.none { it.id == station.id }) {
@@ -138,7 +140,8 @@ fun StationDetailScreen(
             initialSelectedLineId = initialSelectedLineId,
             onDepartureClick = onDepartureClick,
             serviceHoursInfo = serviceHoursInfo,
-            isPro = isPro
+            isPro = isPro,
+            onOpenDeskClock = onOpenDeskClock
         )
     } else {
         val pagerState = androidx.compose.foundation.pager.rememberPagerState(
@@ -191,7 +194,8 @@ fun StationDetailScreen(
                     coroutineScope.launch {
                         pagerState.animateScrollToPage(targetPage)
                     }
-                }
+                },
+                onOpenDeskClock = onOpenDeskClock
             )
         }
     }
@@ -285,9 +289,10 @@ private fun StationDetailContent(
     pageInfo: String? = null,
     pageCount: Int = 1,
     currentPage: Int = 0,
-    onPageClick: ((Int) -> Unit)? = null
+    onPageClick: ((Int) -> Unit)? = null,
+    onOpenDeskClock: ((Station) -> Unit)? = null
 ) {
-    val modeIcon = TransitIconHelper.getTransitIconForMode(station.primaryTransitMode)
+    val modeIconRes = TransitIconHelper.getTransitModeIconRes(station.primaryTransitMode)
 
     // Pulsing animation for live updates badge
     val transition = rememberInfiniteTransition(label = "LivePulseTransition")
@@ -309,7 +314,7 @@ private fun StationDetailContent(
     val distinctStops = remember(departures) {
         departures
             .asSequence()
-            .filter { it.platformName.isNotBlank() && (it.platformName != "Platform") && (it.platformName != "Bus Stand") }
+            .filter { it.hasSpecificPlatform }
             .distinctBy { it.platformName }
             .sortedBy { it.platformName }
             .toList()
@@ -401,7 +406,7 @@ private fun StationDetailContent(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = modeIcon,
+                    painter = androidx.compose.ui.res.painterResource(modeIconRes),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
@@ -583,6 +588,25 @@ private fun StationDetailContent(
                 )
             }
 
+            // Split-Flap Desk Clock Button
+            if (onOpenDeskClock != null) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                        .clickable { onOpenDeskClock(station) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DesktopWindows,
+                        contentDescription = stringResource(R.string.cd_open_desk_clock),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
             // Refresh Departures Button
             Box(
                 modifier = Modifier
@@ -694,7 +718,7 @@ private fun StationDetailContent(
                             )
                         ) {
                             Text(
-                                text = stringResource(R.string.fare_zone_pill, station.zone!!),
+                                text = stringResource(R.string.fare_zone_pill, station.zone),
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -1064,6 +1088,15 @@ private fun StationDetailContent(
                             }
                         }
                     }
+                }
+            }
+
+            // 2.5 Last Train Home / Night Service Banner
+            if (serviceHoursInfo != null && (serviceHoursInfo.isApproachingLastTrain || serviceHoursInfo.isNightServiceActive)) {
+                item(key = "last_train_banner") {
+                    com.androidfung.departureboard.ui.dashboard.LastTrainServiceBanner(
+                        serviceHoursInfo = serviceHoursInfo
+                    )
                 }
             }
 

@@ -81,16 +81,9 @@ class TflCallingPointsResolver(
                 if (stopNameClean.isBlank() || queryClean.isBlank()) return false
                 if (stopNameClean == queryClean) return true
                 // Guard against distinct stations where one name is a substring of another
-                if ((stopNameClean == "edgware" || queryClean == "edgware") &&
-                    (stopNameClean.contains("edgware road") || queryClean.contains("edgware road"))
-                ) return false
-                if ((stopNameClean == "wimbledon" || queryClean == "wimbledon") &&
-                    (stopNameClean.contains("wimbledon park") || queryClean.contains("wimbledon park") ||
-                     stopNameClean.contains("south wimbledon") || queryClean.contains("south wimbledon"))
-                ) return false
-                if ((stopNameClean == "aldgate" || queryClean == "aldgate") &&
-                    (stopNameClean.contains("aldgate east") || queryClean.contains("aldgate east"))
-                ) return false
+                if (StationNameFormatter.isConflictingStationSubstring(stopNameClean, queryClean)) {
+                    return false
+                }
                 return stopNameClean.contains(queryClean) || queryClean.contains(stopNameClean)
             }
 

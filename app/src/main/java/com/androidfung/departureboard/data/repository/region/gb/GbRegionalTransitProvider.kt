@@ -180,7 +180,7 @@ class GbRegionalTransitProvider(
     )
     private val providerScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
 
-    suspend fun getLineStatuses(): Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    override suspend fun getLineStatuses(): Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         lineStatusesCache.getOrPutCoalesced(
             key = "line_statuses",
             scope = providerScope,

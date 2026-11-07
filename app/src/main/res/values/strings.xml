@@ -435,4 +435,29 @@
     <!-- AI Quota Exceeded -->
     <string name="ai_quota_exceeded" tools:ignore="PluralsCandidate">You\'ve reached your limit of %1$d free AI queries today. Upgrade to Pro for unlimited AI prompts, live journey disruption checks, and full calling points.</string>
     <string name="ai_input_placeholder">Ask or speak: “train to Mill Hill East”…</string>
+
+    <!-- Last Train Home & Night Service -->
+    <string name="badge_last_train">🌙 LAST TRAIN</string>
+    <string name="badge_night_service">🦉 NIGHT</string>
+    <string name="last_train_banner_title">🌙 Last Train Home • %1$s</string>
+    <string name="last_train_banner_countdown">Final departure in ~%1$d min</string>
+    <string name="last_train_banner_first_train">First morning service at ~%1$s</string>
+    <string name="night_service_banner_title">🦉 24hr Night Service Active</string>
+    <string name="night_service_banner_subtitle">Overnight services operating</string>
+
+    <!-- Full-Screen Desk Clock / Split-Flap & Tabletop Mode -->
+    <string name="desk_clock_title">Split-Flap Desk Clock</string>
+    <string name="desk_clock_menu_item">Desk Clock / Split-Flap Board</string>
+    <string name="desk_clock_tabletop_banner">Tabletop Posture • Open Split-Flap Desk Clock</string>
+    <string name="desk_clock_style_split_flap">Split-Flap</string>
+    <string name="desk_clock_style_amber_led">Amber LED</string>
+    <string name="desk_clock_style_oled_dark">OLED Matrix</string>
+    <string name="desk_clock_auto_cycle">Auto-Cycle (15s)</string>
+    <string name="desk_clock_tabletop_toggle">Tabletop Deck</string>
+    <string name="desk_clock_dim_mode">Night Dimmer</string>
+    <string name="desk_clock_col_line">LINE</string>
+    <string name="desk_clock_col_destination">DESTINATION</string>
+    <string name="desk_clock_col_platform">PLAT</string>
+    <string name="desk_clock_col_time">TIME</string>
+    <string name="cd_open_desk_clock">Open Split-Flap Desk Clock</string>
 </resources>

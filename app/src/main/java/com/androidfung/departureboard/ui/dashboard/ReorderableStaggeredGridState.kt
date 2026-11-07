@@ -43,7 +43,7 @@ class ReorderableStaggeredGridState(
         } ?: return
 
         // Skip non-station items like header, quick_jump_pills, loading, or empty_state
-        if (hitItem.key == "header" || hitItem.key == "quick_jump_pills" || hitItem.key == "loading" || hitItem.key == "empty_state" || (hitItem.key as? String)?.startsWith("skeleton_") == true) {
+        if (DashboardItemKeys.isNonStationKey(hitItem.key)) {
             return
         }
 
@@ -65,11 +65,7 @@ class ReorderableStaggeredGridState(
 
             val targetItem = staggeredGridState.layoutInfo.visibleItemsInfo.firstOrNull { item ->
                 item.key != draggingKey &&
-                        item.key != "header" &&
-                        item.key != "quick_jump_pills" &&
-                        item.key != "loading" &&
-                        item.key != "empty_state" &&
-                        (item.key as? String)?.startsWith("skeleton_") != true &&
+                        !DashboardItemKeys.isNonStationKey(item.key) &&
                         targetCenterX.toInt() in item.offset.x..(item.offset.x + item.size.width) &&
                         targetCenterY.toInt() in item.offset.y..(item.offset.y + item.size.height)
             }
@@ -80,7 +76,7 @@ class ReorderableStaggeredGridState(
                 val fromGridIndex = currentDraggedItem.index
                 val toGridIndex = targetItem.index
 
-                val headerOffset = if (visibleKeys.any { it.key == "quick_jump_pills" }) 2 else 1
+                val headerOffset = if (visibleKeys.any { it.key == DashboardItemKeys.QUICK_JUMP_PILLS }) 2 else 1
                 val fromStationIndex = fromGridIndex - headerOffset
                 val toStationIndex = toGridIndex - headerOffset
 

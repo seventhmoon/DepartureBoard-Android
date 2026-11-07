@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<?xml version='1.0' encoding='utf-8'?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -10,28 +9,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
-    <application
-        android:name=".DepartureBoardApp"
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.DepartureBoard">
+    <queries><intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.HOME" /></intent></queries><application android:name=".DepartureBoardApp" android:allowBackup="true" android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="@xml/backup_rules" android:icon="@mipmap/ic_launcher" android:label="@string/app_name" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:theme="@style/Theme.DepartureBoard">
 
-        <!-- Google Mobile Ads App ID -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-9890667024752973~3483197359" />
+        
+        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-9890667024752973~3483197359" />
 
-        <activity
-            android:name=".MainActivity"
-            android:label="@string/launcher_name"
-            android:exported="true"
-            android:theme="@style/Theme.DepartureBoard.Starting"
-            android:windowSoftInputMode="adjustResize">
+        <activity android:name=".MainActivity" android:label="@string/launcher_name" android:exported="true" android:theme="@style/Theme.DepartureBoard.Starting" android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -45,70 +28,41 @@
             </intent-filter>
         </activity>
 
-        <!-- Widget Configuration Activity -->
-        <activity
-            android:name=".widget.WidgetConfigurationActivity"
-            android:exported="true"
-            android:theme="@style/Theme.DepartureBoard"
-            android:windowSoftInputMode="adjustResize">
+        
+        <activity android:name=".widget.WidgetConfigurationActivity" android:exported="true" android:theme="@style/Theme.DepartureBoard" android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 
-        <!-- Glance AppWidget Receiver -->
-        <receiver
-            android:name=".widget.DepartureBoardWidgetReceiver"
-            android:exported="true"
-            android:label="@string/widget_name">
+        
+        <receiver android:name=".widget.DepartureBoardWidgetReceiver" android:exported="true" android:label="@string/widget_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/departure_board_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/departure_board_widget_info" />
         </receiver>
 
-        <!-- Live Train Tracking Foreground Service for Live Update Notifications -->
-        <service
-            android:name=".service.TrainTrackingService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Live transit departure countdown tracking for user-selected public transport service." />
+        
+        <service android:name=".service.TrainTrackingService" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Live transit departure countdown tracking for user-selected public transport service." />
         </service>
 
-        <!-- AppFunctions Service -->
-        <service
-            android:name="com.androidfung.departureboard.service.appfunctions.TransitAppFunctionService"
-            android:permission="android.permission.BIND_APP_FUNCTION_SERVICE"
-            android:exported="true"
-            tools:targetApi="36">
-            <property
-                android:name="android.app.appfunctions.schema"
-                android:value="app_functions_schema.xsd" />
-            <property
-                android:name="android.app.appfunctions.v2"
-                android:value="transit_app_function_service.xml" />
+        
+        <service android:name="com.androidfung.departureboard.service.appfunctions.TransitAppFunctionService" android:permission="android.permission.BIND_APP_FUNCTION_SERVICE" android:exported="true" tools:targetApi="36">
+            <property android:name="android.app.appfunctions.schema" android:value="app_functions_schema.xsd" />
+            <property android:name="android.app.appfunctions.v2" android:value="transit_app_function_service.xml" />
             <intent-filter>
                 <action android:name="android.app.appfunctions.AppFunctionService" />
             </intent-filter>
         </service>
 
-        <!-- Service to preserve per-app language on Android 12 and below -->
-        <service
-            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
-            android:enabled="false"
-            android:exported="false">
-            <meta-data
-                android:name="autoStoreLocales"
-                android:value="true" />
+        
+        <service android:name="androidx.appcompat.app.AppLocalesMetadataHolderService" android:enabled="false" android:exported="false">
+            <meta-data android:name="autoStoreLocales" android:value="true" />
         </service>
 
-        <property
-            android:name="android.app.appfunctions.app_metadata"
-            android:resource="@xml/app_metadata" />
-    </application>
+        <property android:name="android.app.appfunctions.app_metadata" android:resource="@xml/app_metadata" />
+    <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" /></provider></application>
 
 </manifest>

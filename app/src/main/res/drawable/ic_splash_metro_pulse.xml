@@ -27,7 +27,7 @@
         android:pivotY="144">
 
         <!-- Dark Circular Watch/Radar Dial Face -->
-        <path android:pathData="M144,144m-66,0a66,66 0 1,1 132,0a66,66 0 1,1 -132,0">
+        <path android:pathData="M144,144m-68,0a68,68 0 1,1 136,0a68,68 0 1,1 -136,0">
             <aapt:attr name="android:fillColor">
                 <gradient
                     android:startX="90"
@@ -41,87 +41,120 @@
             </aapt:attr>
         </path>
 
-        <!-- Subtle Inner Grid Ring -->
-        <path
-            android:pathData="M144,144m-46,0a46,46 0 1,1 92,0a46,46 0 1,1 -92,0"
-            android:strokeWidth="1.0"
-            android:strokeColor="#2294A3B8" />
-
         <!-- Rotating Countdown Ring & Cardinal Ticks -->
         <group
             android:name="signal_ring"
             android:pivotX="144"
             android:pivotY="144">
-            <!-- Outer Dial Track -->
             <path
-                android:pathData="M144,144m-62,0a62,62 0 1,1 124,0a62,62 0 1,1 -124,0"
+                android:pathData="M144,144m-64,0a64,64 0 1,1 128,0a64,64 0 1,1 -128,0"
                 android:strokeWidth="3.0"
-                android:strokeColor="#1E293B" />
-            <!-- Glowing Amber Active Countdown Arc (Top-Right Sweep) -->
+                android:strokeColor="#26334D" />
             <path
-                android:pathData="M144,82A62,62 0 0,1 206,144"
+                android:pathData="M144,80A64,64 0 0,1 208,144"
                 android:strokeWidth="4.5"
                 android:strokeLineCap="round"
                 android:strokeColor="#FFB300" />
-            <!-- Cardinal Dial Ticks -->
-            <path
-                android:pathData="M144,78L144,85M210,144L203,144M144,210L144,203M78,144L85,144"
-                android:strokeWidth="2.5"
-                android:strokeLineCap="round"
-                android:strokeColor="#64748B" />
         </group>
 
-        <!-- ==================== BECK-STYLE GEOMETRIC METRO LINES ==================== -->
-        <!-- Emerald Green Line (Diagonal SW -> Center -> East) -->
+        <!-- Diagonal Transit Network Connector Lines -->
         <path
-            android:pathData="M98,176L130,144L194,144"
-            android:strokeWidth="7.0"
+            android:pathData="M114,114L174,174M174,114L114,174"
+            android:strokeWidth="3.5"
             android:strokeLineCap="round"
-            android:strokeLineJoin="round"
-            android:strokeColor="#00C853" />
+            android:strokeColor="#334155" />
 
-        <!-- Victoria Blue Line (NW -> Center -> SE) -->
-        <path
-            android:pathData="M104,104L144,144L174,184"
-            android:strokeWidth="7.0"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round"
-            android:strokeColor="#0098D4" />
+        <!-- ==================== 4 TRANSPORT MODE BADGES (Sequential Illumination) ==================== -->
+        <!-- 1. Top-Left: SUBWAY (Central Red Badge at 114, 114) -->
+        <group
+            android:name="mode_1_subway"
+            android:pivotX="114"
+            android:pivotY="114">
+            <path
+                android:fillColor="#E32017"
+                android:pathData="M114,114m-17,0a17,17 0 1,1 34,0a17,17 0 1,1 -34,0" />
+            <group
+                android:translateX="103.2"
+                android:translateY="103.2"
+                android:scaleX="0.9"
+                android:scaleY="0.9">
+                <path
+                    android:fillColor="#FFFFFF"
+                    android:pathData="M2,22V8.85Q2,6.72 3.1,5.16T6.2,2.8Q7.55,2.27 9.08,2.14T12,2t2.93,0.14T17.8,2.8q2,0.8 3.1,2.36T22,8.85V22H2Zm7.1-2h5.75l-1.5-1.5H10.6L9.1,20ZM7.5,13h9V9h-9v4Zm8.71,3.21q0.29-0.29 0.29-0.71t-0.29-0.71T15.5,14.5t-0.71,0.29T14.5,15.5t0.29,0.71T15.5,16.5t0.71-0.29Zm-7,0Q9.5,15.93 9.5,15.5T9.21,14.79T8.5,14.5q-0.42,0-0.71,0.29T7.5,15.5t0.29,0.71T8.5,16.5q0.43,0 0.71-0.29ZM4,20H7.5V19.5l1.05-1.05q-1.1-0.15-1.83-0.99Q6,16.63 6,15.5V9Q6,7.05 7.86,6.52T12,6q2.5,0 4.25,0.52T18,9v6.5q0,1.13-0.72,1.96t-1.83,0.99L16.5,19.5V20H20V8.85q0-1.5-0.74-2.56T17.05,4.65q-1.1-0.43-2.44-0.54T12,4T9.39,4.11T6.95,4.65Q5.48,5.22 4.74,6.29T4,8.85V20Z" />
+            </group>
+        </group>
 
-        <!-- Central Red Line (West -> Center -> NE) -->
-        <path
-            android:pathData="M94,132L144,132L180,96"
-            android:strokeWidth="7.0"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round"
-            android:strokeColor="#E32017" />
+        <!-- 2. Top-Right: TRAIN (Victoria Blue Badge at 174, 114) -->
+        <group
+            android:name="mode_2_train"
+            android:pivotX="174"
+            android:pivotY="114">
+            <path
+                android:fillColor="#0098D4"
+                android:pathData="M174,114m-17,0a17,17 0 1,1 34,0a17,17 0 1,1 -34,0" />
+            <group
+                android:translateX="163.2"
+                android:translateY="103.2"
+                android:scaleX="0.9"
+                android:scaleY="0.9">
+                <path
+                    android:fillColor="#FFFFFF"
+                    android:pathData="M4,15.5V6Q4,4.67 4.69,3.89T6.5,2.69Q7.63,2.27 9.06,2.14T12,2q1.65,0 3.11,0.14t2.55,0.55t1.71,1.2Q20,4.67 20,6v9.5q0,1.48-1.01,2.49T16.5,19L18,20.5V21H16l-2-2H10L8,21H6V20.5L7.5,19q-1.47,0-2.49-1.01T4,15.5ZM12,4Q9.35,4 8.13,4.31T6.45,5h11.2q-0.38-0.43-1.61-0.71T12,4ZM6,10h5V7H6v3Zm10.5,2h-9q-0.65,0-1.07,0T6,12H18q0,0-0.43,0T16.5,12ZM13,10h5V7H13v3ZM9.58,15.58Q10,15.15 10,14.5T9.58,13.43T8.5,13T7.43,13.43T7,14.5t0.43,1.07T8.5,16t1.08-0.43Zm7,0Q17,15.15 17,14.5t-0.43-1.08T15.5,13t-1.07,0.42T14,14.5t0.43,1.07T15.5,16t1.07-0.43ZM7.5,17h9q0.65,0 1.07-0.43T18,15.5V12H6v3.5q0,0.65 0.43,1.07T7.5,17Z" />
+            </group>
+        </group>
 
-        <!-- Secondary Station Nodes along Lines -->
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M180,96m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0M194,144m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0M104,104m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0" />
+        <!-- 3. Bottom-Left: BUS (Emerald Green Badge at 114, 174) -->
+        <group
+            android:name="mode_3_bus"
+            android:pivotX="114"
+            android:pivotY="174">
+            <path
+                android:fillColor="#00A844"
+                android:pathData="M114,174m-17,0a17,17 0 1,1 34,0a17,17 0 1,1 -34,0" />
+            <group
+                android:translateX="103.2"
+                android:translateY="163.2"
+                android:scaleX="0.9"
+                android:scaleY="0.9">
+                <path
+                    android:fillColor="#FFFFFF"
+                    android:pathData="M6,21q-0.42,0-0.71-0.29Q5,20.43 5,20V17.95q-0.45-0.5-0.72-1.11Q4,16.23 4,15.5V6Q4,3.92 5.93,2.96T12,2q4.3,0 6.15,0.92T20,6v9.5q0,0.73-0.27,1.34T19,17.95V20q0,0.43-0.29,0.71T18,21H17q-0.43,0-0.71-0.29Q16,20.43 16,20V19H8v1q0,0.43-0.29,0.71T7,21H6ZM6,10H18V7H6v3Zm3.56,5.56Q10,15.13 10,14.5T9.56,13.44T8.5,13T7.44,13.44T7,14.5t0.44,1.06T8.5,16t1.06-0.44Zm7,0Q17,15.13 17,14.5t-0.44-1.06T15.5,13t-1.06,0.44T14,14.5t0.44,1.06T15.5,16t1.06-0.44ZM6.45,5h11.2q-0.38-0.43-1.61-0.71T12.05,4Q9.38,4 8.14,4.31T6.45,5ZM8,17h8q0.82,0 1.41-0.59T18,15V12H6v3q0,0.82 0.59,1.41T8,17Z" />
+            </group>
+        </group>
+
+        <!-- 4. Bottom-Right: TRAM / FERRY (Elizabeth Purple Badge at 174, 174) -->
+        <group
+            android:name="mode_4_tram"
+            android:pivotX="174"
+            android:pivotY="174">
+            <path
+                android:fillColor="#9364CD"
+                android:pathData="M174,174m-17,0a17,17 0 1,1 34,0a17,17 0 1,1 -34,0" />
+            <group
+                android:translateX="163.2"
+                android:translateY="163.2"
+                android:scaleX="0.9"
+                android:scaleY="0.9">
+                <path
+                    android:fillColor="#FFFFFF"
+                    android:pathData="M4,17.5V8Q4,5.57 6.13,4.82T11,4l0.75-1.5H7V1H17V2.5H13.75L13,4q2.98,0.07 4.99,0.81T20,8v9.5q0,1.48-1.01,2.49T16.5,21L18,22.5V23H16l-2-2H10L8,23H6V22.5L7.5,21q-1.47,0-2.49-1.01T4,17.5Zm9.06,0.06q0.44-0.44 0.44-1.06t-0.44-1.06T12,15t-1.06,0.44T10.5,16.5t0.44,1.06T12,18t1.06-0.44ZM6,12H18V9H6v3Zm1.5,7h9q0.65,0 1.07-0.43T18,17.5V14H6v3.5q0,0.65 0.43,1.07T7.5,19ZM11.95,6Q8.6,6 7.65,6.36Q6.7,6.72 6.4,7H17.65q-0.3-0.35-1.3-0.68T11.95,6Z" />
+            </group>
+        </group>
 
         <!-- Central Interchange Hub Node (Pulsing) -->
         <group
             android:name="live_beacon"
             android:pivotX="144"
-            android:pivotY="140">
-            <!-- Outer Amber Pulse Halo -->
+            android:pivotY="144">
             <path
                 android:fillColor="#40FFB300"
-                android:pathData="M144,140m-16,0a16,16 0 1,1 32,0a16,16 0 1,1 -32,0" />
-            <!-- Black Interchange Ring -->
-            <path
-                android:fillColor="#0F172A"
-                android:pathData="M144,140m-11,0a11,11 0 1,1 22,0a11,11 0 1,1 -22,0" />
-            <!-- Crisp White Interchange Circle -->
+                android:pathData="M144,144m-13,0a13,13 0 1,1 26,0a13,13 0 1,1 -26,0" />
             <path
                 android:fillColor="#FFFFFF"
-                android:pathData="M144,140m-8.5,0a8.5,8.5 0 1,1 17,0a8.5,8.5 0 1,1 -17,0" />
-            <!-- Glowing Amber Core Dot -->
+                android:pathData="M144,144m-8,0a8,8 0 1,1 16,0a8,8 0 1,1 -16,0" />
             <path
                 android:fillColor="#FFB300"
-                android:pathData="M144,140m-4.5,0a4.5,4.5 0 1,1 9,0a4.5,4.5 0 1,1 -9,0" />
+                android:pathData="M144,144m-4.2,0a4.2,4.2 0 1,1 8.4,0a4.2,4.2 0 1,1 -8.4,0" />
         </group>
 
     </group>

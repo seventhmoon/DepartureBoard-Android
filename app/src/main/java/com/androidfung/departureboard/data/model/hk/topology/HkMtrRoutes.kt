@@ -3,6 +3,7 @@ package com.androidfung.departureboard.data.model.hk.topology
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.TransitDirection
+import com.androidfung.departureboard.data.model.hk.HkMtrLine
 import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
 import com.androidfung.departureboard.data.model.isHkMtr
 import com.androidfung.departureboard.data.topology.LinearRouteCallingPointsResolver
@@ -74,32 +75,34 @@ object HkMtrRoutes : TransitLineNetwork {
         val destClean = destIdentifier.trim().uppercase()
         val lineUpper = lineCode.uppercase()
 
-        if (lineUpper == "EAL" || lineUpper.startsWith("EAL_")) {
-            val servesRacecourse = originClean == "RAC" ||
-                destClean == "RAC" ||
+        val ealCode = HkMtrLine.EAST_RAIL.code
+        if (lineUpper == ealCode || lineUpper.startsWith("${ealCode}_")) {
+            val servesRacecourse = originClean == HkMtrStationRegistry.RACECOURSE ||
+                destClean == HkMtrStationRegistry.RACECOURSE ||
                 destClean.contains("RACECOURSE") ||
                 destClean.contains("馬場")
 
-            val servesLokMaChau = originClean == "LMC" ||
-                destClean == "LMC" ||
+            val servesLokMaChau = originClean == HkMtrStationRegistry.LOK_MA_CHAU ||
+                destClean == HkMtrStationRegistry.LOK_MA_CHAU ||
                 destClean.contains("LOK MA CHAU") ||
                 destClean.contains("落馬洲")
 
             return when {
-                servesRacecourse && servesLokMaChau -> "EAL_RAC_LMC"
-                servesRacecourse -> "EAL_RAC"
-                servesLokMaChau -> "EAL_LMC"
-                else -> "EAL"
+                servesRacecourse && servesLokMaChau -> "${ealCode}_RAC_LMC"
+                servesRacecourse -> "${ealCode}_RAC"
+                servesLokMaChau -> "${ealCode}_LMC"
+                else -> ealCode
             }
         }
 
-        if (lineUpper == "TKL" || lineUpper.startsWith("TKL_")) {
-            val servesLohasPark = originClean == "LHP" ||
-                destClean == "LHP" ||
+        val tklCode = HkMtrLine.TSEUNG_KWAN_O.code
+        if (lineUpper == tklCode || lineUpper.startsWith("${tklCode}_")) {
+            val servesLohasPark = originClean == HkMtrStationRegistry.LOHAS_PARK ||
+                destClean == HkMtrStationRegistry.LOHAS_PARK ||
                 destClean.contains("LOHAS") ||
                 destClean.contains("康城")
 
-            return if (servesLohasPark) "TKL_LHP" else "TKL"
+            return if (servesLohasPark) "${tklCode}_LHP" else tklCode
         }
 
         return lineUpper

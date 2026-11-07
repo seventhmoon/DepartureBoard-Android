@@ -261,6 +261,15 @@ fun StationDepartureCard(
 
                     val showLineBadgeOnEntries = selectedLineId == null && cardModel.availableLineBadges.size > 1
 
+                    val serviceHours = cardModel.serviceHoursInfo
+                    if (serviceHours != null && (serviceHours.isApproachingLastTrain || serviceHours.isNightServiceActive)) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        LastTrainServiceBanner(
+                            serviceHoursInfo = serviceHours,
+                            modifier = Modifier.padding(horizontal = 22.dp)
+                        )
+                    }
+
                     Column {
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -276,6 +285,7 @@ fun StationDepartureCard(
                             },
                             onDepartureClick = onDepartureClick,
                             maxRows = maxDepartureRows,
+                            serviceHoursInfo = serviceHours,
                             modifier = Modifier.padding(horizontal = 10.dp)
                         )
                     }
@@ -319,10 +329,10 @@ private fun StationHeaderSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Header Transport Mode Icon indicator:
-                // Prioritize Rail / Tube / Metro modes over Bus, or derive from active line badges if present
+                // Use station's unified primaryTransitMode or derive from non-bus line badges
                 val primaryMode = lineBadges.firstOrNull { it.mode != TransitMode.BUS }?.mode
                     ?: station.primaryTransitMode
-                val modeIcon = TransitIconHelper.getTransitIconForMode(primaryMode)
+                val modeIconRes = TransitIconHelper.getTransitModeIconRes(primaryMode)
 
                 Box(
                     modifier = Modifier
@@ -332,7 +342,7 @@ private fun StationHeaderSection(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = modeIcon,
+                        painter = androidx.compose.ui.res.painterResource(modeIconRes),
                         contentDescription = primaryMode.displayName,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
@@ -649,7 +659,8 @@ private fun StationDeparturesContainer(
     isFiltered: Boolean = false,
     onClearFilter: (() -> Unit)? = null,
     onDepartureClick: ((Departure) -> Unit)? = null,
-    maxRows: Int = 5
+    maxRows: Int = 5,
+    serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo? = null
 ) {
     Box(
         modifier = modifier
@@ -786,11 +797,89 @@ private fun StationDeparturesContainer(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = stringResource(R.string.departures_service_ended),
+                            text = if (serviceHoursInfo?.isClosedForNight == true && !serviceHoursInfo.lastTrainTime.isNullOrBlank()) {
+                                val lastStr = stringResource(R.string.station_detail_last_train, serviceHoursInfo.lastTrainTime)
+                                val firstStr = serviceHoursInfo.firstTrainTime?.let {
+                                    " " + stringResource(R.string.station_detail_first_train, it)
+                                }.orEmpty()
+                                "$lastStr$firstStr"
+                            } else {
+                                stringResource(R.string.departures_service_ended)
+                            },
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Banner alerting commuters when the final train of the night ("Last Train Home") is approaching
+ * or when 24-hour Night Tube / Night Bus service is active.
+ */
+@Composable
+fun LastTrainServiceBanner(
+    serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo,
+    modifier: Modifier = Modifier
+) {
+    val isNightService = serviceHoursInfo.isNightServiceActive
+    val accentColor = if (isNightService) Color(0xFFB388FF) else Color(0xFFFFB300)
+    val bgColor = if (isNightService) Color(0xFF311B92).copy(alpha = 0.25f) else Color(0xFFFFB300).copy(alpha = 0.14f)
+    val borderColor = accentColor.copy(alpha = 0.45f)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(bgColor)
+            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                val titleText = if (isNightService) {
+                    stringResource(R.string.night_service_banner_title)
+                } else {
+                    stringResource(
+                        R.string.last_train_banner_title,
+                        serviceHoursInfo.lastTrainTime ?: "--:--"
+                    )
+                }
+                Text(
+                    text = titleText,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = accentColor
+                )
+
+                val subtitleParts = buildList {
+                    if (isNightService) {
+                        add(stringResource(R.string.night_service_banner_subtitle))
+                    } else {
+                        serviceHoursInfo.minutesUntilLastTrain?.let { mins ->
+                            add(stringResource(R.string.last_train_banner_countdown, mins))
+                        }
+                        serviceHoursInfo.firstTrainTime?.let { first ->
+                            add(stringResource(R.string.last_train_banner_first_train, first))
+                        }
+                    }
+                }
+                if (subtitleParts.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = subtitleParts.joinToString(" • "),
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }

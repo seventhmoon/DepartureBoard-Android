@@ -96,18 +96,38 @@ class TimetableScheduleResolver(
             // Check if current London time is in late night gap (typically after 00:30 and before 05:00)
             val isLateNight = nowLondon.hour in 0..4 || (nowLondon.hour == 23 && nowLondon.minute >= 45)
 
-            return if (isLateNight) {
+            val lastNorm = com.androidfung.departureboard.util.LastTrainServiceCalculator.parseNormalizedMinutes(latestNight)
+            val nowNorm = com.androidfung.departureboard.util.LastTrainServiceCalculator.normalizeServiceMinutes(nowLondon.hour, nowLondon.minute)
+            val minutesUntilLast = if (lastNorm != null && lastNorm > nowNorm) (lastNorm - nowNorm) else null
+
+            return if (isLateNight && (minutesUntilLast == null || minutesUntilLast <= 0)) {
                 StationServiceHoursInfo(
                     isClosedForNight = true,
                     lastTrainTime = latestNight,
                     firstTrainTime = earliestMorning,
                     lineName = timetableResponse.lineName ?: targetLineId
                 )
+            } else if (minutesUntilLast != null && minutesUntilLast in 1..com.androidfung.departureboard.util.LastTrainServiceCalculator.APPROACHING_WINDOW_MINUTES) {
+                StationServiceHoursInfo(
+                    isClosedForNight = false,
+                    lastTrainTime = latestNight,
+                    firstTrainTime = earliestMorning,
+                    lineName = timetableResponse.lineName ?: targetLineId,
+                    minutesUntilLastTrain = minutesUntilLast,
+                    isApproachingLastTrain = true
+                )
             } else {
-                null
+                com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
+                    stationId = stationId,
+                    lineId = targetLineId,
+                    nowOverride = nowLondon
+                )
             }
         } catch (_: Exception) {
-            return null
+            return com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
+                stationId = stationId,
+                lineId = lineId
+            )
         }
     }
 

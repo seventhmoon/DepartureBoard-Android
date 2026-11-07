@@ -7,6 +7,7 @@ import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.StationLineInfo
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.GbTransitLine
 import com.androidfung.departureboard.data.model.gb.topology.TyneAndWearMetroRoute
 import com.androidfung.departureboard.data.network.gb.TyneAndWearMetroApiService
 import com.androidfung.departureboard.data.network.gb.TyneAndWearMetroNetworkClient
@@ -55,14 +56,26 @@ class TyneAndWearMetroDepartureSource(
             "SHL" to "South Hylton"
         )
 
-        private val YellowLineColor = Color(0xFFF7B11E)
-        private val GreenLineColor = Color(0xFF009640)
+        const val CODE_CENTRAL = "CEN"
+        const val CODE_MONUMENT = "MTS"
+        const val CODE_MONUMENT_WEST = "MTW"
+        const val CODE_HAYMARKET = "HAY"
+        const val CODE_GATESHEAD = "GAT"
+        const val CODE_JESMOND = "JES"
+        const val CODE_TYNEMOUTH = "TYN"
+        const val CODE_WHITLEY_BAY = "WTL"
+        const val CODE_SOUTH_SHIELDS = "SSS"
+        const val CRS_NEWCASTLE = "NCL"
+        const val NAPTAN_NEWCASTLE_CENTRAL = "910GNWCSTLE"
+
+        private val YellowLineColor = GbTransitLine.METRO_YELLOW.color
+        private val GreenLineColor = GbTransitLine.METRO_GREEN.color
 
         fun searchMetroStations(query: String): List<Station> {
             val trimmed = query.trim().lowercase()
             if (trimmed.length < 3) return emptyList()
             return METRO_STATIONS.entries
-                .filter { (code, _) -> code != "MTW" && code != "NCL" }
+                .filter { (code, _) -> code != CODE_MONUMENT_WEST && code != CRS_NEWCASTLE }
                 .filter { (code, name) ->
                     code.equals(trimmed, ignoreCase = true) ||
                         name.lowercase().contains(trimmed) ||
@@ -72,11 +85,11 @@ class TyneAndWearMetroDepartureSource(
                     Station(
                         id = code,
                         name = if (name.contains("Metro")) name else "$name (Tyne & Wear Metro)",
-                        modes = listOf("tube"),
+                        modes = listOf(TransitMode.METRO.id),
                         zone = "Tyne & Wear",
                         lines = listOf(
-                            StationLineInfo("metro-yellow", "Yellow Line", "tube"),
-                            StationLineInfo("metro-green", "Green Line", "tube")
+                            StationLineInfo(GbTransitLine.METRO_YELLOW.code, "Yellow Line", TransitMode.METRO.id),
+                            StationLineInfo(GbTransitLine.METRO_GREEN.code, "Green Line", TransitMode.METRO.id)
                         ),
                         isFavorite = false
                     )
@@ -104,17 +117,17 @@ class TyneAndWearMetroDepartureSource(
             val code = when {
                 METRO_STATIONS.containsKey(stationId.uppercase()) -> {
                     val raw = stationId.uppercase()
-                    if (raw == "NCL") "CEN" else raw
+                    if (raw == CRS_NEWCASTLE) CODE_CENTRAL else raw
                 }
                 stationId.length == 3 -> stationId.uppercase()
-                stationName.contains("Monument", ignoreCase = true) -> "MTS"
-                stationName.contains("Central", ignoreCase = true) || stationId.equals("910GNWCSTLE", ignoreCase = true) -> "CEN"
-                stationName.contains("Haymarket", ignoreCase = true) -> "HAY"
-                stationName.contains("Gateshead", ignoreCase = true) -> "GAT"
-                stationName.contains("Jesmond", ignoreCase = true) -> "JES"
-                stationName.contains("Tynemouth", ignoreCase = true) -> "TYN"
-                stationName.contains("Whitley Bay", ignoreCase = true) -> "WTL"
-                stationName.contains("South Shields", ignoreCase = true) -> "SSS"
+                stationName.contains("Monument", ignoreCase = true) -> CODE_MONUMENT
+                stationName.contains("Central", ignoreCase = true) || stationId.equals(NAPTAN_NEWCASTLE_CENTRAL, ignoreCase = true) -> CODE_CENTRAL
+                stationName.contains("Haymarket", ignoreCase = true) -> CODE_HAYMARKET
+                stationName.contains("Gateshead", ignoreCase = true) -> CODE_GATESHEAD
+                stationName.contains("Jesmond", ignoreCase = true) -> CODE_JESMOND
+                stationName.contains("Tynemouth", ignoreCase = true) -> CODE_TYNEMOUTH
+                stationName.contains("Whitley Bay", ignoreCase = true) -> CODE_WHITLEY_BAY
+                stationName.contains("South Shields", ignoreCase = true) -> CODE_SOUTH_SHIELDS
                 else -> return@coroutineScope Result.success(emptyList())
             }
 

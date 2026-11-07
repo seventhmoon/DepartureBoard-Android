@@ -488,7 +488,9 @@ fun WidgetStationPickerScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = com.androidfung.departureboard.ui.designsystem.TransitIconHelper.getTransitIconForMode(station.modes.firstOrNull()),
+                                    painter = androidx.compose.ui.res.painterResource(
+                                        com.androidfung.departureboard.ui.designsystem.TransitIconHelper.getTransitModeIconRes(station.primaryTransitMode)
+                                    ),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.size(22.dp)

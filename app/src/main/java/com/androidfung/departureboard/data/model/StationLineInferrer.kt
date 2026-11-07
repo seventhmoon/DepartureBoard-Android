@@ -1,5 +1,6 @@
 package com.androidfung.departureboard.data.model
 
+import com.androidfung.departureboard.data.model.gb.GbTransitLine
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 
@@ -9,9 +10,7 @@ import com.androidfung.departureboard.data.model.hk.HkDefaultStations
  */
 object StationLineInferrer {
 
-    private val OVERGROUND_LINE_IDS = setOf(
-        "liberty", "lioness", "mildmay", "suffragette", "weaver", "windrush", "overground"
-    )
+    private val OVERGROUND_LINE_IDS = GbTransitLine.OVERGROUND_LINES.map { it.code }.toSet()
 
     private val KINGS_CROSS_NR_LINES = listOf(
         "nr-gr" to "LNER",
@@ -158,12 +157,8 @@ object StationLineInferrer {
 
         return station.lines
             .filter { line ->
-                if (isKingsCrossOrStPancrasNR) {
-                    val mode = line.mode?.lowercase().orEmpty()
-                    val id = line.id.lowercase()
-                    if (mode == "tube" || id in TflLineColors.TUBE_LINE_IDS) {
-                        return@filter false
-                    }
+                if (isKingsCrossOrStPancrasNR && TflLineColors.isTube(line.id, line.mode)) {
+                    return@filter false
                 }
                 true
             }
@@ -245,11 +240,13 @@ object StationLineInferrer {
             .sortedBy { it.displayName }
     }
 
-    private fun resolveDefaultMode(lineId: String): String = when {
-        lineId == "elizabeth" || lineId == "elizabeth-line" -> TransitMode.RAIL.id
-        lineId in OVERGROUND_LINE_IDS -> TransitMode.RAIL.id
-        lineId.startsWith("nr-") || lineId == "thameslink" -> TransitMode.RAIL.id
-        else -> TransitMode.METRO.id
+    private fun resolveDefaultMode(lineId: String): String {
+        val gbLine = GbTransitLine.fromCode(lineId)
+        if (gbLine != null) return gbLine.mode.id
+        return when {
+            lineId.startsWith("nr-") -> TransitMode.RAIL.id
+            else -> TransitMode.METRO.id
+        }
     }
 
     private fun Station.isKingsCrossOrStPancrasNationalRail(): Boolean =

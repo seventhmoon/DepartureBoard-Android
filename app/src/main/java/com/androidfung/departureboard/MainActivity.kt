@@ -104,11 +104,20 @@ class MainActivity : AppCompatActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        // Custom smooth exit animation from splash screen to Compose UI
+        // Custom smooth exit animation from splash screen to Compose UI,
+        // waiting for the sequential row lighting in avd_splash_screen (~760ms) to finish
         splashScreen.setOnExitAnimationListener { splashScreenViewProvider ->
             val splashScreenView = splashScreenViewProvider.view
+            val animStart = splashScreenViewProvider.iconAnimationStartMillis
+            val animDuration = splashScreenViewProvider.iconAnimationDurationMillis
+            val remainingMillis = if (animStart > 0L && animDuration > 0L) {
+                (animStart + animDuration - System.currentTimeMillis()).coerceIn(0L, 800L)
+            } else {
+                0L
+            }
             val fadeOut = ObjectAnimator.ofFloat(splashScreenView, View.ALPHA, 1f, 0f).apply {
                 interpolator = DecelerateInterpolator()
+                startDelay = remainingMillis
                 duration = 300L
                 doOnEnd { splashScreenViewProvider.remove() }
             }
@@ -383,7 +392,8 @@ class MainActivity : AppCompatActivity() {
                                                 android.util.Log.d("DashboardScreen", "onOpenDebugSettings clicked!")
                                                 showDebugSheet = true
                                             },
-                                            onOpenHelpFaq = { showHelpSheet = true }
+                                            onOpenHelpFaq = { showHelpSheet = true },
+                                            onOpenDeskClock = { viewModel.openDeskClock() }
                                         )
                                     }
                                     entry<StationDetailRoute>(
@@ -416,7 +426,8 @@ class MainActivity : AppCompatActivity() {
                                                 onBack = { 
                                                     viewModel.closeStationDetail()
                                                 },
-                                                isPro = uiState.isPro
+                                                isPro = uiState.isPro,
+                                                onOpenDeskClock = { st -> viewModel.openDeskClock(st) }
                                             )
                                         }
                                     }
@@ -445,6 +456,43 @@ class MainActivity : AppCompatActivity() {
                                 }
                             )
                         }
+
+                    // Full-screen Split-Flap Desk Clock & Foldable Tabletop Kiosk Mode
+                    val deskClockStation = uiState.deskClockStation
+                    if (deskClockStation != null) {
+                        androidx.activity.compose.BackHandler {
+                            viewModel.closeDeskClock()
+                        }
+                        val deskCard = uiState.stationCards.firstOrNull { it.station.id == deskClockStation.id }
+                        val deskDepartures = when {
+                            deskCard != null && deskCard.departures.isNotEmpty() -> deskCard.departures
+                            uiState.selectedDetailStation?.id == deskClockStation.id -> uiState.detailDepartures
+                            else -> emptyList()
+                        }
+                        val deskServiceHours = deskCard?.serviceHoursInfo
+                            ?: uiState.serviceHoursInfo.takeIf { uiState.selectedDetailStation?.id == deskClockStation.id }
+                            ?: com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
+                                stationId = deskClockStation.id,
+                                departures = deskDepartures
+                            )
+
+                        com.androidfung.departureboard.ui.feature.deskclock.DeskClockScreen(
+                            station = deskClockStation,
+                            stationCards = uiState.stationCards,
+                            departures = deskDepartures,
+                            serviceHoursInfo = deskServiceHours,
+                            onSelectStation = { nextSt ->
+                                viewModel.openDeskClock(nextSt)
+                                if (uiState.stationCards.none { it.station.id == nextSt.id }) {
+                                    viewModel.openStationDetail(nextSt)
+                                }
+                            },
+                            onRefresh = {
+                                viewModel.refreshStation(deskClockStation)
+                            },
+                            onClose = { viewModel.closeDeskClock() }
+                        )
+                    }
 
                     // Bottom sheets for other overlay actions
                     if (showSearchSheet) {

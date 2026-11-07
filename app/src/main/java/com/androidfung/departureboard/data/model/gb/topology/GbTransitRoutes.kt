@@ -3,6 +3,7 @@ package com.androidfung.departureboard.data.model.gb.topology
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.gb.GbTransitLine
 import com.androidfung.departureboard.data.model.gb.TflStationIds
 import com.androidfung.departureboard.data.model.gb.topology.ElizabethLineRoute
 import com.androidfung.departureboard.data.model.gb.topology.ThameslinkRoute
@@ -386,7 +387,7 @@ object GbTransitRoutes : TransitLineNetwork {
         val origLower = originIdentifier.lowercase()
         val destLower = destIdentifier.lowercase()
 
-        if (lineUpper == "NORTHERN") {
+        if (GbTransitLine.NORTHERN.matches(lineCode, null) || lineUpper == GbTransitLine.NORTHERN.name) {
             val isMhe = origLower.contains("mill hill east") || destLower.contains("mill hill east") ||
                 origLower == "mhe" || destLower == "mhe"
             if (isMhe) return "NORTHERN_MHE"
@@ -399,7 +400,7 @@ object GbTransitRoutes : TransitLineNetwork {
             if (isBattersea) return "NORTHERN_CX_BATTERSEA"
         }
 
-        if (lineUpper == "CENTRAL") {
+        if (GbTransitLine.CENTRAL.matches(lineCode, null) || lineUpper == GbTransitLine.CENTRAL.name) {
             if (origLower.contains("ealing") || destLower.contains("ealing") ||
                 origLower.contains("hainault") || destLower.contains("hainault") ||
                 origLower == "eby" || destLower == "eby" || origLower == "hhl" || destLower == "hhl"
@@ -408,7 +409,7 @@ object GbTransitRoutes : TransitLineNetwork {
             }
         }
 
-        if (lineUpper == "DISTRICT") {
+        if (GbTransitLine.DISTRICT.matches(lineCode, null) || lineUpper == GbTransitLine.DISTRICT.name) {
             if (origLower.contains("wimbledon") || destLower.contains("wimbledon") ||
                 origLower.contains("fulham") || destLower.contains("fulham") ||
                 origLower == "wim" || destLower == "wim"
@@ -417,7 +418,7 @@ object GbTransitRoutes : TransitLineNetwork {
             }
         }
 
-        if (lineUpper == "THAMESLINK") {
+        if (GbTransitLine.THAMESLINK.matches(lineCode, null) || lineUpper == GbTransitLine.THAMESLINK.name) {
             if (origLower.contains("peterborough") || destLower.contains("peterborough") ||
                 origLower.contains("horsham") || destLower.contains("horsham") ||
                 origLower == "pbo" || destLower == "pbo" || origLower == "hrh" || destLower == "hrh"

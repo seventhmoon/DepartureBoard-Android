@@ -1,5 +1,7 @@
 package com.androidfung.departureboard.data.model
 
+import com.androidfung.departureboard.data.model.gb.GbTransitLine
+
 /**
  * Domain-level line equivalence matcher.
  * Resolves transit line identities and aliases across transit networks (TfL, BODS bus, etc.).
@@ -21,19 +23,17 @@ object TransitLineMatcher {
         val stripped2 = id2.removePrefix("bods-")
         if (stripped1 == stripped2) return true
 
-        // Elizabeth line aliases
-        if ((id1 == "elizabeth" || id1 == "elizabeth-line" || id1 == "xr") &&
-            (id2 == "elizabeth" || id2 == "elizabeth-line" || id2 == "xr")) return true
-
-        // Lioness & London Overground aliases for Watford DC line / Euston
-        if ((id1 == "lioness" || id1 == "overground" || id1 == "nr-lo") &&
-            (id2 == "lioness" || id2 == "overground" || id2 == "nr-lo")) return true
-
-        // Hammersmith & City aliases
-        if ((id1.contains("hammersmith") || id1 == "h&c") && (id2.contains("hammersmith") || id2 == "h&c")) return true
-
-        // Waterloo & City aliases
-        if ((id1.contains("waterloo") || id1 == "w&c") && (id2.contains("waterloo") || id2 == "w&c")) return true
+        // Match domain-level GB transit lines via unified GbTransitLine registry
+        val gbLine1 = GbTransitLine.fromCode(id1)
+        val gbLine2 = GbTransitLine.fromCode(id2)
+        if (gbLine1 != null && gbLine2 != null) {
+            if (gbLine1 == gbLine2) return true
+            // London Overground generic vs specific named lines (e.g. Lioness line at Euston)
+            if ((gbLine1 == GbTransitLine.OVERGROUND || gbLine2 == GbTransitLine.OVERGROUND) &&
+                (gbLine1.isOverground && gbLine2.isOverground)) {
+                return true
+            }
+        }
 
         return false
     }

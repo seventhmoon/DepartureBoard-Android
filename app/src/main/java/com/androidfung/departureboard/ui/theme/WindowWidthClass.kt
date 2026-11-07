@@ -7,6 +7,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /**
  * Window width class hierarchy supporting foldables, compact phones,
@@ -45,9 +46,25 @@ enum class WindowWidthClass {
 }
 
 /**
+ * Foldable posture metadata for tabletop / half-opened horizontal hinge layouts.
+ */
+@androidx.compose.runtime.Immutable
+data class WindowPostureInfo(
+    val isTabletop: Boolean = false,
+    val hingeTopDp: Dp? = null,
+    val hingeBottomDp: Dp? = null,
+    val hingeHeightDp: Dp = 0.dp
+)
+
+/**
  * CompositionLocal providing the current [WindowWidthClass] down the Compose tree.
  */
 val LocalWindowWidthClass = staticCompositionLocalOf { WindowWidthClass.REGULAR }
+
+/**
+ * CompositionLocal providing the current foldable [WindowPostureInfo] down the Compose tree.
+ */
+val LocalWindowPosture = staticCompositionLocalOf { WindowPostureInfo() }
 
 /**
  * Wraps content with [CompositionLocalProvider] supplying the dynamic [WindowWidthClass].
@@ -61,7 +78,10 @@ fun ProvideWindowWidthClass(
     val widthDp = with(density) { windowInfo.containerSize.width.toDp() }
     val windowClass = remember(widthDp) { WindowWidthClass.fromWidth(widthDp) }
 
-    CompositionLocalProvider(LocalWindowWidthClass provides windowClass) {
+    CompositionLocalProvider(
+        LocalWindowWidthClass provides windowClass,
+        LocalWindowPosture provides WindowPostureInfo()
+    ) {
         content()
     }
 }

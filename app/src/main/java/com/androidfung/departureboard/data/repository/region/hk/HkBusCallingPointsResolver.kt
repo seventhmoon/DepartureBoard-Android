@@ -2,6 +2,7 @@ package com.androidfung.departureboard.data.repository.region.hk
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.hk.HkKmbStopDetailItem
 import com.androidfung.departureboard.data.model.hk.extractRawHkBusStopId
@@ -37,7 +38,7 @@ class HkBusCallingPointsResolver(
     override suspend fun resolveCallingPoints(departure: Departure): List<CallingPoint> {
         val route = departure.lineName.trim()
         val rawStopId = extractRawHkBusStopId(departure.stationId)
-        val dir = departure.direction ?: "outbound"
+        val dir = departure.transitDirection ?: TransitDirection.OUTBOUND
 
         return resolveCallingPoints(
             route = route,
@@ -50,19 +51,33 @@ class HkBusCallingPointsResolver(
     suspend fun resolveCallingPoints(
         route: String,
         currentStopId: String,
-        direction: String = "outbound",
+        direction: String,
+        destinationName: String = ""
+    ): List<CallingPoint> = resolveCallingPoints(
+        route = route,
+        currentStopId = currentStopId,
+        direction = TransitDirection.fromString(direction) ?: TransitDirection.OUTBOUND,
+        destinationName = destinationName
+    )
+
+    suspend fun resolveCallingPoints(
+        route: String,
+        currentStopId: String,
+        direction: TransitDirection = TransitDirection.OUTBOUND,
         destinationName: String = ""
     ): List<CallingPoint> = withContext(Dispatchers.IO) {
         val cleanRoute = route.trim().uppercase()
         if (cleanRoute.isBlank()) return@withContext emptyList()
 
+        val apiDirection = if (direction == TransitDirection.INBOUND) "inbound" else "outbound"
+
         try {
             // 1. Fetch or get cached stop IDs sequence for route
-            val cacheKey = "${cleanRoute}_$direction"
+            val cacheKey = "${cleanRoute}_$apiDirection"
             val stopIds = routeSequenceCache.getOrPut(cacheKey) {
-                val res = apiService.getKmbRouteStops(cleanRoute, direction)
+                val res = apiService.getKmbRouteStops(cleanRoute, apiDirection)
                 val items = res.data.orEmpty()
-                if (items.isEmpty() && direction == "outbound") {
+                if (items.isEmpty() && direction == TransitDirection.OUTBOUND) {
                     // Try inbound fallback if outbound is empty
                     apiService.getKmbRouteStops(cleanRoute, "inbound").data.orEmpty()
                         .mapNotNull { it.stop }

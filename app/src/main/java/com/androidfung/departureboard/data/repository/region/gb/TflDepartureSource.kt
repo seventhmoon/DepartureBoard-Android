@@ -37,9 +37,7 @@ class TflDepartureSource(
 
             val filteredRawArrivals = if (isStPancrasOrKingsCrossNR) {
                 rawArrivals.filter { arrival ->
-                    val mode = arrival.modeName?.lowercase() ?: ""
-                    val line = arrival.lineId?.lowercase() ?: ""
-                    mode != "tube" && line !in TflLineColors.TUBE_LINE_IDS && line != "tube"
+                    !TflLineColors.isTube(arrival.lineId, arrival.modeName)
                 }
             } else {
                 rawArrivals

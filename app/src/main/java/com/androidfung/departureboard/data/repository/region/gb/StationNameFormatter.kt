@@ -38,4 +38,24 @@ internal object StationNameFormatter {
         val trimmedSuffix = suffix.trim()
         return if (trimmedSuffix.isNotEmpty()) "$cleanedBase $trimmedSuffix" else cleanedBase
     }
+
+    private val SUBSTRING_COLLISION_PAIRS = listOf(
+        "edgware" to setOf("edgware road"),
+        "wimbledon" to setOf("wimbledon park", "south wimbledon"),
+        "aldgate" to setOf("aldgate east")
+    )
+
+    /**
+     * Guards against distinct London stations where one station's name is a substring of another.
+     */
+    fun isConflictingStationSubstring(station1: String, station2: String): Boolean {
+        val s1 = station1.lowercase()
+        val s2 = station2.lowercase()
+        for ((base, conflicts) in SUBSTRING_COLLISION_PAIRS) {
+            if ((s1 == base || s2 == base) && (conflicts.any { s1.contains(it) || s2.contains(it) })) {
+                return true
+            }
+        }
+        return false
+    }
 }

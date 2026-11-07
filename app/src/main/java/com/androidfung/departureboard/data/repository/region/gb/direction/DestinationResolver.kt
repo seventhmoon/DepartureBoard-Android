@@ -1,5 +1,7 @@
 package com.androidfung.departureboard.data.repository.region.gb.direction
 
+import com.androidfung.departureboard.data.model.TransitDirection
+import com.androidfung.departureboard.data.model.gb.GbTransitLine
 import com.androidfung.departureboard.data.model.gb.TflStationIds
 import com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter
 
@@ -310,7 +312,7 @@ object DestinationResolver {
             // If towards includes a branch route like "Edgware via Bank", extract the destination/branch
             // Note: Mill Hill East is handled specifically below or via timetable/branch resolution
             // because inbound shuttle trains to Mill Hill East display "Mill Hill East via CX" while heading to MHL.
-            val isMillHillEast = stIdUpper == "940GZZLUMHL" || stationLower.contains("mill hill east")
+            val isMillHillEast = stIdUpper == TflStationIds.MILL_HILL_EAST || stationLower.contains("mill hill east")
             if (!isMillHillEast && isCurrentStation && towardsLower.contains("via ")) {
                 val branch = towardsClean.substringAfter("via ", "").trim()
                 if (branch.isNotBlank()) {
@@ -343,11 +345,12 @@ object DestinationResolver {
         }
 
         // 5. Fallback: directional platform indicator
-        return when {
-            "southbound" in platLower -> "Southbound Services"
-            "northbound" in platLower -> "Northbound Services"
-            "eastbound" in platLower -> "Eastbound Services"
-            "westbound" in platLower -> "Westbound Services"
+        val platformDirection = TransitDirection.entries.firstOrNull { it.displayName.lowercase() in platLower }
+        return when (platformDirection) {
+            TransitDirection.SOUTHBOUND -> "Southbound Services"
+            TransitDirection.NORTHBOUND -> "Northbound Services"
+            TransitDirection.EASTBOUND -> "Eastbound Services"
+            TransitDirection.WESTBOUND -> "Westbound Services"
             else -> "Outbound Services"
         }
     }
@@ -376,11 +379,13 @@ object DestinationResolver {
         towards: String,
         stationId: String = ""
     ): String? {
-        val isNorthern = "northern" in line
-        val isCentral = "central" in line
-        val isDistrict = "district" in line
-        val isPiccadilly = "piccadilly" in line
-        val isMetropolitan = "metropolitan" in line
+        val isNorthern = GbTransitLine.NORTHERN.matches(line, null)
+        val isCentral = GbTransitLine.CENTRAL.matches(line, null)
+        val isDistrict = GbTransitLine.DISTRICT.matches(line, null)
+        val isCircle = GbTransitLine.CIRCLE.matches(line, null)
+        val isPiccadilly = GbTransitLine.PICCADILLY.matches(line, null)
+        val isMetropolitan = GbTransitLine.METROPOLITAN.matches(line, null)
+        val isDlr = GbTransitLine.DLR.matches(line, null)
 
         return when {
             // Northern Line
@@ -417,13 +422,13 @@ object DestinationResolver {
             }
 
             // District & Circle Line
-            isDistrict || "circle" in line -> when {
+            isDistrict || isCircle -> when {
                 stationId in setOf(TflStationIds.WIMBLEDON, TflStationIds.WIMBLEDON_ALT) || "wimbledon" in station -> when {
                     "edgware road" in towards -> "Edgware Road via High Street Kensington"
                     else -> "Upminster via Tower Hill"
                 }
                 stationId == TflStationIds.UPMINSTER || "upminster" in station -> "Richmond / Ealing Broadway / Wimbledon"
-                (stationId in setOf(TflStationIds.EDGWARE_ROAD_BAKERLOO, TflStationIds.EDGWARE_ROAD_CIRCLE) || "edgware road" in station) && "circle" in line -> "Hammersmith via Tower Hill"
+                (stationId in setOf(TflStationIds.EDGWARE_ROAD_BAKERLOO, TflStationIds.EDGWARE_ROAD_CIRCLE) || "edgware road" in station) && isCircle -> "Hammersmith via Tower Hill"
                 stationId in setOf(TflStationIds.HAMMERSMITH_DISTRICT, TflStationIds.HAMMERSMITH) || "hammersmith" in station -> "Barking via King's Cross"
                 else -> null
             }
@@ -445,7 +450,7 @@ object DestinationResolver {
             }
 
             // DLR
-            "dlr" in line -> when {
+            isDlr -> when {
                 stationId == TflStationIds.TOWER_GATEWAY || "tower gateway" in station -> "Beckton via Canary Wharf"
                 stationId == TflStationIds.BECKTON || "beckton" in station -> "Tower Gateway / Bank"
                 stationId == TflStationIds.LEWISHAM || "lewisham" in station -> "Bank / Stratford"

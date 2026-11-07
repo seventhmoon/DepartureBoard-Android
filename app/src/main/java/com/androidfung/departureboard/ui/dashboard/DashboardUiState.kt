@@ -17,7 +17,8 @@ data class StationCardUiModel(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isExpanded: Boolean = true,
-    val distanceMeters: Double? = null
+    val distanceMeters: Double? = null,
+    val serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo? = null
 ) {
     /**
      * Identifies available directions for a specific transit line serving this station.
@@ -75,5 +76,6 @@ data class DashboardUiState(
     val isHkRegionEnabled: Boolean = false,
     val isBilingualEnabled: Boolean = true,
     val lineStatuses: Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = emptyMap(),
-    val isAutoSortByLocation: Boolean = false
+    val isAutoSortByLocation: Boolean = false,
+    val deskClockStation: Station? = null
 )

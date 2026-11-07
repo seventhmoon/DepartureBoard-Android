@@ -77,4 +77,9 @@ interface RegionalTransitProvider {
      * Fetches active standardized [TransitAlert] disruptions for this region.
      */
     suspend fun getTransitAlerts(): List<TransitAlert> = emptyList()
+
+    /**
+     * Fetches line statuses mapped by lowercased line ID for this region.
+     */
+    suspend fun getLineStatuses(): Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = emptyMap()
 }

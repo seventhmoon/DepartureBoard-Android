@@ -1,11 +1,9 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
-    xmlns:tools="http://schemas.android.com/tools"
     android:width="288dp"
     android:height="288dp"
     android:viewportWidth="288"
-    android:viewportHeight="288"
-    tools:ignore="VectorRaster">
+    android:viewportHeight="288">
 
     <!-- Ambient Glow behind the Suspended Departure Board -->
     <path
@@ -30,11 +28,9 @@
         android:pivotY="144">
 
         <!-- ==================== OVERHEAD SUSPENSION STRUTS ==================== -->
-        <!-- Left Suspension Strut Shadow -->
         <path
             android:fillColor="#40000000"
             android:pathData="M107,68L112,68L112,103L107,103Z" />
-        <!-- Left Suspension Strut Rod -->
         <path android:pathData="M105,68L110,68L110,102L105,102Z">
             <aapt:attr name="android:fillColor">
                 <gradient
@@ -49,16 +45,13 @@
                 </gradient>
             </aapt:attr>
         </path>
-        <!-- Left Mounting Collar -->
         <path
             android:fillColor="#475569"
             android:pathData="M103,97L112,97A2,2 0 0,1 114,99L114,103L101,103L101,99A2,2 0 0,1 103,97Z" />
 
-        <!-- Right Suspension Strut Shadow -->
         <path
             android:fillColor="#40000000"
             android:pathData="M180,68L185,68L185,103L180,103Z" />
-        <!-- Right Suspension Strut Rod -->
         <path android:pathData="M178,68L183,68L183,102L178,102Z">
             <aapt:attr name="android:fillColor">
                 <gradient
@@ -73,18 +66,15 @@
                 </gradient>
             </aapt:attr>
         </path>
-        <!-- Right Mounting Collar -->
         <path
             android:fillColor="#475569"
             android:pathData="M176,97L185,97A2,2 0 0,1 187,99L187,103L174,103L174,99A2,2 0 0,1 176,97Z" />
 
         <!-- ==================== SIGN CHASSIS ==================== -->
-        <!-- Elevation Drop Shadow -->
         <path
             android:fillColor="#50000000"
             android:pathData="M90,104L198,104A14,14 0 0,1 212,118L212,176A14,14 0 0,1 198,190L90,190A14,14 0 0,1 76,176L76,118A14,14 0 0,1 90,104Z" />
 
-        <!-- Brushed Metallic Titanium Chassis -->
         <path android:pathData="M90,101L198,101A14,14 0 0,1 212,115L212,173A14,14 0 0,1 198,187L90,187A14,14 0 0,1 76,173L76,115A14,14 0 0,1 90,101Z">
             <aapt:attr name="android:fillColor">
                 <gradient
@@ -100,60 +90,49 @@
             </aapt:attr>
         </path>
 
-        <!-- Top Bezel Specular Reflection Highlight -->
         <path
             android:pathData="M90,102L198,102A13,13 0 0,1 211,115"
             android:strokeWidth="1.0"
             android:strokeColor="#50FFFFFF" />
 
-        <!-- Recessed LED Matrix Display Screen -->
         <path
             android:fillColor="#070A10"
             android:pathData="M90,106L198,106A9,9 0 0,1 207,115L207,173A9,9 0 0,1 198,182L90,182A9,9 0 0,1 81,173L81,115A9,9 0 0,1 90,106Z" />
 
-        <!-- Inner Screen Bezel Recess Shadow -->
         <path
             android:pathData="M90,106.5L198,106.5A8.5,8.5 0 0,1 206.5,115L206.5,173A8.5,8.5 0 0,1 198,181.5L90,181.5A8.5,8.5 0 0,1 81.5,173L81.5,115A8.5,8.5 0 0,1 90,106.5Z"
             android:strokeWidth="0.8"
             android:strokeColor="#1E283A" />
 
         <!-- ==================== HEADER BAR ==================== -->
-        <!-- Header Dark Surface -->
         <path
             android:fillColor="#0D1422"
             android:pathData="M90,106L198,106A9,9 0 0,1 207,115L207,122L81,122L81,115A9,9 0 0,1 90,106Z" />
 
-        <!-- Amber Accent Hairline under Header -->
         <path
             android:fillColor="#55FFB300"
             android:pathData="M81,121.5L207,121.5L207,122.3L81,122.3Z" />
 
-        <!-- Pulsing Live Beacon Indicator -->
         <group
             android:name="live_beacon"
             android:pivotX="90"
             android:pivotY="114">
-            <!-- Glowing Outer Halo -->
             <path
                 android:fillColor="#3300E676"
                 android:pathData="M90,114m-4.5,0a4.5,4.5 0 1,1 9,0a4.5,4.5 0 1,1 -9,0" />
-            <!-- Bright Core Dot -->
             <path
                 android:fillColor="#00E676"
                 android:pathData="M90,114m-2.2,0a2.2,2.2 0 1,1 4.4,0a2.2,2.2 0 1,1 -4.4,0" />
         </group>
 
-        <!-- "DEPARTURES" Station Header Pill -->
         <path
             android:fillColor="#94A3B8"
             android:pathData="M98,112.5L138,112.5A2,2 0 0,1 140,114.5A2,2 0 0,1 138,116.5L98,116.5A2,2 0 0,1 96,114.5A2,2 0 0,1 98,112.5Z" />
 
-        <!-- Digital Clock Hour Pill -->
         <path
             android:fillColor="#FFCA28"
             android:pathData="M178,112.5L186.5,112.5A1.8,1.8 0 0,1 188.3,114.3A1.8,1.8 0 0,1 186.5,116.1L178,116.1A1.8,1.8 0 0,1 176.2,114.3A1.8,1.8 0 0,1 178,112.5Z" />
 
-        <!-- Digital Clock Blinking Colon Group -->
         <group
             android:name="clock_colon"
             android:pivotX="189.5"
@@ -163,217 +142,231 @@
                 android:pathData="M189.5,113.3m-0.8,0a0.8,0.8 0 1,1 1.6,0a0.8,0.8 0 1,1 -1.6,0M189.5,115.3m-0.8,0a0.8,0.8 0 1,1 1.6,0a0.8,0.8 0 1,1 -1.6,0" />
         </group>
 
-        <!-- Digital Clock Minute Pill -->
         <path
             android:fillColor="#FFCA28"
             android:pathData="M192.5,112.5L201,112.5A1.8,1.8 0 0,1 202.8,114.3A1.8,1.8 0 0,1 201,116.1L192.5,116.1A1.8,1.8 0 0,1 190.7,114.3A1.8,1.8 0 0,1 192.5,112.5Z" />
 
-        <!-- ==================== ROW 1: DUE TRAIN ==================== -->
-        <!-- Track Background -->
-        <path
-            android:fillColor="#0C121E"
-            android:pathData="M87.5,125L200.5,125A3.5,3.5 0 0,1 204,128.5L204,137.5A3.5,3.5 0 0,1 200.5,141L87.5,141A3.5,3.5 0 0,1 84,137.5L84,128.5A3.5,3.5 0 0,1 87.5,125Z" />
-
-        <!-- Central Red Line Colour Pill -->
-        <path
-            android:fillColor="#E32017"
-            android:pathData="M88,127.8A1.6,1.6 0 0,1 89.6,129.4L89.6,136.6A1.6,1.6 0 0,1 88,138.2A1.6,1.6 0 0,1 86.4,136.6L86.4,129.4A1.6,1.6 0 0,1 88,127.8Z" />
-
-        <!-- Amber Destination LED Bars -->
-        <path android:pathData="M95,130.5L118,130.5A2.2,2.2 0 0,1 120.2,132.7A2.2,2.2 0 0,1 118,134.9L95,134.9A2.2,2.2 0 0,1 92.8,132.7A2.2,2.2 0 0,1 95,130.5Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="92.8"
-                    android:startY="130.5"
-                    android:endX="120.2"
-                    android:endY="134.9"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#FFE082" />
-                    <item android:offset="1.0" android:color="#FFCA28" />
-                </gradient>
-            </aapt:attr>
-        </path>
-        <path android:pathData="M123,130.5L148,130.5A2.2,2.2 0 0,1 150.2,132.7A2.2,2.2 0 0,1 148,134.9L123,134.9A2.2,2.2 0 0,1 120.8,132.7A2.2,2.2 0 0,1 123,130.5Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="120.8"
-                    android:startY="130.5"
-                    android:endX="150.2"
-                    android:endY="134.9"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#FFCA28" />
-                    <item android:offset="1.0" android:color="#FFA000" />
-                </gradient>
-            </aapt:attr>
-        </path>
-        <path android:pathData="M153,130.5L166,130.5A2.2,2.2 0 0,1 168.2,132.7A2.2,2.2 0 0,1 166,134.9L153,134.9A2.2,2.2 0 0,1 150.8,132.7A2.2,2.2 0 0,1 153,130.5Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="150.8"
-                    android:startY="130.5"
-                    android:endX="168.2"
-                    android:endY="134.9"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#FFB300" />
-                    <item android:offset="1.0" android:color="#FF8F00" />
-                </gradient>
-            </aapt:attr>
-        </path>
-
-        <!-- Due Status Emerald Pill Badge -->
+        <!-- ==================== ROW 1: SUBWAY (DUE) ==================== -->
         <group
-            android:name="due_badge"
-            android:pivotX="186.5"
+            android:name="row1_subway"
+            android:pivotX="144"
             android:pivotY="133">
-            <!-- Glowing Halo -->
             <path
-                android:fillColor="#3300E676"
-                android:pathData="M176,127.5L197,127.5A3.5,3.5 0 0,1 200.5,131L200.5,135A3.5,3.5 0 0,1 197,138.5L176,138.5A3.5,3.5 0 0,1 172.5,135L172.5,131A3.5,3.5 0 0,1 176,127.5Z" />
-            <!-- Pill Core -->
-            <path android:pathData="M176.5,128.8L196.5,128.8A2.8,2.8 0 0,1 199.3,131.6L199.3,134.4A2.8,2.8 0 0,1 196.5,137.2L176.5,137.2A2.8,2.8 0 0,1 173.7,131.6L173.7,131.6A2.8,2.8 0 0,1 176.5,128.8Z">
+                android:fillColor="#0C121E"
+                android:pathData="M87.5,125L200.5,125A3.5,3.5 0 0,1 204,128.5L204,137.5A3.5,3.5 0 0,1 200.5,141L87.5,141A3.5,3.5 0 0,1 84,137.5L84,128.5A3.5,3.5 0 0,1 87.5,125Z" />
+
+            <path
+                android:fillColor="#E32017"
+                android:pathData="M88,127.8A1.6,1.6 0 0,1 89.6,129.4L89.6,136.6A1.6,1.6 0 0,1 88,138.2A1.6,1.6 0 0,1 86.4,136.6L86.4,129.4A1.6,1.6 0 0,1 88,127.8Z" />
+
+            <!-- Material Symbols Subway Icon on Row 1 -->
+            <group
+                android:translateX="92.0"
+                android:translateY="127.5"
+                android:scaleX="0.46"
+                android:scaleY="0.46">
+                <path
+                    android:fillColor="#FFE082"
+                    android:pathData="M2,22V8.85Q2,6.72 3.1,5.16T6.2,2.8Q7.55,2.27 9.08,2.14T12,2t2.93,0.14T17.8,2.8q2,0.8 3.1,2.36T22,8.85V22H2Zm7.1-2h5.75l-1.5-1.5H10.6L9.1,20ZM7.5,13h9V9h-9v4Zm8.71,3.21q0.29-0.29 0.29-0.71t-0.29-0.71T15.5,14.5t-0.71,0.29T14.5,15.5t0.29,0.71T15.5,16.5t0.71-0.29Zm-7,0Q9.5,15.93 9.5,15.5T9.21,14.79T8.5,14.5q-0.42,0-0.71,0.29T7.5,15.5t0.29,0.71T8.5,16.5q0.43,0 0.71-0.29ZM4,20H7.5V19.5l1.05-1.05q-1.1-0.15-1.83-0.99Q6,16.63 6,15.5V9Q6,7.05 7.86,6.52T12,6q2.5,0 4.25,0.52T18,9v6.5q0,1.13-0.72,1.96t-1.83,0.99L16.5,19.5V20H20V8.85q0-1.5-0.74-2.56T17.05,4.65q-1.1-0.43-2.44-0.54T12,4T9.39,4.11T6.95,4.65Q5.48,5.22 4.74,6.29T4,8.85V20Z" />
+            </group>
+
+            <!-- Amber Destination LED Bars -->
+            <path android:pathData="M107,130.5L134,130.5A2.2,2.2 0 0,1 136.2,132.7A2.2,2.2 0 0,1 134,134.9L107,134.9A2.2,2.2 0 0,1 104.8,132.7A2.2,2.2 0 0,1 107,130.5Z">
                 <aapt:attr name="android:fillColor">
                     <gradient
-                        android:startX="173.7"
-                        android:startY="128.8"
-                        android:endX="199.3"
-                        android:endY="137.2"
+                        android:startX="104.8"
+                        android:startY="130.5"
+                        android:endX="136.2"
+                        android:endY="134.9"
                         android:type="linear">
-                        <item android:offset="0.0" android:color="#69F0AE" />
-                        <item android:offset="1.0" android:color="#00C853" />
+                        <item android:offset="0.0" android:color="#FFE082" />
+                        <item android:offset="1.0" android:color="#FFCA28" />
                     </gradient>
                 </aapt:attr>
             </path>
-            <!-- DUE Text Emulation Bar -->
-            <path
-                android:fillColor="#FFFFFF"
-                android:pathData="M179,131.8L194,131.8A1.2,1.2 0 0,1 195.2,133L195.2,133A1.2,1.2 0 0,1 194,134.2L179,134.2A1.2,1.2 0 0,1 177.8,133L177.8,133A1.2,1.2 0 0,1 179,131.8Z" />
+            <path android:pathData="M140,130.5L165,130.5A2.2,2.2 0 0,1 167.2,132.7A2.2,2.2 0 0,1 165,134.9L140,134.9A2.2,2.2 0 0,1 137.8,132.7A2.2,2.2 0 0,1 140,130.5Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:startX="137.8"
+                        android:startY="130.5"
+                        android:endX="167.2"
+                        android:endY="134.9"
+                        android:type="linear">
+                        <item android:offset="0.0" android:color="#FFCA28" />
+                        <item android:offset="1.0" android:color="#FFA000" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+
+            <group
+                android:name="due_badge"
+                android:pivotX="186.5"
+                android:pivotY="133">
+                <path
+                    android:fillColor="#3300E676"
+                    android:pathData="M176,127.5L197,127.5A3.5,3.5 0 0,1 200.5,131L200.5,135A3.5,3.5 0 0,1 197,138.5L176,138.5A3.5,3.5 0 0,1 172.5,135L172.5,131A3.5,3.5 0 0,1 176,127.5Z" />
+                <path android:pathData="M176.5,128.8L196.5,128.8A2.8,2.8 0 0,1 199.3,131.6L199.3,134.4A2.8,2.8 0 0,1 196.5,137.2L176.5,137.2A2.8,2.8 0 0,1 173.7,131.6L173.7,131.6A2.8,2.8 0 0,1 176.5,128.8Z">
+                    <aapt:attr name="android:fillColor">
+                        <gradient
+                            android:startX="173.7"
+                            android:startY="128.8"
+                            android:endX="199.3"
+                            android:endY="137.2"
+                            android:type="linear">
+                            <item android:offset="0.0" android:color="#69F0AE" />
+                            <item android:offset="1.0" android:color="#00C853" />
+                        </gradient>
+                    </aapt:attr>
+                </path>
+                <path
+                    android:fillColor="#FFFFFF"
+                    android:pathData="M179,131.8L194,131.8A1.2,1.2 0 0,1 195.2,133L195.2,133A1.2,1.2 0 0,1 194,134.2L179,134.2A1.2,1.2 0 0,1 177.8,133L177.8,133A1.2,1.2 0 0,1 179,131.8Z" />
+            </group>
         </group>
 
-        <!-- ==================== ROW 2: NEXT TRAIN ==================== -->
-        <!-- Track Background -->
-        <path
-            android:fillColor="#0C121E"
-            android:pathData="M87.5,144L200.5,144A3.5,3.5 0 0,1 204,147.5L204,156.5A3.5,3.5 0 0,1 200.5,160L87.5,160A3.5,3.5 0 0,1 84,156.5L84,147.5A3.5,3.5 0 0,1 87.5,144Z" />
+        <!-- ==================== ROW 2: TRAIN (2 MIN) ==================== -->
+        <group
+            android:name="row2_train"
+            android:pivotX="144"
+            android:pivotY="152">
+            <path
+                android:fillColor="#0C121E"
+                android:pathData="M87.5,144L200.5,144A3.5,3.5 0 0,1 204,147.5L204,156.5A3.5,3.5 0 0,1 200.5,160L87.5,160A3.5,3.5 0 0,1 84,156.5L84,147.5A3.5,3.5 0 0,1 87.5,144Z" />
 
-        <!-- Victoria Blue Line Colour Pill -->
-        <path
-            android:fillColor="#0098D4"
-            android:pathData="M88,146.8A1.6,1.6 0 0,1 89.6,148.4L89.6,155.6A1.6,1.6 0 0,1 88,157.2A1.6,1.6 0 0,1 86.4,155.6L86.4,148.4A1.6,1.6 0 0,1 88,146.8Z" />
+            <path
+                android:fillColor="#0098D4"
+                android:pathData="M88,146.8A1.6,1.6 0 0,1 89.6,148.4L89.6,155.6A1.6,1.6 0 0,1 88,157.2A1.6,1.6 0 0,1 86.4,155.6L86.4,148.4A1.6,1.6 0 0,1 88,146.8Z" />
 
-        <!-- Amber Destination LED Bars -->
-        <path android:pathData="M95,149.5L124,149.5A2.2,2.2 0 0,1 126.2,151.7A2.2,2.2 0 0,1 124,153.9L95,153.9A2.2,2.2 0 0,1 92.8,151.7A2.2,2.2 0 0,1 95,149.5Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="92.8"
-                    android:startY="149.5"
-                    android:endX="126.2"
-                    android:endY="153.9"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#FFE082" />
-                    <item android:offset="1.0" android:color="#FFCA28" />
-                </gradient>
-            </aapt:attr>
-        </path>
-        <path android:pathData="M129,149.5L152,149.5A2.2,2.2 0 0,1 154.2,151.7A2.2,2.2 0 0,1 152,153.9L129,153.9A2.2,2.2 0 0,1 126.8,151.7A2.2,2.2 0 0,1 129,149.5Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="126.8"
-                    android:startY="149.5"
-                    android:endX="154.2"
-                    android:endY="153.9"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#FFCA28" />
-                    <item android:offset="1.0" android:color="#FFA000" />
-                </gradient>
-            </aapt:attr>
-        </path>
+            <!-- Material Symbols Train Icon on Row 2 -->
+            <group
+                android:translateX="92.0"
+                android:translateY="146.5"
+                android:scaleX="0.46"
+                android:scaleY="0.46">
+                <path
+                    android:fillColor="#FFE082"
+                    android:pathData="M4,15.5V6Q4,4.67 4.69,3.89T6.5,2.69Q7.63,2.27 9.06,2.14T12,2q1.65,0 3.11,0.14t2.55,0.55t1.71,1.2Q20,4.67 20,6v9.5q0,1.48-1.01,2.49T16.5,19L18,20.5V21H16l-2-2H10L8,21H6V20.5L7.5,19q-1.47,0-2.49-1.01T4,15.5ZM12,4Q9.35,4 8.13,4.31T6.45,5h11.2q-0.38-0.43-1.61-0.71T12,4ZM6,10h5V7H6v3Zm10.5,2h-9q-0.65,0-1.07,0T6,12H18q0,0-0.43,0T16.5,12ZM13,10h5V7H13v3ZM9.58,15.58Q10,15.15 10,14.5T9.58,13.43T8.5,13T7.43,13.43T7,14.5t0.43,1.07T8.5,16t1.08-0.43Zm7,0Q17,15.15 17,14.5t-0.43-1.08T15.5,13t-1.07,0.42T14,14.5t0.43,1.07T15.5,16t1.07-0.43ZM7.5,17h9q0.65,0 1.07-0.43T18,15.5V12H6v3.5q0,0.65 0.43,1.07T7.5,17Z" />
+            </group>
 
-        <!-- 2 MIN Amber Countdown Pill Badge -->
-        <!-- Glowing Halo -->
-        <path
-            android:fillColor="#33FFB300"
-            android:pathData="M176,146.5L197,146.5A3.5,3.5 0 0,1 200.5,150L200.5,154A3.5,3.5 0 0,1 197,157.5L176,157.5A3.5,3.5 0 0,1 172.5,154L172.5,150A3.5,3.5 0 0,1 176,146.5Z" />
-        <!-- Pill Core -->
-        <path android:pathData="M176.5,147.8L196.5,147.8A2.8,2.8 0 0,1 199.3,150.6L199.3,153.4A2.8,2.8 0 0,1 196.5,156.2L176.5,156.2A2.8,2.8 0 0,1 173.7,153.4L173.7,150.6A2.8,2.8 0 0,1 176.5,147.8Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="173.7"
-                    android:startY="147.8"
-                    android:endX="199.3"
-                    android:endY="156.2"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#FFE082" />
-                    <item android:offset="1.0" android:color="#FF8F00" />
-                </gradient>
-            </aapt:attr>
-        </path>
-        <!-- 2 MIN Text Emulation Bar -->
-        <path
-            android:fillColor="#10141E"
-            android:pathData="M179,150.8L194,150.8A1.2,1.2 0 0,1 195.2,152L195.2,152A1.2,1.2 0 0,1 194,153.2L179,153.2A1.2,1.2 0 0,1 177.8,152L177.8,152A1.2,1.2 0 0,1 179,150.8Z" />
+            <path android:pathData="M107,149.5L132,149.5A2.2,2.2 0 0,1 134.2,151.7A2.2,2.2 0 0,1 132,153.9L107,153.9A2.2,2.2 0 0,1 104.8,151.7A2.2,2.2 0 0,1 107,149.5Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:startX="104.8"
+                        android:startY="149.5"
+                        android:endX="134.2"
+                        android:endY="153.9"
+                        android:type="linear">
+                        <item android:offset="0.0" android:color="#FFE082" />
+                        <item android:offset="1.0" android:color="#FFCA28" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+            <path android:pathData="M138,149.5L156,149.5A2.2,2.2 0 0,1 158.2,151.7A2.2,2.2 0 0,1 156,153.9L138,153.9A2.2,2.2 0 0,1 135.8,151.7A2.2,2.2 0 0,1 138,149.5Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:startX="135.8"
+                        android:startY="149.5"
+                        android:endX="158.2"
+                        android:endY="153.9"
+                        android:type="linear">
+                        <item android:offset="0.0" android:color="#FFCA28" />
+                        <item android:offset="1.0" android:color="#FFA000" />
+                    </gradient>
+                </aapt:attr>
+            </path>
 
-        <!-- ==================== ROW 3: FOLLOWING TRAIN ==================== -->
-        <!-- Track Background -->
-        <path
-            android:fillColor="#0C121E"
-            android:pathData="M87.5,163L200.5,163A3.5,3.5 0 0,1 204,166.5L204,175.5A3.5,3.5 0 0,1 200.5,179L87.5,179A3.5,3.5 0 0,1 84,175.5L84,166.5A3.5,3.5 0 0,1 87.5,163Z" />
+            <path
+                android:fillColor="#33FFB300"
+                android:pathData="M176,146.5L197,146.5A3.5,3.5 0 0,1 200.5,150L200.5,154A3.5,3.5 0 0,1 197,157.5L176,157.5A3.5,3.5 0 0,1 172.5,154L172.5,150A3.5,3.5 0 0,1 176,146.5Z" />
+            <path android:pathData="M176.5,147.8L196.5,147.8A2.8,2.8 0 0,1 199.3,150.6L199.3,153.4A2.8,2.8 0 0,1 196.5,156.2L176.5,156.2A2.8,2.8 0 0,1 173.7,153.4L173.7,150.6A2.8,2.8 0 0,1 176.5,147.8Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:startX="173.7"
+                        android:startY="147.8"
+                        android:endX="199.3"
+                        android:endY="156.2"
+                        android:type="linear">
+                        <item android:offset="0.0" android:color="#FFE082" />
+                        <item android:offset="1.0" android:color="#FF8F00" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+            <path
+                android:fillColor="#10141E"
+                android:pathData="M179,150.8L194,150.8A1.2,1.2 0 0,1 195.2,152L195.2,152A1.2,1.2 0 0,1 194,153.2L179,153.2A1.2,1.2 0 0,1 177.8,152L177.8,152A1.2,1.2 0 0,1 179,150.8Z" />
+        </group>
 
-        <!-- Elizabeth Line Purple Colour Pill -->
-        <path
-            android:fillColor="#9364CD"
-            android:pathData="M88,165.8A1.6,1.6 0 0,1 89.6,167.4L89.6,174.6A1.6,1.6 0 0,1 88,176.2A1.6,1.6 0 0,1 86.4,174.6L86.4,167.4A1.6,1.6 0 0,1 88,165.8Z" />
+        <!-- ==================== ROW 3: BUS (5 MIN) ==================== -->
+        <group
+            android:name="row3_bus"
+            android:pivotX="144"
+            android:pivotY="171">
+            <path
+                android:fillColor="#0C121E"
+                android:pathData="M87.5,163L200.5,163A3.5,3.5 0 0,1 204,166.5L204,175.5A3.5,3.5 0 0,1 200.5,179L87.5,179A3.5,3.5 0 0,1 84,175.5L84,166.5A3.5,3.5 0 0,1 87.5,163Z" />
 
-        <!-- Amber Destination LED Bars -->
-        <path android:pathData="M95,168.5L118,168.5A2.2,2.2 0 0,1 120.2,170.7A2.2,2.2 0 0,1 118,172.9L95,172.9A2.2,2.2 0 0,1 92.8,170.7A2.2,2.2 0 0,1 95,168.5Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="92.8"
-                    android:startY="168.5"
-                    android:endX="120.2"
-                    android:endY="172.9"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#FFE082" />
-                    <item android:offset="1.0" android:color="#FFCA28" />
-                </gradient>
-            </aapt:attr>
-        </path>
-        <path android:pathData="M123,168.5L144,168.5A2.2,2.2 0 0,1 146.2,170.7A2.2,2.2 0 0,1 144,172.9L123,172.9A2.2,2.2 0 0,1 120.8,170.7A2.2,2.2 0 0,1 123,168.5Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="120.8"
-                    android:startY="168.5"
-                    android:endX="146.2"
-                    android:endY="172.9"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#FFCA28" />
-                    <item android:offset="1.0" android:color="#FFA000" />
-                </gradient>
-            </aapt:attr>
-        </path>
+            <path
+                android:fillColor="#9364CD"
+                android:pathData="M88,165.8A1.6,1.6 0 0,1 89.6,167.4L89.6,174.6A1.6,1.6 0 0,1 88,176.2A1.6,1.6 0 0,1 86.4,174.6L86.4,167.4A1.6,1.6 0 0,1 88,165.8Z" />
 
-        <!-- 5 MIN Amber Countdown Pill Badge -->
-        <!-- Glowing Halo -->
-        <path
-            android:fillColor="#33FFB300"
-            android:pathData="M176,165.5L197,165.5A3.5,3.5 0 0,1 200.5,169L200.5,173A3.5,3.5 0 0,1 197,176.5L176,176.5A3.5,3.5 0 0,1 172.5,173L172.5,169A3.5,3.5 0 0,1 176,165.5Z" />
-        <!-- Pill Core -->
-        <path android:pathData="M176.5,166.8L196.5,166.8A2.8,2.8 0 0,1 199.3,169.6L199.3,172.4A2.8,2.8 0 0,1 196.5,175.2L176.5,175.2A2.8,2.8 0 0,1 173.7,172.4L173.7,169.6A2.8,2.8 0 0,1 176.5,166.8Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:startX="173.7"
-                    android:startY="166.8"
-                    android:endX="199.3"
-                    android:endY="175.2"
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#FFE082" />
-                    <item android:offset="1.0" android:color="#FF8F00" />
-                </gradient>
-            </aapt:attr>
-        </path>
-        <!-- 5 MIN Text Emulation Bar -->
-        <path
-            android:fillColor="#10141E"
-            android:pathData="M179,169.8L194,169.8A1.2,1.2 0 0,1 195.2,171L195.2,171A1.2,1.2 0 0,1 194,172.2L179,172.2A1.2,1.2 0 0,1 177.8,171L177.8,171A1.2,1.2 0 0,1 179,169.8Z" />
+            <!-- Material Symbols Bus Icon on Row 3 -->
+            <group
+                android:translateX="92.0"
+                android:translateY="165.5"
+                android:scaleX="0.46"
+                android:scaleY="0.46">
+                <path
+                    android:fillColor="#FFE082"
+                    android:pathData="M6,21q-0.42,0-0.71-0.29Q5,20.43 5,20V17.95q-0.45-0.5-0.72-1.11Q4,16.23 4,15.5V6Q4,3.92 5.93,2.96T12,2q4.3,0 6.15,0.92T20,6v9.5q0,0.73-0.27,1.34T19,17.95V20q0,0.43-0.29,0.71T18,21H17q-0.43,0-0.71-0.29Q16,20.43 16,20V19H8v1q0,0.43-0.29,0.71T7,21H6ZM6,10H18V7H6v3Zm3.56,5.56Q10,15.13 10,14.5T9.56,13.44T8.5,13T7.44,13.44T7,14.5t0.44,1.06T8.5,16t1.06-0.44Zm7,0Q17,15.13 17,14.5t-0.44-1.06T15.5,13t-1.06,0.44T14,14.5t0.44,1.06T15.5,16t1.06-0.44ZM6.45,5h11.2q-0.38-0.43-1.61-0.71T12.05,4Q9.38,4 8.14,4.31T6.45,5ZM8,17h8q0.82,0 1.41-0.59T18,15V12H6v3q0,0.82 0.59,1.41T8,17Z" />
+            </group>
+
+            <path android:pathData="M107,168.5L128,168.5A2.2,2.2 0 0,1 130.2,170.7A2.2,2.2 0 0,1 128,172.9L107,172.9A2.2,2.2 0 0,1 104.8,170.7A2.2,2.2 0 0,1 107,168.5Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:startX="104.8"
+                        android:startY="168.5"
+                        android:endX="130.2"
+                        android:endY="172.9"
+                        android:type="linear">
+                        <item android:offset="0.0" android:color="#FFE082" />
+                        <item android:offset="1.0" android:color="#FFCA28" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+            <path android:pathData="M134,168.5L150,168.5A2.2,2.2 0 0,1 152.2,170.7A2.2,2.2 0 0,1 150,172.9L134,172.9A2.2,2.2 0 0,1 131.8,170.7A2.2,2.2 0 0,1 134,168.5Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:startX="131.8"
+                        android:startY="168.5"
+                        android:endX="152.2"
+                        android:endY="172.9"
+                        android:type="linear">
+                        <item android:offset="0.0" android:color="#FFCA28" />
+                        <item android:offset="1.0" android:color="#FFA000" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+
+            <path
+                android:fillColor="#33FFB300"
+                android:pathData="M176,165.5L197,165.5A3.5,3.5 0 0,1 200.5,169L200.5,173A3.5,3.5 0 0,1 197,176.5L176,176.5A3.5,3.5 0 0,1 172.5,173L172.5,169A3.5,3.5 0 0,1 176,165.5Z" />
+            <path android:pathData="M176.5,166.8L196.5,166.8A2.8,2.8 0 0,1 199.3,169.6L199.3,172.4A2.8,2.8 0 0,1 196.5,175.2L176.5,175.2A2.8,2.8 0 0,1 173.7,172.4L173.7,169.6A2.8,2.8 0 0,1 176.5,166.8Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:startX="173.7"
+                        android:startY="166.8"
+                        android:endX="199.3"
+                        android:endY="175.2"
+                        android:type="linear">
+                        <item android:offset="0.0" android:color="#FFE082" />
+                        <item android:offset="1.0" android:color="#FF8F00" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+            <path
+                android:fillColor="#10141E"
+                android:pathData="M179,169.8L194,169.8A1.2,1.2 0 0,1 195.2,171L195.2,171A1.2,1.2 0 0,1 194,172.2L179,172.2A1.2,1.2 0 0,1 177.8,171L177.8,171A1.2,1.2 0 0,1 179,169.8Z" />
+        </group>
 
     </group>
 </vector>

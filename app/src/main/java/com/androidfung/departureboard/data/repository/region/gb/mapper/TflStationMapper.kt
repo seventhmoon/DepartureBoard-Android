@@ -143,10 +143,8 @@ object TflStationMapper {
 
                 val mode = line.modeName?.lowercase() ?: modeMap[id]?.lowercase()
 
-                if (isStPancrasOrKingsCrossNR) {
-                    if (mode == "tube" || id in com.androidfung.departureboard.data.model.gb.TflLineColors.TUBE_LINE_IDS) {
-                        return@filter false
-                    }
+                if (isStPancrasOrKingsCrossNR && com.androidfung.departureboard.data.model.gb.TflLineColors.isTube(id, mode)) {
+                    return@filter false
                 }
 
                 true

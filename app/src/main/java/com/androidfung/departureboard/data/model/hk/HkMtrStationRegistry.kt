@@ -26,6 +26,17 @@ data class HkMtrStation(
  */
 object HkMtrStationRegistry {
 
+    const val RACECOURSE = "RAC"
+    const val LOK_MA_CHAU = "LMC"
+    const val LOHAS_PARK = "LHP"
+    const val CENTRAL = "CEN"
+    const val ADMIRALTY = "ADM"
+    const val CHAI_WAN = "CHW"
+    const val TSIM_SHA_TSUI = "TST"
+    const val TSUEN_WAN = "TSW"
+    const val TIU_KENG_LENG = "TIK"
+    const val PO_LAM = "POA"
+
     val STATIONS: Map<String, HkMtrStation> = listOf(
         // Island Line (ISL)
         HkMtrStation("KET", "Kennedy Town", "堅尼地城", 22.2812, 114.1289),

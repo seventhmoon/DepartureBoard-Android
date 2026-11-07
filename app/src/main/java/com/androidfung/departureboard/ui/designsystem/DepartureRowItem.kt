@@ -108,8 +108,8 @@ fun DepartureRowItem(
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Subtitle row: [Platform Pill Tag / Towards / Formation / Operator / Boarding Semantics]
-            if (departure.platformName.isNotBlank() || departure.isWheelchairAccessible == true || !departure.occupancyStatus.isNullOrBlank() || departure.formation != null || departure.isSetDownOnly || departure.isPickUpOnly) {
+            // Subtitle row: [Platform Pill Tag / Towards / Formation / Operator / Boarding Semantics / Last Train]
+            if (departure.platformName.isNotBlank() || departure.isWheelchairAccessible == true || !departure.occupancyStatus.isNullOrBlank() || departure.formation != null || departure.isSetDownOnly || departure.isPickUpOnly || departure.isLastTrain || departure.isNightService) {
                 val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
                 val isNarrow = windowWidthClass.isNarrow
 
@@ -269,16 +269,44 @@ fun DepartureRowItem(
                         }
                     }
 
-                    if (departure.platform?.isChanged == true && !departure.platform?.previousPlatform.isNullOrBlank()) {
+                    if (departure.platform?.isChanged == true && !departure.platform.previousPlatform.isNullOrBlank()) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
                             color = MaterialTheme.colorScheme.errorContainer
                         ) {
                             Text(
-                                text = "⚠️ " + stringResource(R.string.platform_changed_alert, departure.platform?.code.orEmpty(), departure.platform?.previousPlatform.orEmpty()),
+                                text = "⚠️ " + stringResource(R.string.platform_changed_alert, departure.platform.code.orEmpty(), departure.platform?.previousPlatform.orEmpty()),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+
+                    if (departure.isLastTrain) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFFFFB300).copy(alpha = 0.22f),
+                            border = androidx.compose.foundation.BorderStroke(0.8.dp, Color(0xFFFFB300).copy(alpha = 0.65f))
+                        ) {
+                            Text(
+                                text = stringResource(R.string.badge_last_train),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.ExtraBold),
+                                color = Color(0xFFFFB300),
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                            )
+                        }
+                    } else if (departure.isNightService) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFF7C4DFF).copy(alpha = 0.20f),
+                            border = androidx.compose.foundation.BorderStroke(0.8.dp, Color(0xFF7C4DFF).copy(alpha = 0.55f))
+                        ) {
+                            Text(
+                                text = stringResource(R.string.badge_night_service),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                color = Color(0xFFB388FF),
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                             )
                         }
                     }

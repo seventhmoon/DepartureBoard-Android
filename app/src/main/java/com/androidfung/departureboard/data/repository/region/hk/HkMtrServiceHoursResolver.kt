@@ -56,15 +56,19 @@ object HkMtrServiceHoursResolver {
         val (lastTrain, firstTrain) = LINE_SERVICE_HOURS[candidateLine] ?: ("01:00" to "06:00")
         val lineName = HkMtrLine.getLineName(candidateLine)
 
-        return if (isLateNight) {
-            StationServiceHoursInfo(
+        if (isLateNight) {
+            return StationServiceHoursInfo(
                 isClosedForNight = true,
                 lastTrainTime = lastTrain,
                 firstTrainTime = firstTrain,
                 lineName = lineName
             )
-        } else {
-            null
         }
+
+        return com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
+            stationId = stationId,
+            lineId = candidateLine,
+            nowOverride = nowHk
+        )?.copy(lineName = lineName)
     }
 }

@@ -7,14 +7,18 @@ import com.androidfung.departureboard.util.LocaleHelper
 import java.util.Locale
 
 /**
- * Generic transit service hours status indicating whether a station or line is closed for the night.
+ * Generic transit service hours status indicating whether a station or line is closed for the night,
+ * approaching the last train of the night ("Last Train Home"), or operating 24-hour night service.
  */
 @Immutable
 data class StationServiceHoursInfo(
     val isClosedForNight: Boolean,
     val lastTrainTime: String? = null,
     val firstTrainTime: String? = null,
-    val lineName: String? = null
+    val lineName: String? = null,
+    val minutesUntilLastTrain: Int? = null,
+    val isApproachingLastTrain: Boolean = false,
+    val isNightServiceActive: Boolean = false
 )
 
 /**
@@ -295,10 +299,15 @@ data class Station(
     val isBusOnly: Boolean get() = TransitMode.isBusOnly(modes)
 
     val primaryTransitMode: TransitMode
-        get() = modes.firstNotNullOfOrNull { raw ->
-            val norm = raw.trim().lowercase()
-            if (norm.isEmpty()) null else TransitMode.fromModeString(norm)
-        } ?: TransitMode.METRO
+        get() {
+            val parsedModes = modes.mapNotNull { raw ->
+                val norm = raw.trim().lowercase()
+                if (norm.isEmpty()) null else TransitMode.fromModeString(norm)
+            }
+            if (parsedModes.isEmpty()) return TransitMode.METRO
+            // Prioritize higher-capacity rail/rapid transit over bus for multi-modal interchanges
+            return parsedModes.firstOrNull { it != TransitMode.BUS } ?: parsedModes.first()
+        }
 
     /**
      * Resolves the display name according to the active locale or bilingual setting.
@@ -379,6 +388,9 @@ data class CallingPoint(
     val isCancelled: Boolean
         get() = scheduleRelationship == StopScheduleRelationship.SKIPPED ||
             estimatedTime.equals("Cancelled", ignoreCase = true)
+
+    val isDue: Boolean
+        get() = estimatedTime?.trim()?.equals("due", ignoreCase = true) == true
 
     /**
      * Resolves the calling point display name according to the active locale or bilingual setting.
@@ -515,7 +527,9 @@ data class Departure(
     val wheelchairStatus: WheelchairBoardingStatus = if (isWheelchairAccessible == true) WheelchairBoardingStatus.STEP_FREE_LEVEL_BOARDING else WheelchairBoardingStatus.UNKNOWN,
     val frequency: ServiceFrequency? = null,
     val journeyDestination: JourneyDestination? = null,
-    val fare: FareEstimate? = null
+    val fare: FareEstimate? = null,
+    val isLastTrain: Boolean = false,
+    val isNightService: Boolean = false
 ) {
     val resolvedPlatform: PlatformInfo
         get() = platform ?: PlatformInfo(
@@ -557,6 +571,9 @@ data class Departure(
 
     val transitMode: TransitMode
         get() = if (modeName.isNotBlank()) TransitMode.fromModeString(modeName) else lineBadge.mode
+
+    val hasSpecificPlatform: Boolean
+        get() = platformName.isNotBlank() && !isGenericPlatformPlaceholder(platformName)
 
     /**
      * Human-friendly formatted arrival string, e.g. "Due", "1 min", "4 mins".
@@ -600,6 +617,13 @@ data class Departure(
 
     companion object {
         private val TIME_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+        private val GENERIC_PLATFORM_PLACEHOLDERS = setOf("platform", "bus stand", "bus stop", "stand")
+
+        fun isGenericPlatformPlaceholder(platform: String?): Boolean {
+            if (platform.isNullOrBlank()) return true
+            val clean = platform.trim().lowercase()
+            return clean in GENERIC_PLATFORM_PLACEHOLDERS
+        }
     }
 }
 
