@@ -82,21 +82,50 @@ data class ListDetailScene<T : Any>(
 
                     CompositionLocalProvider(LocalBackButtonVisibility provides false) {
                         Column(modifier = Modifier.weight(0.35f)) {
-                            detailEntry.Content()
+                            val middleTransition = remember(detailEntry.contentKey) {
+                                androidx.compose.animation.core.MutableTransitionState(false).apply {
+                                    targetState = true
+                                }
+                            }
+                            androidx.compose.animation.AnimatedVisibility(
+                                visibleState = middleTransition,
+                                enter = slideInHorizontally(
+                                    initialOffsetX = { fullWidth -> (fullWidth * 0.4f).toInt() },
+                                    animationSpec = androidx.compose.animation.core.tween(
+                                        durationMillis = 320,
+                                        easing = androidx.compose.animation.core.FastOutSlowInEasing
+                                    )
+                                ) + androidx.compose.animation.fadeIn(
+                                    animationSpec = androidx.compose.animation.core.tween(320)
+                                ),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                detailEntry.Content()
+                            }
                         }
                     }
 
                     CompositionLocalProvider(LocalBackButtonVisibility provides false) {
                         Column(modifier = Modifier.weight(0.35f)) {
-                            androidx.compose.runtime.key(supportingEntry.contentKey) {
-                                androidx.compose.animation.AnimatedVisibility(
-                                    visible = true,
-                                    enter = slideInHorizontally(initialOffsetX = { it }),
-                                    exit = slideOutHorizontally(targetOffsetX = { it }),
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    supportingEntry.Content()
+                            val rightTransition = remember(supportingEntry.contentKey) {
+                                androidx.compose.animation.core.MutableTransitionState(false).apply {
+                                    targetState = true
                                 }
+                            }
+                            androidx.compose.animation.AnimatedVisibility(
+                                visibleState = rightTransition,
+                                enter = slideInHorizontally(
+                                    initialOffsetX = { fullWidth -> fullWidth },
+                                    animationSpec = androidx.compose.animation.core.tween(
+                                        durationMillis = 350,
+                                        easing = androidx.compose.animation.core.FastOutSlowInEasing
+                                    )
+                                ) + androidx.compose.animation.fadeIn(
+                                    animationSpec = androidx.compose.animation.core.tween(350)
+                                ),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                supportingEntry.Content()
                             }
                         }
                     }
