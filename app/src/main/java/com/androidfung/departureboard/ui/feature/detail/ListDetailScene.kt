@@ -88,7 +88,16 @@ data class ListDetailScene<T : Any>(
 
                     CompositionLocalProvider(LocalBackButtonVisibility provides false) {
                         Column(modifier = Modifier.weight(0.35f)) {
-                            supportingEntry.Content()
+                            androidx.compose.runtime.key(supportingEntry.contentKey) {
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = true,
+                                    enter = slideInHorizontally(initialOffsetX = { it }),
+                                    exit = slideOutHorizontally(targetOffsetX = { it }),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    supportingEntry.Content()
+                                }
+                            }
                         }
                     }
                 } else {
