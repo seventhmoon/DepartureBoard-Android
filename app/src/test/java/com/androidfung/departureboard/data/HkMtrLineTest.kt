@@ -4,7 +4,6 @@ import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.hk.HkMtrLine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HkMtrLineTest {

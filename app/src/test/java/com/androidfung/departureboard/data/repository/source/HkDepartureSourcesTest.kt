@@ -1,6 +1,5 @@
 package com.androidfung.departureboard.data.repository.source
 
-import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.hk.HkCitybusEtaResponse
 import com.androidfung.departureboard.data.model.hk.HkKmbEtaItem
@@ -12,16 +11,8 @@ import com.androidfung.departureboard.data.model.hk.HkStationDirectory
 import com.androidfung.departureboard.data.model.hk.topology.HkMtrRoutes
 import com.androidfung.departureboard.data.network.hk.HkBusApiService
 import com.androidfung.departureboard.data.network.hk.HkMtrApiService
-import com.androidfung.departureboard.data.repository.region.gb.direction.DestinationResolver
-import com.androidfung.departureboard.data.repository.region.gb.direction.ElizabethLineDirectionResolver
-import com.androidfung.departureboard.data.repository.region.gb.direction.OvergroundLineResolver
-import com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver
-import com.androidfung.departureboard.data.repository.region.gb.mapper.NationalRailDepartureMapper
-import com.androidfung.departureboard.data.repository.region.gb.mapper.TflDepartureMapper
-import com.androidfung.departureboard.data.repository.region.hk.HkBusCallingPointsResolver
 import com.androidfung.departureboard.data.repository.region.hk.HkBusDepartureSource
 import com.androidfung.departureboard.data.repository.region.hk.HkMtrDepartureSource
-import com.androidfung.departureboard.data.topology.LinearCorridorDirectionResolver
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

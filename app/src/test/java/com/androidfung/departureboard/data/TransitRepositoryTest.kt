@@ -1,7 +1,6 @@
 package com.androidfung.departureboard.data
 
 import com.androidfung.departureboard.data.model.Station
-import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction
 import com.androidfung.departureboard.data.model.gb.TflSearchResponse
 import com.androidfung.departureboard.data.model.gb.TflStopPointMatch
@@ -10,7 +9,6 @@ import com.androidfung.departureboard.data.repository.region.gb.NationalRailStat
 import com.androidfung.departureboard.test.FakeNrApiService
 import com.androidfung.departureboard.test.FakeStationPreferencesDataSource
 import com.androidfung.departureboard.test.FakeTflApiService
-import java.io.IOException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

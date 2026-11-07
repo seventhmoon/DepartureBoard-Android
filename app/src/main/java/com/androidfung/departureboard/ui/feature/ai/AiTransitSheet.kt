@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -95,6 +96,7 @@ fun AiTransitSheet(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val localContext = LocalContext.current
+    val resources = LocalResources.current
     val assistant = remember(repository, localContext) { TransitAiAssistant(repository, localContext) }
     val dynamicAiProvider = remember(localContext) {
         (localContext.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.container?.dynamicAiAssistantProvider
@@ -115,11 +117,11 @@ fun AiTransitSheet(
                     is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Installed -> {
                         isInstallingModule = false
                         isFeatureInstalled = true
-                        Toast.makeText(localContext, localContext.getString(R.string.ai_toast_engine_installed), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(localContext, resources.getString(R.string.ai_toast_engine_installed), Toast.LENGTH_SHORT).show()
                     }
                     is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Failed -> {
                         isInstallingModule = false
-                        Toast.makeText(localContext, localContext.getString(R.string.ai_toast_install_failed), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(localContext, resources.getString(R.string.ai_toast_install_failed), Toast.LENGTH_SHORT).show()
                     }
                     else -> {}
                 }
@@ -132,34 +134,34 @@ fun AiTransitSheet(
     var aiResult by remember { mutableStateOf<AiTransitResult?>(null) }
 
     // Dynamic, location-aware & frequently asked suggestions
-    val quickPrompts = remember(nearestStation, savedStations, selectedRegion, localContext) {
+    val quickPrompts = remember(nearestStation, savedStations, selectedRegion, resources) {
         val prompts = mutableListOf<String>()
         val currentHour = java.time.LocalTime.now().hour
 
         // 1. Time-of-day contextual prompts
         when (currentHour) {
             in 6..9 -> {
-                prompts.add(localContext.getString(R.string.ai_prompt_morning_commute))
+                prompts.add(resources.getString(R.string.ai_prompt_morning_commute))
                 if (nearestStation != null) {
                     val name = nearestStation.displayName.substringBefore("(").trim()
-                    prompts.add(localContext.getString(R.string.ai_prompt_next_train_from, name))
+                    prompts.add(resources.getString(R.string.ai_prompt_next_train_from, name))
                 } else {
-                    prompts.add(localContext.getString(R.string.ai_prompt_next_train_near_me))
+                    prompts.add(resources.getString(R.string.ai_prompt_next_train_near_me))
                 }
             }
             in 16..19 -> {
-                prompts.add(localContext.getString(R.string.ai_prompt_evening_commute))
-                prompts.add(localContext.getString(R.string.ai_prompt_evening_delays))
+                prompts.add(resources.getString(R.string.ai_prompt_evening_commute))
+                prompts.add(resources.getString(R.string.ai_prompt_evening_delays))
             }
             in 22..23, in 0..4 -> {
                 when (selectedRegion) {
-                    com.androidfung.departureboard.data.model.TransitRegion.HK -> prompts.add(localContext.getString(R.string.ai_prompt_last_train))
-                    com.androidfung.departureboard.data.model.TransitRegion.SG -> prompts.add(localContext.getString(R.string.ai_prompt_last_train))
-                    com.androidfung.departureboard.data.model.TransitRegion.JP -> prompts.add(localContext.getString(R.string.ai_prompt_last_train))
-                    com.androidfung.departureboard.data.model.TransitRegion.AU -> prompts.add(localContext.getString(R.string.ai_prompt_last_train))
+                    com.androidfung.departureboard.data.model.TransitRegion.HK -> prompts.add(resources.getString(R.string.ai_prompt_last_train))
+                    com.androidfung.departureboard.data.model.TransitRegion.SG -> prompts.add(resources.getString(R.string.ai_prompt_last_train))
+                    com.androidfung.departureboard.data.model.TransitRegion.JP -> prompts.add(resources.getString(R.string.ai_prompt_last_train))
+                    com.androidfung.departureboard.data.model.TransitRegion.AU -> prompts.add(resources.getString(R.string.ai_prompt_last_train))
                     com.androidfung.departureboard.data.model.TransitRegion.GB -> {
-                        prompts.add(localContext.getString(R.string.ai_prompt_last_tube))
-                        prompts.add(localContext.getString(R.string.ai_prompt_night_bus))
+                        prompts.add(resources.getString(R.string.ai_prompt_last_tube))
+                        prompts.add(resources.getString(R.string.ai_prompt_night_bus))
                     }
                 }
             }
@@ -167,12 +169,12 @@ fun AiTransitSheet(
                 if (nearestStation != null) {
                     val shortName = nearestStation.displayName.substringBefore("(").trim()
                     if (nearestStation.isBusOnly) {
-                        prompts.add(localContext.getString(R.string.ai_prompt_next_bus_from, shortName))
+                        prompts.add(resources.getString(R.string.ai_prompt_next_bus_from, shortName))
                     } else {
-                        prompts.add(localContext.getString(R.string.ai_prompt_next_train_from, shortName))
+                        prompts.add(resources.getString(R.string.ai_prompt_next_train_from, shortName))
                     }
                 } else {
-                    prompts.add(localContext.getString(R.string.ai_prompt_next_departure_near_me))
+                    prompts.add(resources.getString(R.string.ai_prompt_next_departure_near_me))
                 }
             }
         }
@@ -181,7 +183,7 @@ fun AiTransitSheet(
         val secondary = savedStations.firstOrNull { it.id != nearestStation?.id }
         if (secondary != null) {
             val shortName = secondary.displayName.substringBefore("(").trim()
-            prompts.add(localContext.getString(R.string.ai_prompt_next_train_from, shortName))
+            prompts.add(resources.getString(R.string.ai_prompt_next_train_from, shortName))
         }
 
         // 3. High-frequency transit corridors by region
@@ -230,7 +232,7 @@ fun AiTransitSheet(
                 if (!allowed) {
                     isQuotaExceeded = true
                     aiResult = AiTransitResult(
-                        answer = localContext.getString(R.string.ai_quota_exceeded, SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES)
+                        answer = resources.getString(R.string.ai_quota_exceeded, SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES)
                     )
                     isThinking = false
                     return@launch
@@ -297,12 +299,12 @@ fun AiTransitSheet(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_PROMPT, localContext.getString(R.string.ai_speech_prompt))
+            putExtra(RecognizerIntent.EXTRA_PROMPT, resources.getString(R.string.ai_speech_prompt))
         }
         try {
             speechRecognizerLauncher.launch(intent)
         } catch (_: android.content.ActivityNotFoundException) {
-            Toast.makeText(localContext, localContext.getString(R.string.ai_toast_speech_unavailable), Toast.LENGTH_SHORT).show()
+            Toast.makeText(localContext, resources.getString(R.string.ai_toast_speech_unavailable), Toast.LENGTH_SHORT).show()
         }
     }
 

@@ -8,9 +8,7 @@ import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import com.androidfung.departureboard.test.TestFixtures
-import java.time.Instant
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

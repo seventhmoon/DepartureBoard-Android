@@ -205,8 +205,8 @@ fun StationCardSkeleton(
  */
 @Composable
 fun DepartureRowsSkeleton(
-    count: Int = 3,
     modifier: Modifier = Modifier,
+    count: Int = 3,
     shimmerBrush: Brush? = null
 ) {
     val defaultColors = listOf(

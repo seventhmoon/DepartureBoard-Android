@@ -2,7 +2,6 @@ package com.androidfung.departureboard.widget
 
 import android.app.Activity
 import android.appwidget.AppWidgetManager
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -29,7 +28,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.DirectionsSubway
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -60,8 +58,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.Preferences.Key
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
@@ -72,7 +68,6 @@ import com.androidfung.departureboard.billing.BillingRepository
 import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
-import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
 import com.androidfung.departureboard.ui.feature.paywall.PaywallBottomSheet
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 import kotlin.time.Duration.Companion.milliseconds

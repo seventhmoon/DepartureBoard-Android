@@ -34,8 +34,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 49
-        versionName = "1.3.1-261105"
+        versionCode = 50
+        versionName = "1.3.2-261106"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

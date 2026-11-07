@@ -15,16 +15,6 @@ import com.androidfung.departureboard.data.model.gb.TflLineStatusDetail
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import com.androidfung.departureboard.data.repository.region.gb.TyneAndWearMetroDepartureSource
-import com.androidfung.departureboard.data.repository.region.gb.direction.DestinationResolver
-import com.androidfung.departureboard.data.repository.region.gb.direction.ElizabethLineDirectionResolver
-import com.androidfung.departureboard.data.repository.region.gb.direction.OvergroundLineResolver
-import com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver
-import com.androidfung.departureboard.data.repository.region.gb.mapper.NationalRailDepartureMapper
-import com.androidfung.departureboard.data.repository.region.gb.mapper.TflDepartureMapper
-import com.androidfung.departureboard.data.repository.region.hk.HkBusCallingPointsResolver
-import com.androidfung.departureboard.data.repository.region.hk.HkBusDepartureSource
-import com.androidfung.departureboard.data.repository.region.hk.HkMtrDepartureSource
-import com.androidfung.departureboard.data.topology.LinearCorridorDirectionResolver
 import com.androidfung.departureboard.ui.feature.settings.buildDisplayLineStatusItems
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

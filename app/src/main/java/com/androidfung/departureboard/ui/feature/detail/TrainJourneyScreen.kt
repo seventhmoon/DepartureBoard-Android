@@ -31,16 +31,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,6 +52,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -523,16 +521,36 @@ private fun TrainJourneyContent(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             if (coach.isWheelchairAccessible == true) {
-                                                Text(text = "♿", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp))
+                                                val wheelchairDesc = stringResource(R.string.amenity_wheelchair)
+                                                Text(
+                                                    text = "♿",
+                                                    modifier = Modifier.semantics { contentDescription = wheelchairDesc },
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+                                                )
                                             }
                                             if (coach.hasBicycleRack == true) {
-                                                Text(text = "🚲", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp))
+                                                val bikeDesc = stringResource(R.string.amenity_bike)
+                                                Text(
+                                                    text = "🚲",
+                                                    modifier = Modifier.semantics { contentDescription = bikeDesc },
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+                                                )
                                             }
                                             if (coach.hasToilet == true) {
-                                                Text(text = "🚻", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp))
+                                                val toiletDesc = stringResource(R.string.amenity_toilet)
+                                                Text(
+                                                    text = "🚻",
+                                                    modifier = Modifier.semantics { contentDescription = toiletDesc },
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+                                                )
                                             }
                                             if (coach.isQuietCoach == true) {
-                                                Text(text = "🤫", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp))
+                                                val quietDesc = stringResource(R.string.amenity_quiet)
+                                                Text(
+                                                    text = "🤫",
+                                                    modifier = Modifier.semantics { contentDescription = quietDesc },
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+                                                )
                                             }
                                         }
                                         // Coach crowding status

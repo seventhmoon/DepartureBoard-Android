@@ -2,7 +2,6 @@ package com.androidfung.departureboard.data.repository.region.gb.mapper
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.PlatformInfo
-import com.androidfung.departureboard.data.model.TransitDirection
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflArrivalPrediction

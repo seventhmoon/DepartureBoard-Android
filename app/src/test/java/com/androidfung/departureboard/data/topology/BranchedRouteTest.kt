@@ -2,8 +2,6 @@ package com.androidfung.departureboard.data.topology
 
 import com.androidfung.departureboard.data.model.TransitDirection
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BranchedRouteTest {

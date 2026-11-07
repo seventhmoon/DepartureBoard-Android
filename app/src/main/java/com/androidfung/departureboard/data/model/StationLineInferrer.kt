@@ -2,7 +2,6 @@ package com.androidfung.departureboard.data.model
 
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
-import com.androidfung.departureboard.data.model.hk.HkMtrLine
 
 /**
  * Data-driven inference of default line badges for London transit stations

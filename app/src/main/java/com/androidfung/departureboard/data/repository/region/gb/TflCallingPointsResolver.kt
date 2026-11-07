@@ -2,7 +2,6 @@ package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
-import com.androidfung.departureboard.data.model.StationIdPrefixes
 import com.androidfung.departureboard.data.model.isAuTransitId
 import com.androidfung.departureboard.data.model.isBods
 import com.androidfung.departureboard.data.model.isHkDeparture

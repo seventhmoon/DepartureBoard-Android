@@ -5,8 +5,14 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- ==================== OVERHEAD CANOPY SUSPENSION RODS ==================== -->
-    <!-- Left Suspension Strut Shadow & Rod -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.82"
+        android:scaleY="0.82">
+
+        <!-- ==================== OVERHEAD CANOPY SUSPENSION RODS ==================== -->
+        <!-- Left Suspension Strut Shadow & Rod -->
     <path
         android:fillColor="#50000000"
         android:pathData="M36.5,12L40.5,12L40.5,32L36.5,32Z" />
@@ -211,4 +217,5 @@
             </gradient>
         </aapt:attr>
     </path>
+    </group>
 </vector>

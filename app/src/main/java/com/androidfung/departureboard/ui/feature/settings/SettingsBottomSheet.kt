@@ -1,8 +1,6 @@
 package com.androidfung.departureboard.ui.feature.settings
 
-import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,7 +28,6 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LockReset
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Policy
-import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.StarRate
 import androidx.compose.material.icons.rounded.WorkspacePremium
@@ -63,14 +60,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.androidfung.departureboard.BuildConfig
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.billing.BillingDataSource
-import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.ui.theme.AppThemeMode
-import com.androidfung.departureboard.util.LocaleHelper
 
 /**
  * Production-ready Settings bottom sheet allowing users to configure

@@ -24,7 +24,6 @@ import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Cloud
-import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Language
@@ -60,13 +59,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.ai.AiModelType
 import com.androidfung.departureboard.billing.BillingDataSource
@@ -143,13 +140,13 @@ fun DebugSettingsContent(
     onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit,
     isHkRegionEnabled: Boolean,
     onToggleHkRegionEnabled: (Boolean) -> Unit,
-    isBilingualEnabled: Boolean = true,
-    onToggleBilingualEnabled: (Boolean) -> Unit = {},
     onResetStations: () -> Unit,
     onTriggerInAppReview: () -> Unit,
     onResetInAppReviewData: () -> Unit,
     sheetState: SheetState,
     modifier: Modifier = Modifier,
+    isBilingualEnabled: Boolean = true,
+    onToggleBilingualEnabled: (Boolean) -> Unit = {},
     onOpenRegionPicker: (() -> Unit)? = null
 ) {
     var remainingAiQueries by remember { mutableIntStateOf(0) }
@@ -196,13 +193,13 @@ fun DebugSettingsBody(
     onSelectRegion: (com.androidfung.departureboard.data.model.TransitRegion) -> Unit,
     isHkRegionEnabled: Boolean,
     onToggleHkRegionEnabled: (Boolean) -> Unit,
-    isBilingualEnabled: Boolean = true,
-    onToggleBilingualEnabled: (Boolean) -> Unit = {},
     remainingAiQueries: Int,
     onResetStations: () -> Unit,
     onTriggerInAppReview: () -> Unit,
     onResetInAppReviewData: () -> Unit,
     modifier: Modifier = Modifier,
+    isBilingualEnabled: Boolean = true,
+    onToggleBilingualEnabled: (Boolean) -> Unit = {},
     onOpenRegionPicker: (() -> Unit)? = null
 ) {
     val context = LocalContext.current

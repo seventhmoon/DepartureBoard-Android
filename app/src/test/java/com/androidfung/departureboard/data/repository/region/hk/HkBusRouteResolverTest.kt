@@ -1,21 +1,11 @@
 package com.androidfung.departureboard.data.repository.region.hk
 
-import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
 import com.androidfung.departureboard.data.model.hk.HkKmbRouteStopItem
 import com.androidfung.departureboard.data.model.hk.HkKmbRouteStopResponse
 import com.androidfung.departureboard.data.model.hk.HkKmbStopDetailItem
 import com.androidfung.departureboard.data.model.hk.HkKmbStopDetailResponse
 import com.androidfung.departureboard.data.network.hk.HkBusApiService
-import com.androidfung.departureboard.data.repository.region.gb.direction.DestinationResolver
-import com.androidfung.departureboard.data.repository.region.gb.direction.ElizabethLineDirectionResolver
-import com.androidfung.departureboard.data.repository.region.gb.direction.OvergroundLineResolver
-import com.androidfung.departureboard.data.repository.region.gb.direction.ThameslinkDirectionResolver
-import com.androidfung.departureboard.data.repository.region.gb.mapper.NationalRailDepartureMapper
-import com.androidfung.departureboard.data.repository.region.gb.mapper.TflDepartureMapper
 import com.androidfung.departureboard.data.repository.region.hk.HkBusCallingPointsResolver
-import com.androidfung.departureboard.data.repository.region.hk.HkBusDepartureSource
-import com.androidfung.departureboard.data.repository.region.hk.HkMtrDepartureSource
-import com.androidfung.departureboard.data.topology.LinearCorridorDirectionResolver
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

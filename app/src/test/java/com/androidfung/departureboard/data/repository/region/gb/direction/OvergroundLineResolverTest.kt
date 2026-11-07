@@ -1,12 +1,5 @@
 package com.androidfung.departureboard.data.repository.region.gb.direction
 
-import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
-import com.androidfung.departureboard.data.repository.region.gb.mapper.NationalRailDepartureMapper
-import com.androidfung.departureboard.data.repository.region.gb.mapper.TflDepartureMapper
-import com.androidfung.departureboard.data.repository.region.hk.HkBusCallingPointsResolver
-import com.androidfung.departureboard.data.repository.region.hk.HkBusDepartureSource
-import com.androidfung.departureboard.data.repository.region.hk.HkMtrDepartureSource
-import com.androidfung.departureboard.data.topology.LinearCorridorDirectionResolver
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
