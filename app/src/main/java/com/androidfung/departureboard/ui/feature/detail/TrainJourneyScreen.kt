@@ -1248,28 +1248,31 @@ private fun CallingPointTimelineItem(
                     if (callingPoint.isCurrentStation) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
                             border = androidx.compose.foundation.BorderStroke(
                                 width = 0.8.dp,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                             )
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text(
-                                    text = "👤",
-                                    fontSize = 10.sp
+                                Icon(
+                                    imageVector = com.androidfung.departureboard.ui.designsystem.PersonPinIcon,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(11.dp)
                                 )
                                 Text(
                                     text = stringResource(R.string.train_journey_your_station),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
+                                        lineHeight = 12.sp
                                     ),
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -1278,30 +1281,31 @@ private fun CallingPointTimelineItem(
                     if (isTrainLocation) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = accessibleColors.badgeBackground,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
                             border = androidx.compose.foundation.BorderStroke(
                                 width = 0.8.dp,
-                                color = accessibleColors.badgeBorder
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                             )
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.LocationOn,
                                     contentDescription = null,
-                                    tint = accessibleColors.badgeContent,
+                                    tint = accessibleColors.effectiveLineColor,
                                     modifier = Modifier.size(11.dp)
                                 )
                                 Text(
                                     text = stringResource(R.string.train_journey_current_location),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
+                                        lineHeight = 12.sp
                                     ),
-                                    color = accessibleColors.badgeContent
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
