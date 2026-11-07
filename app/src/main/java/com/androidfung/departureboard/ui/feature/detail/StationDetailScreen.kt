@@ -657,7 +657,53 @@ private fun StationDetailContent(
             contentPadding = PaddingValues(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Station Inter-Platform Transfers (GTFS transfers.txt)
+            // Micromobility & Bikeshare Hubs (GBFS station_status.json)
+            if (station.micromobilityHubs.isNotEmpty()) {
+                item(key = "station_micromobility") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        station.micromobilityHubs.forEach { hub ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "🚲 ${hub.operatorName ?: hub.name}",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    val bikesLabel = stringResource(R.string.micromobility_bikes_available, hub.totalBikesAvailable)
+                                    val docksLabel = stringResource(R.string.micromobility_docks_available, hub.totalDocksAvailable)
+                                    val ebikesSuffix = if (hub.totalEbikesAvailable > 0) {
+                                        " (${stringResource(R.string.micromobility_ebikes_available, hub.totalEbikesAvailable)})"
+                                    } else ""
+                                    Text(
+                                        text = "$bikesLabel$ebikesSuffix • $docksLabel",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Station Inter-Platform Transfers (GTFS transfers.txt & NeTEx/IFOPT Pathways)
             if (station.transfers.isNotEmpty()) {
                 item(key = "station_transfers") {
                     Row(
@@ -698,6 +744,19 @@ private fun StationDetailContent(
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
+                                    }
+                                    if (transfer.isStepFree) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
+                                        ) {
+                                            Text(
+                                                text = "♿ ${stringResource(R.string.transfer_step_free)}",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.SemiBold),
+                                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                                modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                            )
+                                        }
                                     }
                                     if (transferTypeLabel != null) {
                                         Surface(

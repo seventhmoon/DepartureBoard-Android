@@ -209,15 +209,40 @@ object NationalRailDepartureMapper {
             name = operatorName,
             region = TransitRegion.GB
         )
+
+        // Darwin train associations: detect train splitting/dividing into multiple destination portions
+        val associations = if (service.destination.size > 1) {
+            val primaryDest = service.destination.first().locationName
+            val secondaryDest = service.destination.drop(1).joinToString(", ") { it.locationName }
+            val junctionName = service.subsequentCallingPoints?.firstOrNull()?.callingPoint?.lastOrNull { cp1 ->
+                service.subsequentCallingPoints.drop(1).any { otherList ->
+                    otherList.callingPoint.any { cp2 -> cp2.locationName.equals(cp1.locationName, ignoreCase = true) }
+                }
+            }?.locationName ?: primaryDest
+
+            listOf(
+                com.androidfung.departureboard.data.model.TrainAssociation(
+                    type = com.androidfung.departureboard.data.model.TrainAssociationType.DIVIDES,
+                    junctionStationName = junctionName,
+                    portionDestination = secondaryDest,
+                    notice = "Divides at $junctionName for $secondaryDest"
+                )
+            )
+        } else emptyList()
+
         val formationInfo = service.length?.let {
-            TrainFormation(coachCount = it)
-        }
+            TrainFormation(coachCount = it, associations = associations)
+        } ?: if (associations.isNotEmpty()) {
+            TrainFormation(coachCount = 8, associations = associations)
+        } else null
+
         val trainInfo = TrainInfo(
             serviceId = service.serviceId,
             operator = operatorInfo,
             formation = formationInfo,
             cancelReason = service.cancelReason,
-            delayReason = service.delayReason
+            delayReason = service.delayReason,
+            associations = associations
         )
         val rawVia = service.destination.firstOrNull()?.via
         val normalizedVia = rawVia?.removePrefix("via ")?.removePrefix("Via ")?.trim()

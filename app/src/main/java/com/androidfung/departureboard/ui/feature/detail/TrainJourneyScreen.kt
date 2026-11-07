@@ -574,6 +574,43 @@ private fun TrainJourneyContent(
                                 }
                             }
                         }
+
+                        // Darwin Train Portioning & Associations (train splits/joins)
+                        if (departure.associations.isNotEmpty()) {
+                            departure.associations.forEach { assoc ->
+                                val assocText = assoc.notice ?: when (assoc.type) {
+                                    com.androidfung.departureboard.data.model.TrainAssociationType.DIVIDES ->
+                                        stringResource(R.string.train_divides_notice, assoc.junctionStationName, assoc.portionDestination ?: assoc.coachRange ?: "")
+                                    com.androidfung.departureboard.data.model.TrainAssociationType.JOINS ->
+                                        stringResource(R.string.train_joins_notice, assoc.junctionStationName, assoc.portionDestination ?: assoc.coachRange ?: "")
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "✂️",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                        Text(
+                                            text = assocText,
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

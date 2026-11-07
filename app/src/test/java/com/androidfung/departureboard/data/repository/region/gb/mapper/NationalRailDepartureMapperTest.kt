@@ -163,4 +163,51 @@ class NationalRailDepartureMapperTest {
         assertEquals("Brighton", departure.resolvedDestination.displayDestination)
         assertEquals("via London Bridge", departure.resolvedDestination.displayViaSubtitle)
     }
+
+    @Test
+    fun testMapToDeparture_splittingTrain_mapsDarwinAssociations() {
+        val service = NrTrainService(
+            serviceId = "RID_SPLIT",
+            std = "10:15",
+            etd = "On time",
+            platform = "1",
+            operator = "Great Northern",
+            operatorCode = "GN",
+            length = 8,
+            destination = listOf(
+                NrLocation(locationName = "King's Lynn", crs = "KLN"),
+                NrLocation(locationName = "Cambridge", crs = "CBG")
+            ),
+            subsequentCallingPoints = listOf(
+                com.androidfung.departureboard.data.model.gb.NrCallingPointList(
+                    callingPoint = listOf(
+                        com.androidfung.departureboard.data.model.gb.NrCallingPoint(locationName = "Royston", crs = "RYS", st = "10:45", et = "On time"),
+                        com.androidfung.departureboard.data.model.gb.NrCallingPoint(locationName = "Cambridge", crs = "CBG", st = "11:00", et = "On time"),
+                        com.androidfung.departureboard.data.model.gb.NrCallingPoint(locationName = "Ely", crs = "ELY", st = "11:20", et = "On time"),
+                        com.androidfung.departureboard.data.model.gb.NrCallingPoint(locationName = "King's Lynn", crs = "KLN", st = "11:50", et = "On time")
+                    )
+                ),
+                com.androidfung.departureboard.data.model.gb.NrCallingPointList(
+                    callingPoint = listOf(
+                        com.androidfung.departureboard.data.model.gb.NrCallingPoint(locationName = "Royston", crs = "RYS", st = "10:45", et = "On time"),
+                        com.androidfung.departureboard.data.model.gb.NrCallingPoint(locationName = "Cambridge", crs = "CBG", st = "11:00", et = "On time")
+                    )
+                )
+            )
+        )
+
+        val departure = NationalRailDepartureMapper.mapToDeparture(
+            service = service,
+            stationId = "KGX",
+            stationName = "London King's Cross"
+        )
+
+        assertEquals("King's Lynn", departure.destinationName)
+        assertEquals(1, departure.associations.size)
+        val assoc = departure.associations.first()
+        assertEquals(com.androidfung.departureboard.data.model.TrainAssociationType.DIVIDES, assoc.type)
+        assertEquals("Cambridge", assoc.junctionStationName)
+        assertEquals("Cambridge", assoc.portionDestination)
+        assertTrue(assoc.notice?.contains("Divides at Cambridge") == true)
+    }
 }

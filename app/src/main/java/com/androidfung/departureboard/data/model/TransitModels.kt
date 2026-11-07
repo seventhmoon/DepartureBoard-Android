@@ -186,16 +186,43 @@ enum class TransferType(val gtfsCode: Int) {
     NOT_POSSIBLE(4)      // Transfer forbidden/impossible
 }
 
+enum class PathwayMode {
+    WALKWAY,
+    STAIRS,
+    ESCALATOR,
+    ELEVATOR
+}
+
+/**
+ * Station transfer connection adhering to GTFS transfers.txt and NeTEx / IFOPT pathway topology.
+ */
 @Immutable
 data class StationTransfer(
     val fromPlatform: String,
     val toPlatform: String,
     val type: TransferType = TransferType.RECOMMENDED,
-    val minTransferTimeSeconds: Int = 0
+    val minTransferTimeSeconds: Int = 0,
+    val isStepFree: Boolean = true,
+    val pathwayModes: List<PathwayMode> = listOf(PathwayMode.WALKWAY),
+    val pathwayInstructions: String? = null
 ) {
     val displayTransferTime: String?
         get() = if (minTransferTimeSeconds > 0) "${minTransferTimeSeconds / 60} min walk" else null
 }
+
+/**
+ * Micromobility / Bikeshare station telemetry adhering to GBFS (General Bikeshare Feed Specification).
+ */
+@Immutable
+data class MicromobilityHub(
+    val id: String,
+    val name: String,
+    val totalBikesAvailable: Int,
+    val totalEbikesAvailable: Int = 0,
+    val totalDocksAvailable: Int,
+    val operatorName: String? = null,
+    val distanceMeters: Int? = null
+)
 
 /**
  * Clean domain representation of a transit station or stop.
@@ -212,7 +239,8 @@ data class Station(
     val isFavorite: Boolean = false,
     val lines: List<StationLineInfo> = emptyList(),
     val wheelchairStatus: WheelchairBoardingStatus = WheelchairBoardingStatus.UNKNOWN,
-    val transfers: List<StationTransfer> = emptyList()
+    val transfers: List<StationTransfer> = emptyList(),
+    val micromobilityHubs: List<MicromobilityHub> = emptyList()
 ) : LocalizedNameProvider {
     val isBusOnly: Boolean get() = TransitMode.isBusOnly(modes)
 
@@ -354,13 +382,31 @@ data class CoachInfo(
         get() = OccupancyStatus.fromString(occupancyStatus)
 }
 
+enum class TrainAssociationType {
+    DIVIDES,   // Train splits/divides at this station into multiple portions (Darwin Association)
+    JOINS      // Trains join/attach together at this station
+}
+
+/**
+ * Train portion splitting or joining notice adhering to Darwin association standards.
+ */
+@Immutable
+data class TrainAssociation(
+    val type: TrainAssociationType = TrainAssociationType.DIVIDES,
+    val junctionStationName: String,
+    val coachRange: String? = null,
+    val portionDestination: String? = null,
+    val notice: String? = null
+)
+
 /**
  * Train composition / formation details (e.g. 8 coaches, carriage layout).
  */
 @Immutable
 data class TrainFormation(
     val coachCount: Int,
-    val coaches: List<CoachInfo> = emptyList()
+    val coaches: List<CoachInfo> = emptyList(),
+    val associations: List<TrainAssociation> = emptyList()
 ) {
     val displayCoachCount: String
         get() = when (coachCount) {
@@ -380,7 +426,8 @@ data class TrainInfo(
     val formation: TrainFormation? = null,
     val cancelReason: String? = null,
     val delayReason: String? = null,
-    val isWheelchairAccessible: Boolean? = null
+    val isWheelchairAccessible: Boolean? = null,
+    val associations: List<TrainAssociation> = emptyList()
 )
 
 /**
@@ -445,6 +492,7 @@ data class Departure(
 
     val operator: TransitOperator? get() = train?.operator
     val formation: TrainFormation? get() = train?.formation
+    val associations: List<TrainAssociation> get() = formation?.associations?.takeIf { it.isNotEmpty() } ?: train?.associations.orEmpty()
     val cancelReason: String? get() = train?.cancelReason
     val delayReason: String? get() = train?.delayReason
 
