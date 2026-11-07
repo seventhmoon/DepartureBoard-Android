@@ -35,9 +35,9 @@
     <string name="transfer_via_lift">Via lift</string>
     <string name="transfer_via_escalator">Via escalator</string>
     <string name="micromobility_title">Bikeshare &amp; Micromobility</string>
-    <string name="micromobility_bikes_available">%1$d bikes</string>
+    <string name="micromobility_bikes_available" tools:ignore="PluralsCandidate">%1$d bikes</string>
     <string name="micromobility_ebikes_available">%1$d e-bikes</string>
-    <string name="micromobility_docks_available">%1$d spaces</string>
+    <string name="micromobility_docks_available" tools:ignore="PluralsCandidate">%1$d spaces</string>
     <string name="train_formation_coaches">Train Formation</string>
     <string name="train_divides_notice">Divides at %1$s: %2$s</string>
     <string name="train_joins_notice">Attaches at %1$s: %2$s</string>

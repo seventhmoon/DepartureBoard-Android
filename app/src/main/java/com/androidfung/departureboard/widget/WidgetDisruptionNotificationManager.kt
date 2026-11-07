@@ -5,9 +5,9 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.edit
 import androidx.core.content.getSystemService
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.getAppWidgetState
@@ -67,21 +67,19 @@ object WidgetDisruptionNotificationManager {
      * Creates the Android notification channel for home screen disruption alerts.
      */
     fun createNotificationChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = context.getString(R.string.notification_channel_widget_disruptions)
-            val descriptionText = context.getString(R.string.notification_channel_widget_disruptions_desc)
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                name,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = descriptionText
-                enableVibration(true)
-                setShowBadge(true)
-            }
-            val notificationManager = context.getSystemService<NotificationManager>()
-            notificationManager?.createNotificationChannel(channel)
+        val name = context.getString(R.string.notification_channel_widget_disruptions)
+        val descriptionText = context.getString(R.string.notification_channel_widget_disruptions_desc)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            name,
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = descriptionText
+            enableVibration(true)
+            setShowBadge(true)
         }
+        val notificationManager = context.getSystemService<NotificationManager>()
+        notificationManager?.createNotificationChannel(channel)
     }
 
     /**
@@ -243,7 +241,7 @@ object WidgetDisruptionNotificationManager {
                 )
             }
             // Priority 2: Unexpected closure or severe incident in transit alerts (e.g. NRCC / GTFS-RT)
-            hasUnexpectedAlertClosure && applicableAlert != null -> {
+            hasUnexpectedAlertClosure -> {
                 DisruptionEvaluation(
                     isDisrupted = true,
                     isSevere = true,
@@ -355,14 +353,14 @@ object WidgetDisruptionNotificationManager {
                         target = target,
                         evaluation = evaluation
                     )
-                    statePrefs.edit().putString(prefKey, evaluation.fingerprint).apply()
+                    statePrefs.edit { putString(prefKey, evaluation.fingerprint) }
                     Log.i(TAG, "Posted disruption notification for ${target.stationName} (${target.filterLineName}): ${evaluation.message}")
                 }
             } else {
                 if (lastFingerprint != null && lastFingerprint != "NORMAL") {
                     // Service has recovered: dismiss notification and clear stored disruption fingerprint
                     notificationManager.cancel(notificationId)
-                    statePrefs.edit().remove(prefKey).apply()
+                    statePrefs.edit { remove(prefKey) }
                     Log.i(TAG, "Disruption resolved for ${target.stationName} (${target.filterLineName}), notification cleared")
                 }
             }
@@ -418,7 +416,7 @@ object WidgetDisruptionNotificationManager {
             val notificationId = getNotificationId(stationId, filterLineId)
             notificationManager?.cancel(notificationId)
         }
-        statePrefs.edit().clear().apply()
+        statePrefs.edit { clear() }
     }
 
     /**
@@ -431,7 +429,7 @@ object WidgetDisruptionNotificationManager {
 
         val statePrefs = context.getSharedPreferences(PREFS_DISRUPTION_STATE, Context.MODE_PRIVATE)
         val targetKey = "${stationId}_${filterLineId.orEmpty()}"
-        statePrefs.edit().remove("$PREF_KEY_PREFIX$targetKey").apply()
+        statePrefs.edit { remove("$PREF_KEY_PREFIX$targetKey") }
     }
 
     fun getNotificationId(stationId: String, filterLineId: String?): Int {
