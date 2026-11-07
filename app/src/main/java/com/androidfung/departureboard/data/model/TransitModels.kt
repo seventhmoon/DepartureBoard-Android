@@ -224,6 +224,54 @@ data class MicromobilityHub(
     val distanceMeters: Int? = null
 )
 
+enum class FarePeriod {
+    PEAK,
+    OFF_PEAK,
+    SUPER_OFF_PEAK;
+
+    companion object {
+        fun currentGbFarePeriod(zdt: java.time.ZonedDateTime = java.time.ZonedDateTime.now(java.time.ZoneId.of("Europe/London"))): FarePeriod {
+            val day = zdt.dayOfWeek
+            if (day == java.time.DayOfWeek.SATURDAY || day == java.time.DayOfWeek.SUNDAY) {
+                return OFF_PEAK
+            }
+            val time = zdt.toLocalTime()
+            val morningPeakStart = java.time.LocalTime.of(6, 30)
+            val morningPeakEnd = java.time.LocalTime.of(9, 30)
+            val eveningPeakStart = java.time.LocalTime.of(16, 0)
+            val eveningPeakEnd = java.time.LocalTime.of(19, 0)
+
+            val isMorningPeak = !time.isBefore(morningPeakStart) && time.isBefore(morningPeakEnd)
+            val isEveningPeak = !time.isBefore(eveningPeakStart) && time.isBefore(eveningPeakEnd)
+
+            return if (isMorningPeak || isEveningPeak) PEAK else OFF_PEAK
+        }
+    }
+}
+
+/**
+ * Public transport fare estimate adhering to GTFS-Fares v2 & NeTEx FareXChange.
+ */
+@Immutable
+data class FareEstimate(
+    val period: FarePeriod = FarePeriod.OFF_PEAK,
+    val zoneDescription: String? = null,
+    val adultFareFormatted: String? = null,
+    val peakFareFormatted: String? = null,
+    val offPeakFareFormatted: String? = null
+)
+
+/**
+ * Detailed station accessibility amenities adhering to OpenStreetMap (OSM) Public Transport v2 & WCAG standards.
+ */
+@Immutable
+data class StationAccessibility(
+    val hasTactilePaving: Boolean? = null,
+    val hasHearingLoop: Boolean? = null,
+    val hasAccessibleToilet: Boolean? = null,
+    val requiresBoardingRamp: Boolean? = null
+)
+
 /**
  * Clean domain representation of a transit station or stop.
  */
@@ -240,7 +288,9 @@ data class Station(
     val lines: List<StationLineInfo> = emptyList(),
     val wheelchairStatus: WheelchairBoardingStatus = WheelchairBoardingStatus.UNKNOWN,
     val transfers: List<StationTransfer> = emptyList(),
-    val micromobilityHubs: List<MicromobilityHub> = emptyList()
+    val micromobilityHubs: List<MicromobilityHub> = emptyList(),
+    val fare: FareEstimate? = null,
+    val accessibility: StationAccessibility? = null
 ) : LocalizedNameProvider {
     val isBusOnly: Boolean get() = TransitMode.isBusOnly(modes)
 
@@ -343,13 +393,15 @@ data class CallingPoint(
 }
 
 /**
- * Structured platform or berth representation adhering to GTFS stops.txt platform_code.
+ * Structured platform or berth representation adhering to GTFS stops.txt platform_code and SIRI-ET platform alterations.
  */
 @Immutable
 data class PlatformInfo(
     val code: String,
     val isConfirmed: Boolean = true,
-    val directionHint: String? = null
+    val directionHint: String? = null,
+    val isChanged: Boolean = false,
+    val previousPlatform: String? = null
 ) {
     /**
      * Formats user-facing label (e.g. "Platform 4", "Stop B", "Plat 2 (Unconfirmed)").
@@ -462,7 +514,8 @@ data class Departure(
     val stopActivity: StopActivityType = StopActivityType.NORMAL,
     val wheelchairStatus: WheelchairBoardingStatus = if (isWheelchairAccessible == true) WheelchairBoardingStatus.STEP_FREE_LEVEL_BOARDING else WheelchairBoardingStatus.UNKNOWN,
     val frequency: ServiceFrequency? = null,
-    val journeyDestination: JourneyDestination? = null
+    val journeyDestination: JourneyDestination? = null,
+    val fare: FareEstimate? = null
 ) {
     val resolvedPlatform: PlatformInfo
         get() = platform ?: PlatformInfo(

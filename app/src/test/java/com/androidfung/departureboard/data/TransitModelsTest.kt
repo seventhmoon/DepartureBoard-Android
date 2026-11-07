@@ -5,6 +5,7 @@ import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -144,5 +145,51 @@ class TransitModelsTest {
         assertEquals(com.androidfung.departureboard.data.model.TransitDirection.NORTHBOUND, com.androidfung.departureboard.data.model.TransitDirection.fromString("northbound"))
         assertEquals(com.androidfung.departureboard.data.model.TransitDirection.ANTI_CLOCKWISE, com.androidfung.departureboard.data.model.TransitDirection.fromString("Outer"))
         assertEquals(com.androidfung.departureboard.data.model.TransitDirection.CLOCKWISE, com.androidfung.departureboard.data.model.TransitDirection.fromString("Inner"))
+    }
+
+    @Test
+    fun testFarePeriod_computesPeakAndOffPeakCorrectly() {
+        // Monday 08:00 (Morning Peak)
+        val mondayMorningPeak = java.time.ZonedDateTime.of(2026, 11, 9, 8, 0, 0, 0, java.time.ZoneId.of("Europe/London"))
+        assertEquals(com.androidfung.departureboard.data.model.FarePeriod.PEAK, com.androidfung.departureboard.data.model.FarePeriod.currentGbFarePeriod(mondayMorningPeak))
+
+        // Monday 12:00 (Off-Peak)
+        val mondayMiddayOffPeak = java.time.ZonedDateTime.of(2026, 11, 9, 12, 0, 0, 0, java.time.ZoneId.of("Europe/London"))
+        assertEquals(com.androidfung.departureboard.data.model.FarePeriod.OFF_PEAK, com.androidfung.departureboard.data.model.FarePeriod.currentGbFarePeriod(mondayMiddayOffPeak))
+
+        // Monday 17:30 (Evening Peak)
+        val mondayEveningPeak = java.time.ZonedDateTime.of(2026, 11, 9, 17, 30, 0, 0, java.time.ZoneId.of("Europe/London"))
+        assertEquals(com.androidfung.departureboard.data.model.FarePeriod.PEAK, com.androidfung.departureboard.data.model.FarePeriod.currentGbFarePeriod(mondayEveningPeak))
+
+        // Saturday 17:30 (Weekend -> Off-Peak)
+        val saturdayEvening = java.time.ZonedDateTime.of(2026, 11, 7, 17, 30, 0, 0, java.time.ZoneId.of("Europe/London"))
+        assertEquals(com.androidfung.departureboard.data.model.FarePeriod.OFF_PEAK, com.androidfung.departureboard.data.model.FarePeriod.currentGbFarePeriod(saturdayEvening))
+    }
+
+    @Test
+    fun testPlatformInfo_platformChangeAndConfirmation() {
+        val changedPlat = com.androidfung.departureboard.data.model.PlatformInfo(
+            code = "1b",
+            isConfirmed = true,
+            isChanged = true,
+            previousPlatform = "4"
+        )
+        assertTrue(changedPlat.isChanged)
+        assertEquals("4", changedPlat.previousPlatform)
+        assertEquals("Platform 1b", changedPlat.formatDisplay())
+    }
+
+    @Test
+    fun testStationAccessibility_osmAttributes() {
+        val a11y = com.androidfung.departureboard.data.model.StationAccessibility(
+            hasTactilePaving = true,
+            hasHearingLoop = true,
+            hasAccessibleToilet = true,
+            requiresBoardingRamp = false
+        )
+        assertTrue(a11y.hasTactilePaving == true)
+        assertTrue(a11y.hasHearingLoop == true)
+        assertTrue(a11y.hasAccessibleToilet == true)
+        assertFalse(a11y.requiresBoardingRamp == true)
     }
 }

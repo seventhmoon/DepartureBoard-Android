@@ -42,6 +42,14 @@
     <string name="train_divides_notice">Divides at %1$s: %2$s</string>
     <string name="train_joins_notice">Attaches at %1$s: %2$s</string>
     <string name="train_divides_tag">Divides at %1$s</string>
+    <string name="platform_changed_alert">Plat %1$s (was %2$s)</string>
+    <string name="fare_peak">Peak</string>
+    <string name="fare_off_peak">Off-Peak</string>
+    <string name="fare_zone_pill">Zone %1$s</string>
+    <string name="amenity_tactile_paving">Tactile Paving</string>
+    <string name="amenity_hearing_loop">Hearing Loop</string>
+    <string name="amenity_accessible_toilet">Accessible Toilet</string>
+    <string name="amenity_ramp_required">Ramp Required</string>
     <string name="coach_label">Coach %1$s</string>
     <string name="amenity_quiet">Quiet Coach</string>
     <string name="amenity_bike">Bicycle Area</string>

@@ -474,6 +474,38 @@ private fun TrainJourneyContent(
                 }
             }
 
+            // Platform Alteration Banner (SIRI-ET & Darwin platform change alerts)
+            val platformInfo = departure.platform
+            if (platformInfo?.isChanged == true && !platformInfo.previousPlatform.isNullOrBlank()) {
+                item(key = "platform_change_banner") {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "⚠️",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = stringResource(R.string.platform_changed_alert, platformInfo.code, platformInfo.previousPlatform!!),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+            }
+
             // Train Carriage Formation Diagram
             val formation = departure.formation
             if (formation != null && formation.coaches.isNotEmpty()) {

@@ -268,6 +268,35 @@ fun DepartureRowItem(
                             )
                         }
                     }
+
+                    if (departure.platform?.isChanged == true && !departure.platform?.previousPlatform.isNullOrBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.errorContainer
+                        ) {
+                            Text(
+                                text = "⚠️ " + stringResource(R.string.platform_changed_alert, departure.platform?.code.orEmpty(), departure.platform?.previousPlatform.orEmpty()),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+
+                    if (departure.fare != null) {
+                        val isPeak = departure.fare.period == com.androidfung.departureboard.data.model.FarePeriod.PEAK
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = if (isPeak) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        ) {
+                            Text(
+                                text = if (isPeak) stringResource(R.string.fare_peak) else stringResource(R.string.fare_off_peak),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                                color = if (isPeak) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
                 }
             }
 

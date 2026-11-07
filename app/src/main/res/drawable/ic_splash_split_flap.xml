@@ -1,0 +1,159 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+
+    <!-- Warm Mechanical Backlight Halo -->
+    <path
+        android:pathData="M144,144m-78,0a78,78 0 1,1 156,0a78,78 0 1,1 -156,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="144"
+                android:centerY="144"
+                android:gradientRadius="78"
+                android:type="radial">
+                <item android:offset="0.0" android:color="#28FFB300" />
+                <item android:offset="0.6" android:color="#10E32017" />
+                <item android:offset="1.0" android:color="#00000000" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <group
+        android:name="board_scale"
+        android:pivotX="144"
+        android:pivotY="144">
+
+        <!-- Drop Shadow -->
+        <path
+            android:fillColor="#55000000"
+            android:pathData="M92,94L196,94A16,16 0 0,1 212,110L212,186A16,16 0 0,1 196,202L92,202A16,16 0 0,1 76,186L76,110A16,16 0 0,1 92,94Z" />
+
+        <!-- Anodized Dark Aluminium Split-Flap Frame -->
+        <path android:pathData="M92,90L196,90A16,16 0 0,1 212,106L212,182A16,16 0 0,1 196,198L92,198A16,16 0 0,1 76,182L76,106A16,16 0 0,1 92,90Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="76"
+                    android:startY="90"
+                    android:endX="212"
+                    android:endY="198"
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#334155" />
+                    <item android:offset="0.5" android:color="#1E293B" />
+                    <item android:offset="1.0" android:color="#0F172A" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Top Specular Frame Rim -->
+        <path
+            android:pathData="M92,91L196,91A15,15 0 0,1 211,106"
+            android:strokeWidth="1.2"
+            android:strokeColor="#48FFFFFF" />
+
+        <!-- Top Transit Line Color Strip (TfL Red + Blue + Amber) -->
+        <path
+            android:fillColor="#E32017"
+            android:pathData="M88,98L124,98A2,2 0 0,1 126,100A2,2 0 0,1 124,102L88,102A2,2 0 0,1 86,100A2,2 0 0,1 88,98Z" />
+        <path
+            android:fillColor="#0098D4"
+            android:pathData="M132,98L168,98A2,2 0 0,1 170,100A2,2 0 0,1 168,102L132,102A2,2 0 0,1 130,100A2,2 0 0,1 132,98Z" />
+
+        <!-- Live Beacon on Top Right -->
+        <group
+            android:name="live_beacon"
+            android:pivotX="196"
+            android:pivotY="100">
+            <path
+                android:fillColor="#3800E676"
+                android:pathData="M196,100m-5,0a5,5 0 1,1 10,0a5,5 0 1,1 -10,0" />
+            <path
+                android:fillColor="#00E676"
+                android:pathData="M196,100m-2.5,0a2.5,2.5 0 1,1 5,0a2.5,2.5 0 1,1 -5,0" />
+        </group>
+
+        <!-- ==================== LEFT SPLIT-FLAP DRUM (TRAIN / '0') ==================== -->
+        <!-- Recessed Drum Cavity -->
+        <path
+            android:fillColor="#060911"
+            android:pathData="M92,108L134,108A6,6 0 0,1 140,114L140,182A6,6 0 0,1 134,188L92,188A6,6 0 0,1 86,182L86,114A6,6 0 0,1 92,108Z" />
+
+        <!-- Flap Card Surface -->
+        <path android:pathData="M94,111L132,111A4,4 0 0,1 136,115L136,181A4,4 0 0,1 132,185L94,185A4,4 0 0,1 90,181L90,115A4,4 0 0,1 94,111Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="90"
+                    android:startY="111"
+                    android:endX="90"
+                    android:endY="185"
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#263147" />
+                    <item android:offset="0.49" android:color="#151C2C" />
+                    <item android:offset="0.51" android:color="#1F293D" />
+                    <item android:offset="1.0" android:color="#111726" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Bold Amber Split-Flap Digit '0' -->
+        <path
+            android:pathData="M113,124A13,13 0 0,1 126,137L126,159A13,13 0 0,1 100,159L100,137A13,13 0 0,1 113,124Z"
+            android:strokeWidth="7.5"
+            android:strokeColor="#FFCA28" />
+
+        <!-- Mechanical Horizontal Split Gap & Hinge Pins (Left Drum) -->
+        <path
+            android:fillColor="#060911"
+            android:pathData="M86,146.8L140,146.8L140,149.2L86,149.2Z" />
+        <path
+            android:fillColor="#94A3B8"
+            android:pathData="M87,145L91,145L91,151L87,151ZM135,145L139,145L139,151L135,151Z" />
+
+        <!-- ==================== RIGHT SPLIT-FLAP DRUM (FLIPPING '2') ==================== -->
+        <!-- Recessed Drum Cavity -->
+        <path
+            android:fillColor="#060911"
+            android:pathData="M154,108L196,108A6,6 0 0,1 202,114L202,182A6,6 0 0,1 196,188L154,188A6,6 0 0,1 148,182L148,114A6,6 0 0,1 154,108Z" />
+
+        <!-- Animated Flipping Card Group -->
+        <group
+            android:name="flap_card"
+            android:pivotX="175"
+            android:pivotY="148">
+            <path android:pathData="M156,111L194,111A4,4 0 0,1 198,115L198,181A4,4 0 0,1 194,185L156,185A4,4 0 0,1 152,181L152,115A4,4 0 0,1 156,111Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:startX="152"
+                        android:startY="111"
+                        android:endX="152"
+                        android:endY="185"
+                        android:type="linear">
+                        <item android:offset="0.0" android:color="#263147" />
+                        <item android:offset="0.49" android:color="#151C2C" />
+                        <item android:offset="0.51" android:color="#1F293D" />
+                        <item android:offset="1.0" android:color="#111726" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+
+            <!-- Bold Amber Split-Flap Digit '2' -->
+            <path
+                android:pathData="M162,135A13,12 0 1,1 188,136C188,146 162,156 162,171L189,171"
+                android:strokeWidth="7.5"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round"
+                android:strokeColor="#FFB300" />
+        </group>
+
+        <!-- Mechanical Horizontal Split Gap & Hinge Pins (Right Drum) -->
+        <path
+            android:fillColor="#060911"
+            android:pathData="M148,146.8L202,146.8L202,149.2L148,149.2Z" />
+        <path
+            android:fillColor="#94A3B8"
+            android:pathData="M149,145L153,145L153,151L149,151ZM197,145L201,145L201,151L197,151Z" />
+
+    </group>
+</vector>

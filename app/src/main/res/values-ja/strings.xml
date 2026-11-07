@@ -43,6 +43,14 @@
     <string name="train_divides_notice">%1$s で切り離し: %2$s</string>
     <string name="train_joins_notice">%1$s で連結: %2$s</string>
     <string name="train_divides_tag">%1$s で切り離し</string>
+    <string name="platform_changed_alert">%1$s番線（旧%2$s）</string>
+    <string name="fare_peak">ピーク時</string>
+    <string name="fare_off_peak">オフピーク</string>
+    <string name="fare_zone_pill">ゾーン %1$s</string>
+    <string name="amenity_tactile_paving">点字ブロック</string>
+    <string name="amenity_hearing_loop">磁気ループ</string>
+    <string name="amenity_accessible_toilet">誰でもトイレ</string>
+    <string name="amenity_ramp_required">スロープ板対応</string>
     <string name="coach_label">%1$s 号車</string>
     <string name="amenity_quiet">静粛車両</string>
     <string name="amenity_bike">自転車スペース</string>

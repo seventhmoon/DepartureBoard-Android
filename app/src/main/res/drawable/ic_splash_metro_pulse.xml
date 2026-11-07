@@ -1,0 +1,128 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+
+    <!-- Ambient Radial Glow -->
+    <path
+        android:pathData="M144,144m-78,0a78,78 0 1,1 156,0a78,78 0 1,1 -156,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="144"
+                android:centerY="144"
+                android:gradientRadius="78"
+                android:type="radial">
+                <item android:offset="0.0" android:color="#2800E676" />
+                <item android:offset="0.55" android:color="#140098D4" />
+                <item android:offset="1.0" android:color="#00000000" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <group
+        android:name="board_scale"
+        android:pivotX="144"
+        android:pivotY="144">
+
+        <!-- Dark Circular Watch/Radar Dial Face -->
+        <path android:pathData="M144,144m-66,0a66,66 0 1,1 132,0a66,66 0 1,1 -132,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="90"
+                    android:startY="90"
+                    android:endX="198"
+                    android:endY="198"
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#1E293B" />
+                    <item android:offset="1.0" android:color="#090D16" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Subtle Inner Grid Ring -->
+        <path
+            android:pathData="M144,144m-46,0a46,46 0 1,1 92,0a46,46 0 1,1 -92,0"
+            android:strokeWidth="1.0"
+            android:strokeColor="#2294A3B8" />
+
+        <!-- Rotating Countdown Ring & Cardinal Ticks -->
+        <group
+            android:name="signal_ring"
+            android:pivotX="144"
+            android:pivotY="144">
+            <!-- Outer Dial Track -->
+            <path
+                android:pathData="M144,144m-62,0a62,62 0 1,1 124,0a62,62 0 1,1 -124,0"
+                android:strokeWidth="3.0"
+                android:strokeColor="#1E293B" />
+            <!-- Glowing Amber Active Countdown Arc (Top-Right Sweep) -->
+            <path
+                android:pathData="M144,82A62,62 0 0,1 206,144"
+                android:strokeWidth="4.5"
+                android:strokeLineCap="round"
+                android:strokeColor="#FFB300" />
+            <!-- Cardinal Dial Ticks -->
+            <path
+                android:pathData="M144,78L144,85M210,144L203,144M144,210L144,203M78,144L85,144"
+                android:strokeWidth="2.5"
+                android:strokeLineCap="round"
+                android:strokeColor="#64748B" />
+        </group>
+
+        <!-- ==================== BECK-STYLE GEOMETRIC METRO LINES ==================== -->
+        <!-- Emerald Green Line (Diagonal SW -> Center -> East) -->
+        <path
+            android:pathData="M98,176L130,144L194,144"
+            android:strokeWidth="7.0"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeColor="#00C853" />
+
+        <!-- Victoria Blue Line (NW -> Center -> SE) -->
+        <path
+            android:pathData="M104,104L144,144L174,184"
+            android:strokeWidth="7.0"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeColor="#0098D4" />
+
+        <!-- Central Red Line (West -> Center -> NE) -->
+        <path
+            android:pathData="M94,132L144,132L180,96"
+            android:strokeWidth="7.0"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeColor="#E32017" />
+
+        <!-- Secondary Station Nodes along Lines -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M180,96m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0M194,144m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0M104,104m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0" />
+
+        <!-- Central Interchange Hub Node (Pulsing) -->
+        <group
+            android:name="live_beacon"
+            android:pivotX="144"
+            android:pivotY="140">
+            <!-- Outer Amber Pulse Halo -->
+            <path
+                android:fillColor="#40FFB300"
+                android:pathData="M144,140m-16,0a16,16 0 1,1 32,0a16,16 0 1,1 -32,0" />
+            <!-- Black Interchange Ring -->
+            <path
+                android:fillColor="#0F172A"
+                android:pathData="M144,140m-11,0a11,11 0 1,1 22,0a11,11 0 1,1 -22,0" />
+            <!-- Crisp White Interchange Circle -->
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M144,140m-8.5,0a8.5,8.5 0 1,1 17,0a8.5,8.5 0 1,1 -17,0" />
+            <!-- Glowing Amber Core Dot -->
+            <path
+                android:fillColor="#FFB300"
+                android:pathData="M144,140m-4.5,0a4.5,4.5 0 1,1 9,0a4.5,4.5 0 1,1 -9,0" />
+        </group>
+
+    </group>
+</vector>

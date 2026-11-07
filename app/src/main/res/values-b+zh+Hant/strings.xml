@@ -42,6 +42,14 @@
     <string name="train_divides_notice">於 %1$s 分拆：%2$s</string>
     <string name="train_joins_notice">於 %1$s 連結：%2$s</string>
     <string name="train_divides_tag">於 %1$s 分拆</string>
+    <string name="platform_changed_alert">%1$s 號月台（原為 %2$s）</string>
+    <string name="fare_peak">繁忙時段</string>
+    <string name="fare_off_peak">非繁忙時段</string>
+    <string name="fare_zone_pill">%1$s 區</string>
+    <string name="amenity_tactile_paving">盲人引導徑</string>
+    <string name="amenity_hearing_loop">助聽感應線圈</string>
+    <string name="amenity_accessible_toilet">無障礙洗手間</string>
+    <string name="amenity_ramp_required">需活動摺板</string>
     <string name="coach_label">%1$s 號車廂</string>
     <string name="amenity_quiet">靜音車廂</string>
     <string name="amenity_bike">單車停泊處</string>
