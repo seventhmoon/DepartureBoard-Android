@@ -669,8 +669,6 @@ class DashboardViewModel @JvmOverloads constructor(
                 detailStationsContext = emptyList(),
                 detailDepartures = emptyList(),
                 isDetailLoading = false,
-                selectedJourneyDeparture = null,
-                journeyDeparturesContext = emptyList(),
                 serviceHoursInfo = null
             )
         }
@@ -715,9 +713,21 @@ class DashboardViewModel @JvmOverloads constructor(
             )
         }
 
-        // Open station detail immediately (synchronously updating state to clear selectedJourneyDeparture
-        // and set selectedDetailStation atomically) so the backstack doesn't collapse back to the main dashboard.
+        // Keep the current train journey open so on 3-pane it becomes the middle pane,
+        // and on 1-pane/2-pane it remains in the backstack beneath the tapped calling point station.
+        val currentJourney = _uiState.value.selectedJourneyDeparture
+        val currentJourneyContext = _uiState.value.journeyDeparturesContext
+
         openStationDetail(fallbackStation, fallbackCallingStations)
+
+        if (currentJourney != null) {
+            _uiState.update { current ->
+                current.copy(
+                    selectedJourneyDeparture = currentJourney,
+                    journeyDeparturesContext = currentJourneyContext
+                )
+            }
+        }
 
         // Enrich the station models asynchronously in the background if repository has more metadata
         viewModelScope.launch {

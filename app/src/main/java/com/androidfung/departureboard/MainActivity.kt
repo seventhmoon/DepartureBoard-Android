@@ -36,7 +36,6 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -67,10 +66,10 @@ import kotlinx.serialization.Serializable
 data object DashboardListRoute : NavKey
 
 @Serializable
-data object StationDetailRoute : NavKey
+data class StationDetailRoute(val stationId: String = "") : NavKey
 
 @Serializable
-data object TrainJourneyRoute : NavKey
+data class TrainJourneyRoute(val departureId: String = "") : NavKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : AppCompatActivity() {
@@ -270,26 +269,48 @@ class MainActivity : AppCompatActivity() {
 
                     val backStack = rememberNavBackStack(DashboardListRoute as NavKey)
 
-                    LaunchedEffect(uiState.selectedDetailStation != null) {
-                        if (uiState.selectedDetailStation != null) {
-                             if (!backStack.contains(StationDetailRoute)) {
-                                 backStack.addDetail(StationDetailRoute)
-                             }
+                    val selectedStationId = uiState.selectedDetailStation?.id
+                    val selectedDepartureId = uiState.selectedJourneyDeparture?.id
+
+                    LaunchedEffect(selectedStationId) {
+                        if (selectedStationId != null) {
+                            val newStationRoute = StationDetailRoute(selectedStationId)
+                            val currentTrainRoute = backStack.firstOrNull { it is TrainJourneyRoute }
+                            val newStack = mutableListOf<NavKey>(DashboardListRoute)
+                            if (currentTrainRoute != null) {
+                                newStack.add(currentTrainRoute)
+                            }
+                            newStack.add(newStationRoute)
+                            if (backStack.toList() != newStack) {
+                                backStack.clear()
+                                backStack.addAll(newStack)
+                            }
                         } else {
-                             val toRemove = backStack.filter { it == StationDetailRoute || it == TrainJourneyRoute }
-                             backStack.removeAll(toRemove)
+                            val toRemove = backStack.filter { it is StationDetailRoute }
+                            if (toRemove.isNotEmpty()) {
+                                backStack.removeAll(toRemove)
+                            }
                         }
                     }
 
-                    LaunchedEffect(uiState.selectedJourneyDeparture != null) {
-                        val journeyDep = uiState.selectedJourneyDeparture
-                        if (journeyDep != null) {
-                             if (!backStack.contains(TrainJourneyRoute)) {
-                                 backStack.addDetail(TrainJourneyRoute)
-                             }
+                    LaunchedEffect(selectedDepartureId) {
+                        if (selectedDepartureId != null) {
+                            val newJourneyRoute = TrainJourneyRoute(selectedDepartureId)
+                            val currentStationRoute = backStack.firstOrNull { it is StationDetailRoute }
+                            val newStack = mutableListOf<NavKey>(DashboardListRoute)
+                            if (currentStationRoute != null) {
+                                newStack.add(currentStationRoute)
+                            }
+                            newStack.add(newJourneyRoute)
+                            if (backStack.toList() != newStack) {
+                                backStack.clear()
+                                backStack.addAll(newStack)
+                            }
                         } else {
-                             val toRemove = backStack.filter { it == TrainJourneyRoute }
-                             backStack.removeAll(toRemove)
+                            val toRemove = backStack.filter { it is TrainJourneyRoute }
+                            if (toRemove.isNotEmpty()) {
+                                backStack.removeAll(toRemove)
+                            }
                         }
                     }
 
@@ -301,13 +322,15 @@ class MainActivity : AppCompatActivity() {
                         NavDisplay(
                             backStack = backStack,
                             onBack = { 
-                                if (backStack.last() is TrainJourneyRoute) {
+                                val last = backStack.lastOrNull()
+                                if (last is TrainJourneyRoute) {
                                     viewModel.closeTrainJourney()
-                                } else if (backStack.last() is StationDetailRoute) {
+                                } else if (last is StationDetailRoute) {
                                     viewModel.closeStationDetail()
                                 }
-                                val last = backStack.last()
-                                backStack.remove(last)
+                                if (backStack.size > 1) {
+                                    backStack.remove(backStack.last())
+                                }
                             },
                             sceneStrategies = listOf(listDetailStrategy),
                             sharedTransitionScope = this,
@@ -385,8 +408,6 @@ class MainActivity : AppCompatActivity() {
                                                 },
                                                 onBack = { 
                                                     viewModel.closeStationDetail()
-                                                    val last = backStack.last()
-                                                    backStack.remove(last)
                                                 },
                                                 isPro = uiState.isPro
                                             )
@@ -408,8 +429,6 @@ class MainActivity : AppCompatActivity() {
                                                 },
                                                 onBack = { 
                                                     viewModel.closeTrainJourney()
-                                                    val last = backStack.last()
-                                                    backStack.remove(last)
                                                 },
                                                 onLoadCallingPoints = { dep -> viewModel.getCallingPoints(dep) },
                                                 isPro = uiState.isPro
@@ -617,22 +636,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-        }
-    }
-
-    private fun NavBackStack<NavKey>.addDetail(detailRoute: NavKey) {
-        if (detailRoute == StationDetailRoute) {
-            // When navigating to a new station, clear previous station & train journey details
-            val toRemove = this.filter { it == StationDetailRoute || it == TrainJourneyRoute }
-            this.removeAll(toRemove)
-            this.add(detailRoute)
-        } else if (detailRoute == TrainJourneyRoute) {
-            // Keep the StationDetailRoute in the backstack so on desktop/tablet both or all 3 can coexist!
-            val toRemove = this.filter { it == TrainJourneyRoute }
-            this.removeAll(toRemove)
-            this.add(detailRoute)
-        } else {
-            this.add(detailRoute)
         }
     }
 

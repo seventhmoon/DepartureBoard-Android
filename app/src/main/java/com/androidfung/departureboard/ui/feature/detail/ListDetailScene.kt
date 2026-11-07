@@ -75,7 +75,7 @@ data class ListDetailScene<T : Any>(
             Row(modifier = Modifier.fillMaxSize()) {
                 if (isThreePaneMode) {
                     // 3-Pane Layout on Desktop (EXTRA_LARGE >= 1200dp)
-                    // List (Cards): 30% | Station Detail: 35% | Train Journey Supporting: 35%
+                    // List: 30% | Middle Pane: 35% | Right Pane: 35%
                     Column(modifier = Modifier.weight(0.30f)) {
                         listEntry.Content()
                     }
@@ -101,7 +101,7 @@ data class ListDetailScene<T : Any>(
                         listEntry.Content()
                     }
 
-                    // Active right pane is whichever detail / supporting entry is on top
+                    // Active right pane is whichever secondary entry is last in the backstack
                     val activeRightPane = supportingEntry ?: detailEntry
                     if (activeRightPane != null) {
                         CompositionLocalProvider(LocalBackButtonVisibility provides false) {
@@ -167,13 +167,17 @@ class ListDetailSceneStrategy<T : Any>(val windowSizeClass: WindowSizeClass) : S
         }
 
         val listEntry = entries.findLast { it.metadata.contains(ListDetailScene.ListKey) } ?: return null
-        val detailEntry = entries.findLast { it.metadata.contains(ListDetailScene.DetailKey) }
-        val supportingEntry = entries.findLast { it.metadata.contains(ListDetailScene.SupportingKey) }
 
-        // Must have at least one detail or supporting entry to form a multi-pane scene
-        if (detailEntry == null && supportingEntry == null) {
+        // All non-list entries ordered by their push sequence on the backstack
+        val secondaryEntries = entries.filter { !it.metadata.contains(ListDetailScene.ListKey) }
+        if (secondaryEntries.isEmpty()) {
             return null
         }
+
+        // In 3-pane mode, middle pane is secondaryEntries[0] and right pane is secondaryEntries[1]
+        // In 2-pane mode, active right pane is secondaryEntries.last() (top of backstack)
+        val detailEntry = secondaryEntries.getOrNull(0)
+        val supportingEntry = secondaryEntries.getOrNull(1)
 
         val sceneKey = listEntry.contentKey
 
