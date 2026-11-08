@@ -434,7 +434,8 @@ object WearCompanionStateRepository {
                             stationCrs = obj.optString("stationCrs", "STN"),
                             lastUpdatedLabel = "📱 Synced from Phone",
                             commuteLabel = obj.optString("commuteLabel").takeIf { it.isNotBlank() },
-                            departures = departures
+                            departures = departures,
+                            isAtConcourse = obj.optBoolean("isAtConcourse", false)
                         )
                     )
                 }

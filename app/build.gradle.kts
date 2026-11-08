@@ -1,8 +1,4 @@
 import java.util.Properties
-import org.gradle.api.tasks.testing.Test
-import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
-import org.gradle.testing.jacoco.tasks.JacocoReport
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -11,11 +7,6 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.firebase.perf)
-    jacoco
-}
-
-jacoco {
-    toolVersion = "0.8.13"
 }
 
 android {
@@ -103,53 +94,6 @@ android {
 
 kotlin {
     compilerOptions {
-    }
-}
-
-// Robolectric's sandbox classloader can produce orphan probe entries; drop them.
-tasks.withType<Test>().matching { it.name.endsWith("UnitTest") }.configureEach {
-    configure<JacocoTaskExtension> {
-        isIncludeNoLocationClasses = true
-        excludes = listOf("jdk.internal.*")
-    }
-}
-
-// Usage: ./gradlew :app:jacocoTestReport  -> build/reports/jacoco/jacocoTestReport/index.html
-tasks.register<JacocoReport>("jacocoTestReport") {
-    dependsOn("testDebugUnitTest")
-    group = "verification"
-    description = "Generates a JaCoCo coverage report for the debug unit tests."
-
-    val buildRoot = project.layout.buildDirectory
-    val generatedOrSynthetic = arrayOf(
-        "**/R.class",
-        "**/R\$*.class",
-        "**/BuildConfig.*",
-        "**/Manifest*.*",
-        "**/kotlin/**"
-    )
-    classDirectories.setFrom(
-        files(
-            // AGP 9.x new build layout: Kotlin classes compile here (tmp/kotlin-classes no longer exists).
-            fileTree("${buildRoot.get()}/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes") {
-                exclude(*generatedOrSynthetic)
-            },
-            fileTree("${buildRoot.get()}/intermediates/javac/debug") {
-                exclude(*generatedOrSynthetic)
-            },
-            // Legacy KGP layout — matches nothing on AGP 9+, kept as a fallback for older toolchains.
-            fileTree("${buildRoot.get()}/tmp/kotlin-classes/debug") {
-                exclude(*generatedOrSynthetic)
-            }
-        )
-    )
-    sourceDirectories.setFrom(files("${project.projectDir}/src/main/java"))
-    executionData.setFrom(
-        files("${buildRoot.get()}/jacoco/testDebugUnitTest.exec")
-    )
-    reports {
-        xml.required.set(true)
-        html.required.set(true)
     }
 }
 

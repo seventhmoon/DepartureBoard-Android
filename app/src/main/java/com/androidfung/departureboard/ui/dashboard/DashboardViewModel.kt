@@ -466,20 +466,24 @@ class DashboardViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Auto-refreshes live departures every 30 seconds.
+     * Auto-refreshes live departures:
+     * - 15s Concourse Sprint cadence when within 350m of a station AND actively approaching on foot.
+     * - 60s normal cadence when outside the concourse geofence, passing through in a vehicle, or stationary dwell (> 3m).
      */
     internal fun startAutoRefreshPolling() {
         if (!isCurrentlyOnline) return
         autoRefreshJob?.cancel()
         autoRefreshJob = viewModelScope.launch {
-            // Adaptive polling backed off to 60s to conserve battery and avoid rate-limiting.
-            // Delay first because observeSavedStations() already triggers an initial fetch on entry.
             while (isActive) {
-                delay(60_000L.milliseconds)
+                val pollIntervalMs = _uiState.value.concoursePollIntervalMs.coerceIn(15_000L, 60_000L)
+                delay(pollIntervalMs.milliseconds)
                 if (isCurrentlyOnline) {
                     val stations = _uiState.value.stationCards.map { it.station }
                     if (stations.isNotEmpty()) {
                         refreshDeparturesForStations(stations)
+                    }
+                    if (_uiState.value.isAutoSortByLocation || _uiState.value.isConcourseSprintActive) {
+                        refreshNearestStationInternal(fetchApiNearby = false)
                     }
                 }
             }
@@ -960,8 +964,17 @@ class DashboardViewModel @JvmOverloads constructor(
 
                 if (nearest != null) {
                     val (nearestSt, distance) = nearest
+                    val speedMps = if (location.hasSpeed()) location.speed else null
+                    val concourseDecision = com.androidfung.departureboard.util.ConcourseActivityGate.evaluateConcourseProximity(
+                        station = nearestSt,
+                        distanceMeters = distance,
+                        speedMetersPerSecond = speedMps
+                    )
                     try {
-                        android.util.Log.d("LocationHelper", "Found true nearest station: ${nearestSt.name} (${distance}m away)")
+                        android.util.Log.d(
+                            "LocationHelper",
+                            "Found nearest station: ${nearestSt.name} (${distance.toInt()}m, concourseActive=${concourseDecision.isConcourseSprintActive}, mobility=${concourseDecision.mobilityState})"
+                        )
                     } catch (_: Throwable) {}
 
                     _uiState.update { state ->
@@ -976,33 +989,60 @@ class DashboardViewModel @JvmOverloads constructor(
                                     stLon
                                 ).takeIf { it <= 100_000.0 }
                             } else null
-                            card.copy(distanceMeters = dist)
+                            val isCardAtConcourse = concourseDecision.isConcourseSprintActive &&
+                                card.station.id.equals(nearestSt.id, ignoreCase = true)
+                            card.copy(
+                                distanceMeters = dist,
+                                isAtConcourseStation = isCardAtConcourse,
+                                concourseBadgeLabel = if (isCardAtConcourse) concourseDecision.concourseBadgeLabel else null
+                            )
                         }
 
-                        val sortedCards = if (state.isAutoSortByLocation && updatedCardsWithDistance.size > 1) {
-                            updatedCardsWithDistance.sortedBy { it.distanceMeters ?: Double.MAX_VALUE }
-                        } else {
-                            updatedCardsWithDistance
+                        val sortedCards = when {
+                            concourseDecision.isConcourseSprintActive && updatedCardsWithDistance.any { it.isAtConcourseStation } -> {
+                                updatedCardsWithDistance.sortedWith(
+                                    compareByDescending<StationCardUiModel> { it.isAtConcourseStation }
+                                        .thenBy { if (state.isAutoSortByLocation) (it.distanceMeters ?: Double.MAX_VALUE) else 0.0 }
+                                )
+                            }
+                            state.isAutoSortByLocation && updatedCardsWithDistance.size > 1 -> {
+                                updatedCardsWithDistance.sortedBy { it.distanceMeters ?: Double.MAX_VALUE }
+                            }
+                            else -> updatedCardsWithDistance
                         }
                         state.copy(
                             stationCards = sortedCards,
                             nearestStation = nearestSt,
                             nearestStationId = nearestSt.id,
                             nearestStationDistanceMeters = distance,
-                            nearbyStations = nearbyList
+                            nearbyStations = nearbyList,
+                            concourseStationId = if (concourseDecision.isConcourseSprintActive) nearestSt.id else null,
+                            isConcourseSprintActive = concourseDecision.isConcourseSprintActive,
+                            concoursePollIntervalMs = concourseDecision.recommendedPollIntervalMs
                         )
                     }
+                    com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishStationBoards(
+                        getApplication(),
+                        _uiState.value.stationCards
+                    )
                 } else {
                     _uiState.update { state ->
                         val updatedCardsWithoutDistance = state.stationCards.map { card ->
-                            card.copy(distanceMeters = null)
+                            card.copy(
+                                distanceMeters = null,
+                                isAtConcourseStation = false,
+                                concourseBadgeLabel = null
+                            )
                         }
                         state.copy(
                             stationCards = updatedCardsWithoutDistance,
                             nearestStation = null,
                             nearestStationId = null,
                             nearestStationDistanceMeters = null,
-                            nearbyStations = nearbyList
+                            nearbyStations = nearbyList,
+                            concourseStationId = null,
+                            isConcourseSprintActive = false,
+                            concoursePollIntervalMs = 60_000L
                         )
                     }
                 }

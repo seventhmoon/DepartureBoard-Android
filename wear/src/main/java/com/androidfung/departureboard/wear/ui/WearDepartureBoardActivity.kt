@@ -119,6 +119,17 @@ fun WearConcourseBoardScreen() {
         WearCompanionStateRepository.requestPhoneSync(context)
     }
 
+    // Automatically focus the Concourse-Geofenced station when the user walks into a station perimeter
+    val concourseStationId = boards.firstOrNull { it.isAtConcourse }?.stationId
+    LaunchedEffect(concourseStationId) {
+        if (concourseStationId != null) {
+            val idx = boards.indexOfFirst { it.stationId == concourseStationId }
+            if (idx >= 0) {
+                selectedStationIndex = idx
+            }
+        }
+    }
+
     if (showAskAiScreen) {
         WearAskAiScreen(
             station = currentBoard,

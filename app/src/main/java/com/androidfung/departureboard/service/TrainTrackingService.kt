@@ -702,6 +702,33 @@ class TrainTrackingService : Service() {
                     null
                 }
 
+                // GPS Geofence Safety Net for Target Alighting Stop (works even when underground/tunnel feed lags)
+                val activeTargetAlight = _targetAlightStopFlow.value
+                if (!activeTargetAlight.isNullOrBlank() && (!hasPostedAlightAlert || lastAlertedTargetStop != activeTargetAlight)) {
+                    runCatching {
+                        val userLoc = com.androidfung.departureboard.util.LocationHelper.getCurrentLocation(applicationContext)
+                        if (userLoc != null && com.androidfung.departureboard.util.ConcourseActivityGate.isInsideTargetAlightGeofence(
+                                userLat = userLoc.latitude,
+                                userLon = userLoc.longitude,
+                                originStationId = stationId,
+                                targetAlightStopName = activeTargetAlight
+                            )
+                        ) {
+                            hasPostedAlightAlert = true
+                            lastAlertedTargetStop = activeTargetAlight
+                            triggerConcourseHapticPulse()
+                            postDisruptionAlert(
+                                title = "Get Ready to Alight",
+                                message = "Approaching $activeTargetAlight on $lineName",
+                                stationId = stationId,
+                                stationName = stationName,
+                                departureId = activeDepartureId,
+                                isBus = isBus
+                            )
+                        }
+                    }
+                }
+
                 val hasReachedStation = remainingSeconds <= 0
                 val updatedNotification = buildLiveNotification(
                     departureId = activeDepartureId,

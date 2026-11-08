@@ -204,18 +204,21 @@ object WearCompanionSyncPublisher {
 
     internal fun serializeStationBoards(stationCards: List<StationCardUiModel>): String {
         val rootArray = JSONArray()
-        stationCards.take(8).forEach { card ->
+        val orderedCards = stationCards.sortedByDescending { it.isAtConcourseStation }
+        orderedCards.take(8).forEach { card ->
             val st = card.station
             val stationObj = JSONObject().apply {
                 put("stationId", st.id)
                 put("stationName", st.name)
                 put("stationCrs", deriveThreeLetterCode(st.id, st.name))
+                put("isAtConcourse", card.isAtConcourseStation)
                 put(
                     "commuteLabel",
-                    when (st.commuteTag) {
-                        CommuteTag.HOME -> "🏠 Home"
-                        CommuteTag.WORK -> "💼 Work"
-                        CommuteTag.NONE -> if (st.isFavorite) "★ Pinned" else ""
+                    when {
+                        card.isAtConcourseStation -> card.concourseBadgeLabel ?: "📍 At Concourse"
+                        st.commuteTag == CommuteTag.HOME -> "🏠 Home"
+                        st.commuteTag == CommuteTag.WORK -> "💼 Work"
+                        else -> if (st.isFavorite) "★ Pinned" else ""
                     }
                 )
                 val depsArray = JSONArray()

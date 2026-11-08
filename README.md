@@ -84,7 +84,7 @@ EkiBoard uses a unified, multi-region domain architecture designed for high code
 - **UI:** [Jetpack Compose](https://developer.android.com/jetpack/compose) with Material 3 Expressive design tokens.
 - **AI / Generative Model:** On-device **Gemini Nano** ([ML Kit GenAI Prompt API](https://developers.google.com/ml-kit)) + Cloud **Firebase AI Logic** (dynamic feature module `:features:ai_assistant`).
 - **Widgets:** [Glance AppWidget](https://developer.android.com/jetpack/compose/glance) backed by DataStore Preferences.
-- **Networking:** [Retrofit 2](https://square.github.io/retrofit/) + [Moshi](https://github.com/square/moshi) with Kotlin code-generation (KSP).
+- **Networking:** [Retrofit](https://github.com/square/retrofit) + [Moshi](https://github.com/square/moshi) with Kotlin code-generation (KSP).
 - **Persistence:** [Room Database](https://developer.android.com/training/data-storage/room) & [Jetpack DataStore](https://developer.android.com/topic/libraries/architecture/datastore).
 - **Background Work:** [AndroidX WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager).
 - **Billing:** Google Play Billing Library (PBL v9) with `FREE`, `PRO`, and `MAX` tiers.

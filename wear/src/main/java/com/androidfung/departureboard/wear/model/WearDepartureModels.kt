@@ -52,7 +52,8 @@ data class WearStationBoard(
     val stationCrs: String,
     val lastUpdatedLabel: String,
     val departures: List<WearDepartureItem>,
-    val commuteLabel: String? = null
+    val commuteLabel: String? = null,
+    val isAtConcourse: Boolean = false
 ) {
     val compactStationName: String
         get() = WearSnapshotFormatter.compactStationName(stationName)

@@ -18,6 +18,8 @@ data class StationCardUiModel(
     val errorMessage: String? = null,
     val isExpanded: Boolean = true,
     val distanceMeters: Double? = null,
+    val isAtConcourseStation: Boolean = false,
+    val concourseBadgeLabel: String? = null,
     val serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo? = null
 ) {
     /**
@@ -79,5 +81,8 @@ data class DashboardUiState(
     val isAutoSortByLocation: Boolean = false,
     val isWidgetDisruptionNotificationsEnabled: Boolean = true,
     val isSmartCommuteEnabled: Boolean = false,
-    val deskClockStation: Station? = null
+    val deskClockStation: Station? = null,
+    val concourseStationId: String? = null,
+    val isConcourseSprintActive: Boolean = false,
+    val concoursePollIntervalMs: Long = 60_000L
 )
