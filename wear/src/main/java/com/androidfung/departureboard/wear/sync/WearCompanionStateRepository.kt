@@ -37,6 +37,7 @@ object WearCompanionStateRepository {
     const val ACTION_REMOVE_STATION_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_REMOVE_STATION"
     const val ACTION_ASK_AI_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_ASK_AI"
     const val ACTION_OPEN_AI_ON_PHONE = "com.androidfung.departureboard.action.WEAR_OPEN_AI_ON_PHONE"
+    const val ACTION_SET_ALIGHT_STOP_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_SET_ALIGHT_STOP"
 
     const val EXTRA_STATION_ID = "extra_station_id"
     const val EXTRA_STATION_NAME = "extra_station_name"
@@ -47,6 +48,7 @@ object WearCompanionStateRepository {
     const val EXTRA_COUNTDOWN_MINUTES = "extra_countdown_minutes"
     const val EXTRA_AI_PROMPT_TYPE = "extra_ai_prompt_type"
     const val EXTRA_AI_QUERY_TEXT = "extra_ai_query_text"
+    const val EXTRA_TARGET_ALIGHT_STOP = "extra_target_alight_stop"
 
     const val PATH_REQUEST_BOARDS = "/ekiboard/cmd/request_boards"
     const val PATH_OPEN_ON_PHONE = "/ekiboard/cmd/open_on_phone"
@@ -56,6 +58,7 @@ object WearCompanionStateRepository {
     const val PATH_REMOVE_STATION = "/ekiboard/cmd/remove_station"
     const val PATH_ASK_AI = "/ekiboard/cmd/ask_ai"
     const val PATH_OPEN_AI_ON_PHONE = "/ekiboard/cmd/open_ai_on_phone"
+    const val PATH_SET_ALIGHT_STOP = "/ekiboard/cmd/set_alight_stop"
 
     private val _stationBoardsFlow = MutableStateFlow(WearSnapshotFormatter.defaultConcourseBoards())
     val stationBoardsFlow: StateFlow<List<WearStationBoard>> = _stationBoardsFlow.asStateFlow()
@@ -232,6 +235,11 @@ object WearCompanionStateRepository {
         station: WearStationBoard,
         departure: WearDepartureItem
     ) {
+        val parsedCallingPoints = departure.callingPointsSummary
+            ?.split("→")
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            .orEmpty()
         val localState = WearTrackedJourneyState(
             departureId = departure.id,
             stationId = station.stationId,
@@ -245,7 +253,8 @@ object WearCompanionStateRepository {
             stopsAway = null,
             targetAlightStopName = null,
             isCancelled = false,
-            lineColorArgb = departure.lineColorArgb
+            lineColorArgb = departure.lineColorArgb,
+            callingPoints = parsedCallingPoints
         )
         _trackedJourneyFlow.value = localState
         WearNotificationPublisher.postTrackedJourneyNotification(context, localState)
@@ -289,6 +298,54 @@ object WearCompanionStateRepository {
             context.sendBroadcast(intent)
         }
         sendWearableMessageToPhone(context, PATH_STOP_TRACKING, "")
+    }
+
+    /**
+     * Decrements `remainingSeconds` by 1 second locally on the watch so the Concourse Sprint HUD
+     * ticks smoothly (`03:59 -> 03:58`) between phone polls.
+     */
+    fun tickTrackedJourneySecond() {
+        val current = _trackedJourneyFlow.value ?: return
+        if (current.isCancelled || current.remainingSeconds <= 0) return
+        _trackedJourneyFlow.value = current.copy(
+            remainingSeconds = (current.remainingSeconds - 1).coerceAtLeast(0)
+        )
+    }
+
+    /**
+     * Sets or clears the user's Target Alighting Stop directly from the Watch Concourse Sprint HUD
+     * and syncs it to the Phone's `TrainTrackingService`.
+     */
+    fun setTargetAlightStopFromWatch(context: Context?, stopName: String?) {
+        val cleanStop = stopName?.trim()?.takeIf { it.isNotBlank() }
+        val current = _trackedJourneyFlow.value
+        if (current != null) {
+            val stopsIdx = if (cleanStop != null) {
+                current.callingPoints.indexOfFirst { it.equals(cleanStop, ignoreCase = true) }
+            } else -1
+            val updated = current.copy(
+                targetAlightStopName = cleanStop,
+                stopsAway = if (stopsIdx >= 0) (stopsIdx + 1) else current.stopsAway
+            )
+            _trackedJourneyFlow.value = updated
+            context?.let { WearNotificationPublisher.postTrackedJourneyNotification(it, updated) }
+        }
+        context?.let { ctx ->
+            runCatching {
+                val intent = Intent(ACTION_SET_ALIGHT_STOP_FROM_WATCH).apply {
+                    setPackage(PHONE_PACKAGE)
+                    putExtra(EXTRA_TARGET_ALIGHT_STOP, cleanStop.orEmpty())
+                }
+                ctx.sendBroadcast(intent)
+            }
+            sendWearableMessageToPhone(
+                context = ctx,
+                path = PATH_SET_ALIGHT_STOP,
+                payload = JSONObject()
+                    .put(EXTRA_TARGET_ALIGHT_STOP, cleanStop.orEmpty())
+                    .toString()
+            )
+        }
     }
 
     /**
@@ -368,10 +425,36 @@ object WearCompanionStateRepository {
 
     internal fun onReceiveTrackedDepartureJson(context: Context?, trackedJson: String) {
         val previous = _trackedJourneyFlow.value
-        val current = parseTrackedDepartureJson(trackedJson) ?: return
+        val parsed = parseTrackedDepartureJson(trackedJson) ?: return
+        val matchedBoardDep = _stationBoardsFlow.value
+            .firstOrNull { it.stationId.equals(parsed.stationId, ignoreCase = true) }
+            ?.departures
+            ?.firstOrNull { it.id == parsed.departureId || it.destination.equals(parsed.destinationName, ignoreCase = true) }
+        val resolvedCallingPoints = parsed.callingPoints.ifEmpty {
+            matchedBoardDep?.callingPointsSummary
+                ?.split("→")
+                ?.map { it.trim() }
+                ?.filter { it.isNotBlank() }
+                ?: previous?.callingPoints.orEmpty()
+        }
+        val current = parsed.copy(callingPoints = resolvedCallingPoints)
+        val isNewTrackedDeparture = previous == null || previous.departureId != current.departureId
         _trackedJourneyFlow.value = current
         _isPhoneSyncedFlow.value = true
-        context?.let { WearNotificationPublisher.postTrackedJourneyNotification(it, current) }
+        context?.let {
+            WearNotificationPublisher.postTrackedJourneyNotification(
+                context = it,
+                journey = current,
+                isInitialStart = isNewTrackedDeparture
+            )
+            if (isNewTrackedDeparture) {
+                WearConcourseHapticAnnouncer.triggerWristPulse(
+                    it,
+                    WearConcourseHapticAnnouncer.WristAlertType.PLATFORM_ANNOUNCED
+                )
+                WearNotificationPublisher.launchSprintHudImmediately(it)
+            }
+        }
 
         // 1. Check if platform transitioned from TBD -> Confirmed or changed on the phone-tracked train
         if (previous != null && previous.departureId == current.departureId) {

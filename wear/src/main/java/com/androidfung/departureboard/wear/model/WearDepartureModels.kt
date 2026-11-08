@@ -77,16 +77,41 @@ data class WearTrackedJourneyState(
     val stopsAway: Int?,
     val targetAlightStopName: String?,
     val isCancelled: Boolean,
-    val lineColorArgb: Long = 0xFF1976D2
+    val lineColorArgb: Long = 0xFF1976D2,
+    val callingPoints: List<String> = emptyList()
 ) {
+    val cleanPlatformCode: String
+        get() = WearSnapshotFormatter.compactPlatformCode(platformCode)
+
     val isPlatformTbd: Boolean
-        get() = !isPlatformConfirmed || platformCode.isBlank() || platformCode.equals("TBD", ignoreCase = true)
+        get() = !isPlatformConfirmed || cleanPlatformCode.isBlank() || cleanPlatformCode.equals("TBD", ignoreCase = true)
 
     val formattedCountdown: String
         get() = when {
             isCancelled -> "Cancelled"
-            remainingSeconds <= 30 -> "Due"
+            remainingSeconds <= 15 -> "Due"
             else -> "${(remainingSeconds / 60).coerceAtLeast(1)}m"
+        }
+
+    val formattedMmSsCountdown: String
+        get() = when {
+            isCancelled -> "CANC"
+            remainingSeconds <= 0 -> "DUE"
+            else -> {
+                val mins = remainingSeconds / 60
+                val secs = remainingSeconds % 60
+                "%02d:%02d".format(mins, secs)
+            }
+        }
+
+    val progressPercent: Int
+        get() = when {
+            isCancelled -> 0
+            remainingSeconds <= 15 -> 100
+            else -> {
+                val clamped = remainingSeconds.coerceIn(0, 900)
+                (((900 - clamped) * 100) / 900).coerceIn(8, 98)
+            }
         }
 }
 

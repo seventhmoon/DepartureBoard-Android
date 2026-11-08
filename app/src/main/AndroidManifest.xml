@@ -53,6 +53,7 @@
                 <action android:name="com.androidfung.departureboard.action.WEAR_REMOVE_STATION" />
                 <action android:name="com.androidfung.departureboard.action.WEAR_ASK_AI" />
                 <action android:name="com.androidfung.departureboard.action.WEAR_OPEN_AI_ON_PHONE" />
+                <action android:name="com.androidfung.departureboard.action.WEAR_SET_ALIGHT_STOP" />
             </intent-filter>
         </receiver>
 

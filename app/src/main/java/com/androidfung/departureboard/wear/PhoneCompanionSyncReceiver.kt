@@ -18,6 +18,7 @@ import com.androidfung.departureboard.util.DelayRepayCalculator
 import com.androidfung.departureboard.util.PlatformBacklogDetector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -41,6 +42,7 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
         const val ACTION_REMOVE_STATION_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_REMOVE_STATION"
         const val ACTION_ASK_AI_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_ASK_AI"
         const val ACTION_OPEN_AI_ON_PHONE = "com.androidfung.departureboard.action.WEAR_OPEN_AI_ON_PHONE"
+        const val ACTION_SET_ALIGHT_STOP_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_SET_ALIGHT_STOP"
 
         const val EXTRA_STATION_ID = "extra_station_id"
         const val EXTRA_STATION_NAME = "extra_station_name"
@@ -51,6 +53,7 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
         const val EXTRA_COUNTDOWN_MINUTES = "extra_countdown_minutes"
         const val EXTRA_AI_PROMPT_TYPE = "extra_ai_prompt_type"
         const val EXTRA_AI_QUERY_TEXT = "extra_ai_query_text"
+        const val EXTRA_TARGET_ALIGHT_STOP = "extra_target_alight_stop"
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
@@ -114,6 +117,11 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                     .onFailure { Log.w(TAG, "Failed to stop tracking from watch request", it) }
             }
 
+            ACTION_SET_ALIGHT_STOP_FROM_WATCH -> {
+                val targetStop = intent.getStringExtra(EXTRA_TARGET_ALIGHT_STOP)
+                TrainTrackingService.setTargetAlightStop(targetStop)
+            }
+
             ACTION_REQUEST_PHONE_BOARDS -> {
                 WearCompanionSyncPublisher.resendCachedStateToWear(context)
             }
@@ -126,7 +134,7 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val repo = context.applicationContext.appContainer.transitRepository
-                        val currentRegion = repo.getSelectedRegion()
+                        val currentRegion = repo.selectedRegionFlow.first()
                         val matchedFromQuery = if (rawStationId.startsWith("search:", ignoreCase = true) || rawStationId.isBlank()) {
                             val q = rawStationName.ifBlank { rawStationId.removePrefix("search:") }
                             currentRegion.directory?.searchStations(q)?.firstOrNull()

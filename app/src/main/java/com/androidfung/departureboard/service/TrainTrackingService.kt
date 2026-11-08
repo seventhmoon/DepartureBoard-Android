@@ -385,6 +385,24 @@ class TrainTrackingService : Service() {
                     return START_NOT_STICKY
                 }
 
+                // Immediately push the newly tracked train to the Wear OS companion watch at t=0ms
+                // so the watch launches its full-screen Concourse Sprint HUD without waiting for the first API poll.
+                com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishTrackedDeparture(
+                    context = applicationContext,
+                    departureId = departureId,
+                    stationId = stationId,
+                    stationName = stationName,
+                    destinationName = destination,
+                    lineName = lineName,
+                    platform = platform,
+                    remainingSeconds = initialSeconds,
+                    currentLocation = initialLocation,
+                    stopsAway = null,
+                    targetAlightStopName = _targetAlightStopFlow.value,
+                    isCancelled = false,
+                    lineColorArgb = lineColorArgb
+                )
+
                 startTrackingLoop(
                     departureId = departureId,
                     stationId = stationId,

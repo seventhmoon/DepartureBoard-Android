@@ -32,7 +32,7 @@ class WearCompanionSyncReceiver : BroadcastReceiver() {
                 WearCompanionStateRepository.onReceiveTrackedDepartureJson(context, trackedJson)
             }
             ACTION_STOP_TRACKED_DEPARTURE -> {
-                WearCompanionStateRepository.onReceiveStopTrackedDeparture(context)
+                WearCompanionStateRepository.stopRemoteTrackingOnPhone(context)
             }
             ACTION_SYNC_AI_RESPONSE -> {
                 val aiJson = intent.getStringExtra(EXTRA_AI_RESPONSE_JSON) ?: return
