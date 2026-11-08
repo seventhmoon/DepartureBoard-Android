@@ -18,7 +18,9 @@ data class WearDepartureItem(
     val statusLabel: String = "On time",
     val lineColorArgb: Long = 0xFF0098D4,
     val delayRepayBadge: String? = null,
-    val isLastTrain: Boolean = false
+    val isLastTrain: Boolean = false,
+    val coachCount: Int = 0,
+    val callingPointsSummary: String? = null
 ) {
     val cleanPlatformCode: String
         get() = WearSnapshotFormatter.compactPlatformCode(platformCode)
@@ -340,7 +342,9 @@ object WearSnapshotFormatter {
                     countdownMinutes = 4,
                     scheduledTime = "18:15",
                     statusLabel = "Wait in concourse",
-                    lineColorArgb = 0xFF0098D4
+                    lineColorArgb = 0xFF0098D4,
+                    coachCount = 10,
+                    callingPointsSummary = "Clapham Jcn → Surbiton → Woking → Guildford"
                 ),
                 WearDepartureItem(
                     id = "wat_2",
@@ -352,7 +356,9 @@ object WearSnapshotFormatter {
                     countdownMinutes = 7,
                     scheduledTime = "18:18",
                     statusLabel = "Boarding",
-                    lineColorArgb = 0xFF0098D4
+                    lineColorArgb = 0xFF0098D4,
+                    coachCount = 8,
+                    callingPointsSummary = "Woking → Guildford → Haslemere → Petersfield"
                 ),
                 WearDepartureItem(
                     id = "wat_3",
@@ -367,7 +373,9 @@ object WearSnapshotFormatter {
                     scheduledTime = "18:05",
                     statusLabel = "Delayed +17m",
                     lineColorArgb = 0xFFF57C00,
-                    delayRepayBadge = "Delay Repay (+17m)"
+                    delayRepayBadge = "Delay Repay (+17m)",
+                    coachCount = 8,
+                    callingPointsSummary = "Clapham Jcn → Woking → Farnborough → Fleet"
                 )
             )
         ),

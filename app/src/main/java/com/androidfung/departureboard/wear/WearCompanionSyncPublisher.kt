@@ -249,6 +249,19 @@ object WearCompanionSyncPublisher {
                         put("lineColorArgb", dep.lineBadge.backgroundColor.toArgb().toLong() and 0xFFFFFFFFL)
                         put("delayRepayBadge", delayRepay?.badgeLabel ?: "")
                         put("isLastTrain", dep.isLastTrain)
+                        put("coachCount", dep.formation?.coachCount ?: 0)
+                        val curIdx = dep.callingPoints.indexOfFirst { it.isCurrentStation }
+                        val upcomingStops = if (curIdx >= 0 && curIdx + 1 < dep.callingPoints.size) {
+                            dep.callingPoints.subList(curIdx + 1, dep.callingPoints.size)
+                        } else {
+                            dep.callingPoints
+                        }
+                        val stopsSummary = upcomingStops
+                            .map { it.stationName.replace("Underground Station", "", ignoreCase = true).replace("Rail Station", "", ignoreCase = true).replace("Station", "", ignoreCase = true).trim() }
+                            .filter { it.isNotBlank() }
+                            .take(5)
+                            .joinToString(" → ")
+                        put("callingPointsSummary", stopsSummary)
                     }
                     depsArray.put(depObj)
                 }

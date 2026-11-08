@@ -422,7 +422,9 @@ object WearCompanionStateRepository {
                                     statusLabel = d.optString("statusLabel", "On time"),
                                     lineColorArgb = d.optLong("lineColorArgb", 0xFF0098D4L),
                                     delayRepayBadge = d.optString("delayRepayBadge").takeIf { it.isNotBlank() },
-                                    isLastTrain = d.optBoolean("isLastTrain", false)
+                                    isLastTrain = d.optBoolean("isLastTrain", false),
+                                    coachCount = d.optInt("coachCount", 0),
+                                    callingPointsSummary = d.optString("callingPointsSummary").takeIf { it.isNotBlank() }
                                 )
                             )
                         }

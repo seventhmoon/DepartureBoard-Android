@@ -9,8 +9,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,14 +27,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsOff
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,19 +54,32 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import com.androidfung.departureboard.wear.haptic.WearConcourseHapticAnnouncer
 import com.androidfung.departureboard.wear.model.WearAiConcourseResponse
 import com.androidfung.departureboard.wear.model.WearAiPromptType
@@ -108,15 +131,22 @@ fun WearConcourseBoardScreen() {
 
     var selectedStationIndex by remember { mutableIntStateOf(0) }
     var watchedDepartureIds by remember { mutableStateOf(setOf("wat_1", "eus_1")) }
+    var expandedDepartureId by remember { mutableStateOf<String?>(null) }
+    var isAmbientMode by remember { mutableStateOf(false) }
     var localWristAlert by remember { mutableStateOf<WearConcourseHapticAnnouncer.WristHapticEvent?>(null) }
     var showStationManager by remember { mutableStateOf(false) }
     var showAskAiScreen by remember { mutableStateOf(false) }
     val latestAiResponse by WearCompanionStateRepository.latestAiResponseFlow.collectAsStateWithLifecycle()
 
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    val rotaryFocusRequester = remember { FocusRequester() }
+
     val currentBoard: WearStationBoard = boards[selectedStationIndex % boards.size]
 
     LaunchedEffect(Unit) {
         WearCompanionStateRepository.requestPhoneSync(context)
+        runCatching { rotaryFocusRequester.requestFocus() }
     }
 
     // Automatically focus the Concourse-Geofenced station when the user walks into a station perimeter
@@ -181,6 +211,25 @@ fun WearConcourseBoardScreen() {
         WearSnapshotFormatter.buildComplicationSnapshot(currentBoard)
     }
     val activeWristAlert = repoWristAlert ?: localWristAlert
+    val topDeparture = currentBoard.departures.firstOrNull()
+    val bezelProgressPercent = remember(trackedJourney, complicationSnapshot) {
+        if (trackedJourney != null) {
+            val clampedMins = (trackedJourney!!.remainingSeconds / 60).coerceIn(0, 15)
+            (((15 - clampedMins) * 100) / 15).coerceIn(8, 100)
+        } else {
+            complicationSnapshot.rangedProgressPercent
+        }
+    }
+    val bezelRingColor = remember(trackedJourney, topDeparture, isAmbientMode) {
+        when {
+            isAmbientMode -> Color(0xFF455A64)
+            trackedJourney != null && !trackedJourney!!.isPlatformTbd -> Color(0xFF00E676)
+            trackedJourney != null -> Color(0xFF4FC3F7)
+            topDeparture != null && topDeparture.countdownMinutes <= 2 -> Color(0xFFFFB74D)
+            topDeparture != null && !topDeparture.isPlatformTbd -> Color(0xFF00E676)
+            else -> Color(0xFF4FC3F7)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -188,8 +237,25 @@ fun WearConcourseBoardScreen() {
             .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
+        // Outer Bezel Countdown Progress Ring around the circular watch edge
+        WearBezelCountdownRing(
+            progressPercent = bezelProgressPercent,
+            ringColor = bezelRingColor,
+            isAmbient = isAmbientMode
+        )
+
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .onRotaryScrollEvent { event ->
+                    coroutineScope.launch {
+                        listState.scrollBy(event.verticalScrollPixels)
+                    }
+                    true
+                }
+                .focusRequester(rotaryFocusRequester)
+                .focusable(),
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 22.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -198,7 +264,7 @@ fun WearConcourseBoardScreen() {
             item(key = "complication_pill") {
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = Color(0xFF1E2229),
+                    color = if (isAmbientMode) Color.Black else Color(0xFF1E2229),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF37474F))
                 ) {
                     Text(
@@ -208,7 +274,7 @@ fun WearConcourseBoardScreen() {
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp
                         ),
-                        color = Color(0xFF81D4FA),
+                        color = if (isAmbientMode) Color(0xFFB0BEC5) else Color(0xFF81D4FA),
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Ellipsis,
@@ -268,6 +334,111 @@ fun WearConcourseBoardScreen() {
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                }
+            }
+
+            // 2b. Top Quick Actions Bar: [✨ Ask AI], [+ Stations], & [🌙 AOD] (1-tap without scrolling)
+            if (!isAmbientMode) {
+                item(key = "top_quick_actions") {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF231934),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFB388FF).copy(alpha = 0.7f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable {
+                                    if (latestAiResponse?.stationId != currentBoard.stationId) {
+                                        WearCompanionStateRepository.askAiConcourseTriage(
+                                            context = context,
+                                            station = currentBoard,
+                                            promptType = WearAiPromptType.FASTEST_TRAIN
+                                        )
+                                    }
+                                    showAskAiScreen = true
+                                }
+                        ) {
+                            Text(
+                                text = "✨ Ask AI",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp
+                                ),
+                                color = Color(0xFFD1C4E9),
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF1E2229),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF37474F)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable { showStationManager = true }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Add,
+                                    contentDescription = null,
+                                    tint = Color(0xFF81D4FA),
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Text(
+                                    text = "Stations",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    ),
+                                    color = Color(0xFF81D4FA),
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF14171C),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF37474F)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable { isAmbientMode = true }
+                        ) {
+                            Text(
+                                text = "🌙",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+            } else {
+                item(key = "ambient_exit_pill") {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = Color.Black,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF37474F)),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .clickable { isAmbientMode = false }
+                    ) {
+                        Text(
+                            text = "🌙 Ambient OLED • Tap to Wake",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            color = Color(0xFF78909C),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
                 }
             }
 
@@ -332,13 +503,23 @@ fun WearConcourseBoardScreen() {
 
             // 5. Departure Rows
             items(
-                items = currentBoard.departures,
+                items = if (isAmbientMode) currentBoard.departures.take(2) else currentBoard.departures,
                 key = { it.id }
             ) { dep ->
                 val isWatched = watchedDepartureIds.contains(dep.id) || trackedJourney?.departureId == dep.id
+                val isExpanded = expandedDepartureId == dep.id && !isAmbientMode
                 WearDepartureCard(
                     departure = dep,
                     isWatched = isWatched,
+                    isExpanded = isExpanded,
+                    isAmbientMode = isAmbientMode,
+                    onToggleExpand = {
+                        if (isAmbientMode) {
+                            isAmbientMode = false
+                        } else {
+                            expandedDepartureId = if (expandedDepartureId == dep.id) null else dep.id
+                        }
+                    },
                     onToggleWatch = {
                         if (isWatched) {
                             watchedDepartureIds = watchedDepartureIds - dep.id
@@ -475,6 +656,10 @@ private fun WearAskAiScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val inputFocusRequester = remember { FocusRequester() }
+    var textQuery by remember { mutableStateOf("") }
+
     val speechLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -484,6 +669,7 @@ private fun WearAskAiScreen(
                 ?.firstOrNull()
                 .orEmpty()
             if (spoken.isNotBlank()) {
+                textQuery = spoken
                 onSelectPrompt(WearAiPromptType.VOICE_QUERY, spoken)
             }
         }
@@ -579,45 +765,127 @@ private fun WearAskAiScreen(
                 }
             }
 
-            // Voice Input Button
-            item(key = "voice_query_button") {
+            // Combined Text + Voice Input Pill (opens Wear OS Gboard swipe/voice keyboard or speech recognizer)
+            item(key = "text_and_voice_input") {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     color = Color(0xFF0D2538),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4FC3F7)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable {
-                            try {
-                                val voiceIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                                    putExtra(
-                                        RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                                        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-                                    )
-                                    putExtra(
-                                        RecognizerIntent.EXTRA_PROMPT,
-                                        "Ask about ${station.stationName}…"
-                                    )
-                                }
-                                speechLauncher.launch(voiceIntent)
-                            } catch (_: Exception) {
-                                Toast.makeText(context, "Voice input unavailable on this device", Toast.LENGTH_SHORT).show()
-                            }
-                        }
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "🎤 Speak Question",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        ),
-                        color = Color(0xFF81D4FA),
-                        textAlign = TextAlign.Center,
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    )
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    inputFocusRequester.requestFocus()
+                                    keyboardController?.show()
+                                }
+                        ) {
+                            if (textQuery.isEmpty()) {
+                                Text(
+                                    text = "⌨️ Type or ask AI…",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = Color(0xFF90CAF9),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            BasicTextField(
+                                value = textQuery,
+                                onValueChange = { textQuery = it },
+                                singleLine = true,
+                                textStyle = TextStyle(
+                                    color = Color.White,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                cursorBrush = SolidColor(Color(0xFF4FC3F7)),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                                keyboardActions = KeyboardActions(
+                                    onSend = {
+                                        val q = textQuery.trim()
+                                        if (q.isNotBlank()) {
+                                            keyboardController?.hide()
+                                            onSelectPrompt(WearAiPromptType.VOICE_QUERY, q)
+                                        }
+                                    }
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(inputFocusRequester)
+                            )
+                        }
+
+                        if (textQuery.isNotBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF0277BD))
+                                    .clickable {
+                                        val q = textQuery.trim()
+                                        if (q.isNotBlank()) {
+                                            keyboardController?.hide()
+                                            onSelectPrompt(WearAiPromptType.VOICE_QUERY, q)
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.Send,
+                                    contentDescription = "Send AI query",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
+
+                        // Voice Dictation Button (falls back to Wear Gboard voice/keyboard if standalone speech service is absent)
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF1E3A5F))
+                                .clickable {
+                                    try {
+                                        val voiceIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                            putExtra(
+                                                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                                                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                                            )
+                                            putExtra(
+                                                RecognizerIntent.EXTRA_PROMPT,
+                                                "Ask about ${station.compactStationName}…"
+                                            )
+                                        }
+                                        speechLauncher.launch(voiceIntent)
+                                    } catch (_: Exception) {
+                                        inputFocusRequester.requestFocus()
+                                        keyboardController?.show()
+                                        Toast.makeText(
+                                            context,
+                                            "Use keyboard mic or swipe to type",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Mic,
+                                contentDescription = "Speak question",
+                                tint = Color(0xFF81D4FA),
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -663,10 +931,33 @@ private fun WearStationManagerScreen(
     onSelectStation: (Int) -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val searchFocusRequester = remember { FocusRequester() }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spoken = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+                .orEmpty()
+            if (spoken.isNotBlank()) {
+                searchQuery = spoken
+            }
+        }
+    }
+
     val catalog = remember { WearSnapshotFormatter.stationCatalog() }
-    val availableToAdd = remember(activeBoards, catalog) {
+    val availableToAdd = remember(activeBoards, catalog, searchQuery) {
+        val q = searchQuery.trim().lowercase()
         catalog.filter { candidate ->
-            activeBoards.none { it.stationId.equals(candidate.stationId, ignoreCase = true) }
+            activeBoards.none { it.stationId.equals(candidate.stationId, ignoreCase = true) } &&
+                (q.isBlank() ||
+                    candidate.stationName.lowercase().contains(q) ||
+                    candidate.stationCrs.lowercase().contains(q))
         }
     }
 
@@ -700,6 +991,175 @@ private fun WearStationManagerScreen(
                         color = Color(0xFF81D4FA),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                     )
+                }
+            }
+
+            // Station Search (Text + Voice Input)
+            item(key = "station_search_bar") {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFF0D2538),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4FC3F7)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Search,
+                            contentDescription = null,
+                            tint = Color(0xFF81D4FA),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    searchFocusRequester.requestFocus()
+                                    keyboardController?.show()
+                                }
+                        ) {
+                            if (searchQuery.isEmpty()) {
+                                Text(
+                                    text = "Search / add station…",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = Color(0xFF90CAF9),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            BasicTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                singleLine = true,
+                                textStyle = TextStyle(
+                                    color = Color.White,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                cursorBrush = SolidColor(Color(0xFF4FC3F7)),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                keyboardActions = KeyboardActions(
+                                    onSearch = { keyboardController?.hide() }
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(searchFocusRequester)
+                            )
+                        }
+
+                        if (searchQuery.isNotBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF263238))
+                                    .clickable { searchQuery = "" },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Close,
+                                    contentDescription = "Clear search",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF1E3A5F))
+                                .clickable {
+                                    try {
+                                        val voiceIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                            putExtra(
+                                                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                                                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                                            )
+                                            putExtra(
+                                                RecognizerIntent.EXTRA_PROMPT,
+                                                "Speak station name…"
+                                            )
+                                        }
+                                        speechLauncher.launch(voiceIntent)
+                                    } catch (_: Exception) {
+                                        searchFocusRequester.requestFocus()
+                                        keyboardController?.show()
+                                        Toast.makeText(
+                                            context,
+                                            "Use keyboard mic or swipe to type",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Mic,
+                                contentDescription = "Speak station name",
+                                tint = Color(0xFF81D4FA),
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Custom Phone-Resolved Station Add option when user types/speaks any station name
+            if (searchQuery.trim().length >= 2 && availableToAdd.none { it.stationName.equals(searchQuery.trim(), ignoreCase = true) }) {
+                item(key = "add_custom_phone_station") {
+                    val customName = searchQuery.trim()
+                    val customCrs = customName.uppercase().filter { it in 'A'..'Z' }.take(3).ifBlank { "STN" }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF102A3B),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4FC3F7)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                val customBoard = WearStationBoard(
+                                    stationId = "search:$customName",
+                                    stationName = customName,
+                                    stationCrs = customCrs,
+                                    lastUpdatedLabel = "📱 Syncing from Phone…",
+                                    commuteLabel = "★ Pinned",
+                                    departures = emptyList()
+                                )
+                                onAddStation(customBoard)
+                                searchQuery = ""
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "+ Add \"$customName\" via Phone",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                ),
+                                color = Color(0xFF81D4FA),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                imageVector = Icons.Rounded.Add,
+                                contentDescription = null,
+                                tint = Color(0xFF81D4FA),
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -947,30 +1407,69 @@ private fun WearTrackedJourneyCard(
 }
 
 @Composable
+private fun WearBezelCountdownRing(
+    progressPercent: Int,
+    ringColor: Color,
+    isAmbient: Boolean
+) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val strokePx = if (isAmbient) 1.5.dp.toPx() else 3.dp.toPx()
+        val inset = strokePx / 2f + 2.dp.toPx()
+        val arcSize = Size(size.width - inset * 2f, size.height - inset * 2f)
+        val topLeft = Offset(inset, inset)
+
+        // Track ring
+        drawArc(
+            color = if (isAmbient) Color(0xFF14171C) else Color(0xFF1E2229),
+            startAngle = -90f,
+            sweepAngle = 360f,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(width = strokePx)
+        )
+
+        // Countdown progress arc
+        val sweep = (progressPercent.coerceIn(5, 100) / 100f) * 360f
+        drawArc(
+            color = ringColor,
+            startAngle = -90f,
+            sweepAngle = sweep,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(width = strokePx, cap = StrokeCap.Round)
+        )
+    }
+}
+
+@Composable
 private fun WearDepartureCard(
     departure: WearDepartureItem,
     isWatched: Boolean,
+    isExpanded: Boolean,
+    isAmbientMode: Boolean,
+    onToggleExpand: () -> Unit,
     onToggleWatch: () -> Unit,
     onOpenOnPhone: () -> Unit,
     onSimulatePlatformAnnouncement: (() -> Unit)? = null
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = Color(0xFF14171C),
+        color = if (isAmbientMode) Color.Black else Color(0xFF14171C),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = if (isWatched) Color(0xFF4FC3F7).copy(alpha = 0.7f) else Color(0xFF262B33)
+            color = when {
+                isAmbientMode -> Color(0xFF263238)
+                isWatched -> Color(0xFF4FC3F7).copy(alpha = 0.7f)
+                isExpanded -> Color(0xFF81D4FA).copy(alpha = 0.6f)
+                else -> Color(0xFF262B33)
+            }
         ),
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .clickable {
-                if (onSimulatePlatformAnnouncement != null && isWatched) {
-                    onSimulatePlatformAnnouncement()
-                } else {
-                    onToggleWatch()
-                }
-            }
+            .clickable(onClick = onToggleExpand)
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
@@ -985,20 +1484,22 @@ private fun WearDepartureCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(width = 4.dp, height = 16.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(Color(departure.lineColorArgb))
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    if (!isAmbientMode) {
+                        Box(
+                            modifier = Modifier
+                                .size(width = 4.dp, height = 16.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(Color(departure.lineColorArgb))
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
                     Text(
                         text = departure.compactDestination,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         ),
-                        color = Color.White,
+                        color = if (isAmbientMode) Color(0xFFCFD8DC) else Color.White,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1013,7 +1514,11 @@ private fun WearDepartureCard(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 13.sp
                     ),
-                    color = if (departure.countdownMinutes <= 2) Color(0xFFFFB74D) else Color(0xFF4FC3F7)
+                    color = when {
+                        isAmbientMode -> Color.White
+                        departure.countdownMinutes <= 2 -> Color(0xFFFFB74D)
+                        else -> Color(0xFF4FC3F7)
+                    }
                 )
             }
 
@@ -1029,13 +1534,15 @@ private fun WearDepartureCard(
                 ) {
                     // Single-line compact Platform Pill
                     val platBg = when {
+                        isAmbientMode -> Color.Black
                         departure.isPlatformChanged -> Color(0xFFB71C1C)
                         departure.isPlatformTbd -> Color(0xFF37474F)
                         else -> Color(0xFF1B5E20)
                     }
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = platBg
+                        color = platBg,
+                        border = if (isAmbientMode) androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF546E7A)) else null
                     ) {
                         Text(
                             text = if (departure.isPlatformChanged) {
@@ -1054,7 +1561,7 @@ private fun WearDepartureCard(
                         )
                     }
 
-                    if (departure.delayRepayBadge != null) {
+                    if (!isAmbientMode && departure.delayRepayBadge != null) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = Color(0xFF00695C)
@@ -1083,41 +1590,101 @@ private fun WearDepartureCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(4.dp))
+                if (!isAmbientMode) {
+                    Spacer(modifier = Modifier.width(4.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Open on Phone Handoff button
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF263238))
-                            .clickable(onClick = onOpenOnPhone),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
-                            contentDescription = "Open on Phone",
-                            tint = Color(0xFF81D4FA),
-                            modifier = Modifier.size(11.dp)
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        // Open on Phone Handoff button
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF263238))
+                                .clickable(onClick = onOpenOnPhone),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                                contentDescription = "Open on Phone",
+                                tint = Color(0xFF81D4FA),
+                                modifier = Modifier.size(11.dp)
+                            )
+                        }
+
+                        // Watch / Track on Phone & Wrist toggle
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(if (isWatched) Color(0xFF0277BD) else Color(0xFF263238))
+                                .clickable(onClick = onToggleWatch),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isWatched) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
+                                contentDescription = if (isWatched) "Watching platform" else "Watch platform",
+                                tint = Color.White,
+                                modifier = Modifier.size(11.dp)
+                            )
+                        }
                     }
+                }
+            }
 
-                    // Watch / Track on Phone & Wrist toggle
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(if (isWatched) Color(0xFF0277BD) else Color(0xFF263238))
-                            .clickable(onClick = onToggleWatch),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isWatched) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
-                            contentDescription = if (isWatched) "Watching platform" else "Watch platform",
-                            tint = Color.White,
-                            modifier = Modifier.size(11.dp)
-                        )
+            // Inline Tap-to-Expand Calling Points & Coach Formation Drawer
+            if (isExpanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    val metaParts = buildList {
+                        if (departure.coachCount > 1) add("🚃 ${departure.coachCount} coaches")
+                        if (departure.scheduledTime.isNotBlank()) add("🕒 ${departure.scheduledTime}")
+                        add(departure.lineName)
+                    }.joinToString(" • ")
+
+                    Text(
+                        text = metaParts,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 9.sp
+                        ),
+                        color = Color(0xFF81D4FA),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    val stopsText = departure.callingPointsSummary?.takeIf { it.isNotBlank() }
+                        ?: "Direct / Check calling points on Phone"
+                    Text(
+                        text = "Calls: $stopsText",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
+                        color = Color(0xFFCFD8DC),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    if (onSimulatePlatformAnnouncement != null && departure.isPlatformTbd) {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF004D40),
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .clip(RoundedCornerShape(50))
+                                .clickable(onClick = onSimulatePlatformAnnouncement)
+                        ) {
+                            Text(
+                                text = "⚡ Simulate Plat Announced",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp
+                                ),
+                                color = Color(0xFF80CBC4),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
                     }
                 }
             }

@@ -119,14 +119,25 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
             }
 
             ACTION_ADD_STATION_FROM_WATCH -> {
-                val stationId = intent.getStringExtra(EXTRA_STATION_ID)?.takeIf { it.isNotBlank() } ?: return
-                val stationName = intent.getStringExtra(EXTRA_STATION_NAME)?.takeIf { it.isNotBlank() } ?: stationId
+                val rawStationId = intent.getStringExtra(EXTRA_STATION_ID).orEmpty().trim()
+                val rawStationName = intent.getStringExtra(EXTRA_STATION_NAME).orEmpty().trim()
+                if (rawStationId.isBlank() && rawStationName.isBlank()) return
                 val pendingResult = goAsync()
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val repo = context.applicationContext.appContainer.transitRepository
+                        val currentRegion = repo.getSelectedRegion()
+                        val matchedFromQuery = if (rawStationId.startsWith("search:", ignoreCase = true) || rawStationId.isBlank()) {
+                            val q = rawStationName.ifBlank { rawStationId.removePrefix("search:") }
+                            currentRegion.directory?.searchStations(q)?.firstOrNull()
+                                ?: repo.searchStations(q).getOrNull()?.firstOrNull()
+                        } else null
+
+                        val stationId = matchedFromQuery?.id ?: rawStationId
+                        val stationName = matchedFromQuery?.name ?: rawStationName.ifBlank { stationId }
                         val region = TransitRegion.fromStationId(stationId)
-                        val known = region.directory?.getStationById(stationId)
+                        val known = matchedFromQuery
+                            ?: region.directory?.getStationById(stationId)
                             ?: repo.getStationById(stationId)
                             ?: Station(
                                 id = stationId,
