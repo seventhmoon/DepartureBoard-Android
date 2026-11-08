@@ -78,11 +78,13 @@ class MainActivity : AppCompatActivity() {
         const val EXTRA_STATION_ID = "extra_station_id"
         const val EXTRA_STATION_NAME = "extra_station_name"
         const val EXTRA_DEPARTURE_ID = "extra_departure_id"
+        const val EXTRA_AI_QUERY = "extra_ai_query"
         private const val TAG = "InAppUpdate"
     }
 
     private var initialStation by mutableStateOf<Station?>(null)
     private var initialDepartureId by mutableStateOf<String?>(null)
+    private var initialAiQuery by mutableStateOf<String?>(null)
     private lateinit var appUpdateManager: AppUpdateManager
     private var installStateUpdatedListener: InstallStateUpdatedListener? = null
     private var debugProReceiver: BroadcastReceiver? = null
@@ -197,6 +199,14 @@ class MainActivity : AppCompatActivity() {
                                 station = station,
                                 targetDepartureId = initialDepartureId
                             )
+                        }
+                    }
+
+                    LaunchedEffect(initialAiQuery) {
+                        initialAiQuery?.takeIf { it.isNotBlank() }?.let { query ->
+                            aiInitialQuery = query
+                            showAiSheet = true
+                            initialAiQuery = null
                         }
                     }
 
@@ -918,6 +928,9 @@ class MainActivity : AppCompatActivity() {
         val departureId = intent?.getStringExtra(EXTRA_DEPARTURE_ID)
             ?: uri?.getQueryParameter("departureId")
         initialDepartureId = departureId?.takeIf { it.isNotBlank() }
+        val aiQuery = intent?.getStringExtra(EXTRA_AI_QUERY)
+            ?: uri?.getQueryParameter("aiQuery")
+        initialAiQuery = aiQuery?.takeIf { it.isNotBlank() }
 
         if (!stationId.isNullOrBlank()) {
             val region = TransitRegion.fromStationId(stationId)

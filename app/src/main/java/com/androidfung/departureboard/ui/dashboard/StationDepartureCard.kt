@@ -985,20 +985,33 @@ private fun StationDeparturesContainer(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             modifier = Modifier.size(28.dp)
                         )
+                        val isAwaitingScheduledLastTrain = serviceHoursInfo?.isApproachingLastTrain == true &&
+                            !serviceHoursInfo.lastTrainTime.isNullOrBlank()
+
                         Text(
-                            text = stringResource(R.string.departures_none_upcoming),
+                            text = if (isAwaitingScheduledLastTrain) {
+                                stringResource(R.string.departures_none_upcoming_awaiting)
+                            } else {
+                                stringResource(R.string.departures_none_upcoming)
+                            },
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = if (serviceHoursInfo?.isClosedForNight == true && !serviceHoursInfo.lastTrainTime.isNullOrBlank()) {
-                                val lastStr = stringResource(R.string.station_detail_last_train, serviceHoursInfo.lastTrainTime)
-                                val firstStr = serviceHoursInfo.firstTrainTime?.let {
-                                    " " + stringResource(R.string.station_detail_first_train, it)
-                                }.orEmpty()
-                                "$lastStr$firstStr"
-                            } else {
-                                stringResource(R.string.departures_service_ended)
+                            text = when {
+                                serviceHoursInfo?.isClosedForNight == true && !serviceHoursInfo.lastTrainTime.isNullOrBlank() -> {
+                                    val lastStr = stringResource(R.string.station_detail_last_train, serviceHoursInfo.lastTrainTime)
+                                    val firstStr = serviceHoursInfo.firstTrainTime?.let {
+                                        " " + stringResource(R.string.station_detail_first_train, it)
+                                    }.orEmpty()
+                                    "$lastStr$firstStr"
+                                }
+                                isAwaitingScheduledLastTrain -> {
+                                    stringResource(R.string.departures_service_awaiting_last_train, serviceHoursInfo.lastTrainTime)
+                                }
+                                else -> {
+                                    stringResource(R.string.departures_service_ended)
+                                }
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),

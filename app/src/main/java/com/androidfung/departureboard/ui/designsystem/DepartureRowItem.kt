@@ -109,8 +109,12 @@ fun DepartureRowItem(
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Subtitle row: [Platform Pill Tag / Towards / Formation / Operator / Boarding Semantics / Last Train]
-            if (departure.platformName.isNotBlank() || departure.isWheelchairAccessible == true || !departure.occupancyStatus.isNullOrBlank() || departure.formation != null || departure.isSetDownOnly || departure.isPickUpOnly || departure.isLastTrain || departure.isNightService) {
+            val delayRepay = androidx.compose.runtime.remember(departure) {
+                com.androidfung.departureboard.util.DelayRepayCalculator.evaluate(departure)
+            }
+
+            // Subtitle row: [Platform Pill Tag / Towards / Formation / Operator / Boarding Semantics / Last Train / Delay Repay]
+            if (departure.platformName.isNotBlank() || departure.isWheelchairAccessible == true || !departure.occupancyStatus.isNullOrBlank() || departure.formation != null || departure.isSetDownOnly || departure.isPickUpOnly || departure.isLastTrain || departure.isNightService || delayRepay != null) {
                 val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
                 val isNarrow = windowWidthClass.isNarrow
 
@@ -338,6 +342,21 @@ fun DepartureRowItem(
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+
+                    if (delayRepay != null) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFF00897B).copy(alpha = 0.20f),
+                            border = androidx.compose.foundation.BorderStroke(0.8.dp, Color(0xFF00897B).copy(alpha = 0.65f))
+                        ) {
+                            Text(
+                                text = "💸 ${delayRepay.badgeLabel}",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                color = Color(0xFF26A69A),
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                             )
                         }
                     }

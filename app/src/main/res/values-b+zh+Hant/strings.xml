@@ -162,7 +162,9 @@
     <string name="departures_filter_no_match">沒有符合此篩選條件的班次</string>
     <string name="departures_show_all">顯示所有班次</string>
     <string name="departures_none_upcoming">暫無即將離站班次</string>
+    <string name="departures_none_upcoming_awaiting">尚未追蹤到即時班次</string>
     <string name="departures_service_ended">今日服務可能已結束</string>
+    <string name="departures_service_awaiting_last_train">預計末班車時間約為 %1$s</string>
     <string name="station_detail_disruptions_count">%1$d 條路線異動</string>
     <string name="station_detail_stops_stands">巴士站 / 候車位：</string>
     <string name="station_detail_live_departures">即時離站班次</string>

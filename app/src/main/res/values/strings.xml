@@ -163,7 +163,9 @@
     <string name="departures_filter_no_match">No departures match this filter</string>
     <string name="departures_show_all">Show all departures</string>
     <string name="departures_none_upcoming">No upcoming departures</string>
+    <string name="departures_none_upcoming_awaiting">No live departures tracked yet</string>
     <string name="departures_service_ended">Service may have ended for the day</string>
+    <string name="departures_service_awaiting_last_train">Final service scheduled at ~%1$s</string>
     <string name="station_detail_disruptions_count" tools:ignore="PluralsCandidate">%1$d Line Disruptions</string>
     <string name="station_detail_stops_stands">Stops / Stands:</string>
     <string name="station_detail_live_departures">Live Departures</string>

@@ -242,7 +242,13 @@ private fun TrainJourneyContent(
     val haptic = LocalHapticFeedback.current
     val trackedDepartureId by com.androidfung.departureboard.service.TrainTrackingService.currentlyTrackedDepartureIdFlow
         .collectAsStateWithLifecycle()
+    val targetAlightStop by com.androidfung.departureboard.service.TrainTrackingService.targetAlightStopFlow
+        .collectAsStateWithLifecycle()
     val isTracked = trackedDepartureId == departure.id
+
+    val delayRepay = remember(departure, callingPoints) {
+        com.androidfung.departureboard.util.DelayRepayCalculator.evaluate(departure, callingPoints)
+    }
 
     var pendingTrackDeparture by remember { mutableStateOf<Departure?>(null) }
 
@@ -548,6 +554,108 @@ private fun TrainJourneyContent(
                 }
             }
 
+            // Concourse Platform Watcher ("Platform TBD" -> Haptic Alert on Announcement)
+            val isPlatformTbd = departure.platformName.contains("TBD", ignoreCase = true) ||
+                (!departure.resolvedPlatform.isConfirmed && departure.transitMode != com.androidfung.departureboard.data.model.TransitMode.BUS)
+            if (isPlatformTbd && departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
+                item(key = "concourse_tbd_platform_watcher") {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                if (isTracked) {
+                                    com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
+                                } else {
+                                    com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, departure) { pendingDeparture ->
+                                        pendingTrackDeparture = pendingDeparture
+                                        notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                }
+                            },
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isTracked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 1.dp,
+                            color = if (isTracked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isTracked) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
+                                contentDescription = null,
+                                tint = if (isTracked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (isTracked) {
+                                        "Watching for Platform Announcement"
+                                    } else {
+                                        "Platform TBD — Tap to Watch for Announcement"
+                                    },
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = if (isTracked) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = if (isTracked) {
+                                        "Concourse Haptic Alert active: your phone & watch will buzz as soon as the platform is announced."
+                                    } else {
+                                        "Waiting in the station concourse? Get an instant double-pulse haptic alert the moment the platform is confirmed."
+                                    },
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                    color = (if (isTracked) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer).copy(alpha = 0.85f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Delay Repay Compensation Eligibility Banner
+            if (delayRepay != null) {
+                item(key = "delay_repay_banner") {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF00897B).copy(alpha = 0.14f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 1.dp,
+                            color = Color(0xFF00897B).copy(alpha = 0.55f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = "💸",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "${delayRepay.badgeLabel} Eligible",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF26A69A)
+                                )
+                                Text(
+                                    text = delayRepay.compensationSummary,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Train Carriage Formation Diagram
             val formation = departure.formation
             if (formation != null && formation.coaches.isNotEmpty()) {
@@ -785,6 +893,15 @@ private fun TrainJourneyContent(
                         is JourneyTimelineListItem.CallingPointItem -> {
                             val isPassed = activeTrainIndex >= 0 && item.index < activeTrainIndex
                             val isTrainLocation = activeTrainIndex >= 0 && item.index == activeTrainIndex
+                            val isDownstreamStop = !item.callingPoint.isCurrentStation &&
+                                !isPassed &&
+                                !item.callingPoint.isCancelled &&
+                                (currentStationIndex < 0 || item.index > currentStationIndex)
+                            val isTargetAlightStop = isTracked &&
+                                !targetAlightStop.isNullOrBlank() &&
+                                (item.callingPoint.stationName.equals(targetAlightStop, ignoreCase = true) ||
+                                    item.callingPoint.resolveDisplayName().equals(targetAlightStop, ignoreCase = true))
+
                             CallingPointTimelineItem(
                                 callingPoint = item.callingPoint,
                                 isFirst = item.index == 0,
@@ -793,6 +910,24 @@ private fun TrainJourneyContent(
                                 isPassed = isPassed,
                                 isTrainLocation = isTrainLocation,
                                 hasIncomingTrainAbove = isTrainApproachingBeforeBoarding,
+                                isTargetAlightStop = isTargetAlightStop,
+                                onToggleTargetAlightStop = if (isDownstreamStop && departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
+                                    {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        if (isTargetAlightStop) {
+                                            com.androidfung.departureboard.service.TrainTrackingService.setTargetAlightStop(null)
+                                        } else {
+                                            val stopName = item.callingPoint.resolveDisplayName()
+                                            com.androidfung.departureboard.service.TrainTrackingService.setTargetAlightStop(stopName)
+                                            if (!isTracked) {
+                                                com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, departure) { pendingDeparture ->
+                                                    pendingTrackDeparture = pendingDeparture
+                                                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else null,
                                 onClick = if (!item.callingPoint.isCurrentStation) {
                                     { onCallingPointClick(item.callingPoint, callingPoints) }
                                 } else null
@@ -1012,6 +1147,8 @@ private fun CallingPointTimelineItem(
     isPassed: Boolean = false,
     isTrainLocation: Boolean = false,
     hasIncomingTrainAbove: Boolean = false,
+    isTargetAlightStop: Boolean = false,
+    onToggleTargetAlightStop: (() -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
     val accessibleColors = rememberAccessibleTimelineColors(lineColor)
@@ -1206,12 +1343,33 @@ private fun CallingPointTimelineItem(
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = timeAlpha)
                         )
                     }
+
+                    if (onToggleTargetAlightStop != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isTargetAlightStop) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                                )
+                                .clickable(onClick = onToggleTargetAlightStop),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isTargetAlightStop) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
+                                contentDescription = if (isTargetAlightStop) "Cancel alight alert for ${callingPoint.stationName}" else "Set alight alert for ${callingPoint.stationName}",
+                                tint = if (isTargetAlightStop) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        // Subtitle row for current station and/or current train location
-        val showSubtitleRow = callingPoint.isCurrentStation || isTrainLocation
+        // Subtitle row for current station, current train location, and/or target alighting stop
+        val showSubtitleRow = callingPoint.isCurrentStation || isTrainLocation || isTargetAlightStop
         if (showSubtitleRow) {
             Row(
                 modifier = Modifier
@@ -1306,6 +1464,39 @@ private fun CallingPointTimelineItem(
                                         lineHeight = 12.sp
                                     ),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    if (isTargetAlightStop) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = 0.8.dp,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.NotificationsActive,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Text(
+                                    text = "Alight Stop (1-stop alert active)",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        lineHeight = 12.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
                         }

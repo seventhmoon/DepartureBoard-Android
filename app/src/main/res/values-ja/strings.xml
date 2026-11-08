@@ -163,7 +163,9 @@
     <string name="departures_filter_no_match">条件に一致する便がありません</string>
     <string name="departures_show_all">すべての便を表示</string>
     <string name="departures_none_upcoming">発車予定の便はありません</string>
+    <string name="departures_none_upcoming_awaiting">追跡中のリアルタイム便はありません</string>
     <string name="departures_service_ended">本日の運行は終了しました</string>
+    <string name="departures_service_awaiting_last_train">最終便の予定時刻：%1$s</string>
     <string name="station_detail_disruptions_count">%1$d 件の運行情報</string>
     <string name="station_detail_stops_stands">のりば案内:</string>
     <string name="station_detail_live_departures">リアルタイム発車標</string>

@@ -459,6 +459,10 @@ class DashboardViewModel @JvmOverloads constructor(
                 lastUpdatedTimestamp = System.currentTimeMillis()
             )
         }
+        com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishStationBoards(
+            getApplication(),
+            _uiState.value.stationCards
+        )
     }
 
     /**

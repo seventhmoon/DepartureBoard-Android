@@ -163,7 +163,9 @@
     <string name="departures_filter_no_match">조건에 일치하는 출발 정보가 없습니다</string>
     <string name="departures_show_all">모든 출발 정보 표시</string>
     <string name="departures_none_upcoming">예정된 출발 정보가 없습니다</string>
+    <string name="departures_none_upcoming_awaiting">추적 중인 실시간 운행편이 없습니다</string>
     <string name="departures_service_ended">오늘의 운행이 종료되었습니다</string>
+    <string name="departures_service_awaiting_last_train">예정된 마지막 열차 약 %1$s</string>
     <string name="station_detail_disruptions_count">%1$d건의 노선 지연/차질</string>
     <string name="station_detail_stops_stands">정류장 / 승강장:</string>
     <string name="station_detail_live_departures">실시간 출발 정보</string>

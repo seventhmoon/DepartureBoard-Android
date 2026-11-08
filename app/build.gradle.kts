@@ -34,8 +34,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 52
-        versionName = "1.3.2-261106"
+        versionCode = 54
+        versionName = "1.3.3-261107"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -209,6 +209,7 @@ dependencies {
     implementation(libs.play.billing.ktx)
     implementation(libs.play.services.ads)
     implementation(libs.play.services.location)
+    implementation(libs.play.services.wearable)
     
     // Networking & Serialization
     implementation(libs.retrofit)

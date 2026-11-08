@@ -332,7 +332,38 @@ object LastTrainServiceCalculator {
             }
         }
 
-        return enriched to serviceHours
+        // Reconcile serviceHours with live departures when approaching last train
+        // If scheduled countdown is very close (e.g. <= 15m), but live tracked trains extend further (e.g. due to delays),
+        // or a tracked departure is past the scheduled last train, align the banner's time & countdown with the live train.
+        val reconciledServiceHours = if (serviceHours?.isApproachingLastTrain == true && enriched.isNotEmpty()) {
+            val latestTrainDep = enriched
+                .filter { it.status != DepartureStatus.CANCELLED && !isNightBusRoute(it.lineId) && !it.isNightService }
+                .maxByOrNull { it.timeToStationSeconds }
+
+            if (latestTrainDep != null) {
+                val liveMinutes = (latestTrainDep.timeToStationSeconds / 60).coerceAtLeast(1)
+                val scheduledMins = serviceHours.minutesUntilLastTrain ?: 0
+
+                // When live departure is later than scheduled last train countdown (e.g. Marylebone delayed to 00:56 vs 00:45)
+                // or scheduled countdown is nearly expired (<= 15 mins) while live trains remain
+                val shouldAlignWithLive = liveMinutes > scheduledMins || scheduledMins <= 15
+                if (shouldAlignWithLive) {
+                    val liveClock = latestTrainDep.formattedActualClockTime ?: serviceHours.lastTrainTime
+                    serviceHours.copy(
+                        lastTrainTime = liveClock,
+                        minutesUntilLastTrain = liveMinutes
+                    )
+                } else {
+                    serviceHours
+                }
+            } else {
+                serviceHours
+            }
+        } else {
+            serviceHours
+        }
+
+        return enriched to reconciledServiceHours
     }
 
     fun isNightBusRoute(lineIdOrName: String?): Boolean {

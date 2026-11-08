@@ -272,4 +272,43 @@ class LastTrainServiceCalculatorTest {
         assertNotNull(eustonAt0130)
         assertTrue(eustonAt0130!!.isNightServiceActive)
     }
+
+    @Test
+    fun `reconciles last train banner with delayed live departures`() {
+        // Scheduled last train was 00:45 (so at 00:43, scheduled is in 2 minutes)
+        // But live departure is delayed to 00:56 (13 minutes away)
+        val now = ZonedDateTime.of(2026, 11, 5, 0, 43, 0, 0, ZoneId.of("Europe/London"))
+        val station = Station(id = "940GZZLUMYB", name = "Marylebone", modes = listOf("tube"))
+        val existingScheduledServiceHours = com.androidfung.departureboard.data.model.StationServiceHoursInfo(
+            isClosedForNight = false,
+            lastTrainTime = "00:45",
+            firstTrainTime = "06:30",
+            lineName = "Bakerloo",
+            minutesUntilLastTrain = 2,
+            isApproachingLastTrain = true,
+            isNightServiceActive = false
+        )
+
+        val delayedDeparture = sampleDeparture(
+            id = "delayed_last",
+            stationId = station.id,
+            lineId = "bakerloo",
+            seconds = 13 * 60
+        ).copy(expectedDepartureInstant = now.plusMinutes(13).toInstant())
+
+        val (enriched, reconciled) = LastTrainServiceCalculator.enrichDeparturesAndServiceHours(
+            station = station,
+            departures = listOf(delayedDeparture),
+            existingServiceHours = existingScheduledServiceHours,
+            nowOverride = now,
+            timetableChecked = true
+        )
+
+        assertNotNull(reconciled)
+        assertTrue(reconciled!!.isApproachingLastTrain)
+        assertEquals("00:56", reconciled.lastTrainTime)
+        assertEquals(13, reconciled.minutesUntilLastTrain)
+        assertTrue(enriched.first().isLastTrain)
+    }
 }
+

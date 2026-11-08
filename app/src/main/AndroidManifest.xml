@@ -43,6 +43,26 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/departure_board_widget_info" />
         </receiver>
 
+        <receiver android:name=".wear.PhoneCompanionSyncReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="com.androidfung.departureboard.action.WEAR_OPEN_ON_PHONE" />
+                <action android:name="com.androidfung.departureboard.action.WEAR_START_TRACKING" />
+                <action android:name="com.androidfung.departureboard.action.WEAR_STOP_TRACKING" />
+                <action android:name="com.androidfung.departureboard.action.WEAR_REQUEST_BOARDS" />
+                <action android:name="com.androidfung.departureboard.action.WEAR_ADD_STATION" />
+                <action android:name="com.androidfung.departureboard.action.WEAR_REMOVE_STATION" />
+                <action android:name="com.androidfung.departureboard.action.WEAR_ASK_AI" />
+                <action android:name="com.androidfung.departureboard.action.WEAR_OPEN_AI_ON_PHONE" />
+            </intent-filter>
+        </receiver>
+
+        <service android:name=".wear.PhoneWearableListenerService" android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/ekiboard" />
+            </intent-filter>
+        </service>
+
         
         <service android:name=".service.TrainTrackingService" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Live transit departure countdown tracking for user-selected public transport service." />

@@ -93,9 +93,13 @@ class TrainTrackingService : Service() {
         const val EXTRA_COACH_COUNT = "extra_coach_count"
         const val EXTRA_DELAY_REASON = "extra_delay_reason"
         const val EXTRA_IS_DELAYED = "extra_is_delayed"
+        const val EXTRA_TARGET_ALIGHT_STOP_NAME = "extra_target_alight_stop_name"
 
         private val _currentlyTrackedDepartureIdFlow = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
         val currentlyTrackedDepartureIdFlow: kotlinx.coroutines.flow.StateFlow<String?> = _currentlyTrackedDepartureIdFlow
+
+        private val _targetAlightStopFlow = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+        val targetAlightStopFlow: kotlinx.coroutines.flow.StateFlow<String?> = _targetAlightStopFlow
 
         var currentlyTrackedDepartureId: String?
             get() = _currentlyTrackedDepartureIdFlow.value
@@ -103,10 +107,18 @@ class TrainTrackingService : Service() {
                 _currentlyTrackedDepartureIdFlow.value = value
             }
 
+        fun setTargetAlightStop(stopName: String?) {
+            _targetAlightStopFlow.value = stopName?.takeIf { it.isNotBlank() }
+        }
+
         fun startTracking(
             context: Context,
-            departure: Departure
+            departure: Departure,
+            targetAlightStopName: String? = null
         ) {
+            if (targetAlightStopName != null) {
+                _targetAlightStopFlow.value = targetAlightStopName.takeIf { it.isNotBlank() }
+            }
             val isBus = departure.modeName.equals("bus", ignoreCase = true)
             val intent = Intent(context, TrainTrackingService::class.java).apply {
                 action = ACTION_START_TRACKING
@@ -128,6 +140,7 @@ class TrainTrackingService : Service() {
                 putExtra(EXTRA_COACH_COUNT, departure.formation?.coachCount ?: 0)
                 putExtra(EXTRA_DELAY_REASON, departure.delayReason)
                 putExtra(EXTRA_IS_DELAYED, departure.status == DepartureStatus.DELAYED)
+                putExtra(EXTRA_TARGET_ALIGHT_STOP_NAME, _targetAlightStopFlow.value)
             }
             context.startForegroundService(intent)
         }
@@ -323,6 +336,11 @@ class TrainTrackingService : Service() {
                 val coachCount = intent.getIntExtra(EXTRA_COACH_COUNT, 0)
                 val delayReason = intent.getStringExtra(EXTRA_DELAY_REASON)
                 val isDelayed = intent.getBooleanExtra(EXTRA_IS_DELAYED, false)
+                val targetAlightStop = intent.getStringExtra(EXTRA_TARGET_ALIGHT_STOP_NAME)
+
+                if (!targetAlightStop.isNullOrBlank()) {
+                    _targetAlightStopFlow.value = targetAlightStop
+                }
 
                 currentlyTrackedDepartureId = departureId
 
@@ -430,6 +448,8 @@ class TrainTrackingService : Service() {
             var currentDelayReason = initialDelayReason
             var currentIsDelayed = initialIsDelayed
             var hasPostedDelayAlert = initialIsDelayed
+            var hasPostedAlightAlert = false
+            var lastAlertedTargetStop: String? = null
             var baselineStops: Int? = null
             var missingCount = 0
             var isServiceCancelled = false
@@ -519,6 +539,7 @@ class TrainTrackingService : Service() {
                                 } else {
                                     getString(R.string.tracking_platform_changed_message, lineName, currentDestination, oldPlatform, currentPlatform)
                                 }
+                                triggerConcourseHapticPulse()
                                 postDisruptionAlert(
                                     title = alertTitle,
                                     message = alertMsg,
@@ -631,9 +652,42 @@ class TrainTrackingService : Service() {
                             liveLocation.contains(cp.stationName, ignoreCase = true) ||
                             cp.stationName.contains(liveLocation, ignoreCase = true)
                         }
+                        val targetAlightStop = _targetAlightStopFlow.value
+                        val alightIdx = if (!targetAlightStop.isNullOrBlank()) {
+                            points.indexOfFirst { cp ->
+                                cp.stationName.equals(targetAlightStop, ignoreCase = true) ||
+                                    cp.resolveDisplayName().equals(targetAlightStop, ignoreCase = true)
+                            }
+                        } else -1
+
+                        if (curIdx != -1 && alightIdx > curIdx) {
+                            val stopsToAlight = alightIdx - curIdx
+                            if (stopsToAlight == 1 && (!hasPostedAlightAlert || lastAlertedTargetStop != targetAlightStop)) {
+                                hasPostedAlightAlert = true
+                                lastAlertedTargetStop = targetAlightStop
+                                triggerConcourseHapticPulse()
+                                postDisruptionAlert(
+                                    title = "Get Ready to Alight",
+                                    message = "Next stop is $targetAlightStop on $lineName",
+                                    stationId = stationId,
+                                    stationName = stationName,
+                                    departureId = activeDepartureId,
+                                    isBus = isBus
+                                )
+                            }
+                        }
+
                         val userStationIdx = points.indexOfFirst { it.isCurrentStation }
-                        if (curIdx != -1 && userStationIdx != -1 && userStationIdx > curIdx) {
-                            val computedStops = userStationIdx - curIdx
+                        val targetStopIdx = if (userStationIdx != -1 && (curIdx == -1 || curIdx < userStationIdx)) {
+                            userStationIdx
+                        } else if (alightIdx != -1) {
+                            alightIdx
+                        } else {
+                            userStationIdx
+                        }
+
+                        if (curIdx != -1 && targetStopIdx != -1 && targetStopIdx > curIdx) {
+                            val computedStops = targetStopIdx - curIdx
                             val currentBase = baselineStops
                             if (currentBase == null || computedStops > currentBase) {
                                 baselineStops = computedStops
@@ -679,6 +733,22 @@ class TrainTrackingService : Service() {
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to update notification", e)
                 }
+
+                com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishTrackedDeparture(
+                    context = applicationContext,
+                    departureId = activeDepartureId,
+                    stationId = stationId,
+                    stationName = stationName,
+                    destinationName = currentDestination,
+                    lineName = lineName,
+                    platform = currentPlatform,
+                    remainingSeconds = remainingSeconds,
+                    currentLocation = liveLocation,
+                    stopsAway = if (hasReachedStation) 0 else stopsAway,
+                    targetAlightStopName = _targetAlightStopFlow.value,
+                    isCancelled = false,
+                    lineColorArgb = lineColorArgb
+                )
 
                 if (hasReachedStation) {
                     break
@@ -757,11 +827,34 @@ class TrainTrackingService : Service() {
             trackingJob?.cancel()
             trackingJob = null
             currentlyTrackedDepartureId = null
+            _targetAlightStopFlow.value = null
+            com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishTrackingStopped(applicationContext)
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
             val nm = getSystemService<NotificationManager>()
             nm?.cancel(NOTIFICATION_ID)
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping tracking", e)
+        }
+    }
+
+    /**
+     * Fires a distinct double-pulse haptic vibration for station concourse platform announcements
+     * ("TBD" -> "Plat X") and 1-stop "Get Ready to Alight" alerts.
+     */
+    private fun triggerConcourseHapticPulse() {
+        try {
+            val pattern = longArrayOf(0L, 180L, 90L, 260L)
+            val effect = android.os.VibrationEffect.createWaveform(pattern, -1)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vm = getSystemService<android.os.VibratorManager>()
+                vm?.defaultVibrator?.vibrate(effect)
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator = getSystemService<android.os.Vibrator>()
+                vibrator?.vibrate(effect)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Unable to trigger concourse haptic pulse", e)
         }
     }
 

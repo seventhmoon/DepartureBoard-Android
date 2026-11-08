@@ -1262,6 +1262,25 @@ private fun StationDetailContent(
                                     lineHeight = 22.sp
                                 )
                             }
+                        } else if (serviceHoursInfo?.isApproachingLastTrain == true && !serviceHoursInfo.lastTrainTime.isNullOrBlank()) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(horizontal = 24.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.departures_none_upcoming_awaiting),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                Text(
+                                    text = stringResource(R.string.departures_service_awaiting_last_train, serviceHoursInfo.lastTrainTime),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
                         } else {
                             Text(
                                 text = if (selectedLineId != null) {
