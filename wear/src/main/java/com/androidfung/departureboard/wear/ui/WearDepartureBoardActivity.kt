@@ -81,6 +81,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import com.androidfung.departureboard.wear.haptic.WearConcourseHapticAnnouncer
+import com.androidfung.departureboard.wear.haptic.WearNotificationPublisher
 import com.androidfung.departureboard.wear.model.WearAiConcourseResponse
 import com.androidfung.departureboard.wear.model.WearAiPromptType
 import com.androidfung.departureboard.wear.model.WearDepartureItem
@@ -144,7 +145,22 @@ fun WearConcourseBoardScreen() {
 
     val currentBoard: WearStationBoard = boards[selectedStationIndex % boards.size]
 
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ -> }
+
     LaunchedEffect(Unit) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                runCatching {
+                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        }
         WearCompanionStateRepository.requestPhoneSync(context)
         runCatching { rotaryFocusRequester.requestFocus() }
     }
@@ -566,6 +582,7 @@ fun WearConcourseBoardScreen() {
                             if (event != null) {
                                 localWristAlert = event
                                 WearConcourseHapticAnnouncer.triggerWristPulse(context, event.type)
+                                WearNotificationPublisher.postConcourseAlertNotification(context, event)
                             }
                         }
                     } else null

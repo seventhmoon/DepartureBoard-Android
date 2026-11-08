@@ -32,7 +32,7 @@ class WearDataLayerListenerService : WearableListenerService() {
                 }
             }
             PATH_STOP_TRACKED_DEPARTURE -> {
-                WearCompanionStateRepository.onReceiveStopTrackedDeparture()
+                WearCompanionStateRepository.onReceiveStopTrackedDeparture(applicationContext)
             }
             PATH_SYNC_AI_RESPONSE -> {
                 if (payload.isNotBlank()) {

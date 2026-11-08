@@ -840,6 +840,7 @@ class TrainTrackingService : Service() {
                 .setAutoCancel(true)
                 .setContentIntent(openAppPendingIntent)
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .extend(NotificationCompat.WearableExtender())
                 .build()
 
             val nm = getSystemService<NotificationManager>()

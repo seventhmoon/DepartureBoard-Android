@@ -3,6 +3,7 @@ package com.androidfung.departureboard.wear.sync
 import android.content.Context
 import android.content.Intent
 import com.androidfung.departureboard.wear.haptic.WearConcourseHapticAnnouncer
+import com.androidfung.departureboard.wear.haptic.WearNotificationPublisher
 import com.androidfung.departureboard.wear.model.WearAiConcourseResponse
 import com.androidfung.departureboard.wear.model.WearAiPromptType
 import com.androidfung.departureboard.wear.model.WearDepartureItem
@@ -231,6 +232,24 @@ object WearCompanionStateRepository {
         station: WearStationBoard,
         departure: WearDepartureItem
     ) {
+        val localState = WearTrackedJourneyState(
+            departureId = departure.id,
+            stationId = station.stationId,
+            stationName = station.stationName,
+            destinationName = departure.destination,
+            lineName = departure.lineName,
+            platformCode = departure.cleanPlatformCode,
+            isPlatformConfirmed = !departure.isPlatformTbd,
+            remainingSeconds = departure.countdownMinutes.coerceAtLeast(1) * 60,
+            currentLocation = departure.statusLabel,
+            stopsAway = null,
+            targetAlightStopName = null,
+            isCancelled = false,
+            lineColorArgb = departure.lineColorArgb
+        )
+        _trackedJourneyFlow.value = localState
+        WearNotificationPublisher.postTrackedJourneyNotification(context, localState)
+
         runCatching {
             val intent = Intent(ACTION_START_TRACKING_FROM_WATCH).apply {
                 setPackage(PHONE_PACKAGE)
@@ -262,6 +281,7 @@ object WearCompanionStateRepository {
     fun stopRemoteTrackingOnPhone(context: Context) {
         _trackedJourneyFlow.value = null
         lastAlertedAlightStop = null
+        WearNotificationPublisher.cancelTrackedJourneyNotification(context)
         runCatching {
             val intent = Intent(ACTION_STOP_TRACKING_FROM_WATCH).apply {
                 setPackage(PHONE_PACKAGE)
@@ -351,6 +371,7 @@ object WearCompanionStateRepository {
         val current = parseTrackedDepartureJson(trackedJson) ?: return
         _trackedJourneyFlow.value = current
         _isPhoneSyncedFlow.value = true
+        context?.let { WearNotificationPublisher.postTrackedJourneyNotification(it, current) }
 
         // 1. Check if platform transitioned from TBD -> Confirmed or changed on the phone-tracked train
         if (previous != null && previous.departureId == current.departureId) {
@@ -364,7 +385,10 @@ object WearCompanionStateRepository {
                     detail = "${current.destinationName} is boarding at Platform ${current.platformCode}"
                 )
                 _latestWristAlertFlow.value = event
-                context?.let { WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type) }
+                context?.let {
+                    WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type)
+                    WearNotificationPublisher.postConcourseAlertNotification(it, event)
+                }
             } else if (!wasTbd && isNowConfirmed && !previous.platformCode.equals(current.platformCode, ignoreCase = true)) {
                 val event = WearConcourseHapticAnnouncer.WristHapticEvent(
                     type = WearConcourseHapticAnnouncer.WristAlertType.PLATFORM_CHANGED,
@@ -373,7 +397,10 @@ object WearCompanionStateRepository {
                     detail = "${current.destinationName} moved from Plat ${previous.platformCode} to Plat ${current.platformCode}"
                 )
                 _latestWristAlertFlow.value = event
-                context?.let { WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type) }
+                context?.let {
+                    WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type)
+                    WearNotificationPublisher.postConcourseAlertNotification(it, event)
+                }
             }
         }
 
@@ -388,13 +415,17 @@ object WearCompanionStateRepository {
                 detail = "Next stop is $targetStop on ${current.lineName}"
             )
             _latestWristAlertFlow.value = event
-            context?.let { WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type) }
+            context?.let {
+                WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type)
+                WearNotificationPublisher.postConcourseAlertNotification(it, event)
+            }
         }
     }
 
-    internal fun onReceiveStopTrackedDeparture() {
+    internal fun onReceiveStopTrackedDeparture(context: Context? = null) {
         _trackedJourneyFlow.value = null
         lastAlertedAlightStop = null
+        context?.let { WearNotificationPublisher.cancelTrackedJourneyNotification(it) }
     }
 
     internal fun parseStationBoardsJson(boardsJson: String): List<WearStationBoard> {
