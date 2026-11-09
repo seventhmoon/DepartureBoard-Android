@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsOff
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -250,6 +251,25 @@ private fun TrainJourneyContent(
         com.androidfung.departureboard.util.DelayRepayCalculator.evaluate(departure, callingPoints)
     }
 
+    LaunchedEffect(departure.id, delayRepay) {
+        if (delayRepay != null) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                com.androidfung.departureboard.util.DelayRepayReceiptLog.recordReceipt(
+                    context = context,
+                    departureId = departure.id,
+                    stationName = departure.stationName,
+                    destinationName = departure.destinationName,
+                    lineName = departure.lineName,
+                    trainCode = departure.displayTrainCode,
+                    delayMinutes = delayRepay.delayMinutes,
+                    isCancelled = false,
+                    badgeLabel = delayRepay.badgeLabel,
+                    compensationSummary = delayRepay.compensationSummary
+                )
+            }
+        }
+    }
+
     var pendingTrackDeparture by remember { mutableStateOf<Departure?>(null) }
 
     val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -331,39 +351,75 @@ private fun TrainJourneyContent(
             }
         },
         headerActions = {
-            // Top-right corner live notification tracking toggle (hidden for cancelled services)
-            if (departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 1-Tap Share Live ETA button
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(
-                            if (isTracked) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceContainerHighest
-                        )
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                         .clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            if (isTracked) {
-                                com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
-                            } else {
-                                com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, departure) { pendingDeparture ->
-                                    pendingTrackDeparture = pendingDeparture
-                                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                                }
+                            val shareText = com.androidfung.departureboard.util.DelayRepayCalculator.formatShareLiveEtaText(
+                                departure = departure,
+                                callingPoints = callingPoints,
+                                targetAlightStop = if (isTracked) targetAlightStop else null
+                            )
+                            val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(android.content.Intent.EXTRA_TEXT, shareText)
                             }
+                            context.startActivity(
+                                android.content.Intent.createChooser(sendIntent, "Share Live Train ETA")
+                            )
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (isTracked) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
-                        contentDescription = if (isTracked) {
-                            stringResource(R.string.cd_stop_live_notification)
-                        } else {
-                            stringResource(R.string.cd_start_live_notification)
-                        },
-                        tint = if (isTracked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(19.dp)
+                        imageVector = Icons.Rounded.Share,
+                        contentDescription = "Share Live ETA",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
                     )
+                }
+
+                // Top-right corner live notification tracking toggle (hidden for cancelled services)
+                if (departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isTracked) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceContainerHighest
+                            )
+                            .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                if (isTracked) {
+                                    com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
+                                } else {
+                                    com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, departure) { pendingDeparture ->
+                                        pendingTrackDeparture = pendingDeparture
+                                        notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isTracked) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
+                            contentDescription = if (isTracked) {
+                                stringResource(R.string.cd_stop_live_notification)
+                            } else {
+                                stringResource(R.string.cd_start_live_notification)
+                            },
+                            tint = if (isTracked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
                 }
             }
         }
@@ -379,7 +435,7 @@ private fun TrainJourneyContent(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // 1. Main Destination Title & Departure Time Badge
-            item(key = "destination_title") {
+            item(key = "destination_title", contentType = "destination_title") {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -457,7 +513,7 @@ private fun TrainJourneyContent(
             val hasMeaningfulLocation = rawLocation.isNotBlank() && !isTimeOrGenericStatus
 
             if (hasMeaningfulLocation) {
-                item(key = "current_location") {
+                item(key = "current_location", contentType = "current_location") {
                     val stopStatus = departure.vehicleStopStatus
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -523,7 +579,7 @@ private fun TrainJourneyContent(
             // Platform Alteration Banner (SIRI-ET & Darwin platform change alerts)
             val platformInfo = departure.platform
             if (platformInfo?.isChanged == true && !platformInfo.previousPlatform.isNullOrBlank()) {
-                item(key = "platform_change_banner") {
+                item(key = "platform_change_banner", contentType = "platform_change_banner") {
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         shape = RoundedCornerShape(8.dp),
@@ -558,7 +614,7 @@ private fun TrainJourneyContent(
             val isPlatformTbd = departure.platformName.contains("TBD", ignoreCase = true) ||
                 (!departure.resolvedPlatform.isConfirmed && departure.transitMode != com.androidfung.departureboard.data.model.TransitMode.BUS)
             if (isPlatformTbd && departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
-                item(key = "concourse_tbd_platform_watcher") {
+                item(key = "concourse_tbd_platform_watcher", contentType = "concourse_tbd_platform_watcher") {
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -620,7 +676,7 @@ private fun TrainJourneyContent(
 
             // Delay Repay Compensation Eligibility Banner
             if (delayRepay != null) {
-                item(key = "delay_repay_banner") {
+                item(key = "delay_repay_banner", contentType = "delay_repay_banner") {
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         shape = RoundedCornerShape(10.dp),
@@ -630,26 +686,76 @@ private fun TrainJourneyContent(
                             color = Color(0xFF00897B).copy(alpha = 0.55f)
                         )
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = "💸",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
                                 Text(
-                                    text = "${delayRepay.badgeLabel} Eligible",
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = Color(0xFF26A69A)
+                                    text = "💸",
+                                    style = MaterialTheme.typography.titleMedium
                                 )
-                                Text(
-                                    text = delayRepay.compensationSummary,
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
-                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "${delayRepay.badgeLabel} • Receipt Saved",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF26A69A)
+                                    )
+                                    Text(
+                                        text = delayRepay.compensationSummary,
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                                    )
+                                }
+                            }
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFF00897B).copy(alpha = 0.28f),
+                                    modifier = Modifier.clickable {
+                                        val claimUrl = com.androidfung.departureboard.util.DelayRepayReceiptLog.resolveOperatorClaimUrl(delayRepay.operatorLabel)
+                                        val intent = android.content.Intent(
+                                            android.content.Intent.ACTION_VIEW,
+                                            android.net.Uri.parse(claimUrl)
+                                        )
+                                        runCatching { context.startActivity(intent) }
+                                    }
+                                ) {
+                                    Text(
+                                        text = "Claim Online ↗",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF4DB6AC),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    modifier = Modifier.clickable {
+                                        val latestReceipt = com.androidfung.departureboard.util.DelayRepayReceiptLog
+                                            .receiptsFlow.value.firstOrNull()
+                                            ?: com.androidfung.departureboard.util.DelayRepayReceiptLog
+                                                .loadReceipts(context)
+                                                .firstOrNull()
+                                        if (latestReceipt != null) {
+                                            com.androidfung.departureboard.util.DelayRepayReceiptLog.copyReceiptToClipboard(context, latestReceipt)
+                                            android.widget.Toast.makeText(context, "Delay Repay receipt copied", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                ) {
+                                    Text(
+                                        text = "Copy Receipt",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -659,7 +765,7 @@ private fun TrainJourneyContent(
             // Train Carriage Formation Diagram
             val formation = departure.formation
             if (formation != null && formation.coaches.isNotEmpty()) {
-                item(key = "train_formation_diagram") {
+                item(key = "train_formation_diagram", contentType = "train_formation_diagram") {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -799,7 +905,7 @@ private fun TrainJourneyContent(
 
             // 3. Interruption & Disruption Banners (scrolls away with timeline)
             if (isDelayedOrCancelled || showLineDisruption) {
-                item(key = "disruptions") {
+                item(key = "disruptions", contentType = "disruptions") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (departure.status == com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
                             TrainTripAlertBanner(
@@ -827,7 +933,7 @@ private fun TrainJourneyContent(
             }
 
             // 4. Calling Points List Header & Divider
-            item(key = "calling_points_header") {
+            item(key = "calling_points_header", contentType = "calling_points_header") {
                 Column {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                     Spacer(modifier = Modifier.height(8.dp))
@@ -866,7 +972,7 @@ private fun TrainJourneyContent(
             // 5. Calling Points Timeline or Empty / Loading state
             if (callingPoints.isNotEmpty()) {
                 if (isTrainApproachingBeforeBoarding) {
-                    item(key = "incoming_train_beacon") {
+                    item(key = "incoming_train_beacon", contentType = "incoming_train_beacon") {
                         IncomingTrainTimelineNode(
                             currentLocation = departure.currentLocation,
                             lineColor = departure.lineBadge.backgroundColor
@@ -945,7 +1051,7 @@ private fun TrainJourneyContent(
                     }
                 }
             } else if (isLoading) {
-                item(key = "loading") {
+                item(key = "loading", contentType = "loading") {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -970,7 +1076,7 @@ private fun TrainJourneyContent(
                     }
                 }
             } else {
-                item(key = "empty") {
+                item(key = "empty", contentType = "empty") {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1368,8 +1474,16 @@ private fun CallingPointTimelineItem(
             }
         }
 
-        // Subtitle row for current station, current train location, and/or target alighting stop
-        val showSubtitleRow = callingPoint.isCurrentStation || isTrainLocation || isTargetAlightStop
+        // Subtitle row for current station, current train location, target alighting stop, or transfer buffer risk
+        val transferRisk = remember(callingPoint, isPassed, isTargetAlightStop) {
+            if (!isPassed) {
+                com.androidfung.departureboard.util.DelayRepayCalculator.evaluateCallingPointTransferRisk(
+                    callingPoint = callingPoint,
+                    isTargetAlightStop = isTargetAlightStop
+                )
+            } else null
+        }
+        val showSubtitleRow = callingPoint.isCurrentStation || isTrainLocation || isTargetAlightStop || transferRisk != null
         if (showSubtitleRow) {
             Row(
                 modifier = Modifier
@@ -1499,6 +1613,33 @@ private fun CallingPointTimelineItem(
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
+                        }
+                    }
+
+                    if (transferRisk != null) {
+                        val riskColor = if (transferRisk.isHighRisk) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            Color(0xFFF57C00)
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = riskColor.copy(alpha = 0.14f),
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = 0.8.dp,
+                                color = riskColor.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Text(
+                                text = transferRisk.badgeText,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    lineHeight = 12.sp
+                                ),
+                                color = riskColor,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
                         }
                     }
                 }

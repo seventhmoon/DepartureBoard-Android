@@ -374,11 +374,19 @@ class TrainTrackingService : Service() {
 
                 try {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        val hasLocationPermission =
+                            checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                                checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        val fgsType = if (hasLocationPermission) {
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                        } else {
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                        }
                         ServiceCompat.startForeground(
                             this,
                             NOTIFICATION_ID,
                             notification,
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                            fgsType
                         )
                     } else {
                         startForeground(NOTIFICATION_ID, notification)
@@ -601,6 +609,24 @@ class TrainTrackingService : Service() {
                                     )
                                 }
                             }
+
+                            // 5. Auto-record Delay Repay receipt when tracked train qualifies (>=15m delay)
+                            if (!isBus) {
+                                com.androidfung.departureboard.util.DelayRepayCalculator.evaluate(target, cachedCallingPoints ?: target.callingPoints)?.let { dr ->
+                                    com.androidfung.departureboard.util.DelayRepayReceiptLog.recordReceipt(
+                                        context = applicationContext,
+                                        departureId = activeDepartureId,
+                                        stationName = stationName,
+                                        destinationName = currentDestination,
+                                        lineName = lineName,
+                                        trainCode = currentTrainCode,
+                                        delayMinutes = dr.delayMinutes,
+                                        isCancelled = false,
+                                        badgeLabel = dr.badgeLabel,
+                                        compensationSummary = dr.compensationSummary
+                                    )
+                                }
+                            }
                         } else {
                             missingCount++
                             val elapsedSeconds = getPollIntervalSeconds(remainingSeconds).toInt()
@@ -617,6 +643,20 @@ class TrainTrackingService : Service() {
 
                 if (isCancelled) {
                     isServiceCancelled = true
+                    if (!isBus) {
+                        com.androidfung.departureboard.util.DelayRepayReceiptLog.recordReceipt(
+                            context = applicationContext,
+                            departureId = activeDepartureId,
+                            stationName = stationName,
+                            destinationName = currentDestination,
+                            lineName = lineName,
+                            trainCode = currentTrainCode,
+                            delayMinutes = 30,
+                            isCancelled = true,
+                            badgeLabel = "Cancelled • Refund Eligible",
+                            compensationSummary = "Service cancelled ($lineName to $currentDestination). Eligible for full unused ticket refund or Delay Repay on next train."
+                        )
+                    }
                     if (NotificationHelper.isDisruptionAlertsEnabled(applicationContext)) {
                         postDisruptionAlert(
                             title = getString(R.string.tracking_service_cancelled_title),

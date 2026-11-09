@@ -18,9 +18,31 @@ data class DelayRepayEligibility(
     val compensationSummary: String
 )
 
+/**
+ * Represents connection/transfer buffer risk at an interchange calling point when the train
+ * is running behind its scheduled arrival time.
+ */
+data class TransferRiskInfo(
+    val delayMinutes: Int,
+    val isHighRisk: Boolean,
+    val badgeText: String
+)
+
 object DelayRepayCalculator {
 
     private val CLOCK_TIME_REGEX = Regex("""(\d{1,2}):(\d{2})""")
+
+    private val MAJOR_INTERCHANGE_KEYWORDS = setOf(
+        "junction", "central", "parkway", "international", "airport", "interchange",
+        "paddington", "euston", "king's cross", "kings cross", "st pancras", "waterloo",
+        "victoria", "liverpool street", "london bridge", "farringdon", "stratford",
+        "clapham", "reading", "crewe", "birmingham", "manchester", "leeds", "york",
+        "edinburgh", "glasgow", "bristol", "cardiff", "east croydon", "finsbury park",
+        "shibuya", "shinjuku", "tokyo", "shinagawa", "ueno", "ikebukuro", "osaka", "kyoto",
+        "admiralty", "central", "kowloon", "hung hom", "tai wai", "nam cheong",
+        "châtelet", "gare du nord", "gare de lyon", "saint-lazare", "montparnasse",
+        "penn station", "grand central", "jamaica", "secaucus", "fulton", "atlantic"
+    )
 
     /**
      * Operators whose Delay Repay / Service Delay Refund threshold is 30 minutes
@@ -145,5 +167,71 @@ object DelayRepayCalculator {
 
         val diff = estMins - schedMins
         return if (diff > 0) diff else null
+    }
+
+    /**
+     * Evaluates whether a downstream calling point has an eroded transfer buffer due to live delay.
+     * Triggers on interchange hubs (or any stop with >= 5 min delay) so commuters know if their
+     * connection is tight (`3..5m` late) or at high risk (`>= 6m` late).
+     */
+    fun evaluateCallingPointTransferRisk(
+        callingPoint: CallingPoint,
+        isTargetAlightStop: Boolean = false
+    ): TransferRiskInfo? {
+        if (callingPoint.isCancelled || callingPoint.isCurrentStation) return null
+        val delayMins = computeClockDiffMinutes(callingPoint.scheduledTime, callingPoint.estimatedTime) ?: return null
+        if (delayMins < 3) return null
+
+        val nameLower = callingPoint.stationName.lowercase()
+        val isInterchange = isTargetAlightStop ||
+            callingPoint.isDestination ||
+            MAJOR_INTERCHANGE_KEYWORDS.any { nameLower.contains(it) }
+        if (!isInterchange && delayMins < 5) return null
+
+        val isHighRisk = delayMins >= 6
+        val badgeText = if (isHighRisk) {
+            "⛔ +${delayMins}m • Connection risk"
+        } else {
+            "⚠️ +${delayMins}m • Tight transfer"
+        }
+        return TransferRiskInfo(
+            delayMinutes = delayMins,
+            isHighRisk = isHighRisk,
+            badgeText = badgeText
+        )
+    }
+
+    /**
+     * Builds a concise, human-friendly live ETA summary for 1-tap sharing via WhatsApp/Messages/Telegram.
+     */
+    fun formatShareLiveEtaText(
+        departure: Departure,
+        callingPoints: List<CallingPoint> = departure.callingPoints,
+        targetAlightStop: String? = null
+    ): String {
+        val platText = departure.platformName.takeIf { it.isNotBlank() } ?: "Platform TBD"
+        val stationPart = departure.stationName.takeIf { it.isNotBlank() }?.let { " at $it" }.orEmpty()
+        val headcodePart = departure.displayTrainCode?.takeIf { it.isNotBlank() }?.let { " (#$it)" }.orEmpty()
+        val etaPart = when {
+            departure.status == com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED -> "CANCELLED"
+            departure.timeToStationSeconds <= 30 -> "Due now"
+            else -> "in ${departure.formattedTimeToArrival}"
+        }
+        val destStop = if (!targetAlightStop.isNullOrBlank()) {
+            callingPoints.firstOrNull {
+                it.stationName.equals(targetAlightStop, ignoreCase = true) ||
+                    it.resolveDisplayName().equals(targetAlightStop, ignoreCase = true)
+            }
+        } else {
+            callingPoints.lastOrNull()
+        }
+        val arrivalTimePart = destStop?.let { stop ->
+            val timeStr = stop.estimatedTime?.takeIf { it.contains(":") } ?: stop.scheduledTime
+            if (!timeStr.isNullOrBlank()) {
+                " • Arriving ${stop.resolveDisplayName()} at $timeStr"
+            } else ""
+        }.orEmpty()
+
+        return "🚆 ${departure.lineName}$headcodePart to ${departure.destinationName} ($platText$stationPart) — $etaPart$arrivalTimePart"
     }
 }

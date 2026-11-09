@@ -100,10 +100,14 @@ fun SettingsBottomSheet(
 ) {
     val context = LocalContext.current
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        com.androidfung.departureboard.util.NotificationHelper.loadPreferences(context)
-        com.androidfung.departureboard.util.NotificationHelper.ensureAllNotificationChannels(context)
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            com.androidfung.departureboard.util.NotificationHelper.loadPreferences(context)
+            com.androidfung.departureboard.util.NotificationHelper.ensureAllNotificationChannels(context)
+            com.androidfung.departureboard.util.DelayRepayReceiptLog.loadReceipts(context)
+        }
     }
     val notificationPrefs by com.androidfung.departureboard.util.NotificationHelper.preferencesFlow.collectAsState()
+    val savedDelayRepayReceipts by com.androidfung.departureboard.util.DelayRepayReceiptLog.receiptsFlow.collectAsState()
     val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -605,6 +609,97 @@ fun SettingsBottomSheet(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
+                    }
+                }
+            }
+
+            if (savedDelayRepayReceipts.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "DELAY REPAY RECEIPT LOG (${savedDelayRepayReceipts.size})",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Clear All",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable {
+                            com.androidfung.departureboard.util.DelayRepayReceiptLog.clearAllReceipts(context)
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        savedDelayRepayReceipts.take(5).forEachIndexed { idx, receipt ->
+                            if (idx > 0) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                                )
+                            }
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${receipt.lineName} • ${receipt.stationName} → ${receipt.destinationName}",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = receipt.dateLabel,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Text(
+                                    text = receipt.compensationSummary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    FilterChip(
+                                        selected = true,
+                                        onClick = {
+                                            com.androidfung.departureboard.util.DelayRepayReceiptLog.openClaimPortal(context, receipt)
+                                        },
+                                        label = { Text("Claim Online ↗") }
+                                    )
+                                    FilterChip(
+                                        selected = false,
+                                        onClick = {
+                                            com.androidfung.departureboard.util.DelayRepayReceiptLog.copyReceiptToClipboard(context, receipt)
+                                            android.widget.Toast.makeText(context, "Receipt copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
+                                        },
+                                        label = { Text("Copy Receipt") }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

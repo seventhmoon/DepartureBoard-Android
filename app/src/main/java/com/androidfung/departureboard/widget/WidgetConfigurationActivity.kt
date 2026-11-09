@@ -112,7 +112,9 @@ class WidgetConfigurationActivity : AppCompatActivity() {
                 ) {
                     if (isFinalizing) {
                         Box(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .safeDrawingPadding(),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
@@ -150,31 +152,31 @@ class WidgetConfigurationActivity : AppCompatActivity() {
         lineBadge: com.androidfung.departureboard.data.model.LineBadgeInfo?,
         direction: String?
     ) {
-        // Fast synchronous persistence keyed ONLY to this appWidgetId
-        val sp = applicationContext.getSharedPreferences("widget_config", MODE_PRIVATE)
-        sp.edit(commit = true) {
-            putString("station_id_$appWidgetId", station.id)
-                .putString("station_name_$appWidgetId", station.displayName)
-                .apply {
-                    if (lineBadge != null) {
-                        putString("filter_line_id_$appWidgetId", lineBadge.lineId)
-                        putString("filter_line_name_$appWidgetId", lineBadge.displayName)
-                    } else {
-                        remove("filter_line_id_$appWidgetId")
-                        remove("filter_line_name_$appWidgetId")
-                    }
-                    if (!direction.isNullOrBlank()) {
-                        putString("filter_direction_$appWidgetId", direction)
-                    } else {
-                        remove("filter_direction_$appWidgetId")
-                    }
-                }
-        } // Commit synchronously
-
         isFinalizing = true
 
         val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
         coroutineScope.launch {
+            // Persist keyed to this appWidgetId on Dispatchers.IO before Glance update & finish()
+            val sp = applicationContext.getSharedPreferences("widget_config", MODE_PRIVATE)
+            sp.edit(commit = true) {
+                putString("station_id_$appWidgetId", station.id)
+                    .putString("station_name_$appWidgetId", station.displayName)
+                    .apply {
+                        if (lineBadge != null) {
+                            putString("filter_line_id_$appWidgetId", lineBadge.lineId)
+                            putString("filter_line_name_$appWidgetId", lineBadge.displayName)
+                        } else {
+                            remove("filter_line_id_$appWidgetId")
+                            remove("filter_line_name_$appWidgetId")
+                        }
+                        if (!direction.isNullOrBlank()) {
+                            putString("filter_direction_$appWidgetId", direction)
+                        } else {
+                            remove("filter_direction_$appWidgetId")
+                        }
+                    }
+            }
+
             try {
                 val glanceManager = GlanceAppWidgetManager(applicationContext)
                 val glanceId = glanceManager.getGlanceIdBy(appWidgetId)
@@ -261,7 +263,12 @@ fun WidgetConfigurationContent(
     }
 
     if (isCheckingLimits) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .safeDrawingPadding(),
+            contentAlignment = Alignment.Center
+        ) {
             CircularProgressIndicator(strokeWidth = 3.dp)
         }
     } else if (limitReachedReason != null) {

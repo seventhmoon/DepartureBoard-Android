@@ -271,6 +271,25 @@ object WearNotificationPublisher {
                 builder.setFullScreenIntent(openHudPendingIntent, true)
             }
 
+            if (isOngoing) {
+                runCatching {
+                    val statusText = "$platLabel • ${journey.formattedMmSsCountdown}"
+                    val ongoingStatus = androidx.wear.ongoing.Status.Builder()
+                        .addTemplate(statusText)
+                        .build()
+                    val ongoingActivity = androidx.wear.ongoing.OngoingActivity.Builder(
+                        context.applicationContext,
+                        NOTIFICATION_ID_TRACKED,
+                        builder
+                    )
+                        .setStaticIcon(com.androidfung.departureboard.wear.R.drawable.ic_train)
+                        .setTouchIntent(openHudPendingIntent)
+                        .setStatus(ongoingStatus)
+                        .build()
+                    ongoingActivity.apply(context.applicationContext)
+                }
+            }
+
             nm.notify(NOTIFICATION_ID_TRACKED, builder.build())
         }
     }

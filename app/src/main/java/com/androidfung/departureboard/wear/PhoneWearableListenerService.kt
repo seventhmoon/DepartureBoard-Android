@@ -25,6 +25,7 @@ class PhoneWearableListenerService : WearableListenerService() {
         const val PATH_ASK_AI = "/ekiboard/cmd/ask_ai"
         const val PATH_OPEN_AI_ON_PHONE = "/ekiboard/cmd/open_ai_on_phone"
         const val PATH_SET_ALIGHT_STOP = "/ekiboard/cmd/set_alight_stop"
+        const val PATH_SHARE_ETA = "/ekiboard/cmd/share_eta"
     }
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
@@ -44,6 +45,7 @@ class PhoneWearableListenerService : WearableListenerService() {
             PATH_ASK_AI -> PhoneCompanionSyncReceiver.ACTION_ASK_AI_FROM_WATCH
             PATH_OPEN_AI_ON_PHONE -> PhoneCompanionSyncReceiver.ACTION_OPEN_AI_ON_PHONE
             PATH_SET_ALIGHT_STOP -> PhoneCompanionSyncReceiver.ACTION_SET_ALIGHT_STOP_FROM_WATCH
+            PATH_SHARE_ETA -> PhoneCompanionSyncReceiver.ACTION_SHARE_ETA_FROM_WATCH
             else -> {
                 Log.d(TAG, "Ignoring unrecognized Wearable message path: $path")
                 return
@@ -90,6 +92,10 @@ class PhoneWearableListenerService : WearableListenerService() {
             putExtra(
                 PhoneCompanionSyncReceiver.EXTRA_TARGET_ALIGHT_STOP,
                 json.optString(PhoneCompanionSyncReceiver.EXTRA_TARGET_ALIGHT_STOP)
+            )
+            putExtra(
+                PhoneCompanionSyncReceiver.EXTRA_SHARE_ETA_TEXT,
+                json.optString(PhoneCompanionSyncReceiver.EXTRA_SHARE_ETA_TEXT)
             )
         }
 

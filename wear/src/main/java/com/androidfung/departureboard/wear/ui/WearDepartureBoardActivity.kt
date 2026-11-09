@@ -79,6 +79,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.wear.ambient.AmbientLifecycleObserver
 import kotlinx.coroutines.launch
 import com.androidfung.departureboard.wear.haptic.WearConcourseHapticAnnouncer
 import com.androidfung.departureboard.wear.haptic.WearNotificationPublisher
@@ -104,9 +105,23 @@ import com.androidfung.departureboard.wear.sync.WearCompanionStateRepository
 class WearDepartureBoardActivity : ComponentActivity() {
 
     private var forceOpenSprintHudTrigger by mutableIntStateOf(0)
+    private var isSystemAmbient by mutableStateOf(false)
+
+    private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
+        override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+            isSystemAmbient = true
+        }
+
+        override fun onExitAmbient() {
+            isSystemAmbient = false
+        }
+    }
+
+    private val ambientObserver by lazy { AmbientLifecycleObserver(this, ambientCallback) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        lifecycle.addObserver(ambientObserver)
         setShowWhenLocked(true)
         setTurnScreenOn(true)
         val openSprintHudInitially = intent?.getBooleanExtra(
@@ -127,7 +142,8 @@ class WearDepartureBoardActivity : ComponentActivity() {
             ) {
                 WearConcourseBoardScreen(
                     openSprintHudInitially = openSprintHudInitially,
-                    openSprintHudTrigger = forceOpenSprintHudTrigger
+                    openSprintHudTrigger = forceOpenSprintHudTrigger,
+                    isSystemAmbient = isSystemAmbient
                 )
             }
         }
@@ -145,7 +161,8 @@ class WearDepartureBoardActivity : ComponentActivity() {
 @Composable
 fun WearConcourseBoardScreen(
     openSprintHudInitially: Boolean = false,
-    openSprintHudTrigger: Int = 0
+    openSprintHudTrigger: Int = 0,
+    isSystemAmbient: Boolean = false
 ) {
     val context = LocalContext.current
     val syncedBoards by WearCompanionStateRepository.stationBoardsFlow.collectAsStateWithLifecycle()
@@ -159,7 +176,8 @@ fun WearConcourseBoardScreen(
     var selectedStationIndex by remember { mutableIntStateOf(0) }
     var watchedDepartureIds by remember { mutableStateOf(setOf("wat_1", "eus_1")) }
     var expandedDepartureId by remember { mutableStateOf<String?>(null) }
-    var isAmbientMode by remember { mutableStateOf(false) }
+    var manualAmbientMode by remember { mutableStateOf(false) }
+    val isAmbientMode = manualAmbientMode || isSystemAmbient
     var showSprintHud by remember { mutableStateOf(openSprintHudInitially) }
     var localWristAlert by remember { mutableStateOf<WearConcourseHapticAnnouncer.WristHapticEvent?>(null) }
     var showStationManager by remember { mutableStateOf(false) }
@@ -178,9 +196,9 @@ fun WearConcourseBoardScreen(
         }
     }
 
-    // Live 1-second wrist countdown ticker while a train is being tracked
-    LaunchedEffect(trackedJourney != null) {
-        while (trackedJourney != null) {
+    // Live 1-second wrist countdown ticker while a train is being tracked (paused in Ambient Mode to save battery)
+    LaunchedEffect(trackedJourney != null, isAmbientMode) {
+        while (trackedJourney != null && !isAmbientMode) {
             kotlinx.coroutines.delay(1000L)
             WearCompanionStateRepository.tickTrackedJourneySecond()
         }
@@ -229,6 +247,8 @@ fun WearConcourseBoardScreen(
     if (showSprintHud && trackedJourney != null) {
         WearSprintHudScreen(
             journey = trackedJourney!!,
+            isAmbientMode = isAmbientMode,
+            onToggleManualAmbient = { manualAmbientMode = !manualAmbientMode },
             onSelectAlightStop = { stopName ->
                 WearCompanionStateRepository.setTargetAlightStopFromWatch(context, stopName)
             },
@@ -539,7 +559,7 @@ fun WearConcourseBoardScreen(
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF37474F)),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
-                                .clickable { isAmbientMode = true }
+                                .clickable { manualAmbientMode = true }
                         ) {
                             Text(
                                 text = "🌙",
@@ -557,7 +577,7 @@ fun WearConcourseBoardScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF37474F)),
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
-                            .clickable { isAmbientMode = false }
+                            .clickable { manualAmbientMode = false }
                     ) {
                         Text(
                             text = "🌙 Ambient OLED • Tap to Wake",
@@ -643,7 +663,7 @@ fun WearConcourseBoardScreen(
                     isAmbientMode = isAmbientMode,
                     onToggleExpand = {
                         if (isAmbientMode) {
-                            isAmbientMode = false
+                            manualAmbientMode = false
                         } else {
                             expandedDepartureId = if (expandedDepartureId == dep.id) null else dep.id
                         }
@@ -1430,6 +1450,8 @@ private fun WearStationManagerScreen(
 @Composable
 private fun WearSprintHudScreen(
     journey: WearTrackedJourneyState,
+    isAmbientMode: Boolean = false,
+    onToggleManualAmbient: () -> Unit = {},
     onSelectAlightStop: (String?) -> Unit,
     onOpenOnPhone: () -> Unit,
     onStopTracking: () -> Unit,
@@ -1444,6 +1466,7 @@ private fun WearSprintHudScreen(
     }
 
     val ringColor = when {
+        isAmbientMode -> Color(0xFF78909C)
         journey.isCancelled -> Color(0xFFE53935)
         journey.remainingSeconds <= 120 -> Color(0xFFFFB74D)
         !journey.isPlatformTbd -> Color(0xFF00E676)
@@ -1459,7 +1482,7 @@ private fun WearSprintHudScreen(
         WearBezelCountdownRing(
             progressPercent = journey.progressPercent,
             ringColor = ringColor,
-            isAmbient = false
+            isAmbient = isAmbientMode
         )
 
         LazyColumn(
@@ -1477,40 +1500,83 @@ private fun WearSprintHudScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             item(key = "hud_back") {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = Color(0xFF1E2229),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF37474F)),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .clickable(onClick = onBackToBoard)
-                ) {
-                    Text(
-                        text = "← All Departures",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 9.sp
-                        ),
-                        color = Color(0xFF81D4FA),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
-                    )
+                if (isAmbientMode) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = Color.Black,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF37474F)),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .clickable(onClick = onToggleManualAmbient)
+                    ) {
+                        Text(
+                            text = "🌙 Ambient • Tap to Wake",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                            color = Color(0xFF78909C),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF1E2229),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF37474F)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable(onClick = onBackToBoard)
+                        ) {
+                            Text(
+                                text = "← All Departures",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp
+                                ),
+                                color = Color(0xFF81D4FA),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF14171C),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF37474F)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable(onClick = onToggleManualAmbient)
+                        ) {
+                            Text(
+                                text = "🌙",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
                 }
             }
 
-            // Giant Concourse Platform Hero Badge + Live MM:SS Timer
+            // Giant Concourse Platform Hero Badge + Live MM:SS Timer (minutes-only in Ambient Mode)
             item(key = "hud_hero") {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val platBg = if (journey.isPlatformTbd) Color(0xFF37474F) else Color(0xFF1B5E20)
+                    val platBg = when {
+                        isAmbientMode -> Color.Black
+                        journey.isPlatformTbd -> Color(0xFF37474F)
+                        else -> Color(0xFF1B5E20)
+                    }
+                    val platBorder = when {
+                        isAmbientMode -> Color(0xFF90A4AE)
+                        journey.isPlatformTbd -> Color(0xFF78909C)
+                        else -> Color(0xFF00E676)
+                    }
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = platBg,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (journey.isPlatformTbd) Color(0xFF78909C) else Color(0xFF00E676)
-                        )
+                        border = androidx.compose.foundation.BorderStroke(1.dp, platBorder)
                     ) {
                         Text(
                             text = if (journey.isPlatformTbd) "PLAT TBD" else "PLAT ${journey.cleanPlatformCode}",
@@ -1518,21 +1584,28 @@ private fun WearSprintHudScreen(
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 13.sp
                             ),
-                            color = Color.White,
+                            color = if (isAmbientMode) Color(0xFFECEFF1) else Color.White,
                             maxLines = 1,
                             softWrap = false,
                             modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
                         )
                     }
 
+                    val timerText = if (isAmbientMode) {
+                        val mins = (journey.remainingSeconds / 60).coerceAtLeast(0)
+                        if (mins <= 0) "Due" else "${mins}m"
+                    } else {
+                        journey.formattedMmSsCountdown
+                    }
+
                     Text(
-                        text = journey.formattedMmSsCountdown,
+                        text = timerText,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 18.sp
                         ),
-                        color = ringColor,
+                        color = if (isAmbientMode) Color(0xFFCFD8DC) else ringColor,
                         maxLines = 1,
                         softWrap = false
                     )
@@ -1587,8 +1660,8 @@ private fun WearSprintHudScreen(
                 }
             }
 
-            // On-Watch Target Alighting Stop Selector (when calling points are available)
-            if (journey.callingPoints.isNotEmpty()) {
+            // On-Watch Target Alighting Stop Selector (when calling points are available & not in Ambient Mode)
+            if (!isAmbientMode && journey.callingPoints.isNotEmpty()) {
                 item(key = "hud_alight_header") {
                     Text(
                         text = "🎯 Tap Stop for Alight Alert",
@@ -1647,49 +1720,74 @@ private fun WearSprintHudScreen(
                 }
             }
 
-            // Bottom HUD Actions: [📱 Phone] & [⏹ Stop]
-            item(key = "hud_actions") {
-                Row(
-                    modifier = Modifier.padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = Color(0xFF0D2538),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4FC3F7)),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .clickable(onClick = onOpenOnPhone)
+            // Bottom HUD Actions: [📤 Share], [📱 Phone] & [⏹ Stop] (hidden in Ambient Mode)
+            if (!isAmbientMode) {
+                item(key = "hud_actions") {
+                    val context = LocalContext.current
+                    Row(
+                        modifier = Modifier.padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "📱 Phone",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp
-                            ),
-                            color = Color(0xFF81D4FA),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                        )
-                    }
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF003D33),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF26A69A)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable {
+                                    WearCompanionStateRepository.shareLiveEtaFromWatch(context, journey)
+                                    Toast.makeText(context, "Sharing ETA on Phone…", Toast.LENGTH_SHORT).show()
+                                }
+                        ) {
+                            Text(
+                                text = "📤 Share",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp
+                                ),
+                                color = Color(0xFF80CBC4),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                            )
+                        }
 
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = Color(0xFF3E1A1A),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF5350)),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .clickable(onClick = onStopTracking)
-                    ) {
-                        Text(
-                            text = "⏹ Stop",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp
-                            ),
-                            color = Color(0xFFFFCDD2),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF0D2538),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4FC3F7)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable(onClick = onOpenOnPhone)
+                        ) {
+                            Text(
+                                text = "📱 Phone",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp
+                                ),
+                                color = Color(0xFF81D4FA),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF3E1A1A),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF5350)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable(onClick = onStopTracking)
+                        ) {
+                            Text(
+                                text = "⏹ Stop",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp
+                                ),
+                                color = Color(0xFFFFCDD2),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                            )
+                        }
                     }
                 }
             }

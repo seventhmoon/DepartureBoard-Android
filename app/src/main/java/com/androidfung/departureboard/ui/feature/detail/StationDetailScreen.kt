@@ -65,6 +65,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -294,18 +295,6 @@ private fun StationDetailContent(
 ) {
     val modeIconRes = TransitIconHelper.getTransitModeIconRes(station.primaryTransitMode)
 
-    // Pulsing animation for live updates badge
-    val transition = rememberInfiniteTransition(label = "LivePulseTransition")
-    val pulseAlpha by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 800),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "LivePulseAlpha"
-    )
-
     var selectedLineId by remember(initialSelectedLineId) { mutableStateOf(initialSelectedLineId) }
     var selectedDirection by remember { mutableStateOf<String?>(null) }
     var selectedStopId by remember { mutableStateOf<String?>(null) }
@@ -457,11 +446,13 @@ private fun StationDetailContent(
             }
 
             // Subtitle: Bus stop "towards ..." indicator for single-direction bus stops
-            val distinctTowards = departures
-                .asSequence()
-                .mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }
-                .distinct()
-                .toList()
+            val distinctTowards = remember(departures) {
+                departures
+                    .asSequence()
+                    .mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }
+                    .distinct()
+                    .toList()
+            }
             val isSingleDirectionBusStop = station.isBusOnly && distinctTowards.size == 1
 
             if (isSingleDirectionBusStop) {
@@ -656,22 +647,28 @@ private fun StationDetailContent(
         var isDisruptionsExpanded by remember { mutableStateOf(false) }
 
         // Lines badges serving this station - now interactive filter chips
-        val distinctLines = departures.map { it.lineBadge }
-            .distinctBy { it.lineId }
-            .sortedWith(com.androidfung.departureboard.data.model.LineBadgeInfo.NATURAL_COMPARATOR)
+        val distinctLines = remember(departures) {
+            departures.map { it.lineBadge }
+                .distinctBy { it.lineId }
+                .sortedWith(com.androidfung.departureboard.data.model.LineBadgeInfo.NATURAL_COMPARATOR)
+        }
         // Show line badges if multiple lines exist, OR if single line has multiple directions to filter
-        val singleLineHasDirections = distinctLines.size == 1 && departures.mapNotNull { it.direction }.distinct().size > 1
+        val singleLineHasDirections = remember(distinctLines, departures) {
+            distinctLines.size == 1 && departures.mapNotNull { it.direction }.distinct().size > 1
+        }
 
         val isTwoPane = LocalIsTwoPaneMode.current
         val isThreePane = LocalIsThreePaneMode.current
         val isMultiPane = isTwoPane || isThreePane
 
-        val disruptedBadgesToShow = if (selectedLineId != null) {
-            distinctLines.filter { TransitIconHelper.isSameLine(it.lineId, selectedLineId) && it.isDisrupted }
-        } else if (!isMultiPane) {
-            distinctLines.filter { it.isDisrupted }
-        } else {
-            emptyList()
+        val disruptedBadgesToShow = remember(distinctLines, selectedLineId, isMultiPane) {
+            if (selectedLineId != null) {
+                distinctLines.filter { TransitIconHelper.isSameLine(it.lineId, selectedLineId) && it.isDisrupted }
+            } else if (!isMultiPane) {
+                distinctLines.filter { it.isDisrupted }
+            } else {
+                emptyList()
+            }
         }
 
         val isBusStop = station.isBusOnly
@@ -682,7 +679,7 @@ private fun StationDetailContent(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Station Overview & Fares (GTFS-Fares v2 & OSM Station Accessibility)
-            item(key = "station_meta_chips") {
+            item(key = "station_meta_chips", contentType = "station_meta_chips") {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -783,7 +780,7 @@ private fun StationDetailContent(
 
             // Micromobility & Bikeshare Hubs (GBFS station_status.json)
             if (station.micromobilityHubs.isNotEmpty()) {
-                item(key = "station_micromobility") {
+                item(key = "station_micromobility", contentType = "station_micromobility") {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -829,7 +826,7 @@ private fun StationDetailContent(
 
             // Station Inter-Platform Transfers (GTFS transfers.txt & NeTEx/IFOPT Pathways)
             if (station.transfers.isNotEmpty()) {
-                item(key = "station_transfers") {
+                item(key = "station_transfers", contentType = "station_transfers") {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -904,7 +901,7 @@ private fun StationDetailContent(
 
             // 1. Lines filter chips row (scrolls seamlessly with departures, no background artifact)
             if (distinctLines.size > 1 || singleLineHasDirections) {
-                item(key = "line_filters") {
+                item(key = "line_filters", contentType = "line_filters") {
                     val hasActiveSelection = selectedLineId != null
                     val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
                     val isNarrow = windowWidthClass.isNarrow
@@ -1020,7 +1017,7 @@ private fun StationDetailContent(
 
             // 2. Interruption & Disruption Banners (inside LazyColumn so they scroll away):
             if (disruptedBadgesToShow.isNotEmpty()) {
-                item(key = "disruptions") {
+                item(key = "disruptions", contentType = "disruptions") {
                     if (disruptedBadgesToShow.size == 1) {
                         LineDisruptionBanner(badge = disruptedBadgesToShow.first())
                     } else {
@@ -1109,7 +1106,7 @@ private fun StationDetailContent(
 
             // 2.5 Last Train Home / Night Service Banner
             if (serviceHoursInfo != null && (serviceHoursInfo.isApproachingLastTrain || serviceHoursInfo.isNightServiceActive)) {
-                item(key = "last_train_banner") {
+                item(key = "last_train_banner", contentType = "last_train_banner") {
                     com.androidfung.departureboard.ui.dashboard.LastTrainServiceBanner(
                         serviceHoursInfo = serviceHoursInfo
                     )
@@ -1118,7 +1115,7 @@ private fun StationDetailContent(
 
             // 3. Sub-stops / stand filter chips for bus stops
             if (isBusStop && distinctStops.size > 1) {
-                item(key = "sub_stops") {
+                item(key = "sub_stops", contentType = "sub_stops") {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -1179,7 +1176,7 @@ private fun StationDetailContent(
             }
 
             // 4. Live Departures Header
-            item(key = "live_departures_header") {
+            item(key = "live_departures_header", contentType = "live_departures_header") {
                 Column {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(8.dp))
@@ -1194,13 +1191,8 @@ private fun StationDetailContent(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Pulsing live indicator
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF22C55E).copy(alpha = pulseAlpha))
-                            )
+                            // Pulsing live indicator deferred to Draw phase
+                            PulsingLiveDot()
                             Text(
                                 text = stringResource(R.string.station_detail_live_departures),
                                 style = MaterialTheme.typography.titleMedium.copy(
@@ -1229,7 +1221,7 @@ private fun StationDetailContent(
 
             // 5. Departures list or empty state
             if (filteredDepartures.isEmpty() && !isLoading) {
-                item(key = "empty_state") {
+                item(key = "empty_state", contentType = "empty_state") {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1337,6 +1329,26 @@ private fun StationDetailContent(
             }
         }
     }
+}
+
+@Composable
+private fun PulsingLiveDot(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "LivePulseTransition")
+    val pulseAlpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "LivePulseAlpha"
+    )
+    Box(
+        modifier = modifier
+            .size(10.dp)
+            .graphicsLayer { alpha = pulseAlpha }
+            .background(Color(0xFF22C55E), CircleShape)
+    )
 }
 
 /**

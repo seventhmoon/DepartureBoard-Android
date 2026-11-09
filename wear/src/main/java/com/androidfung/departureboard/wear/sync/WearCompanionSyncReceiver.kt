@@ -27,7 +27,7 @@ class WearCompanionSyncReceiver : BroadcastReceiver() {
         when (action) {
             ACTION_SYNC_STATION_BOARDS -> {
                 val boardsJson = intent.getStringExtra(EXTRA_BOARDS_JSON) ?: return
-                WearCompanionStateRepository.onReceiveStationBoardsJson(boardsJson)
+                WearCompanionStateRepository.onReceiveStationBoardsJson(boardsJson, context)
             }
             ACTION_SYNC_TRACKED_DEPARTURE -> {
                 val trackedJson = intent.getStringExtra(EXTRA_TRACKED_JSON) ?: return

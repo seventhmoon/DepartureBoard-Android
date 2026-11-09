@@ -996,6 +996,8 @@ class MainActivity : AppCompatActivity() {
             this,
             receiver,
             filter,
+            android.Manifest.permission.DUMP,
+            null,
             ContextCompat.RECEIVER_EXPORTED
         )
     }

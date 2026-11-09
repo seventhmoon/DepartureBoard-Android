@@ -108,12 +108,16 @@ fun DashboardContent(
     )
 
     // Expressive gradient background matching the design mockup (top dark-indigo / slate-blue to rich deep surface)
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f),
-            MaterialTheme.colorScheme.surface
+    val topSurfaceColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val bottomSurfaceColor = MaterialTheme.colorScheme.surface
+    val backgroundBrush = remember(topSurfaceColor, bottomSurfaceColor) {
+        Brush.verticalGradient(
+            colors = listOf(
+                topSurfaceColor.copy(alpha = 0.85f),
+                bottomSurfaceColor
+            )
         )
-    )
+    }
 
     Scaffold(
         modifier = modifier

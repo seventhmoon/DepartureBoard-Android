@@ -44,6 +44,7 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
         const val ACTION_ASK_AI_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_ASK_AI"
         const val ACTION_OPEN_AI_ON_PHONE = "com.androidfung.departureboard.action.WEAR_OPEN_AI_ON_PHONE"
         const val ACTION_SET_ALIGHT_STOP_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_SET_ALIGHT_STOP"
+        const val ACTION_SHARE_ETA_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_SHARE_ETA"
 
         const val EXTRA_STATION_ID = "extra_station_id"
         const val EXTRA_STATION_NAME = "extra_station_name"
@@ -55,6 +56,7 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
         const val EXTRA_AI_PROMPT_TYPE = "extra_ai_prompt_type"
         const val EXTRA_AI_QUERY_TEXT = "extra_ai_query_text"
         const val EXTRA_TARGET_ALIGHT_STOP = "extra_target_alight_stop"
+        const val EXTRA_SHARE_ETA_TEXT = "extra_share_eta_text"
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
@@ -119,6 +121,20 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
             ACTION_SET_ALIGHT_STOP_FROM_WATCH -> {
                 val targetStop = intent.getStringExtra(EXTRA_TARGET_ALIGHT_STOP)
                 TrainTrackingService.setTargetAlightStop(targetStop)
+            }
+
+            ACTION_SHARE_ETA_FROM_WATCH -> {
+                val shareText = intent.getStringExtra(EXTRA_SHARE_ETA_TEXT)?.takeIf { it.isNotBlank() } ?: return
+                runCatching {
+                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                    }
+                    val chooser = Intent.createChooser(sendIntent, "Share Live Train ETA").apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(chooser)
+                }.onFailure { Log.w(TAG, "Failed to launch share sheet from watch request", it) }
             }
 
             ACTION_REQUEST_PHONE_BOARDS -> {

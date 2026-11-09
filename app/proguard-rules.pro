@@ -4,24 +4,14 @@
 # You can edit the include path and order by changing the proguardFiles
 # directive in build.gradle.
 
-# Keep Moshi code-generated adapters and @JsonClass model constructors (for reflective adapter lookup)
+# Keep Moshi code-generated adapters and @JsonClass names for reflective adapter lookup
 -keepnames @com.squareup.moshi.JsonClass class *
--keepclassmembers @com.squareup.moshi.JsonClass class * {
-    <init>(...);
-    @com.squareup.moshi.* <fields>;
-    @com.squareup.moshi.* <methods>;
-}
 -keep class * extends com.squareup.moshi.JsonAdapter {
-    <init>(...);
+    public <init>(com.squareup.moshi.Moshi);
+    public <init>(com.squareup.moshi.Moshi, java.lang.reflect.Type[]);
 }
 
-# Keep Glance AppWidget and receiver components (constructors needed for reflection instantiation)
--keep class * extends androidx.glance.appwidget.GlanceAppWidget {
-    <init>(...);
-}
--keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver {
-    <init>(...);
-}
+# Keep Glance ActionCallback no-arg constructors (instantiated reflectively by ActionCallbackBroadcastReceiver)
 -keep class * implements androidx.glance.appwidget.action.ActionCallback {
     public <init>();
 }

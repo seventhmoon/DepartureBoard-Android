@@ -95,17 +95,17 @@ class DepartureBoardWidget : GlanceAppWidget() {
             -1
         }
 
+        // Read local SharedPreferences fallback once per provideGlance (outside SizeMode.Exact provideContent passes)
+        val sp = context.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
+        val fastStationId = if (appWidgetId != -1) sp.getString("station_id_$appWidgetId", null) else null
+        val fastStationName = if (appWidgetId != -1) sp.getString("station_name_$appWidgetId", null) else null
+        val fastFilterLineId = if (appWidgetId != -1) sp.getString("filter_line_id_$appWidgetId", null) else null
+        val fastFilterLineName = if (appWidgetId != -1) sp.getString("filter_line_name_$appWidgetId", null) else null
+        val fastFilterDirection = if (appWidgetId != -1) sp.getString("filter_direction_$appWidgetId", null) else null
+
         provideContent {
             GlanceTheme {
                 val prefs = currentState<Preferences>()
-
-                // Check local SharedPreferences fallback strictly keyed to this specific appWidgetId
-                val sp = context.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
-                val fastStationId = if (appWidgetId != -1) sp.getString("station_id_$appWidgetId", null) else null
-                val fastStationName = if (appWidgetId != -1) sp.getString("station_name_$appWidgetId", null) else null
-                val fastFilterLineId = if (appWidgetId != -1) sp.getString("filter_line_id_$appWidgetId", null) else null
-                val fastFilterLineName = if (appWidgetId != -1) sp.getString("filter_line_name_$appWidgetId", null) else null
-                val fastFilterDirection = if (appWidgetId != -1) sp.getString("filter_direction_$appWidgetId", null) else null
 
                 val stationId = prefs[PREF_STATION_ID] ?: fastStationId
                 val stationName = prefs[PREF_STATION_NAME] ?: fastStationName

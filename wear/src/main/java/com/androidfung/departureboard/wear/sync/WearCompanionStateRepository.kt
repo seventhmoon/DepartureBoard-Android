@@ -2,6 +2,7 @@ package com.androidfung.departureboard.wear.sync
 
 import android.content.Context
 import android.content.Intent
+import com.androidfung.departureboard.wear.complication.WearNextTrainComplicationService
 import com.androidfung.departureboard.wear.haptic.WearConcourseHapticAnnouncer
 import com.androidfung.departureboard.wear.haptic.WearNotificationPublisher
 import com.androidfung.departureboard.wear.model.WearAiConcourseResponse
@@ -10,6 +11,7 @@ import com.androidfung.departureboard.wear.model.WearDepartureItem
 import com.androidfung.departureboard.wear.model.WearSnapshotFormatter
 import com.androidfung.departureboard.wear.model.WearStationBoard
 import com.androidfung.departureboard.wear.model.WearTrackedJourneyState
+import com.androidfung.departureboard.wear.tile.WearDepartureTileService
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +30,7 @@ import org.json.JSONObject
 object WearCompanionStateRepository {
 
     const val PHONE_PACKAGE = "com.androidfung.departureboard"
+    const val PERMISSION_COMPANION_SYNC = "com.androidfung.departureboard.permission.COMPANION_SYNC"
 
     const val ACTION_OPEN_ON_PHONE = "com.androidfung.departureboard.action.WEAR_OPEN_ON_PHONE"
     const val ACTION_START_TRACKING_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_START_TRACKING"
@@ -38,6 +41,7 @@ object WearCompanionStateRepository {
     const val ACTION_ASK_AI_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_ASK_AI"
     const val ACTION_OPEN_AI_ON_PHONE = "com.androidfung.departureboard.action.WEAR_OPEN_AI_ON_PHONE"
     const val ACTION_SET_ALIGHT_STOP_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_SET_ALIGHT_STOP"
+    const val ACTION_SHARE_ETA_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_SHARE_ETA"
 
     const val EXTRA_STATION_ID = "extra_station_id"
     const val EXTRA_STATION_NAME = "extra_station_name"
@@ -49,6 +53,7 @@ object WearCompanionStateRepository {
     const val EXTRA_AI_PROMPT_TYPE = "extra_ai_prompt_type"
     const val EXTRA_AI_QUERY_TEXT = "extra_ai_query_text"
     const val EXTRA_TARGET_ALIGHT_STOP = "extra_target_alight_stop"
+    const val EXTRA_SHARE_ETA_TEXT = "extra_share_eta_text"
 
     const val PATH_REQUEST_BOARDS = "/ekiboard/cmd/request_boards"
     const val PATH_OPEN_ON_PHONE = "/ekiboard/cmd/open_on_phone"
@@ -59,6 +64,11 @@ object WearCompanionStateRepository {
     const val PATH_ASK_AI = "/ekiboard/cmd/ask_ai"
     const val PATH_OPEN_AI_ON_PHONE = "/ekiboard/cmd/open_ai_on_phone"
     const val PATH_SET_ALIGHT_STOP = "/ekiboard/cmd/set_alight_stop"
+    const val PATH_SHARE_ETA = "/ekiboard/cmd/share_eta"
+
+    private const val CACHE_PREFS_NAME = "wear_companion_cache"
+    private const val KEY_CACHED_BOARDS_JSON = "cached_boards_json"
+    private const val KEY_CACHED_BOARDS_TIMESTAMP_MS = "cached_boards_timestamp_ms"
 
     private val _stationBoardsFlow = MutableStateFlow(WearSnapshotFormatter.defaultConcourseBoards())
     val stationBoardsFlow: StateFlow<List<WearStationBoard>> = _stationBoardsFlow.asStateFlow()
@@ -107,7 +117,7 @@ object WearCompanionStateRepository {
                     putExtra(EXTRA_AI_PROMPT_TYPE, promptType.name)
                     putExtra(EXTRA_AI_QUERY_TEXT, localResponse.rawQuery)
                 }
-                ctx.sendBroadcast(intent)
+                ctx.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
             }
             sendWearableMessageToPhone(
                 context = ctx,
@@ -139,7 +149,7 @@ object WearCompanionStateRepository {
                 putExtra(EXTRA_STATION_NAME, stationName)
                 putExtra(EXTRA_AI_QUERY_TEXT, queryText)
             }
-            context.sendBroadcast(intent)
+            context.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
         }
         sendWearableMessageToPhone(
             context = context,
@@ -186,14 +196,67 @@ object WearCompanionStateRepository {
     }
 
     /**
+     * Restores the last synced station boards from on-watch SharedPreferences so the watch displays
+     * the user's real stations immediately on cold boot / offline before Bluetooth reconnects.
+     */
+    fun ensureCachedStateLoaded(context: Context) {
+        if (_isPhoneSyncedFlow.value) return
+        runCatching {
+            val sp = context.applicationContext.getSharedPreferences(CACHE_PREFS_NAME, Context.MODE_PRIVATE)
+            val cachedJson = sp.getString(KEY_CACHED_BOARDS_JSON, null) ?: return
+            val cachedTs = sp.getLong(KEY_CACHED_BOARDS_TIMESTAMP_MS, 0L)
+            val parsed = parseStationBoardsJson(cachedJson)
+            if (parsed.isNotEmpty()) {
+                val ageMins = if (cachedTs > 0L) {
+                    ((System.currentTimeMillis() - cachedTs) / 60_000L).coerceAtLeast(0L)
+                } else 0L
+                val ageLabel = when {
+                    ageMins <= 1L -> "📱 Cached • just now"
+                    ageMins < 60L -> "📱 Cached • ${ageMins}m ago"
+                    else -> "📱 Offline Cache"
+                }
+                _stationBoardsFlow.value = parsed.map { it.copy(lastUpdatedLabel = ageLabel) }
+            }
+        }
+    }
+
+    /**
+     * Builds a 1-line live ETA summary and triggers a share sheet on both Watch and Phone.
+     */
+    fun shareLiveEtaFromWatch(context: Context, journey: WearTrackedJourneyState) {
+        val platText = if (journey.isPlatformTbd) "Plat TBD" else "Plat ${journey.cleanPlatformCode}"
+        val mins = (journey.remainingSeconds / 60).coerceAtLeast(0)
+        val etaStr = if (journey.remainingSeconds <= 30) "Due now" else "in ${mins} min (${journey.formattedMmSsCountdown})"
+        val alightPart = journey.targetAlightStopName?.takeIf { it.isNotBlank() }?.let { stop ->
+            val stopsStr = journey.stopsAway?.let { " ($it stops away)" }.orEmpty()
+            " • Alighting at $stop$stopsStr"
+        }.orEmpty()
+        val shareText = "🚆 Tracking ${journey.lineName} to ${journey.destinationName} ($platText at ${journey.stationName}) — $etaStr$alightPart"
+
+        runCatching {
+            val intent = Intent(ACTION_SHARE_ETA_FROM_WATCH).apply {
+                setPackage(PHONE_PACKAGE)
+                putExtra(EXTRA_SHARE_ETA_TEXT, shareText)
+            }
+            context.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
+        }
+        sendWearableMessageToPhone(
+            context = context,
+            path = PATH_SHARE_ETA,
+            payload = JSONObject().put(EXTRA_SHARE_ETA_TEXT, shareText).toString()
+        )
+    }
+
+    /**
      * Requests the phone app to push its latest favorite/commute station boards and active tracked train.
      */
     fun requestPhoneSync(context: Context) {
+        ensureCachedStateLoaded(context)
         runCatching {
             val intent = Intent(ACTION_REQUEST_PHONE_BOARDS).apply {
                 setPackage(PHONE_PACKAGE)
             }
-            context.sendBroadcast(intent)
+            context.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
         }
         sendWearableMessageToPhone(context, PATH_REQUEST_BOARDS, "")
     }
@@ -214,7 +277,7 @@ object WearCompanionStateRepository {
                 putExtra(EXTRA_STATION_NAME, stationName)
                 putExtra(EXTRA_DEPARTURE_ID, departureId)
             }
-            context.sendBroadcast(intent)
+            context.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
         }
         sendWearableMessageToPhone(
             context = context,
@@ -270,7 +333,7 @@ object WearCompanionStateRepository {
                 putExtra(EXTRA_PLATFORM_CODE, departure.platformCode)
                 putExtra(EXTRA_COUNTDOWN_MINUTES, departure.countdownMinutes)
             }
-            context.sendBroadcast(intent)
+            context.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
         }
         sendWearableMessageToPhone(
             context = context,
@@ -295,7 +358,7 @@ object WearCompanionStateRepository {
             val intent = Intent(ACTION_STOP_TRACKING_FROM_WATCH).apply {
                 setPackage(PHONE_PACKAGE)
             }
-            context.sendBroadcast(intent)
+            context.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
         }
         sendWearableMessageToPhone(context, PATH_STOP_TRACKING, "")
     }
@@ -336,7 +399,7 @@ object WearCompanionStateRepository {
                     setPackage(PHONE_PACKAGE)
                     putExtra(EXTRA_TARGET_ALIGHT_STOP, cleanStop.orEmpty())
                 }
-                ctx.sendBroadcast(intent)
+                ctx.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
             }
             sendWearableMessageToPhone(
                 context = ctx,
@@ -363,7 +426,7 @@ object WearCompanionStateRepository {
                     putExtra(EXTRA_STATION_ID, station.stationId)
                     putExtra(EXTRA_STATION_NAME, station.stationName)
                 }
-                ctx.sendBroadcast(intent)
+                ctx.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
             }
             sendWearableMessageToPhone(
                 context = ctx,
@@ -389,7 +452,7 @@ object WearCompanionStateRepository {
                     setPackage(PHONE_PACKAGE)
                     putExtra(EXTRA_STATION_ID, stationId)
                 }
-                ctx.sendBroadcast(intent)
+                ctx.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
             }
             sendWearableMessageToPhone(
                 context = ctx,
@@ -415,11 +478,23 @@ object WearCompanionStateRepository {
         }
     }
 
-    internal fun onReceiveStationBoardsJson(boardsJson: String) {
+    internal fun onReceiveStationBoardsJson(boardsJson: String, context: Context? = null) {
         val parsed = parseStationBoardsJson(boardsJson)
         if (parsed.isNotEmpty()) {
             _stationBoardsFlow.value = parsed
             _isPhoneSyncedFlow.value = true
+            context?.let { ctx ->
+                runCatching {
+                    ctx.applicationContext
+                        .getSharedPreferences(CACHE_PREFS_NAME, Context.MODE_PRIVATE)
+                        .edit()
+                        .putString(KEY_CACHED_BOARDS_JSON, boardsJson)
+                        .putLong(KEY_CACHED_BOARDS_TIMESTAMP_MS, System.currentTimeMillis())
+                        .apply()
+                }
+                WearDepartureTileService.requestTileUpdate(ctx)
+                WearNextTrainComplicationService.requestComplicationUpdate(ctx)
+            }
         }
     }
 
@@ -454,6 +529,8 @@ object WearCompanionStateRepository {
                 )
                 WearNotificationPublisher.launchSprintHudImmediately(it)
             }
+            WearDepartureTileService.requestTileUpdate(it)
+            WearNextTrainComplicationService.requestComplicationUpdate(it)
         }
 
         // 1. Check if platform transitioned from TBD -> Confirmed or changed on the phone-tracked train
@@ -530,7 +607,11 @@ object WearCompanionStateRepository {
     internal fun onReceiveStopTrackedDeparture(context: Context? = null) {
         _trackedJourneyFlow.value = null
         lastAlertedAlightStop = null
-        context?.let { WearNotificationPublisher.cancelTrackedJourneyNotification(it) }
+        context?.let {
+            WearNotificationPublisher.cancelTrackedJourneyNotification(it)
+            WearDepartureTileService.requestTileUpdate(it)
+            WearNextTrainComplicationService.requestComplicationUpdate(it)
+        }
     }
 
     internal fun parseStationBoardsJson(boardsJson: String): List<WearStationBoard> {

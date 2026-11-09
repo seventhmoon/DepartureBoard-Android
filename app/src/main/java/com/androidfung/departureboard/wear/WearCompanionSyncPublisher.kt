@@ -23,6 +23,7 @@ object WearCompanionSyncPublisher {
 
     private const val TAG = "WearCompanionSync"
     const val WEAR_PACKAGE = "com.androidfung.departureboard.wear"
+    const val PERMISSION_COMPANION_SYNC = "com.androidfung.departureboard.permission.COMPANION_SYNC"
 
     const val ACTION_SYNC_STATION_BOARDS = "com.androidfung.departureboard.wear.action.SYNC_STATION_BOARDS"
     const val ACTION_SYNC_TRACKED_DEPARTURE = "com.androidfung.departureboard.wear.action.SYNC_TRACKED_DEPARTURE"
@@ -64,7 +65,7 @@ object WearCompanionSyncPublisher {
                 setPackage(WEAR_PACKAGE)
                 putExtra(EXTRA_BOARDS_JSON, boardsJson)
             }
-            context.sendBroadcast(intent)
+            context.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
             sendToWearableNodes(context, PATH_SYNC_STATION_BOARDS, boardsJson.toByteArray(Charsets.UTF_8))
         } catch (e: Exception) {
             Log.w(TAG, "Failed to publish station boards to Wear companion", e)
@@ -111,7 +112,7 @@ object WearCompanionSyncPublisher {
                 setPackage(WEAR_PACKAGE)
                 putExtra(EXTRA_TRACKED_JSON, trackedJson)
             }
-            context.sendBroadcast(intent)
+            context.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
             sendToWearableNodes(context, PATH_SYNC_TRACKED_DEPARTURE, trackedJson.toByteArray(Charsets.UTF_8))
         } catch (e: Exception) {
             Log.w(TAG, "Failed to publish tracked departure to Wear companion", e)
@@ -124,7 +125,7 @@ object WearCompanionSyncPublisher {
             val intent = Intent(ACTION_STOP_TRACKED_DEPARTURE).apply {
                 setPackage(WEAR_PACKAGE)
             }
-            context.sendBroadcast(intent)
+            context.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
             sendToWearableNodes(context, PATH_STOP_TRACKED_DEPARTURE, ByteArray(0))
         } catch (e: Exception) {
             Log.w(TAG, "Failed to publish tracking stopped to Wear companion", e)
@@ -153,7 +154,7 @@ object WearCompanionSyncPublisher {
                 setPackage(WEAR_PACKAGE)
                 putExtra(EXTRA_AI_RESPONSE_JSON, responseJson)
             }
-            context.sendBroadcast(intent)
+            context.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
             sendToWearableNodes(context, PATH_SYNC_AI_RESPONSE, responseJson.toByteArray(Charsets.UTF_8))
         } catch (e: Exception) {
             Log.w(TAG, "Failed to publish AI response to Wear companion", e)
@@ -176,7 +177,7 @@ object WearCompanionSyncPublisher {
                 setPackage(WEAR_PACKAGE)
                 putExtra(EXTRA_NOTIFICATION_PREFS_JSON, prefsJson)
             }
-            context.sendBroadcast(intent)
+            context.sendBroadcast(intent, PERMISSION_COMPANION_SYNC)
             sendToWearableNodes(context, PATH_SYNC_NOTIFICATION_PREFS, prefsJson.toByteArray(Charsets.UTF_8))
         } catch (e: Exception) {
             Log.w(TAG, "Failed to publish notification preferences to Wear companion", e)
@@ -195,7 +196,8 @@ object WearCompanionSyncPublisher {
                     Intent(ACTION_SYNC_STATION_BOARDS).apply {
                         setPackage(WEAR_PACKAGE)
                         putExtra(EXTRA_BOARDS_JSON, boardsJson)
-                    }
+                    },
+                    PERMISSION_COMPANION_SYNC
                 )
                 sendToWearableNodes(context, PATH_SYNC_STATION_BOARDS, boardsJson.toByteArray(Charsets.UTF_8))
             }
@@ -206,7 +208,8 @@ object WearCompanionSyncPublisher {
                     Intent(ACTION_SYNC_TRACKED_DEPARTURE).apply {
                         setPackage(WEAR_PACKAGE)
                         putExtra(EXTRA_TRACKED_JSON, trackedJson)
-                    }
+                    },
+                    PERMISSION_COMPANION_SYNC
                 )
                 sendToWearableNodes(context, PATH_SYNC_TRACKED_DEPARTURE, trackedJson.toByteArray(Charsets.UTF_8))
             }

@@ -24,7 +24,7 @@ class WearDataLayerListenerService : WearableListenerService() {
         when (messageEvent.path) {
             PATH_SYNC_STATION_BOARDS -> {
                 if (payload.isNotBlank()) {
-                    WearCompanionStateRepository.onReceiveStationBoardsJson(payload)
+                    WearCompanionStateRepository.onReceiveStationBoardsJson(payload, applicationContext)
                 }
             }
             PATH_SYNC_TRACKED_DEPARTURE -> {
