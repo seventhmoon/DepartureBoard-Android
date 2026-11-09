@@ -2,6 +2,7 @@ package com.androidfung.departureboard.wear.sync
 
 import android.content.Context
 import android.content.Intent
+import androidx.core.content.edit
 import com.androidfung.departureboard.wear.complication.WearNextTrainComplicationService
 import com.androidfung.departureboard.wear.haptic.WearConcourseHapticAnnouncer
 import com.androidfung.departureboard.wear.haptic.WearNotificationPublisher
@@ -487,10 +488,10 @@ object WearCompanionStateRepository {
                 runCatching {
                     ctx.applicationContext
                         .getSharedPreferences(CACHE_PREFS_NAME, Context.MODE_PRIVATE)
-                        .edit()
-                        .putString(KEY_CACHED_BOARDS_JSON, boardsJson)
-                        .putLong(KEY_CACHED_BOARDS_TIMESTAMP_MS, System.currentTimeMillis())
-                        .apply()
+                        .edit {
+                            putString(KEY_CACHED_BOARDS_JSON, boardsJson)
+                            putLong(KEY_CACHED_BOARDS_TIMESTAMP_MS, System.currentTimeMillis())
+                        }
                 }
                 WearDepartureTileService.requestTileUpdate(ctx)
                 WearNextTrainComplicationService.requestComplicationUpdate(ctx)

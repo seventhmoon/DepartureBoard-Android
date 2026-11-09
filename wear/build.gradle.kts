@@ -15,7 +15,7 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 5302
+        versionCode = 5303
         versionName = "1.3.3-261106-wear"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -56,13 +56,13 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.play.services.wearable)
-    implementation("androidx.wear:wear:1.3.0")
-    implementation("androidx.wear:wear-ongoing:1.1.0")
-    implementation("androidx.wear.tiles:tiles:1.4.1")
-    implementation("androidx.wear.protolayout:protolayout:1.2.1")
-    implementation("androidx.wear.protolayout:protolayout-material:1.2.1")
-    implementation("androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.1")
-    implementation("com.google.guava:guava:33.3.1-android")
+    implementation(libs.androidx.wear)
+    implementation(libs.androidx.wear.ongoing)
+    implementation(libs.androidx.wear.tiles)
+    implementation(libs.androidx.wear.protolayout)
+    implementation(libs.androidx.wear.protolayout.material)
+    implementation(libs.androidx.wear.watchface.complications.data.source.ktx)
+    implementation(libs.guava)
 
     testImplementation(libs.junit)
 }

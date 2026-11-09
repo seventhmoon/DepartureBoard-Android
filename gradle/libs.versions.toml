@@ -48,6 +48,12 @@ firebaseBom = "35.1.0"
 googleServices = "4.5.0"
 firebaseCrashlyticsPlugin = "3.0.8"
 firebasePerfPlugin = "2.0.2"
+androidxWear = "1.4.0"
+androidxWearOngoing = "1.1.0"
+androidxWearTiles = "1.6.2"
+androidxWearProtolayout = "1.4.2"
+androidxWearWatchface = "1.3.0"
+guava = "33.4.0-android"
 appfunctions = "1.0.0-rc01"
 profileinstaller = "1.4.1"
 litert = "2.3.2"
@@ -120,6 +126,13 @@ litert-gpu = { group = "com.google.ai.edge.litert", name = "litert-gpu", version
 litertlm-android = { group = "com.google.ai.edge.litertlm", name = "litertlm-android", version.ref = "litertlm" }
 play-services-litert = { group = "com.google.android.gms", name = "play-services-litert", version.ref = "playServicesLitert" }
 play-feature-delivery-ktx = { group = "com.google.android.play", name = "feature-delivery-ktx", version.ref = "featureDelivery" }
+androidx-wear = { group = "androidx.wear", name = "wear", version.ref = "androidxWear" }
+androidx-wear-ongoing = { group = "androidx.wear", name = "wear-ongoing", version.ref = "androidxWearOngoing" }
+androidx-wear-tiles = { group = "androidx.wear.tiles", name = "tiles", version.ref = "androidxWearTiles" }
+androidx-wear-protolayout = { group = "androidx.wear.protolayout", name = "protolayout", version.ref = "androidxWearProtolayout" }
+androidx-wear-protolayout-material = { group = "androidx.wear.protolayout", name = "protolayout-material", version.ref = "androidxWearProtolayout" }
+androidx-wear-watchface-complications-data-source-ktx = { group = "androidx.wear.watchface", name = "watchface-complications-data-source-ktx", version.ref = "androidxWearWatchface" }
+guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -10,6 +10,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import com.androidfung.departureboard.wear.model.WearTrackedJourneyState
 import com.androidfung.departureboard.wear.sync.WearCompanionSyncReceiver
 import com.androidfung.departureboard.wear.ui.WearDepartureBoardActivity
@@ -95,13 +96,13 @@ object WearNotificationPublisher {
         _preferencesFlow.value = updated
         runCatching {
             context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
-                .putBoolean(KEY_LIVE_TRACKING, liveTrackingEnabled)
-                .putBoolean(KEY_AUTO_HUD, autoLaunchSprintHudEnabled)
-                .putBoolean(KEY_PLATFORM_ALERTS, platformAlertsEnabled)
-                .putBoolean(KEY_ALIGHTING_ALERTS, alightingAlertsEnabled)
-                .putBoolean(KEY_DISRUPTION_ALERTS, disruptionAlertsEnabled)
-                .apply()
+                .edit(commit = false) {
+                    putBoolean(KEY_LIVE_TRACKING, liveTrackingEnabled)
+                    putBoolean(KEY_AUTO_HUD, autoLaunchSprintHudEnabled)
+                    putBoolean(KEY_PLATFORM_ALERTS, platformAlertsEnabled)
+                    putBoolean(KEY_ALIGHTING_ALERTS, alightingAlertsEnabled)
+                    putBoolean(KEY_DISRUPTION_ALERTS, disruptionAlertsEnabled)
+                }
         }
         if (!liveTrackingEnabled) {
             cancelTrackedJourneyNotification(context)
