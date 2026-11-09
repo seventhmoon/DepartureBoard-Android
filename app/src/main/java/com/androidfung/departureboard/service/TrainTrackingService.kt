@@ -51,8 +51,12 @@ class TrainTrackingService : Service() {
         private const val TAG = "TrainTrackingService"
         const val CHANNEL_ID = "live_train_tracking_channel"
         const val ALERT_CHANNEL_ID = "train_tracking_alert_channel"
+        const val PLATFORM_ALERT_CHANNEL_ID = "platform_change_alert_channel"
+        const val ALIGHTING_ALERT_CHANNEL_ID = "alighting_stop_alert_channel"
         const val NOTIFICATION_ID = 2001
         const val ALERT_NOTIFICATION_ID = 2002
+        const val PLATFORM_ALERT_NOTIFICATION_ID = 2003
+        const val ALIGHTING_ALERT_NOTIFICATION_ID = 2004
 
         // Precompiled regex patterns to avoid per-notification allocations
         private val PLATFORM_LABEL_REGEX = Regex("""Platform\s+[A-Za-z0-9]+""", RegexOption.IGNORE_CASE)
@@ -529,14 +533,18 @@ class TrainTrackingService : Service() {
                             if (!isCancelled && destinationChanged && target.destinationName.isNotBlank()) {
                                 val oldDest = currentDestination
                                 currentDestination = target.destinationName
-                                postDisruptionAlert(
-                                    title = getString(R.string.tracking_destination_changed_title),
-                                    message = getString(R.string.tracking_destination_changed_message, lineName, oldDest, currentDestination),
-                                    stationId = stationId,
-                                    stationName = stationName,
-                                    departureId = activeDepartureId,
-                                    isBus = isBus
-                                )
+                                if (NotificationHelper.isDisruptionAlertsEnabled(applicationContext)) {
+                                    postDisruptionAlert(
+                                        title = getString(R.string.tracking_destination_changed_title),
+                                        message = getString(R.string.tracking_destination_changed_message, lineName, oldDest, currentDestination),
+                                        stationId = stationId,
+                                        stationName = stationName,
+                                        departureId = activeDepartureId,
+                                        isBus = isBus,
+                                        channelId = ALERT_CHANNEL_ID,
+                                        notificationId = ALERT_NOTIFICATION_ID
+                                    )
+                                }
                             }
 
                             // 3. Check for platform change or first announcement from TBD
@@ -547,25 +555,29 @@ class TrainTrackingService : Service() {
                             ) {
                                 val oldPlatform = currentPlatform
                                 currentPlatform = target.platformName
-                                val alertTitle = if (isOldTbd && !isNewTbd) {
-                                    getString(R.string.tracking_platform_announced_title)
-                                } else {
-                                    getString(R.string.tracking_platform_changed_title)
+                                if (NotificationHelper.isPlatformAlertsEnabled(applicationContext)) {
+                                    val alertTitle = if (isOldTbd && !isNewTbd) {
+                                        getString(R.string.tracking_platform_announced_title)
+                                    } else {
+                                        getString(R.string.tracking_platform_changed_title)
+                                    }
+                                    val alertMsg = if (isOldTbd && !isNewTbd) {
+                                        getString(R.string.tracking_platform_announced_message, lineName, currentDestination, currentPlatform)
+                                    } else {
+                                        getString(R.string.tracking_platform_changed_message, lineName, currentDestination, oldPlatform, currentPlatform)
+                                    }
+                                    triggerConcourseHapticPulse()
+                                    postDisruptionAlert(
+                                        title = alertTitle,
+                                        message = alertMsg,
+                                        stationId = stationId,
+                                        stationName = stationName,
+                                        departureId = activeDepartureId,
+                                        isBus = isBus,
+                                        channelId = PLATFORM_ALERT_CHANNEL_ID,
+                                        notificationId = PLATFORM_ALERT_NOTIFICATION_ID
+                                    )
                                 }
-                                val alertMsg = if (isOldTbd && !isNewTbd) {
-                                    getString(R.string.tracking_platform_announced_message, lineName, currentDestination, currentPlatform)
-                                } else {
-                                    getString(R.string.tracking_platform_changed_message, lineName, currentDestination, oldPlatform, currentPlatform)
-                                }
-                                triggerConcourseHapticPulse()
-                                postDisruptionAlert(
-                                    title = alertTitle,
-                                    message = alertMsg,
-                                    stationId = stationId,
-                                    stationName = stationName,
-                                    departureId = activeDepartureId,
-                                    isBus = isBus
-                                )
                             }
 
                             // 4. Check for significant new delay
@@ -575,15 +587,19 @@ class TrainTrackingService : Service() {
                                     (delayJumpSeconds >= SIGNIFICANT_DELAY_JUMP_SECONDS && remainingSeconds >= SIGNIFICANT_DELAY_JUMP_SECONDS))
                             ) {
                                 hasPostedDelayAlert = true
-                                val mins = (remainingSeconds / 60).coerceAtLeast(1)
-                                postDisruptionAlert(
-                                    title = getString(R.string.tracking_service_delayed_title),
-                                    message = getString(R.string.tracking_service_delayed_message, lineName, currentDestination, mins),
-                                    stationId = stationId,
-                                    stationName = stationName,
-                                    departureId = activeDepartureId,
-                                    isBus = isBus
-                                )
+                                if (NotificationHelper.isDisruptionAlertsEnabled(applicationContext)) {
+                                    val mins = (remainingSeconds / 60).coerceAtLeast(1)
+                                    postDisruptionAlert(
+                                        title = getString(R.string.tracking_service_delayed_title),
+                                        message = getString(R.string.tracking_service_delayed_message, lineName, currentDestination, mins),
+                                        stationId = stationId,
+                                        stationName = stationName,
+                                        departureId = activeDepartureId,
+                                        isBus = isBus,
+                                        channelId = ALERT_CHANNEL_ID,
+                                        notificationId = ALERT_NOTIFICATION_ID
+                                    )
+                                }
                             }
                         } else {
                             missingCount++
@@ -601,14 +617,18 @@ class TrainTrackingService : Service() {
 
                 if (isCancelled) {
                     isServiceCancelled = true
-                    postDisruptionAlert(
-                        title = getString(R.string.tracking_service_cancelled_title),
-                        message = getString(R.string.tracking_service_cancelled_message, lineName, currentDestination),
-                        stationId = stationId,
-                        stationName = stationName,
-                        departureId = activeDepartureId,
-                        isBus = isBus
-                    )
+                    if (NotificationHelper.isDisruptionAlertsEnabled(applicationContext)) {
+                        postDisruptionAlert(
+                            title = getString(R.string.tracking_service_cancelled_title),
+                            message = getString(R.string.tracking_service_cancelled_message, lineName, currentDestination),
+                            stationId = stationId,
+                            stationName = stationName,
+                            departureId = activeDepartureId,
+                            isBus = isBus,
+                            channelId = ALERT_CHANNEL_ID,
+                            notificationId = ALERT_NOTIFICATION_ID
+                        )
+                    }
                     val cancelledNotification = buildLiveNotification(
                         departureId = activeDepartureId,
                         stationId = stationId,
@@ -683,15 +703,19 @@ class TrainTrackingService : Service() {
                             if (stopsToAlight == 1 && (!hasPostedAlightAlert || lastAlertedTargetStop != targetAlightStop)) {
                                 hasPostedAlightAlert = true
                                 lastAlertedTargetStop = targetAlightStop
-                                triggerConcourseHapticPulse()
-                                postDisruptionAlert(
-                                    title = "Get Ready to Alight",
-                                    message = "Next stop is $targetAlightStop on $lineName",
-                                    stationId = stationId,
-                                    stationName = stationName,
-                                    departureId = activeDepartureId,
-                                    isBus = isBus
-                                )
+                                if (NotificationHelper.isAlightingAlertsEnabled(applicationContext)) {
+                                    triggerConcourseHapticPulse()
+                                    postDisruptionAlert(
+                                        title = "Get Ready to Alight",
+                                        message = "Next stop is $targetAlightStop on $lineName",
+                                        stationId = stationId,
+                                        stationName = stationName,
+                                        departureId = activeDepartureId,
+                                        isBus = isBus,
+                                        channelId = ALIGHTING_ALERT_CHANNEL_ID,
+                                        notificationId = ALIGHTING_ALERT_NOTIFICATION_ID
+                                    )
+                                }
                             }
                         }
 
@@ -734,15 +758,19 @@ class TrainTrackingService : Service() {
                         ) {
                             hasPostedAlightAlert = true
                             lastAlertedTargetStop = activeTargetAlight
-                            triggerConcourseHapticPulse()
-                            postDisruptionAlert(
-                                title = "Get Ready to Alight",
-                                message = "Approaching $activeTargetAlight on $lineName",
-                                stationId = stationId,
-                                stationName = stationName,
-                                departureId = activeDepartureId,
-                                isBus = isBus
-                            )
+                            if (NotificationHelper.isAlightingAlertsEnabled(applicationContext)) {
+                                triggerConcourseHapticPulse()
+                                postDisruptionAlert(
+                                    title = "Get Ready to Alight",
+                                    message = "Approaching $activeTargetAlight on $lineName",
+                                    stationId = stationId,
+                                    stationName = stationName,
+                                    departureId = activeDepartureId,
+                                    isBus = isBus,
+                                    channelId = ALIGHTING_ALERT_CHANNEL_ID,
+                                    notificationId = ALIGHTING_ALERT_NOTIFICATION_ID
+                                )
+                            }
                         }
                     }
                 }
@@ -826,7 +854,9 @@ class TrainTrackingService : Service() {
         stationId: String = "",
         stationName: String = "",
         departureId: String = "",
-        isBus: Boolean = false
+        isBus: Boolean = false,
+        channelId: String = ALERT_CHANNEL_ID,
+        notificationId: Int = ALERT_NOTIFICATION_ID
     ) {
         try {
             val openAppIntent = Intent(this, MainActivity::class.java).apply {
@@ -841,14 +871,14 @@ class TrainTrackingService : Service() {
             }
             val openAppPendingIntent = PendingIntent.getActivity(
                 this,
-                0,
+                notificationId,
                 openAppIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
             val smallIconRes = if (isBus) R.drawable.ic_bus_alert else R.drawable.ic_railway_alert
 
-            val alertNotification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+            val alertNotification = NotificationCompat.Builder(this, channelId)
                 .setSmallIcon(smallIconRes)
                 .setContentTitle(title)
                 .setContentText(message)
@@ -862,7 +892,7 @@ class TrainTrackingService : Service() {
                 .build()
 
             val nm = getSystemService<NotificationManager>()
-            nm?.notify(ALERT_NOTIFICATION_ID, alertNotification)
+            nm?.notify(notificationId, alertNotification)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to post disruption alert", e)
         }
@@ -1081,32 +1111,7 @@ class TrainTrackingService : Service() {
     }
 
     private fun createNotificationChannel() {
-        try {
-            val liveChannel = NotificationChannel(
-                CHANNEL_ID,
-                getString(R.string.notification_channel_live_tracking),
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = getString(R.string.notification_channel_live_tracking_desc)
-                setShowBadge(true)
-            }
-
-            val alertChannel = NotificationChannel(
-                ALERT_CHANNEL_ID,
-                getString(R.string.notification_channel_alerts),
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = getString(R.string.notification_channel_alerts_desc)
-                enableVibration(true)
-                setShowBadge(true)
-            }
-
-            val nm = getSystemService<NotificationManager>()
-            nm?.createNotificationChannel(liveChannel)
-            nm?.createNotificationChannel(alertChannel)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to create notification channels", e)
-        }
+        NotificationHelper.ensureAllNotificationChannels(this)
     }
 
     override fun onDestroy() {

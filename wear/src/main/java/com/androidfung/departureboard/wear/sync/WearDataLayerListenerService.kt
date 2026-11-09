@@ -15,6 +15,7 @@ class WearDataLayerListenerService : WearableListenerService() {
         const val PATH_SYNC_TRACKED_DEPARTURE = "/ekiboard/sync/tracked_departure"
         const val PATH_STOP_TRACKED_DEPARTURE = "/ekiboard/sync/stop_tracking"
         const val PATH_SYNC_AI_RESPONSE = "/ekiboard/sync/ai_response"
+        const val PATH_SYNC_NOTIFICATION_PREFS = "/ekiboard/sync/notification_prefs"
     }
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
@@ -37,6 +38,14 @@ class WearDataLayerListenerService : WearableListenerService() {
             PATH_SYNC_AI_RESPONSE -> {
                 if (payload.isNotBlank()) {
                     WearCompanionStateRepository.onReceiveAiResponseJson(payload)
+                }
+            }
+            PATH_SYNC_NOTIFICATION_PREFS -> {
+                if (payload.isNotBlank()) {
+                    com.androidfung.departureboard.wear.haptic.WearNotificationPublisher.applySyncedPhonePreferences(
+                        applicationContext,
+                        payload
+                    )
                 }
             }
         }

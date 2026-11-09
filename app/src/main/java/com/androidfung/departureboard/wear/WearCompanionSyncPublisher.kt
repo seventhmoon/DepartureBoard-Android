@@ -28,15 +28,18 @@ object WearCompanionSyncPublisher {
     const val ACTION_SYNC_TRACKED_DEPARTURE = "com.androidfung.departureboard.wear.action.SYNC_TRACKED_DEPARTURE"
     const val ACTION_STOP_TRACKED_DEPARTURE = "com.androidfung.departureboard.wear.action.STOP_TRACKED_DEPARTURE"
     const val ACTION_SYNC_AI_RESPONSE = "com.androidfung.departureboard.wear.action.SYNC_AI_RESPONSE"
+    const val ACTION_SYNC_NOTIFICATION_PREFS = "com.androidfung.departureboard.wear.action.SYNC_NOTIFICATION_PREFS"
 
     const val PATH_SYNC_STATION_BOARDS = "/ekiboard/sync/station_boards"
     const val PATH_SYNC_TRACKED_DEPARTURE = "/ekiboard/sync/tracked_departure"
     const val PATH_STOP_TRACKED_DEPARTURE = "/ekiboard/sync/stop_tracking"
     const val PATH_SYNC_AI_RESPONSE = "/ekiboard/sync/ai_response"
+    const val PATH_SYNC_NOTIFICATION_PREFS = "/ekiboard/sync/notification_prefs"
 
     const val EXTRA_BOARDS_JSON = "extra_boards_json"
     const val EXTRA_TRACKED_JSON = "extra_tracked_json"
     const val EXTRA_AI_RESPONSE_JSON = "extra_ai_response_json"
+    const val EXTRA_NOTIFICATION_PREFS_JSON = "extra_notification_prefs_json"
 
     @Volatile
     private var lastPublishedBoardsJson: String? = null
@@ -158,10 +161,34 @@ object WearCompanionSyncPublisher {
     }
 
     /**
+     * Publishes the user's per-channel notification toggles from the Phone to the Wear OS watch.
+     */
+    fun publishNotificationPreferences(context: Context) {
+        try {
+            val prefs = com.androidfung.departureboard.util.NotificationHelper.loadPreferences(context)
+            val prefsJson = JSONObject().apply {
+                put("platformAlertsEnabled", prefs.platformAlertsEnabled)
+                put("alightingAlertsEnabled", prefs.alightingAlertsEnabled)
+                put("disruptionAlertsEnabled", prefs.disruptionAlertsEnabled)
+                put("wearAutoLaunchHudEnabled", prefs.wearAutoLaunchHudEnabled)
+            }.toString()
+            val intent = Intent(ACTION_SYNC_NOTIFICATION_PREFS).apply {
+                setPackage(WEAR_PACKAGE)
+                putExtra(EXTRA_NOTIFICATION_PREFS_JSON, prefsJson)
+            }
+            context.sendBroadcast(intent)
+            sendToWearableNodes(context, PATH_SYNC_NOTIFICATION_PREFS, prefsJson.toByteArray(Charsets.UTF_8))
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to publish notification preferences to Wear companion", e)
+        }
+    }
+
+    /**
      * Re-sends the latest cached phone boards and tracked train state when the watch app wakes up
      * and requests an immediate sync (`ACTION_REQUEST_PHONE_BOARDS`).
      */
     fun resendCachedStateToWear(context: Context) {
+        publishNotificationPreferences(context)
         lastPublishedBoardsJson?.let { boardsJson ->
             runCatching {
                 context.sendBroadcast(

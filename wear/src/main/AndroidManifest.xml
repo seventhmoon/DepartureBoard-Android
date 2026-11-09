@@ -53,6 +53,7 @@
                 <action android:name="com.androidfung.departureboard.wear.action.SYNC_TRACKED_DEPARTURE" />
                 <action android:name="com.androidfung.departureboard.wear.action.STOP_TRACKED_DEPARTURE" />
                 <action android:name="com.androidfung.departureboard.wear.action.SYNC_AI_RESPONSE" />
+                <action android:name="com.androidfung.departureboard.wear.action.SYNC_NOTIFICATION_PREFS" />
             </intent-filter>
         </receiver>
 

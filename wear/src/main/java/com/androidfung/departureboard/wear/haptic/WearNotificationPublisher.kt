@@ -7,34 +7,172 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.androidfung.departureboard.wear.model.WearTrackedJourneyState
 import com.androidfung.departureboard.wear.sync.WearCompanionSyncReceiver
 import com.androidfung.departureboard.wear.ui.WearDepartureBoardActivity
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import org.json.JSONObject
 
 /**
- * Publishes native Wear OS Live Tracker notifications directly into the Watch Notification Tray:
+ * Publishes native Wear OS notifications across distinct Notification Channels and manages
+ * per-type user notification preferences on the watch:
  *
- * Features:
- * 1. **Hardware Per-Second Countdown (`setUsesChronometer(true)` + `setChronometerCountDown(true)`)**:
- *    Ticks down every second (`03:59 -> 03:58`) natively on the watch without waking the CPU.
- * 2. **Live Progress Bar (`setProgress(100, progressPercent, false)`)** + Line Brand Accent Color.
- * 3. **Direct Watch Actions**:
- *    - `🎯 Sprint HUD`: Launches straight into the full-screen Concourse Sprint & Alighting HUD.
- *    - `⏹ Stop`: Stops tracking on both watch and phone in 1 tap from the notification shade.
+ * Channels:
+ * 1. `wear_live_tracking_channel` — Live Train Tracker (ongoing hardware chronometer + progress bar)
+ * 2. `wear_sprint_hud_launch_channel` — Instant Sprint HUD Launch (wakes watch on Phone Track tap)
+ * 3. `wear_platform_alerts_channel` — Platform Announcement & Change Alerts (`TBD -> Plat X`, `Plat A -> Plat B`)
+ * 4. `wear_alighting_alerts_channel` — Target Alighting Stop Alerts ("Get Ready to Alight" 1 stop before)
+ * 5. `wear_disruption_alerts_channel` — Delay Repay & Disruption Alerts
  */
 object WearNotificationPublisher {
 
-    private const val CHANNEL_TRACKING_ID = "wear_live_tracking_channel"
-    private const val CHANNEL_ALERTS_ID = "wear_concourse_alerts_channel"
+    const val CHANNEL_TRACKING_ID = "wear_live_tracking_channel"
+    const val CHANNEL_SPRINT_HUD_ID = "wear_sprint_hud_launch_channel"
+    const val CHANNEL_PLATFORM_ALERTS_ID = "wear_platform_alerts_channel"
+    const val CHANNEL_ALIGHTING_ALERTS_ID = "wear_alighting_alerts_channel"
+    const val CHANNEL_DISRUPTION_ALERTS_ID = "wear_disruption_alerts_channel"
 
     private const val NOTIFICATION_ID_TRACKED = 3001
-    private const val NOTIFICATION_ID_ALERT = 3002
+    private const val NOTIFICATION_ID_PLATFORM_ALERT = 3002
+    private const val NOTIFICATION_ID_ALIGHTING_ALERT = 3003
+    private const val NOTIFICATION_ID_DISRUPTION_ALERT = 3004
 
     const val EXTRA_OPEN_SPRINT_HUD = "extra_open_sprint_hud"
 
+    private const val PREFS_NAME = "wear_notification_preferences"
+    private const val KEY_LIVE_TRACKING = "pref_wear_live_tracking"
+    private const val KEY_AUTO_HUD = "pref_wear_auto_hud"
+    private const val KEY_PLATFORM_ALERTS = "pref_wear_platform_alerts"
+    private const val KEY_ALIGHTING_ALERTS = "pref_wear_alighting_alerts"
+    private const val KEY_DISRUPTION_ALERTS = "pref_wear_disruption_alerts"
+
+    data class WearNotificationPreferences(
+        val liveTrackingEnabled: Boolean = true,
+        val autoLaunchSprintHudEnabled: Boolean = true,
+        val platformAlertsEnabled: Boolean = true,
+        val alightingAlertsEnabled: Boolean = true,
+        val disruptionAlertsEnabled: Boolean = true
+    )
+
+    private val _preferencesFlow = MutableStateFlow(WearNotificationPreferences())
+    val preferencesFlow: StateFlow<WearNotificationPreferences> = _preferencesFlow.asStateFlow()
+
+    fun loadPreferences(context: Context): WearNotificationPreferences {
+        return runCatching {
+            val sp = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = WearNotificationPreferences(
+                liveTrackingEnabled = sp.getBoolean(KEY_LIVE_TRACKING, true),
+                autoLaunchSprintHudEnabled = sp.getBoolean(KEY_AUTO_HUD, true),
+                platformAlertsEnabled = sp.getBoolean(KEY_PLATFORM_ALERTS, true),
+                alightingAlertsEnabled = sp.getBoolean(KEY_ALIGHTING_ALERTS, true),
+                disruptionAlertsEnabled = sp.getBoolean(KEY_DISRUPTION_ALERTS, true)
+            )
+            _preferencesFlow.value = prefs
+            prefs
+        }.getOrElse { _preferencesFlow.value }
+    }
+
+    fun updatePreferences(
+        context: Context,
+        liveTrackingEnabled: Boolean = _preferencesFlow.value.liveTrackingEnabled,
+        autoLaunchSprintHudEnabled: Boolean = _preferencesFlow.value.autoLaunchSprintHudEnabled,
+        platformAlertsEnabled: Boolean = _preferencesFlow.value.platformAlertsEnabled,
+        alightingAlertsEnabled: Boolean = _preferencesFlow.value.alightingAlertsEnabled,
+        disruptionAlertsEnabled: Boolean = _preferencesFlow.value.disruptionAlertsEnabled
+    ) {
+        val updated = WearNotificationPreferences(
+            liveTrackingEnabled = liveTrackingEnabled,
+            autoLaunchSprintHudEnabled = autoLaunchSprintHudEnabled,
+            platformAlertsEnabled = platformAlertsEnabled,
+            alightingAlertsEnabled = alightingAlertsEnabled,
+            disruptionAlertsEnabled = disruptionAlertsEnabled
+        )
+        _preferencesFlow.value = updated
+        runCatching {
+            context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_LIVE_TRACKING, liveTrackingEnabled)
+                .putBoolean(KEY_AUTO_HUD, autoLaunchSprintHudEnabled)
+                .putBoolean(KEY_PLATFORM_ALERTS, platformAlertsEnabled)
+                .putBoolean(KEY_ALIGHTING_ALERTS, alightingAlertsEnabled)
+                .putBoolean(KEY_DISRUPTION_ALERTS, disruptionAlertsEnabled)
+                .apply()
+        }
+        if (!liveTrackingEnabled) {
+            cancelTrackedJourneyNotification(context)
+        }
+    }
+
+    fun applySyncedPhonePreferences(context: Context?, prefsJson: String) {
+        val current = _preferencesFlow.value
+        val platformEnabled = extractBool(prefsJson, "platformAlertsEnabled", current.platformAlertsEnabled)
+        val alightingEnabled = extractBool(prefsJson, "alightingAlertsEnabled", current.alightingAlertsEnabled)
+        val disruptionEnabled = extractBool(prefsJson, "disruptionAlertsEnabled", current.disruptionAlertsEnabled)
+        val autoHudEnabled = extractBool(prefsJson, "wearAutoLaunchHudEnabled", current.autoLaunchSprintHudEnabled)
+        if (context != null) {
+            updatePreferences(
+                context = context,
+                liveTrackingEnabled = current.liveTrackingEnabled,
+                autoLaunchSprintHudEnabled = autoHudEnabled,
+                platformAlertsEnabled = platformEnabled,
+                alightingAlertsEnabled = alightingEnabled,
+                disruptionAlertsEnabled = disruptionEnabled
+            )
+        } else {
+            _preferencesFlow.value = current.copy(
+                autoLaunchSprintHudEnabled = autoHudEnabled,
+                platformAlertsEnabled = platformEnabled,
+                alightingAlertsEnabled = alightingEnabled,
+                disruptionAlertsEnabled = disruptionEnabled
+            )
+        }
+    }
+
+    private fun extractBool(json: String, key: String, default: Boolean): Boolean {
+        try {
+            val obj = JSONObject(json)
+            if (obj.has(key)) return obj.optBoolean(key, default)
+        } catch (_: Throwable) {
+        }
+        return Regex(""""$key"\s*:\s*(true|false)""")
+            .find(json)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.toBooleanStrictOrNull() ?: default
+    }
+
+    fun ensureAllChannels(context: Context) {
+        runCatching {
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+            ensureChannels(nm)
+        }
+    }
+
+    fun openSystemNotificationSettings(context: Context, channelId: String? = null) {
+        runCatching {
+            val intent = if (channelId != null) {
+                Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    putExtra(Settings.EXTRA_CHANNEL_ID, channelId)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            } else {
+                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            }
+            context.startActivity(intent)
+        }
+    }
+
     fun launchSprintHudImmediately(context: Context) {
+        if (!loadPreferences(context).autoLaunchSprintHudEnabled) return
         runCatching {
             val openHudIntent = Intent(context, WearDepartureBoardActivity::class.java).apply {
                 putExtra(EXTRA_OPEN_SPRINT_HUD, true)
@@ -51,6 +189,8 @@ object WearNotificationPublisher {
         journey: WearTrackedJourneyState,
         isInitialStart: Boolean = false
     ) {
+        val prefs = loadPreferences(context)
+        if (!prefs.liveTrackingEnabled) return
         if (!hasNotificationPermission(context)) return
         runCatching {
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
@@ -90,8 +230,12 @@ object WearNotificationPublisher {
 
             val isOngoing = !journey.isCancelled && journey.remainingSeconds > 0
             val targetTimestampMs = System.currentTimeMillis() + (journey.remainingSeconds.coerceAtLeast(0) * 1000L)
+            val shouldWakeWithFullScreen = isInitialStart && prefs.autoLaunchSprintHudEnabled
 
-            val builder = NotificationCompat.Builder(context, if (isInitialStart) CHANNEL_ALERTS_ID else CHANNEL_TRACKING_ID)
+            val builder = NotificationCompat.Builder(
+                context,
+                if (shouldWakeWithFullScreen) CHANNEL_SPRINT_HUD_ID else CHANNEL_TRACKING_ID
+            )
                 .setSmallIcon(com.androidfung.departureboard.wear.R.drawable.ic_train)
                 .setColor(journey.lineColorArgb.toInt())
                 .setColorized(true)
@@ -104,7 +248,7 @@ object WearNotificationPublisher {
                 .setUsesChronometer(isOngoing)
                 .setChronometerCountDown(isOngoing)
                 .setOngoing(isOngoing)
-                .setOnlyAlertOnce(!isInitialStart)
+                .setOnlyAlertOnce(!shouldWakeWithFullScreen)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
                 .setContentIntent(openHudPendingIntent)
@@ -123,7 +267,7 @@ object WearNotificationPublisher {
                         .setContentAction(0)
                 )
 
-            if (isInitialStart) {
+            if (shouldWakeWithFullScreen) {
                 builder.setFullScreenIntent(openHudPendingIntent, true)
             }
 
@@ -138,14 +282,38 @@ object WearNotificationPublisher {
         }
     }
 
+    fun isAlertTypeEnabled(
+        context: Context,
+        type: WearConcourseHapticAnnouncer.WristAlertType
+    ): Boolean {
+        val prefs = loadPreferences(context)
+        return when (type) {
+            WearConcourseHapticAnnouncer.WristAlertType.PLATFORM_ANNOUNCED,
+            WearConcourseHapticAnnouncer.WristAlertType.PLATFORM_CHANGED -> prefs.platformAlertsEnabled
+            WearConcourseHapticAnnouncer.WristAlertType.ALIGHT_NEXT_STOP -> prefs.alightingAlertsEnabled
+            WearConcourseHapticAnnouncer.WristAlertType.DELAY_REPAY_ELIGIBLE -> prefs.disruptionAlertsEnabled
+        }
+    }
+
     fun postConcourseAlertNotification(
         context: Context,
         event: WearConcourseHapticAnnouncer.WristHapticEvent
     ) {
+        if (!isAlertTypeEnabled(context, event.type)) return
         if (!hasNotificationPermission(context)) return
         runCatching {
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
             ensureChannels(nm)
+
+            val (channelId, notificationId) = when (event.type) {
+                WearConcourseHapticAnnouncer.WristAlertType.PLATFORM_ANNOUNCED,
+                WearConcourseHapticAnnouncer.WristAlertType.PLATFORM_CHANGED ->
+                    CHANNEL_PLATFORM_ALERTS_ID to NOTIFICATION_ID_PLATFORM_ALERT
+                WearConcourseHapticAnnouncer.WristAlertType.ALIGHT_NEXT_STOP ->
+                    CHANNEL_ALIGHTING_ALERTS_ID to NOTIFICATION_ID_ALIGHTING_ALERT
+                WearConcourseHapticAnnouncer.WristAlertType.DELAY_REPAY_ELIGIBLE ->
+                    CHANNEL_DISRUPTION_ALERTS_ID to NOTIFICATION_ID_DISRUPTION_ALERT
+            }
 
             val openIntent = Intent(context, WearDepartureBoardActivity::class.java).apply {
                 putExtra(EXTRA_OPEN_SPRINT_HUD, true)
@@ -153,12 +321,12 @@ object WearNotificationPublisher {
             }
             val pendingIntent = PendingIntent.getActivity(
                 context,
-                302,
+                notificationId,
                 openIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val notification = NotificationCompat.Builder(context, CHANNEL_ALERTS_ID)
+            val notification = NotificationCompat.Builder(context, channelId)
                 .setSmallIcon(com.androidfung.departureboard.wear.R.drawable.ic_railway_alert)
                 .setContentTitle("🔔 ${event.headline}")
                 .setContentText(event.detail)
@@ -170,7 +338,7 @@ object WearNotificationPublisher {
                 .setContentIntent(pendingIntent)
                 .build()
 
-            nm.notify(NOTIFICATION_ID_ALERT, notification)
+            nm.notify(notificationId, notification)
         }
     }
 
@@ -191,21 +359,54 @@ object WearNotificationPublisher {
             "Live Train Tracker",
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Live countdown timer and progress bar for your tracked train"
+            description = "Ongoing live countdown timer and progress bar for your tracked train"
             setShowBadge(true)
         }
 
-        val alertsChannel = NotificationChannel(
-            CHANNEL_ALERTS_ID,
-            "Platform & Alighting Alerts",
+        val sprintHudChannel = NotificationChannel(
+            CHANNEL_SPRINT_HUD_ID,
+            "Instant Sprint HUD Launch",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Heads-up alerts when a platform is announced (TBD -> Plat X) or 1 stop before alighting"
+            description = "Wakes watch screen into the Concourse Sprint HUD when you tap Track on your phone"
+            enableVibration(true)
+            setShowBadge(true)
+        }
+
+        val platformAlertsChannel = NotificationChannel(
+            CHANNEL_PLATFORM_ALERTS_ID,
+            "Platform Announcement & Change Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Heads-up alerts when a platform is announced (TBD -> Plat X) or changed"
+            enableVibration(true)
+            setShowBadge(true)
+        }
+
+        val alightingAlertsChannel = NotificationChannel(
+            CHANNEL_ALIGHTING_ALERTS_ID,
+            "Target Alighting Stop Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Get Ready to Alight alerts 1 stop before your selected destination station"
+            enableVibration(true)
+            setShowBadge(true)
+        }
+
+        val disruptionAlertsChannel = NotificationChannel(
+            CHANNEL_DISRUPTION_ALERTS_ID,
+            "Delay Repay & Disruption Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Alerts when a train crosses a Delay Repay threshold or is cancelled"
             enableVibration(true)
             setShowBadge(true)
         }
 
         nm.createNotificationChannel(trackingChannel)
-        nm.createNotificationChannel(alertsChannel)
+        nm.createNotificationChannel(sprintHudChannel)
+        nm.createNotificationChannel(platformAlertsChannel)
+        nm.createNotificationChannel(alightingAlertsChannel)
+        nm.createNotificationChannel(disruptionAlertsChannel)
     }
 }

@@ -21,7 +21,8 @@ object WearConcourseHapticAnnouncer {
     enum class WristAlertType {
         PLATFORM_ANNOUNCED,
         PLATFORM_CHANGED,
-        ALIGHT_NEXT_STOP
+        ALIGHT_NEXT_STOP,
+        DELAY_REPAY_ELIGIBLE
     }
 
     data class WristHapticEvent(
@@ -76,6 +77,7 @@ object WearConcourseHapticAnnouncer {
                 WristAlertType.PLATFORM_ANNOUNCED -> longArrayOf(0L, 200L, 80L, 280L)
                 WristAlertType.PLATFORM_CHANGED -> longArrayOf(0L, 160L, 70L, 160L, 70L, 260L)
                 WristAlertType.ALIGHT_NEXT_STOP -> longArrayOf(0L, 180L, 100L, 240L)
+                WristAlertType.DELAY_REPAY_ELIGIBLE -> longArrayOf(0L, 220L, 90L, 220L)
             }
             val effect = VibrationEffect.createWaveform(pattern, -1)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

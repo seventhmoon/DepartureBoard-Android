@@ -17,6 +17,7 @@ class DepartureBoardApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = DefaultAppContainer(this)
+        com.androidfung.departureboard.util.NotificationHelper.ensureAllNotificationChannels(this)
         // Initialize Google Mobile Ads SDK on a background thread to prevent blocking main thread
         com.google.android.gms.ads.MobileAds.initialize(this) {}
     }

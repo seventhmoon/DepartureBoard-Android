@@ -467,10 +467,12 @@ object WearCompanionStateRepository {
                     headline = "Plat ${current.platformCode} Announced!",
                     detail = "${current.destinationName} is boarding at Platform ${current.platformCode}"
                 )
-                _latestWristAlertFlow.value = event
-                context?.let {
-                    WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type)
-                    WearNotificationPublisher.postConcourseAlertNotification(it, event)
+                if (context == null || WearNotificationPublisher.isAlertTypeEnabled(context, event.type)) {
+                    _latestWristAlertFlow.value = event
+                    context?.let {
+                        WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type)
+                        WearNotificationPublisher.postConcourseAlertNotification(it, event)
+                    }
                 }
             } else if (!wasTbd && isNowConfirmed && !previous.platformCode.equals(current.platformCode, ignoreCase = true)) {
                 val event = WearConcourseHapticAnnouncer.WristHapticEvent(
@@ -479,10 +481,12 @@ object WearCompanionStateRepository {
                     headline = "Platform Changed → Plat ${current.platformCode}",
                     detail = "${current.destinationName} moved from Plat ${previous.platformCode} to Plat ${current.platformCode}"
                 )
-                _latestWristAlertFlow.value = event
-                context?.let {
-                    WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type)
-                    WearNotificationPublisher.postConcourseAlertNotification(it, event)
+                if (context == null || WearNotificationPublisher.isAlertTypeEnabled(context, event.type)) {
+                    _latestWristAlertFlow.value = event
+                    context?.let {
+                        WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type)
+                        WearNotificationPublisher.postConcourseAlertNotification(it, event)
+                    }
                 }
             }
         }
@@ -497,10 +501,28 @@ object WearCompanionStateRepository {
                 headline = "Get Ready to Alight",
                 detail = "Next stop is $targetStop on ${current.lineName}"
             )
-            _latestWristAlertFlow.value = event
-            context?.let {
-                WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type)
-                WearNotificationPublisher.postConcourseAlertNotification(it, event)
+            if (context == null || WearNotificationPublisher.isAlertTypeEnabled(context, event.type)) {
+                _latestWristAlertFlow.value = event
+                context?.let {
+                    WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type)
+                    WearNotificationPublisher.postConcourseAlertNotification(it, event)
+                }
+            }
+        }
+        // 3. Check if service was cancelled while tracked
+        if (current.isCancelled && (previous == null || !previous.isCancelled)) {
+            val event = WearConcourseHapticAnnouncer.WristHapticEvent(
+                type = WearConcourseHapticAnnouncer.WristAlertType.DELAY_REPAY_ELIGIBLE,
+                departureId = current.departureId,
+                headline = "Service Cancelled",
+                detail = "${current.lineName} to ${current.destinationName} has been cancelled"
+            )
+            if (context == null || WearNotificationPublisher.isAlertTypeEnabled(context, event.type)) {
+                _latestWristAlertFlow.value = event
+                context?.let {
+                    WearConcourseHapticAnnouncer.triggerWristPulse(it, event.type)
+                    WearNotificationPublisher.postConcourseAlertNotification(it, event)
+                }
             }
         }
     }

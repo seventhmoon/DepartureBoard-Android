@@ -14,10 +14,12 @@ class WearCompanionSyncReceiver : BroadcastReceiver() {
         const val ACTION_SYNC_TRACKED_DEPARTURE = "com.androidfung.departureboard.wear.action.SYNC_TRACKED_DEPARTURE"
         const val ACTION_STOP_TRACKED_DEPARTURE = "com.androidfung.departureboard.wear.action.STOP_TRACKED_DEPARTURE"
         const val ACTION_SYNC_AI_RESPONSE = "com.androidfung.departureboard.wear.action.SYNC_AI_RESPONSE"
+        const val ACTION_SYNC_NOTIFICATION_PREFS = "com.androidfung.departureboard.wear.action.SYNC_NOTIFICATION_PREFS"
 
         const val EXTRA_BOARDS_JSON = "extra_boards_json"
         const val EXTRA_TRACKED_JSON = "extra_tracked_json"
         const val EXTRA_AI_RESPONSE_JSON = "extra_ai_response_json"
+        const val EXTRA_NOTIFICATION_PREFS_JSON = "extra_notification_prefs_json"
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
@@ -37,6 +39,10 @@ class WearCompanionSyncReceiver : BroadcastReceiver() {
             ACTION_SYNC_AI_RESPONSE -> {
                 val aiJson = intent.getStringExtra(EXTRA_AI_RESPONSE_JSON) ?: return
                 WearCompanionStateRepository.onReceiveAiResponseJson(aiJson)
+            }
+            ACTION_SYNC_NOTIFICATION_PREFS -> {
+                val prefsJson = intent.getStringExtra(EXTRA_NOTIFICATION_PREFS_JSON) ?: return
+                com.androidfung.departureboard.wear.haptic.WearNotificationPublisher.applySyncedPhonePreferences(context, prefsJson)
             }
         }
     }
