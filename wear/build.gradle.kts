@@ -24,6 +24,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt")
             )
@@ -35,8 +36,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    buildFeatures {
-        compose = true
+    lint {
+        disable += setOf("WearMaterialTheme", "WearRecents")
     }
 }
 

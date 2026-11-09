@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.MainActivity
 import com.androidfung.departureboard.appContainer
@@ -65,9 +66,7 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                 val departureId = intent.getStringExtra(EXTRA_DEPARTURE_ID).orEmpty()
                 if (stationId.isBlank()) return
 
-                val deepLinkUri = Uri.parse(
-                    "mindtheboard://station/${Uri.encode(stationId)}?name=${Uri.encode(stationName)}&departureId=${Uri.encode(departureId)}"
-                )
+                val deepLinkUri = "mindtheboard://station/${Uri.encode(stationId)}?name=${Uri.encode(stationName)}&departureId=${Uri.encode(departureId)}".toUri()
                 val openIntent = Intent(Intent.ACTION_VIEW, deepLinkUri, context, MainActivity::class.java).apply {
                     putExtra(MainActivity.EXTRA_STATION_ID, stationId)
                     putExtra(MainActivity.EXTRA_STATION_NAME, stationName)

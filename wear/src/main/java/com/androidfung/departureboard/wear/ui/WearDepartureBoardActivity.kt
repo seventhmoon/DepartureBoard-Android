@@ -103,14 +103,12 @@ import com.androidfung.departureboard.wear.sync.WearCompanionStateRepository
  */
 class WearDepartureBoardActivity : ComponentActivity() {
 
-    private var forceOpenSprintHudTrigger by mutableStateOf(0)
+    private var forceOpenSprintHudTrigger by mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        }
+        setShowWhenLocked(true)
+        setTurnScreenOn(true)
         val openSprintHudInitially = intent?.getBooleanExtra(
             WearNotificationPublisher.EXTRA_OPEN_SPRINT_HUD,
             false
