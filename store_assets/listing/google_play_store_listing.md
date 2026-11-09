@@ -57,30 +57,40 @@ Built with **Material 3 Expressive** design, EkiBoard delivers instant, clutter-
 ⚡ **Interactive Home Screen Widgets (Glance)**
 • Pin live station boards to your home screen with per-widget line & direction filtering, manual refresh, and background disruption notifications when your pinned commute lines are delayed.
 
-⌚ **Wear OS Companion App**
-• Syncs your saved commute stations and active tracked train directly to your wrist via the Wearable Data Layer.
-• Instant wrist haptic pulses when concourse platforms are announced (`TBD ➔ Plat 11`), automatic **Delay Repay (`+15m+`)** eligibility badges, and 1-tap **Wrist AI Concourse Triage**.
+⌚ **Wear OS Companion App — Built for the Concourse**
+• **Full-Screen Concourse Sprint & Alighting HUD:** Automatically launches when tracking a train—featuring a giant `PLAT X` hero badge, live `MM:SS` countdown timer, outer bezel progress ring, and on-watch calling-point selector for 1-stop alighting alerts.
+• **Instant Wrist Haptic & Wake-Screen Alerts:** Distinct vibration patterns and native Wear OS notifications when a concourse platform is announced (`TBD ➔ Plat 11`), a platform changes (`⚠️ P9`), or your target stop is 1 station away.
+• **Inline Calling Points, Coach Formations & Delay Repay:** Tap any departure to inspect coach counts (`10 coaches`) and calling points, plus automatic **Delay Repay (`💸 +15m+`)** eligibility badges.
+• **Wrist AI Concourse Triage (Voice & Keyboard):** Ask questions by voice (`🎤`), swipe keyboard (`⌨️`), or 1-tap triage prompts (*Fastest Train*, *Delays & Delay Repay*, *Last Train*) with instant `📱 Continue in Phone AI` handoff.
+• **On-Watch Station Search, Rotary Scroll & Ambient OLED Mode:** Add or search any station by voice/text directly on your watch, scroll with the rotary crown, and switch to burn-in-safe **Ambient OLED (`🌙`)** concourse mode.
+• **Motion-Gated Concourse Sprint Polling:** Automatically boosts live refresh cadence when walking into your station perimeter and provides a GPS alighting geofence safety net.
 
-📱 **Built for Foldables, Tablets & Desk Kiosks**
-• **Adaptive 2-Pane & 3-Pane Navigation:** View your station dashboard, station detail, and live calling-point timeline side-by-side on unfolded displays and tablets.
+📱 **Built for Foldables, Tablets & Desktops**
+• **Adaptive 2-Pane & 3-Pane Navigation:** View your station dashboard, station detail, and live calling-point timeline side-by-side on unfolded displays, tablets, and desktop/ChromeOS windows.
 • **Split-Flap & LED Desk Clock Mode:** Half-fold your device into **Tabletop Posture** to transform it into a retro mechanical Split-Flap, Amber LED, or OLED Matrix concourse board with a touch control deck.
 
 ---
 
 ## 4. What's New / Release Notes (Max 500 characters)
 
-### Option A — Standard Release Notes (486 characters)
+### Option A — Unified Phone + Wear OS Release Notes (492 characters)
 ```text
-• NEW Wear OS Companion App: Sync pinned stations & tracked trains to your wrist, get haptic pulses when concourse platforms are announced (TBD → Plat X), see automatic Delay Repay (+15m+) badges & run 1-tap Wrist AI triage!
-• Adaptive Platform Backlog Alerts: Automatic headway anomaly warnings when lines fall behind schedule.
-• Split-Flap & LED Desk Clock: Full-screen concourse board with foldable Tabletop Deck mode.
-• Enhanced Night Tube, Night Overground & Last Train indicators.
+• NEW Wear OS Companion App: Full-screen Concourse Sprint HUD with live MM:SS countdown & bezel progress ring, wake-screen platform announcement haptics (TBD → Plat X), 1-stop alighting selector, voice/keyboard Wrist AI triage, station search, Delay Repay (+15m+) badges & Ambient OLED mode!
+• Concourse Proximity & Sprint Polling: Motion-gated high-frequency refresh & GPS alighting safety net.
+• Split-Flap & LED Desk Clock with foldable Tabletop Deck mode & adaptive backlog alerts.
 ```
 
-### Option B — Concise Release Notes (342 characters)
+### Option B — Dedicated Wear OS Track Release Notes (478 characters)
 ```text
-• NEW Wear OS Watch App: Live concourse departure boards, Phone↔Watch tracking sync, platform announcement haptics, Delay Repay badges & Wrist AI triage.
-• Split-Flap & Amber LED Desk Clock with foldable Tabletop posture support.
-• Adaptive platform backlog warnings & AI Stationmaster voice readout.
-• Refined Night Tube & Overground schedules.
+• Concourse Sprint & Alighting HUD: Giant PLAT badge, live MM:SS countdown, outer bezel progress ring & on-watch calling-point alighting selector.
+• Native Wear OS Notifications & Haptics: Wake-screen alerts when platforms are announced (TBD → Plat X), altered (⚠️), or 1 stop before alighting.
+• Voice & Keyboard Wrist AI Triage + On-Watch Station Search.
+• Tap-to-expand coach counts & calling points, Delay Repay (+15m+) badges, rotary crown scroll & Ambient OLED mode.
+```
+
+### Option C — Concise Release Notes (346 characters)
+```text
+• Major Wear OS Upgrade: Concourse Sprint HUD, bezel countdown ring, wake-screen platform & alighting notifications, voice/keyboard AI triage, on-watch station search, expanded coach/calling-point drawers & Ambient OLED mode.
+• Motion-gated concourse sprint polling & GPS alighting geofence.
+• Split-Flap & LED Desk Clock for foldables/desktops.
 ```

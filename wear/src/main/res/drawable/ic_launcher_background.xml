@@ -1,0 +1,59 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Deep Architectural Station Canopy Midnight Canvas -->
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="16"
+                android:startY="6"
+                android:endX="92"
+                android:endY="102"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#1A243B" />
+                <item android:offset="0.48" android:color="#0D1322" />
+                <item android:offset="1.0" android:color="#050811" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Warm Amber LED Ambient Glow behind the Suspended Sign -->
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="50"
+                android:centerY="56"
+                android:gradientRadius="46"
+                android:type="radial">
+                <item android:offset="0.0" android:color="#2EFFB300" />
+                <item android:offset="0.55" android:color="#121E3A8A" />
+                <item android:offset="1.0" android:color="#00050811" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Subtle Emerald Signal Glow Accent on the Right -->
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="74"
+                android:centerY="50"
+                android:gradientRadius="34"
+                android:type="radial">
+                <item android:offset="0.0" android:color="#2200E676" />
+                <item android:offset="0.65" android:color="#080098D4" />
+                <item android:offset="1.0" android:color="#00000000" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Subtle Station Canopy Architectural Grid -->
+    <path
+        android:pathData="M0,27L108,27M0,54L108,54M0,81L108,81M27,0L27,108M54,0L54,108M81,0L81,108"
+        android:strokeWidth="0.4"
+        android:strokeColor="#0CFFFFFF" />
+</vector>

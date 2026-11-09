@@ -92,7 +92,7 @@ object WearNotificationPublisher {
             val targetTimestampMs = System.currentTimeMillis() + (journey.remainingSeconds.coerceAtLeast(0) * 1000L)
 
             val builder = NotificationCompat.Builder(context, if (isInitialStart) CHANNEL_ALERTS_ID else CHANNEL_TRACKING_ID)
-                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setSmallIcon(com.androidfung.departureboard.wear.R.drawable.ic_train)
                 .setColor(journey.lineColorArgb.toInt())
                 .setColorized(true)
                 .setSubText(journey.lineName)
@@ -159,7 +159,7 @@ object WearNotificationPublisher {
             )
 
             val notification = NotificationCompat.Builder(context, CHANNEL_ALERTS_ID)
-                .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                .setSmallIcon(com.androidfung.departureboard.wear.R.drawable.ic_railway_alert)
                 .setContentTitle("🔔 ${event.headline}")
                 .setContentText(event.detail)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(event.detail))
