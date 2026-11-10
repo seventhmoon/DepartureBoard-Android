@@ -33,6 +33,7 @@ import com.androidfung.departureboard.data.topology.CallingPointsEngine
 import com.androidfung.departureboard.ui.theme.AppThemeMode
 import com.androidfung.departureboard.util.CoalescingTimedCache
 import com.androidfung.departureboard.widget.DepartureBoardWidget
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -164,12 +165,16 @@ class TransitRepositoryImpl(
     override suspend fun setWidgetDisruptionNotificationsEnabled(enabled: Boolean) =
         dataStore.setWidgetDisruptionNotificationsEnabled(enabled)
 
+    private suspend fun currentRegionOrDefault(): TransitRegion = try {
+        dataStore.selectedRegionFlow.first()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        TransitRegion.GB
+    }
+
     override suspend fun searchStations(query: String): Result<List<Station>> = withContext(Dispatchers.IO) {
-        val currentRegion = try {
-            dataStore.selectedRegionFlow.first()
-        } catch (_: Exception) {
-            TransitRegion.GB
-        }
+        val currentRegion = currentRegionOrDefault()
         val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
         provider.searchStations(query)
     }
@@ -236,21 +241,13 @@ class TransitRepositoryImpl(
     }.flowOn(Dispatchers.IO)
 
     override suspend fun getLineStatuses(): Map<String, TflLineStatusItem> = withContext(Dispatchers.IO) {
-        val currentRegion = try {
-            dataStore.selectedRegionFlow.first()
-        } catch (_: Exception) {
-            TransitRegion.GB
-        }
+        val currentRegion = currentRegionOrDefault()
         val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
         provider.getLineStatuses()
     }
 
     override suspend fun getTransitAlerts(): List<TransitAlert> = withContext(Dispatchers.IO) {
-        val currentRegion = try {
-            dataStore.selectedRegionFlow.first()
-        } catch (_: Exception) {
-            TransitRegion.GB
-        }
+        val currentRegion = currentRegionOrDefault()
         val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
         provider.getTransitAlerts()
     }
@@ -263,6 +260,8 @@ class TransitRepositoryImpl(
         context?.let { ctx ->
             try {
                 DepartureBoardWidget().updateAll(ctx)
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {}
         }
     }
@@ -303,11 +302,7 @@ class TransitRepositoryImpl(
      * Fetches nearby stations for the currently selected region by latitude and longitude.
      */
     override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> = withContext(Dispatchers.IO) {
-        val currentRegion = try {
-            dataStore.selectedRegionFlow.first()
-        } catch (_: Exception) {
-            TransitRegion.GB
-        }
+        val currentRegion = currentRegionOrDefault()
         val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
         provider.getNearbyStations(lat, lon, radiusMeters)
     }
@@ -321,6 +316,8 @@ class TransitRepositoryImpl(
                     departures.map { CachedDepartureEntity.fromDeparture(it, now) }
                 )
                 departureDao.clearStaleDepartures(now - 3_600_000L)
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {}
         }
     }

@@ -254,7 +254,7 @@ object WearCompanionSyncPublisher {
                 val depsArray = JSONArray()
                 card.departures.take(6).forEach { dep ->
                     val resolvedPlat = dep.resolvedPlatform
-                    val platCode = compactPlatformForWatch(resolvedPlat.code ?: "")
+                    val platCode = compactPlatformForWatch(resolvedPlat.code)
                     val delayRepay = DelayRepayCalculator.evaluate(dep)
                     val depObj = JSONObject().apply {
                         put("id", dep.id)

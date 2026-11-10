@@ -31,7 +31,7 @@ class PhoneWearableListenerService : WearableListenerService() {
     override fun onMessageReceived(messageEvent: MessageEvent) {
         super.onMessageReceived(messageEvent)
         val path = messageEvent.path
-        val payloadStr = messageEvent.data?.let { String(it, Charsets.UTF_8) }.orEmpty()
+        val payloadStr = String(messageEvent.data, Charsets.UTF_8)
         val json = runCatching { if (payloadStr.isNotBlank()) JSONObject(payloadStr) else JSONObject() }
             .getOrDefault(JSONObject())
 

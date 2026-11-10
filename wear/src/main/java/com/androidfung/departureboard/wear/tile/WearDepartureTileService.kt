@@ -26,6 +26,7 @@ import androidx.wear.protolayout.TimelineBuilders.TimelineEntry
 import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.TileBuilders.Tile
 import androidx.wear.tiles.TileService
+import com.androidfung.departureboard.wear.haptic.WearNotificationPublisher
 import com.androidfung.departureboard.wear.model.WearDepartureItem
 import com.androidfung.departureboard.wear.model.WearStationBoard
 import com.androidfung.departureboard.wear.model.WearTrackedJourneyState
@@ -111,6 +112,14 @@ class WearDepartureTileService : TileService() {
                         ActionBuilders.AndroidActivity.Builder()
                             .setPackageName(context.packageName)
                             .setClassName(WearDepartureBoardActivity::class.java.name)
+                            .apply {
+                                if (tracked != null) {
+                                    addKeyToExtraMapping(
+                                        WearNotificationPublisher.EXTRA_OPEN_SPRINT_HUD,
+                                        ActionBuilders.booleanExtra(true)
+                                    )
+                                }
+                            }
                             .build()
                     )
                     .build()

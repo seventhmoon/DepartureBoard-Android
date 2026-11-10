@@ -131,6 +131,8 @@ class DynamicLmEngineImpl(
                 replies.collect { message ->
                     trySend(message.toString())
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Error during LiteRT-LM reply streaming", e)
                 trySend("\n[Inference error: ${e.localizedMessage}]")

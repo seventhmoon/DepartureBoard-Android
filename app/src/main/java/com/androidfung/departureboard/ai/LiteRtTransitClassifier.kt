@@ -35,9 +35,13 @@ class LiteRtTransitClassifier(
     companion object {
         private const val TAG = "LiteRtClassifier"
         private const val MODEL_ASSET_NAME = "transit_classifier.tflite"
+        private val WHITESPACE_REGEX = Regex("\\s+")
     }
 
+    private val interpreterLock = Any()
+    @Volatile
     private var interpreter: InterpreterApi? = null
+    @Volatile
     private var isPlayServicesInitialized = false
 
     init {
@@ -64,17 +68,22 @@ class LiteRtTransitClassifier(
             }.getOrDefault(false)
 
             if (hasAsset) {
-                val assetDescriptor = context.assets.openFd(MODEL_ASSET_NAME)
-                val inputStream = java.io.FileInputStream(assetDescriptor.fileDescriptor)
-                val fileChannel = inputStream.channel
-                val modelBuffer = fileChannel.map(
-                    java.nio.channels.FileChannel.MapMode.READ_ONLY,
-                    assetDescriptor.startOffset,
-                    assetDescriptor.declaredLength
-                )
-                val options = InterpreterApi.Options()
-                    .setRuntime(InterpreterApi.Options.TfLiteRuntime.FROM_SYSTEM_ONLY)
-                interpreter = InterpreterApi.create(modelBuffer, options)
+                val created = context.assets.openFd(MODEL_ASSET_NAME).use { assetDescriptor ->
+                    java.io.FileInputStream(assetDescriptor.fileDescriptor).use { inputStream ->
+                        val modelBuffer = inputStream.channel.map(
+                            java.nio.channels.FileChannel.MapMode.READ_ONLY,
+                            assetDescriptor.startOffset,
+                            assetDescriptor.declaredLength
+                        )
+                        val options = InterpreterApi.Options()
+                            .setRuntime(InterpreterApi.Options.TfLiteRuntime.FROM_SYSTEM_ONLY)
+                        InterpreterApi.create(modelBuffer, options)
+                    }
+                }
+                synchronized(interpreterLock) {
+                    interpreter?.close()
+                    interpreter = created
+                }
                 Log.d(TAG, "Interpreter loaded via Google Play Services runtime.")
             }
         } catch (e: Exception) {
@@ -91,8 +100,7 @@ class LiteRtTransitClassifier(
     fun classifyIntent(query: String): TransitClassificationResult {
         val clean = query.trim().lowercase()
 
-        val activeInterpreter = interpreter
-        if (activeInterpreter != null) {
+        if (interpreter != null) {
             try {
                 val inputBuffer = ByteBuffer.allocateDirect(32 * 4).order(ByteOrder.nativeOrder())
                 val features = extractFeatures(clean)
@@ -100,14 +108,23 @@ class LiteRtTransitClassifier(
                 inputBuffer.rewind()
 
                 val outputBuffer = ByteBuffer.allocateDirect(TransitQueryIntent.entries.size * 4).order(ByteOrder.nativeOrder())
-                activeInterpreter.run(inputBuffer, outputBuffer)
-                outputBuffer.rewind()
-
-                val scores = FloatArray(TransitQueryIntent.entries.size)
-                outputBuffer.asFloatBuffer().get(scores)
-                val maxIdx = scores.indices.maxByOrNull { scores[it] } ?: 0
-                val predictedIntent = TransitQueryIntent.entries.getOrElse(maxIdx) { TransitQueryIntent.GENERAL_QUERY }
-                return TransitClassificationResult(predictedIntent, scores[maxIdx])
+                val ranInference = synchronized(interpreterLock) {
+                    val activeInterpreter = interpreter
+                    if (activeInterpreter != null) {
+                        activeInterpreter.run(inputBuffer, outputBuffer)
+                        true
+                    } else {
+                        false
+                    }
+                }
+                if (ranInference) {
+                    outputBuffer.rewind()
+                    val scores = FloatArray(TransitQueryIntent.entries.size)
+                    outputBuffer.asFloatBuffer().get(scores)
+                    val maxIdx = scores.indices.maxByOrNull { scores[it] } ?: 0
+                    val predictedIntent = TransitQueryIntent.entries.getOrElse(maxIdx) { TransitQueryIntent.GENERAL_QUERY }
+                    return TransitClassificationResult(predictedIntent, scores[maxIdx])
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "Play Services LiteRT inference error, using heuristic fallback", e)
             }
@@ -131,7 +148,7 @@ class LiteRtTransitClassifier(
 
     private fun extractFeatures(query: String, size: Int = 32): FloatArray {
         val array = FloatArray(size)
-        val tokens = query.split("\\s+".toRegex())
+        val tokens = query.split(WHITESPACE_REGEX)
         for ((idx, token) in tokens.withIndex()) {
             if (idx >= size) break
             array[idx] = (token.hashCode() % 1000) / 1000f
@@ -140,7 +157,9 @@ class LiteRtTransitClassifier(
     }
 
     override fun close() {
-        interpreter?.close()
-        interpreter = null
+        synchronized(interpreterLock) {
+            interpreter?.close()
+            interpreter = null
+        }
     }
 }

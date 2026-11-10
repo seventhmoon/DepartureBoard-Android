@@ -14,8 +14,10 @@ import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.repository.TransitRepository
 import com.androidfung.departureboard.data.repository.TransitRepositoryImpl
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -399,6 +401,8 @@ class DashboardViewModel @JvmOverloads constructor(
         return if (departures.isEmpty() || isLateNightOrEarlyMorning) {
             val apiServiceHours = try {
                 repository.checkStationServiceHours(station.id, candidateLineId)
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 null
             }
@@ -417,11 +421,11 @@ class DashboardViewModel @JvmOverloads constructor(
     }
 
     private suspend fun refreshDeparturesForStations(stations: List<Station>) {
-        val lineStatusesDeferred = viewModelScope.async { repository.getLineStatuses() }
-        val batchDeparturesDeferred = viewModelScope.async { repository.getBatchDepartures(stations) }
-
-        val lineStatuses = lineStatusesDeferred.await()
-        val results = batchDeparturesDeferred.await()
+        val (lineStatuses, results) = coroutineScope {
+            val lineStatusesDeferred = async { repository.getLineStatuses() }
+            val batchDeparturesDeferred = async { repository.getBatchDepartures(stations) }
+            lineStatusesDeferred.await() to batchDeparturesDeferred.await()
+        }
         val stationsById = stations.associateBy { it.id }
         val verifiedByStationId = results.mapNotNull { (stationId, res) ->
             val st = stationsById[stationId] ?: _uiState.value.stationCards.firstOrNull { it.station.id == stationId }?.station

@@ -17,10 +17,13 @@ import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.service.TrainTrackingService
 import com.androidfung.departureboard.util.DelayRepayCalculator
 import com.androidfung.departureboard.util.PlatformBacklogDetector
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Receives companion actions sent from the Wear OS app (`:wear`) to the Phone app (`:app`):
@@ -34,6 +37,8 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "PhoneCompanionReceiver"
+        private const val ASYNC_BROADCAST_TIMEOUT_MS = 8_000L
+        private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         const val ACTION_OPEN_ON_PHONE = "com.androidfung.departureboard.action.WEAR_OPEN_ON_PHONE"
         const val ACTION_START_TRACKING_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_START_TRACKING"
@@ -146,29 +151,33 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                 val rawStationName = intent.getStringExtra(EXTRA_STATION_NAME).orEmpty().trim()
                 if (rawStationId.isBlank() && rawStationName.isBlank()) return
                 val pendingResult = goAsync()
-                CoroutineScope(Dispatchers.IO).launch {
+                receiverScope.launch {
                     try {
-                        val repo = context.applicationContext.appContainer.transitRepository
-                        val currentRegion = repo.selectedRegionFlow.first()
-                        val matchedFromQuery = if (rawStationId.startsWith("search:", ignoreCase = true) || rawStationId.isBlank()) {
-                            val q = rawStationName.ifBlank { rawStationId.removePrefix("search:") }
-                            currentRegion.directory?.searchStations(q)?.firstOrNull()
-                                ?: repo.searchStations(q).getOrNull()?.firstOrNull()
-                        } else null
+                        withTimeoutOrNull(ASYNC_BROADCAST_TIMEOUT_MS) {
+                            val repo = context.applicationContext.appContainer.transitRepository
+                            val currentRegion = repo.selectedRegionFlow.first()
+                            val matchedFromQuery = if (rawStationId.startsWith("search:", ignoreCase = true) || rawStationId.isBlank()) {
+                                val q = rawStationName.ifBlank { rawStationId.removePrefix("search:") }
+                                currentRegion.directory?.searchStations(q)?.firstOrNull()
+                                    ?: repo.searchStations(q).getOrNull()?.firstOrNull()
+                            } else null
 
-                        val stationId = matchedFromQuery?.id ?: rawStationId
-                        val stationName = matchedFromQuery?.name ?: rawStationName.ifBlank { stationId }
-                        val region = TransitRegion.fromStationId(stationId)
-                        val known = matchedFromQuery
-                            ?: region.directory?.getStationById(stationId)
-                            ?: repo.getStationById(stationId)
-                            ?: Station(
-                                id = stationId,
-                                name = stationName,
-                                modes = if (stationId.startsWith("910G")) listOf("national-rail") else listOf("tube"),
-                                isFavorite = true
-                            )
-                        repo.saveStation(known.copy(isFavorite = true))
+                            val stationId = matchedFromQuery?.id ?: rawStationId
+                            val stationName = matchedFromQuery?.name ?: rawStationName.ifBlank { stationId }
+                            val region = TransitRegion.fromStationId(stationId)
+                            val known = matchedFromQuery
+                                ?: region.directory?.getStationById(stationId)
+                                ?: repo.getStationById(stationId)
+                                ?: Station(
+                                    id = stationId,
+                                    name = stationName,
+                                    modes = if (stationId.startsWith("910G")) listOf("national-rail") else listOf("tube"),
+                                    isFavorite = true
+                                )
+                            repo.saveStation(known.copy(isFavorite = true))
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to add station from watch", e)
                     } finally {
@@ -180,10 +189,14 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
             ACTION_REMOVE_STATION_FROM_WATCH -> {
                 val stationId = intent.getStringExtra(EXTRA_STATION_ID)?.takeIf { it.isNotBlank() } ?: return
                 val pendingResult = goAsync()
-                CoroutineScope(Dispatchers.IO).launch {
+                receiverScope.launch {
                     try {
-                        val repo = context.applicationContext.appContainer.transitRepository
-                        repo.removeStation(stationId)
+                        withTimeoutOrNull(ASYNC_BROADCAST_TIMEOUT_MS) {
+                            val repo = context.applicationContext.appContainer.transitRepository
+                            repo.removeStation(stationId)
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to remove station from watch", e)
                     } finally {
@@ -216,24 +229,28 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                 val promptType = intent.getStringExtra(EXTRA_AI_PROMPT_TYPE).orEmpty()
                 val queryText = intent.getStringExtra(EXTRA_AI_QUERY_TEXT).orEmpty()
                 val pendingResult = goAsync()
-                CoroutineScope(Dispatchers.IO).launch {
+                receiverScope.launch {
                     try {
-                        val repo = context.applicationContext.appContainer.transitRepository
-                        val departures = repo.getDepartures(stationId, stationName).getOrDefault(emptyList())
-                        val (headline, summary) = synthesizeConcourseTriage(
-                            stationId = stationId,
-                            stationName = stationName,
-                            promptType = promptType,
-                            queryText = queryText,
-                            departures = departures
-                        )
-                        WearCompanionSyncPublisher.publishAiResponse(
-                            context = context,
-                            stationId = stationId,
-                            headline = headline,
-                            summary = summary,
-                            rawQuery = queryText.ifBlank { "Concourse Triage at $stationName" }
-                        )
+                        withTimeoutOrNull(ASYNC_BROADCAST_TIMEOUT_MS) {
+                            val repo = context.applicationContext.appContainer.transitRepository
+                            val departures = repo.getDepartures(stationId, stationName).getOrDefault(emptyList())
+                            val (headline, summary) = synthesizeConcourseTriage(
+                                stationId = stationId,
+                                stationName = stationName,
+                                promptType = promptType,
+                                queryText = queryText,
+                                departures = departures
+                            )
+                            WearCompanionSyncPublisher.publishAiResponse(
+                                context = context,
+                                stationId = stationId,
+                                headline = headline,
+                                summary = summary,
+                                rawQuery = queryText.ifBlank { "Concourse Triage at $stationName" }
+                            )
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed to evaluate watch AI query on phone", e)
                     } finally {

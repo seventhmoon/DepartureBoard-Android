@@ -1,13 +1,19 @@
 package com.androidfung.departureboard.util
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.location.Location
+import android.os.SystemClock
+import androidx.core.content.ContextCompat
 import com.androidfung.departureboard.data.model.Station
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -40,18 +46,38 @@ class LocationDataSourceImpl(
 
 object LocationHelper {
 
+    private const val MAX_LAST_LOCATION_AGE_MS = 2 * 60 * 1000L // 2 minutes
+    private const val ACTIVE_FIX_TIMEOUT_MS = 4_000L
+
+    private fun hasLocationPermission(context: Context): Boolean {
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
+
     @SuppressLint("MissingPermission")
     suspend fun getCurrentLocation(context: Context): Location? {
+        if (!hasLocationPermission(context)) return null
         return try {
             val fusedClient = LocationServices.getFusedLocationProviderClient(context)
-            // First check lastLocation for instant response
+            // First check lastLocation for instant response if fresh
             val lastLoc = fusedClient.lastLocation.await()
             if (lastLoc != null) {
-                lastLoc
-            } else {
-                val cts = CancellationTokenSource()
-                fusedClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token).await()
+                val ageMs = (SystemClock.elapsedRealtimeNanos() - lastLoc.elapsedRealtimeNanos) / 1_000_000L
+                if (ageMs in 0..MAX_LAST_LOCATION_AGE_MS) {
+                    return lastLoc
+                }
             }
+            val cts = CancellationTokenSource()
+            val activeFix = try {
+                withTimeoutOrNull(ACTIVE_FIX_TIMEOUT_MS) {
+                    fusedClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token).await()
+                }
+            } finally {
+                cts.cancel()
+            }
+            activeFix ?: lastLoc
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Throwable) {
             null
         }

@@ -3,9 +3,11 @@ package com.androidfung.departureboard.util
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -90,8 +92,10 @@ class CoalescingTimedCache<K : Any, V>(
                     }
                     loaded
                 } finally {
-                    lock.withLock {
-                        inFlight.remove(key)
+                    withContext(NonCancellable) {
+                        lock.withLock {
+                            inFlight.remove(key)
+                        }
                     }
                 }
             }.also { inFlight[key] = it }

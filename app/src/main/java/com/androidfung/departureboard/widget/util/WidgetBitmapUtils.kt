@@ -47,7 +47,7 @@ object WidgetBitmapUtils {
         distinctImageCount: Int = 1,
         config: Bitmap.Config = Bitmap.Config.RGB_565
     ): Bitmap? {
-        var stream = inputStreamProvider() ?: return null
+        val probeStream = inputStreamProvider() ?: return null
 
         val density = context.resources.displayMetrics.density
         val targetWidthPx = max(1, (maxWidthDp * density).toInt())
@@ -58,8 +58,9 @@ object WidgetBitmapUtils {
             inJustDecodeBounds = true
             inPreferredConfig = config
         }
-        BitmapFactory.decodeStream(stream, null, options)
-        stream.close()
+        probeStream.use { stream ->
+            BitmapFactory.decodeStream(stream, null, options)
+        }
 
         if (options.outWidth <= 0 || options.outHeight <= 0) return null
 
@@ -95,10 +96,10 @@ object WidgetBitmapUtils {
         // 4. Decode final bitmap
         options.inJustDecodeBounds = false
         options.inSampleSize = sampleSize
-        stream = inputStreamProvider() ?: return null
-        val bitmap = BitmapFactory.decodeStream(stream, null, options)
-        stream?.close()
-        return bitmap
+        val decodeStream = inputStreamProvider() ?: return null
+        return decodeStream.use { stream ->
+            BitmapFactory.decodeStream(stream, null, options)
+        }
     }
 
     /**
@@ -118,6 +119,7 @@ object WidgetBitmapUtils {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 85, fos)
                 } else {
+                    @Suppress("DEPRECATION")
                     bitmap.compress(Bitmap.CompressFormat.WEBP, 85, fos)
                 }
             }

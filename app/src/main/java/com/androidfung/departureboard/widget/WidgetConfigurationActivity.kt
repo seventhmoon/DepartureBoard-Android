@@ -61,6 +61,7 @@ import androidx.core.content.edit
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
+import androidx.lifecycle.lifecycleScope
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.appContainer
 import com.androidfung.departureboard.billing.BillingDataSource
@@ -154,8 +155,7 @@ class WidgetConfigurationActivity : AppCompatActivity() {
     ) {
         isFinalizing = true
 
-        val coroutineScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
-        coroutineScope.launch {
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             // Persist keyed to this appWidgetId on Dispatchers.IO before Glance update & finish()
             val sp = applicationContext.getSharedPreferences("widget_config", MODE_PRIVATE)
             sp.edit(commit = true) {
@@ -202,6 +202,8 @@ class WidgetConfigurationActivity : AppCompatActivity() {
                 }
 
                 DepartureBoardWidget().update(applicationContext, glanceId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 android.util.Log.e("WidgetConfig", "Failed to update widget state for appWidgetId $appWidgetId", e)
             }

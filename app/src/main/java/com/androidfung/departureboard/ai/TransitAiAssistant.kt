@@ -80,16 +80,17 @@ class TransitAiAssistant(
                 AiModelType.DEFAULT -> AiExecutionTier.LITERT_LOCAL_CLASSIFIER
             }
 
-        val result = executeQueryInternal(query, savedStations, nearestStation)
+        val result = executeQueryInternal(query, savedStations, nearestStation, classified)
 
         val finalAnswer = when (executionTier) {
             AiExecutionTier.ON_DEVICE_LLM -> {
                 val engine = dynamicAiProvider?.loadDynamicEngine()
                 if (engine != null && engine.loadModel()) {
-                    var generated = ""
                     val prompt = "Commuter asked: \"$query\". Transit context: \"${result.answer}\". Provide a friendly, concise response:"
-                    engine.streamReply(prompt).collect { chunk ->
-                        generated += chunk
+                    val generated = buildString {
+                        engine.streamReply(prompt).collect { chunk ->
+                            append(chunk)
+                        }
                     }
                     if (generated.isNotBlank()) "🤖 [LiteRT-LM Dynamic] $generated" else "🤖 [Local AI] ${result.answer}"
                 } else if (dynamicAiProvider?.isFeatureInstalled == false) {
@@ -109,16 +110,17 @@ class TransitAiAssistant(
     private suspend fun executeQueryInternal(
         query: String,
         savedStations: List<Station>,
-        nearestStation: Station? = null
+        nearestStation: Station? = null,
+        preClassified: TransitClassificationResult? = null
     ): AiTransitResult {
         val cleanQuery = query.trim().lowercase()
 
         // 1. Check if the query asks about a specific bus line (e.g. "221", "SL1", "73")
-        val busLineMatch = Regex("""\b(?:bus\s+)?([0-9]{1,3}|sl[0-9]{1,2}|n[0-9]{1,3})\b""", RegexOption.IGNORE_CASE).find(cleanQuery)
+        val busLineMatch = BUS_LINE_REGEX.find(cleanQuery)
         val queriedLine = busLineMatch?.groupValues?.getOrNull(1)?.uppercase()
 
         // 2. Identify if an explicit origin station was specified with "from <station>"
-        val fromStationMatch = Regex("""\bfrom\s+([a-zA-Z0-9\s'.]+?)(?:\s+to|\?|$)""").find(cleanQuery)
+        val fromStationMatch = FROM_STATION_REGEX.find(cleanQuery)
         val explicitOriginName = fromStationMatch?.groupValues?.getOrNull(1)?.trim()
 
         var originStation: Station? = null
@@ -135,7 +137,7 @@ class TransitAiAssistant(
                 cleanQuery.contains("around me") ||
                 cleanQuery.contains("closest") ||
                 cleanQuery.contains("nearest") ||
-                Regex("""\bhere\b""").containsMatchIn(cleanQuery)
+                HERE_WORD_REGEX.containsMatchIn(cleanQuery)
 
         // Dynamically resolve live nearest station via LocationDataSource if available and nearestStation is null or stale
         var resolvedNearestStation = nearestStation
@@ -143,7 +145,7 @@ class TransitAiAssistant(
         if ((isExplicitNearMe || resolvedNearestStation == null) && locationDataSource != null) {
             val userCoords = locationDataSource.getCurrentCoordinates()
             if (userCoords != null) {
-                val apiNearby = runCatching {
+                val apiNearby = com.androidfung.departureboard.util.runSuspendCatching {
                     repository.getNearbyStationsFromApi(userCoords.latitude, userCoords.longitude, 2000)
                 }.getOrDefault(emptyList())
 
@@ -171,7 +173,7 @@ class TransitAiAssistant(
         val defaultOrigin = originStation ?: resolvedNearestStation ?: savedStations.firstOrNull()
 
         // 3. Identify target destination station
-        val toMatch = Regex("""\bto\s+([a-zA-Z0-9\s'.]+?)(?:\s+from|\?|$)""").find(cleanQuery)
+        val toMatch = TO_STATION_REGEX.find(cleanQuery)
         val targetDestinationName = toMatch?.groupValues?.getOrNull(1)?.trim()?.lowercase()
 
         // Prioritize stations based on user location and query context:
@@ -179,7 +181,7 @@ class TransitAiAssistant(
         val isTrainQuery = cleanQuery.contains("train") || cleanQuery.contains("tube") || cleanQuery.contains("underground")
 
         // 4. LiteRT-Runtime Intent Classification
-        val classified = classifier?.classifyIntent(query)
+        val classified = preClassified ?: classifier?.classifyIntent(query)
         val isClassifiedStatus = classified?.intent == TransitQueryIntent.SERVICE_STATUS ||
                 classified?.intent == TransitQueryIntent.DISRUPTION_CHECK
 
@@ -631,7 +633,7 @@ class TransitAiAssistant(
             "customer incident" in lower || "casualty" in lower -> "Emergency services are attending a platform incident"
             "train fault" in lower || "defective train" in lower -> "A stalled train ahead is causing queues on the line"
             "speed restriction" in lower -> "Temporary speed limits are in place to ensure track safety"
-            else -> rawReason.replace(Regex("""\s+"""), " ").trim()
+            else -> rawReason.replace(WHITESPACE_REGEX, " ").trim()
         }
     }
 
@@ -648,5 +650,13 @@ class TransitAiAssistant(
             "bakerloo" in lower -> "Jubilee and Northern lines cover shared corridors between Waterloo and central London."
             else -> null
         }
+    }
+
+    companion object {
+        private val BUS_LINE_REGEX = Regex("""\b(?:bus\s+)?([0-9]{1,3}|sl[0-9]{1,2}|n[0-9]{1,3})\b""", RegexOption.IGNORE_CASE)
+        private val FROM_STATION_REGEX = Regex("""\bfrom\s+([a-zA-Z0-9\s'.]+?)(?:\s+to|\?|$)""")
+        private val HERE_WORD_REGEX = Regex("""\bhere\b""")
+        private val TO_STATION_REGEX = Regex("""\bto\s+([a-zA-Z0-9\s'.]+?)(?:\s+from|\?|$)""")
+        private val WHITESPACE_REGEX = Regex("""\s+""")
     }
 }

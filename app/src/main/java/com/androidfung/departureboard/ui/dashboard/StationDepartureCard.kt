@@ -278,10 +278,12 @@ fun StationDepartureCard(
                     val showServiceHours = serviceHours != null && (serviceHours.isApproachingLastTrain || serviceHours.isNightServiceActive)
 
                     // Disruption Banners (if any)
-                    val disruptedBadgesToShow = if (selectedLineId != null) {
-                        cardModel.availableLineBadges.filter { TransitIconHelper.isSameLine(it.lineId, selectedLineId) && it.isDisrupted }
-                    } else {
-                        cardModel.availableLineBadges.filter { it.isDisrupted }
+                    val disruptedBadgesToShow = remember(cardModel.availableLineBadges, selectedLineId) {
+                        if (selectedLineId != null) {
+                            cardModel.availableLineBadges.filter { TransitIconHelper.isSameLine(it.lineId, selectedLineId) && it.isDisrupted }
+                        } else {
+                            cardModel.availableLineBadges.filter { it.isDisrupted }
+                        }
                     }
 
                     val hasAnyAlerts = disruptedBadgesToShow.isNotEmpty() || firstBacklog != null || showServiceHours
@@ -307,7 +309,7 @@ fun StationDepartureCard(
                                 PlatformBacklogBanner(alert = firstBacklog)
                             }
 
-                            if (showServiceHours && serviceHours != null) {
+                            if (showServiceHours) {
                                 LastTrainServiceBanner(serviceHoursInfo = serviceHours)
                             }
                         }

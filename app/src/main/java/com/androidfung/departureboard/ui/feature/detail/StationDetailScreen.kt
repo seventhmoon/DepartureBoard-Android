@@ -560,11 +560,7 @@ private fun StationDetailContent(
                             try {
                                 context.startActivity(fallbackIntent)
                             } catch (_: android.content.ActivityNotFoundException) {
-                                val browserUri = if (station.lat != null && station.lon != null) {
-                                    "https://www.google.com/maps/search/?api=1&query=$encodedQuery".toUri()
-                                } else {
-                                    "https://www.google.com/maps/search/?api=1&query=$encodedQuery".toUri()
-                                }
+                                val browserUri = "https://www.google.com/maps/search/?api=1&query=$encodedQuery".toUri()
                                 context.startActivity(Intent(Intent.ACTION_VIEW, browserUri))
                             }
                         }

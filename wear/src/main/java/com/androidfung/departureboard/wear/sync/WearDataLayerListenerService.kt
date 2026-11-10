@@ -20,7 +20,7 @@ class WearDataLayerListenerService : WearableListenerService() {
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
         super.onMessageReceived(messageEvent)
-        val payload = messageEvent.data?.let { String(it, Charsets.UTF_8) }.orEmpty()
+        val payload = String(messageEvent.data, Charsets.UTF_8)
         when (messageEvent.path) {
             PATH_SYNC_STATION_BOARDS -> {
                 if (payload.isNotBlank()) {

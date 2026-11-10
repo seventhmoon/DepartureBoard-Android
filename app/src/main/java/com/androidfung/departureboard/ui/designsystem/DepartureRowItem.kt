@@ -267,7 +267,7 @@ fun DepartureRowItem(
                             color = MaterialTheme.colorScheme.errorContainer
                         ) {
                             Text(
-                                text = "⚠️ " + stringResource(R.string.platform_changed_alert, departure.platform.code.orEmpty(), departure.platform?.previousPlatform.orEmpty()),
+                                text = "⚠️ " + stringResource(R.string.platform_changed_alert, departure.platform.code.orEmpty(), departure.platform.previousPlatform),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)

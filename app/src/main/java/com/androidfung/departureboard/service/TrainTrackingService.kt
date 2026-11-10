@@ -46,6 +46,8 @@ class TrainTrackingService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var trackingJob: Job? = null
+    @Volatile
+    private var retainNotificationOnDestroy = false
 
     companion object {
         private const val TAG = "TrainTrackingService"
@@ -318,10 +320,12 @@ class TrainTrackingService : Service() {
 
         when (intent?.action) {
             ACTION_STOP_TRACKING -> {
+                retainNotificationOnDestroy = false
                 stopTrackingInternal()
                 stopSelf()
             }
             ACTION_START_TRACKING -> {
+                retainNotificationOnDestroy = false
                 val departureId = intent.getStringExtra(EXTRA_DEPARTURE_ID) ?: return START_NOT_STICKY
                 val stationId = intent.getStringExtra(EXTRA_STATION_ID) ?: ""
                 val stationName = intent.getStringExtra(EXTRA_STATION_NAME) ?: ""
@@ -696,6 +700,21 @@ class TrainTrackingService : Service() {
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to update notification for cancellation", e)
                     }
+                    com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishTrackedDeparture(
+                        context = applicationContext,
+                        departureId = activeDepartureId,
+                        stationId = stationId,
+                        stationName = stationName,
+                        destinationName = currentDestination,
+                        lineName = lineName,
+                        platform = currentPlatform,
+                        remainingSeconds = remainingSeconds,
+                        currentLocation = getString(R.string.status_cancelled),
+                        stopsAway = null,
+                        targetAlightStopName = _targetAlightStopFlow.value,
+                        isCancelled = true,
+                        lineColorArgb = lineColorArgb
+                    )
                     break
                 }
 
@@ -787,7 +806,7 @@ class TrainTrackingService : Service() {
                 // GPS Geofence Safety Net for Target Alighting Stop (works even when underground/tunnel feed lags)
                 val activeTargetAlight = _targetAlightStopFlow.value
                 if (!activeTargetAlight.isNullOrBlank() && (!hasPostedAlightAlert || lastAlertedTargetStop != activeTargetAlight)) {
-                    runCatching {
+                    com.androidfung.departureboard.util.runSuspendCatching {
                         val userLoc = com.androidfung.departureboard.util.LocationHelper.getCurrentLocation(applicationContext)
                         if (userLoc != null && com.androidfung.departureboard.util.ConcourseActivityGate.isInsideTargetAlightGeofence(
                                 userLat = userLoc.latitude,
@@ -874,14 +893,20 @@ class TrainTrackingService : Service() {
             if (isServiceCancelled || remainingSeconds <= 0) {
                 // Release foreground status so service can terminate, while retaining the
                 // cancellation notice or 60-second arrival boarding card on the lock screen.
+                retainNotificationOnDestroy = true
+                currentlyTrackedDepartureId = null
+                _targetAlightStopFlow.value = null
+                if (!isServiceCancelled) {
+                    com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishTrackingStopped(applicationContext)
+                }
                 try {
                     ServiceCompat.stopForeground(this@TrainTrackingService, ServiceCompat.STOP_FOREGROUND_DETACH)
                 } catch (e: Exception) {
                     Log.e(TAG, "Error detaching foreground status", e)
                 }
-                currentlyTrackedDepartureId = null
                 stopSelf()
             } else {
+                retainNotificationOnDestroy = false
                 stopTrackingInternal()
                 stopSelf()
             }
@@ -1158,7 +1183,11 @@ class TrainTrackingService : Service() {
         super.onDestroy()
         try {
             serviceScope.cancel()
-            stopTrackingInternal()
+            trackingJob?.cancel()
+            trackingJob = null
+            if (!retainNotificationOnDestroy) {
+                stopTrackingInternal()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error in onDestroy", e)
         }

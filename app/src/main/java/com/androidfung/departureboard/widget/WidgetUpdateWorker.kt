@@ -10,6 +10,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.androidfung.departureboard.appContainer
+import kotlinx.coroutines.CancellationException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -35,11 +36,15 @@ class WidgetUpdateWorker(
             try {
                 val repository = appContext.appContainer.transitRepository
                 WidgetDisruptionNotificationManager.checkAndNotifyDisruptions(appContext, repository)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 android.util.Log.w("WidgetUpdateWorker", "Disruption notification check encountered an error", e)
             }
 
             Result.success()
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
             Result.retry()
         }
