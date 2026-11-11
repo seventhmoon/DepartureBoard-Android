@@ -143,55 +143,18 @@ data class WearAiConcourseResponse(
 
 object WearSnapshotFormatter {
 
-    private val PLATFORM_NUMBER_REGEX = Regex("""(?:Plat(?:form)?\s*)?(\d+[A-Za-z]?)\b""", RegexOption.IGNORE_CASE)
-
     /**
-     * Compacts verbose TfL/Darwin platform strings (e.g. `"6 • Eastbound"`, `"Eastbound - Platform 6"`)
+     * Compacts verbose TfL/Darwin/MTR/JR platform strings (e.g. `"6 • Eastbound"`, `"Eastbound - Platform 6"`)
      * into a short single-token badge (`"6"`, `"12A"`, `"EB"`, `"NB"`, or `"TBD"`) that never wraps on a watch face.
      */
-    fun compactPlatformCode(raw: String): String {
-        val trimmed = raw
-            .replace("Platform", "", ignoreCase = true)
-            .replace("Plat", "", ignoreCase = true)
-            .trim()
-        if (trimmed.isBlank() || trimmed.equals("TBD", ignoreCase = true)) return "TBD"
-
-        // 1. If there is a platform number (e.g. "6 • Eastbound" or "Eastbound - 6"), extract just the number
-        PLATFORM_NUMBER_REGEX.find(trimmed)?.groupValues?.getOrNull(1)?.let { num ->
-            if (num.isNotBlank()) return num.uppercase()
-        }
-
-        // 2. Otherwise shorten compass / rail directions
-        val lower = trimmed.lowercase()
-        return when {
-            lower.contains("eastbound") -> "EB"
-            lower.contains("westbound") -> "WB"
-            lower.contains("northbound") -> "NB"
-            lower.contains("southbound") -> "SB"
-            lower.contains("inner") -> "IR"
-            lower.contains("outer") -> "OR"
-            else -> trimmed.split("•", "-").first().trim().take(5).ifBlank { "TBD" }
-        }
-    }
+    fun compactPlatformCode(raw: String): String =
+        com.androidfung.departureboard.core.wearcontract.CompactTransitFormatter.compactPlatformCode(raw)
 
     /**
      * Shortens verbose station and destination names for round Wear OS screens.
      */
-    fun compactStationName(raw: String): String {
-        var name = raw
-            .replace("Underground Station", "", ignoreCase = true)
-            .replace("Rail Station", "", ignoreCase = true)
-            .replace("DLR Station", "", ignoreCase = true)
-            .replace("Overground Station", "", ignoreCase = true)
-            .replace("Station", "", ignoreCase = true)
-            .replace("King's Cross St. Pancras", "King's Cross")
-            .replace("Kings Cross St Pancras", "King's Cross")
-            .replace("London ", "")
-            .replace(Regex("""\s*\([^)]*\)"""), "")
-            .trim()
-        if (name.isBlank()) name = raw.trim()
-        return name
-    }
+    fun compactStationName(raw: String): String =
+        com.androidfung.departureboard.core.wearcontract.CompactTransitFormatter.compactStationName(raw)
 
     /**
      * Converts verbose vehicle location strings (e.g. `"Between Finsbury Park and Manor House"`)

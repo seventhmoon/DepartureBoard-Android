@@ -39,7 +39,9 @@ object DelayRepayCalculator {
         "clapham", "reading", "crewe", "birmingham", "manchester", "leeds", "york",
         "edinburgh", "glasgow", "bristol", "cardiff", "east croydon", "finsbury park",
         "shibuya", "shinjuku", "tokyo", "shinagawa", "ueno", "ikebukuro", "osaka", "kyoto",
-        "admiralty", "central", "kowloon", "hung hom", "tai wai", "nam cheong",
+        "admiralty", "kowloon", "hung hom", "tai wai", "nam cheong", "north point", "quarry bay",
+        "dhoby ghaut", "jurong east", "raffles place", "city hall", "outram park", "bishan", "paya lebar", "serangoon",
+        "town hall", "wynyard", "strathfield", "parramatta", "chatswood", "epping", "redfern",
         "châtelet", "gare du nord", "gare de lyon", "saint-lazare", "montparnasse",
         "penn station", "grand central", "jamaica", "secaucus", "fulton", "atlantic"
     )
@@ -65,6 +67,10 @@ object DelayRepayCalculator {
         departure: Departure,
         callingPoints: List<CallingPoint> = departure.callingPoints
     ): DelayRepayEligibility? {
+        val region = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(
+            departure.stationId.ifBlank { departure.id }
+        )
+        if (!region.supportsUkDelayRepay) return null
         if (departure.isBus) return null
         val mode = TransitMode.fromModeString(departure.modeName)
         if (mode != TransitMode.RAIL && mode != TransitMode.METRO && mode != TransitMode.TRAM) {

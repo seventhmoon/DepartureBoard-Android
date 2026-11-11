@@ -26,8 +26,20 @@ object LocaleHelper {
      * Returns the current app-specific [Locale], or `null` if following system default.
      */
     fun getAppLocale(): Locale? {
-        val appLocales = AppCompatDelegate.getApplicationLocales()
-        return if (!appLocales.isEmpty) appLocales[0] else null
+        return try {
+            val appLocales = AppCompatDelegate.getApplicationLocales()
+            if (!appLocales.isEmpty) appLocales[0] else null
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    /**
+     * Returns the effective active [Locale] (per-app override if configured, otherwise [Locale.getDefault]).
+     * Safe to invoke from pure JVM unit tests where Android framework stubs may not initialize `AppCompatDelegate`.
+     */
+    fun getActiveLocale(): Locale {
+        return getAppLocale() ?: Locale.getDefault()
     }
 
     /**

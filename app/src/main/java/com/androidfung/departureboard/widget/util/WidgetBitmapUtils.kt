@@ -114,7 +114,11 @@ object WidgetBitmapUtils {
             val cacheDir = File(context.cacheDir, "widget_images")
             if (!cacheDir.exists()) cacheDir.mkdirs()
 
-            val outFile = File(cacheDir, filename)
+            val safeFilename = File(filename).name.ifBlank { "widget_shared_image.webp" }
+            val outFile = File(cacheDir, safeFilename)
+            if (!outFile.canonicalPath.startsWith(cacheDir.canonicalPath + File.separator)) {
+                return null
+            }
             FileOutputStream(outFile).use { fos ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 85, fos)

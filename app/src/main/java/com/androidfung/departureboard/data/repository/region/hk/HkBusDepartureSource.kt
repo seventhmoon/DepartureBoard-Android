@@ -129,7 +129,9 @@ class HkBusDepartureSource(
                 val routeName = item.route.orEmpty().ifBlank { "Bus" }
                 val destTc = item.destTc.orEmpty()
                 val destEn = item.destEn.orEmpty()
+                val useChinese = com.androidfung.departureboard.data.i18n.TransitLocaleFormatter.isChinese()
                 val destination = when {
+                    useChinese && destTc.isNotBlank() && destEn.isNotBlank() -> "$destTc ($destEn)"
                     destTc.isNotBlank() && destEn.isNotBlank() -> "$destEn ($destTc)"
                     destTc.isNotBlank() -> destTc
                     else -> destEn.ifBlank { "Destination" }
@@ -145,7 +147,11 @@ class HkBusDepartureSource(
                     else -> Color.White
                 }
 
-                val remark = item.rmkTc?.takeIf { it.isNotBlank() } ?: item.rmkEn.orEmpty()
+                val remark = if (useChinese) {
+                    item.rmkTc?.takeIf { it.isNotBlank() } ?: item.rmkEn.orEmpty()
+                } else {
+                    item.rmkEn?.takeIf { it.isNotBlank() } ?: item.rmkTc.orEmpty()
+                }
                 val status = when {
                     timeToStationSeconds <= 45 -> DepartureStatus.DUE
                     remark.contains("預定", ignoreCase = true) || remark.contains("Scheduled", ignoreCase = true) -> DepartureStatus.ON_TIME

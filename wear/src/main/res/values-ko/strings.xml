@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wear_tile_live_tracking">🎯 실시간 추적 • %1$s</string>
+    <string name="wear_tile_tap_hud">탭하여 대합실 Sprint HUD 열기</string>
+    <string name="wear_plat_tbd">승강장 미정</string>
+    <string name="wear_plat_code">%1$s번 승강장</string>
+    <string name="wear_status_due">곧 도착</string>
+    <string name="wear_minutes_short">%1$d분</string>
+    <string name="wear_alight_target">하차역: %1$s%2$s</string>
+    <string name="wear_stops_suffix"> (%1$d역 전)</string>
+    <string name="wear_complication_tap_open">탭하여 EkiBoard 열기</string>
+    <string name="wear_action_sprint_hud">Sprint HUD</string>
+    <string name="wear_action_stop">중지</string>
+    <string name="wear_channel_tracking_name">실시간 열차 추적</string>
+    <string name="wear_channel_tracking_desc">추적 중인 열차의 실시간 카운트다운 및 진행 표시줄</string>
+    <string name="wear_channel_sprint_hud_name">Sprint HUD 즉시 실행</string>
+    <string name="wear_channel_sprint_hud_desc">휴대폰에서 추적을 누르면 워치 HUD 화면을 즉시 켭니다</string>
+    <string name="wear_channel_platform_name">승강장 안내 및 변경 알림</string>
+    <string name="wear_channel_platform_desc">승강장이 확정되거나 변경될 때 알림을 보냅니다</string>
+    <string name="wear_channel_alighting_name">하차역 도착 알림</string>
+    <string name="wear_channel_alighting_desc">선택한 하차역 1정거장 전에 알림을 보냅니다</string>
+    <string name="wear_channel_disruption_name">지연 및 운행 취소 알림</string>
+    <string name="wear_channel_disruption_desc">추적 중인 열차가 지연되거나 취소될 때 알림을 보냅니다</string>
+</resources>

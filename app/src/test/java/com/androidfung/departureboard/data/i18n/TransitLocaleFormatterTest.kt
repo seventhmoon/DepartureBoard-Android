@@ -56,6 +56,20 @@ class TransitLocaleFormatterTest {
     }
 
     @Test
+    fun testFormatLocalized_koreanAndOtherLocalesTakePrecedenceOverEnglishFallback() {
+        val names = mapOf(
+            "en" to "Shinjuku",
+            "ja" to "新宿",
+            "ko" to "신주쿠"
+        )
+        assertEquals("신주쿠", TransitLocaleFormatter.formatLocalized(names, Locale.KOREAN))
+        assertEquals(
+            "신주쿠 (Shinjuku)",
+            TransitLocaleFormatter.formatLocalized(names, Locale.KOREAN, fallbackToBilingual = true)
+        )
+    }
+
+    @Test
     fun testFormatBilingual() {
         val withParens = TransitLocaleFormatter.formatBilingual("Central", "中環", parentheses = true)
         assertEquals("Central (中環)", withParens)

@@ -1,7 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">EkiBoard</string>
-    <string name="launcher_name">EkiBoard</string>
-    <string name="widget_name">EkiBoard</string>
+    <string name="app_name" translatable="false">EkiBoard</string>
+    <string name="launcher_name" translatable="false">EkiBoard</string>
+    <string name="widget_name" translatable="false">EkiBoard</string>
     <string name="widget_description">Live departure predictions for saved transit stations</string>
 
     <!-- Region Names -->
@@ -121,6 +121,9 @@
     <string name="tracking_default_train">Train</string>
     <string name="tracking_platform_default">Platform</string>
     <string name="tracking_bus_stop_default">Bus stop</string>
+    <string name="tracking_alight_soon_title">Get Ready to Alight</string>
+    <string name="tracking_alight_soon_message">Next stop is %1$s on %2$s</string>
+    <string name="tracking_alight_approaching_message">Approaching %1$s on %2$s</string>
 
     <!-- Debug & Settings -->
     <string name="switch_region_title">Switch Region</string>
@@ -128,10 +131,10 @@
     <string name="settings_language_title">App Language</string>
     <string name="settings_language_desc">Choose system default or a specific language</string>
     <string name="language_system">System Default</string>
-    <string name="language_en">English</string>
-    <string name="language_zh_hant">中文</string>
-    <string name="language_ja">日本語</string>
-    <string name="language_ko">한국어</string>
+    <string name="language_en" translatable="false">English</string>
+    <string name="language_zh_hant" translatable="false">中文</string>
+    <string name="language_ja" translatable="false">日本語</string>
+    <string name="language_ko" translatable="false">한국어</string>
 
     <!-- Settings Bottom Sheet -->
     <string name="settings_title">Settings</string>
@@ -522,4 +525,6 @@
     <string name="labs_corridor_route_desc">Compare multi-leg transfers and branch line departures along travel corridors</string>
     <string name="labs_ai_assistant_title">AI Disruption Advisor &amp; Speech</string>
     <string name="labs_ai_assistant_desc">Natural-language disruption advice with on-device Text-To-Speech voice readout</string>
+    <string name="travel_alert_ask_ai_alternatives">Ask AI for alternative routes</string>
+    <string name="platform_backlog_banner_title">Platform Backlog • %1$s</string>
 </resources>

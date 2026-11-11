@@ -89,6 +89,6 @@ class CorridorRouteComparatorTest {
         assertEquals("d1", alert!!.stopperDeparture.id)
         assertEquals("d2", alert.expressDeparture.id)
         assertEquals(4, alert.waitExtraMinutes)
-        assertTrue(alert.minutesSavedAtDestination > 0)
+        assertEquals(14, alert.minutesSavedAtDestination)
     }
 }

@@ -143,4 +143,38 @@ class DelayRepayCalculatorTest {
         assertNotNull(result)
         assertEquals(22, result!!.delayMinutes)
     }
+
+    @Test
+    fun `Non-GB stations do not show UK Delay Repay or TfL Service Delay Refund`() {
+        val hkDep = buildDeparture(
+            lineId = "ISL",
+            lineName = "Island Line",
+            modeName = "mtr",
+            operatorName = "MTR",
+            scheduledTime = "18:00",
+            estimatedTime = "18:25"
+        ).copy(stationId = "HK_MTR_ISL_ADM", stationName = "Admiralty")
+        assertNull(DelayRepayCalculator.evaluate(hkDep))
+
+        val jpDep = hkDep.copy(stationId = "JP_METRO_G01", stationName = "Shibuya", lineName = "Ginza Line")
+        assertNull(DelayRepayCalculator.evaluate(jpDep))
+
+        val sgDep = hkDep.copy(stationId = "SG_MRT_NS24", stationName = "Dhoby Ghaut", lineName = "North-South Line")
+        assertNull(DelayRepayCalculator.evaluate(sgDep))
+
+        val auDep = hkDep.copy(stationId = "AU_TRAIN_CENTRAL", stationName = "Central", lineName = "T1 Western Line")
+        assertNull(DelayRepayCalculator.evaluate(auDep))
+    }
+
+    @Test
+    fun `evaluateCallingPointTransferRisk detects Singapore and Sydney interchange hubs`() {
+        val sgInterchange = CallingPoint(
+            stationName = "Dhoby Ghaut",
+            scheduledTime = "09:10",
+            estimatedTime = "09:14"
+        )
+        val risk = DelayRepayCalculator.evaluateCallingPointTransferRisk(sgInterchange)
+        assertNotNull(risk)
+        assertEquals(4, risk!!.delayMinutes)
+    }
 }

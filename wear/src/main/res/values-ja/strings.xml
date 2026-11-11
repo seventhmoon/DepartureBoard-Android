@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wear_tile_live_tracking">🎯 ライブ追跡中 • %1$s</string>
+    <string name="wear_tile_tap_hud">タップしてコンコース HUD を開く</string>
+    <string name="wear_plat_tbd">のりば未定</string>
+    <string name="wear_plat_code">%1$s番線</string>
+    <string name="wear_status_due">まもなく</string>
+    <string name="wear_minutes_short">%1$d分</string>
+    <string name="wear_alight_target">降車駅: %1$s%2$s</string>
+    <string name="wear_stops_suffix"> (あと%1$d駅)</string>
+    <string name="wear_complication_tap_open">タップして EkiBoard を開く</string>
+    <string name="wear_action_sprint_hud">スプリント HUD</string>
+    <string name="wear_action_stop">停止</string>
+    <string name="wear_channel_tracking_name">列車ライブ追跡</string>
+    <string name="wear_channel_tracking_desc">追跡中の列車のリアルタイムカウントダウンと進捗バー</string>
+    <string name="wear_channel_sprint_hud_name">スプリント HUD 自動起動</string>
+    <string name="wear_channel_sprint_hud_desc">スマホで追跡を開始した際にウォッチの HUD 画面を起動</string>
+    <string name="wear_channel_platform_name">のりば発表・変更アラート</string>
+    <string name="wear_channel_platform_desc">のりばの発表や変更を通知</string>
+    <string name="wear_channel_alighting_name">降車駅接近アラート</string>
+    <string name="wear_channel_alighting_desc">選択した降車駅の1駅手前でお知らせ</string>
+    <string name="wear_channel_disruption_name">遅延・運休アラート</string>
+    <string name="wear_channel_disruption_desc">追跡中の列車が大幅遅延または運休になった際に通知</string>
+</resources>

@@ -2,6 +2,7 @@ package com.androidfung.departureboard.wear
 
 import android.content.Intent
 import android.util.Log
+import com.androidfung.departureboard.core.wearcontract.WearSyncContract
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
 import org.json.JSONObject
@@ -16,16 +17,16 @@ class PhoneWearableListenerService : WearableListenerService() {
     companion object {
         private const val TAG = "PhoneWearableListener"
 
-        const val PATH_REQUEST_BOARDS = "/ekiboard/cmd/request_boards"
-        const val PATH_OPEN_ON_PHONE = "/ekiboard/cmd/open_on_phone"
-        const val PATH_START_TRACKING = "/ekiboard/cmd/start_tracking"
-        const val PATH_STOP_TRACKING = "/ekiboard/cmd/stop_tracking"
-        const val PATH_ADD_STATION = "/ekiboard/cmd/add_station"
-        const val PATH_REMOVE_STATION = "/ekiboard/cmd/remove_station"
-        const val PATH_ASK_AI = "/ekiboard/cmd/ask_ai"
-        const val PATH_OPEN_AI_ON_PHONE = "/ekiboard/cmd/open_ai_on_phone"
-        const val PATH_SET_ALIGHT_STOP = "/ekiboard/cmd/set_alight_stop"
-        const val PATH_SHARE_ETA = "/ekiboard/cmd/share_eta"
+        const val PATH_REQUEST_BOARDS = WearSyncContract.PATH_REQUEST_BOARDS
+        const val PATH_OPEN_ON_PHONE = WearSyncContract.PATH_OPEN_ON_PHONE
+        const val PATH_START_TRACKING = WearSyncContract.PATH_START_TRACKING
+        const val PATH_STOP_TRACKING = WearSyncContract.PATH_STOP_TRACKING
+        const val PATH_ADD_STATION = WearSyncContract.PATH_ADD_STATION
+        const val PATH_REMOVE_STATION = WearSyncContract.PATH_REMOVE_STATION
+        const val PATH_ASK_AI = WearSyncContract.PATH_ASK_AI
+        const val PATH_OPEN_AI_ON_PHONE = WearSyncContract.PATH_OPEN_AI_ON_PHONE
+        const val PATH_SET_ALIGHT_STOP = WearSyncContract.PATH_SET_ALIGHT_STOP
+        const val PATH_SHARE_ETA = WearSyncContract.PATH_SHARE_ETA
     }
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
@@ -99,6 +100,6 @@ class PhoneWearableListenerService : WearableListenerService() {
             )
         }
 
-        PhoneCompanionSyncReceiver().onReceive(applicationContext, intent)
+        PhoneCompanionSyncReceiver.handleCompanionCommand(applicationContext, intent, pendingResult = null)
     }
 }

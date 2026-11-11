@@ -278,8 +278,8 @@ object PlatformBacklogDetector {
     fun resolveTypicalHeadwayMinutes(
         firstDep: Departure,
         group: List<Departure>,
-        time: LocalTime = LocalTime.now(),
-        dayOfWeek: DayOfWeek = LocalDate.now().dayOfWeek
+        time: LocalTime? = null,
+        dayOfWeek: DayOfWeek? = null
     ): Int {
         // 1. Explicit headway from GTFS or feed frequency metadata
         val explicitFrequency = firstDep.frequency?.headwaySeconds?.let { it / 60 }
@@ -307,7 +307,12 @@ object PlatformBacklogDetector {
             }
         }
 
-        val period = resolveServicePeriod(time, dayOfWeek)
+        val regionZone = com.androidfung.departureboard.data.model.TransitRegion
+            .fromStationId(firstDep.stationId).timeZone
+        val zonedNow = java.time.ZonedDateTime.now(regionZone)
+        val effectiveTime = time ?: zonedNow.toLocalTime()
+        val effectiveDay = dayOfWeek ?: zonedNow.dayOfWeek
+        val period = resolveServicePeriod(effectiveTime, effectiveDay)
 
         // 4. Known branch station timetable headways (for branch endpoints/spurs when only 1 train is listed)
         val stationKey = firstDep.stationId.uppercase()
@@ -334,8 +339,8 @@ object PlatformBacklogDetector {
      */
     fun detectBacklogs(
         departures: List<Departure>,
-        time: LocalTime = LocalTime.now(),
-        dayOfWeek: DayOfWeek = LocalDate.now().dayOfWeek
+        time: LocalTime? = null,
+        dayOfWeek: DayOfWeek? = null
     ): List<PlatformBacklogAlert> {
         val nonBusDepartures = departures.filter {
             !it.isBus && it.status != DepartureStatus.CANCELLED

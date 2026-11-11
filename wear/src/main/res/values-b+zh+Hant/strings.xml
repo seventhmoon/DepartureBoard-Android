@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wear_tile_live_tracking">🎯 即時追蹤 • %1$s</string>
+    <string name="wear_tile_tap_hud">輕觸開啟大堂衝刺 HUD</string>
+    <string name="wear_plat_tbd">月台待定</string>
+    <string name="wear_plat_code">%1$s 號月台</string>
+    <string name="wear_status_due">即將抵達</string>
+    <string name="wear_minutes_short">%1$d分</string>
+    <string name="wear_alight_target">落車站: %1$s%2$s</string>
+    <string name="wear_stops_suffix"> (尚餘%1$d站)</string>
+    <string name="wear_complication_tap_open">輕觸開啟 EkiBoard</string>
+    <string name="wear_action_sprint_hud">大堂 HUD</string>
+    <string name="wear_action_stop">停止</string>
+    <string name="wear_channel_tracking_name">列車即時追蹤</string>
+    <string name="wear_channel_tracking_desc">顯示追蹤列車的即時倒數與進度列</string>
+    <string name="wear_channel_sprint_hud_name">即時喚醒 Sprint HUD</string>
+    <string name="wear_channel_sprint_hud_desc">於手機點擊追蹤時喚醒手錶全螢幕大堂倒數畫面</string>
+    <string name="wear_channel_platform_name">月台公佈與變更通知</string>
+    <string name="wear_channel_platform_desc">當列車公佈或更改月台時發出提示</string>
+    <string name="wear_channel_alighting_name">目標落車站到站提示</string>
+    <string name="wear_channel_alighting_desc">於選定落車站前 1 站發出準備落車提示</string>
+    <string name="wear_channel_disruption_name">延誤與取消警示</string>
+    <string name="wear_channel_disruption_desc">當追蹤列車嚴重延誤或取消時發出通知</string>
+</resources>

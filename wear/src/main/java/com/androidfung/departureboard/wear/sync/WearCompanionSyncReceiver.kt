@@ -3,6 +3,7 @@ package com.androidfung.departureboard.wear.sync
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.androidfung.departureboard.core.wearcontract.WearSyncContract
 
 /**
  * Receives live station boards and tracked train updates pushed from the Phone app (`:app`).
@@ -10,16 +11,16 @@ import android.content.Intent
 class WearCompanionSyncReceiver : BroadcastReceiver() {
 
     companion object {
-        const val ACTION_SYNC_STATION_BOARDS = "com.androidfung.departureboard.wear.action.SYNC_STATION_BOARDS"
-        const val ACTION_SYNC_TRACKED_DEPARTURE = "com.androidfung.departureboard.wear.action.SYNC_TRACKED_DEPARTURE"
-        const val ACTION_STOP_TRACKED_DEPARTURE = "com.androidfung.departureboard.wear.action.STOP_TRACKED_DEPARTURE"
-        const val ACTION_SYNC_AI_RESPONSE = "com.androidfung.departureboard.wear.action.SYNC_AI_RESPONSE"
-        const val ACTION_SYNC_NOTIFICATION_PREFS = "com.androidfung.departureboard.wear.action.SYNC_NOTIFICATION_PREFS"
+        const val ACTION_SYNC_STATION_BOARDS = WearSyncContract.ACTION_SYNC_STATION_BOARDS
+        const val ACTION_SYNC_TRACKED_DEPARTURE = WearSyncContract.ACTION_SYNC_TRACKED_DEPARTURE
+        const val ACTION_STOP_TRACKED_DEPARTURE = WearSyncContract.ACTION_STOP_TRACKED_DEPARTURE
+        const val ACTION_SYNC_AI_RESPONSE = WearSyncContract.ACTION_SYNC_AI_RESPONSE
+        const val ACTION_SYNC_NOTIFICATION_PREFS = WearSyncContract.ACTION_SYNC_NOTIFICATION_PREFS
 
-        const val EXTRA_BOARDS_JSON = "extra_boards_json"
-        const val EXTRA_TRACKED_JSON = "extra_tracked_json"
-        const val EXTRA_AI_RESPONSE_JSON = "extra_ai_response_json"
-        const val EXTRA_NOTIFICATION_PREFS_JSON = "extra_notification_prefs_json"
+        const val EXTRA_BOARDS_JSON = WearSyncContract.EXTRA_BOARDS_JSON
+        const val EXTRA_TRACKED_JSON = WearSyncContract.EXTRA_TRACKED_JSON
+        const val EXTRA_AI_RESPONSE_JSON = WearSyncContract.EXTRA_AI_RESPONSE_JSON
+        const val EXTRA_NOTIFICATION_PREFS_JSON = WearSyncContract.EXTRA_NOTIFICATION_PREFS_JSON
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
@@ -34,6 +35,7 @@ class WearCompanionSyncReceiver : BroadcastReceiver() {
                 WearCompanionStateRepository.onReceiveTrackedDepartureJson(context, trackedJson)
             }
             ACTION_STOP_TRACKED_DEPARTURE -> {
+                WearCompanionStateRepository.onReceiveStopTrackedDeparture(context)
                 WearCompanionStateRepository.stopRemoteTrackingOnPhone(context)
             }
             ACTION_SYNC_AI_RESPONSE -> {

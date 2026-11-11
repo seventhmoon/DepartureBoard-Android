@@ -297,8 +297,6 @@ class BillingRepository(
     // Quota Helpers: AI Queries
     // =========================================================================
 
-    private val londonZone: ZoneId = ZoneId.of("Europe/London")
-
     /**
      * Checks if user has remaining AI queries for today and increments count if allowed.
      * Returns true if query is allowed, false if free quota is exceeded.
@@ -307,7 +305,7 @@ class BillingRepository(
         val isPro = isProFlow.first()
         if (isPro) return true // Unlimited for Pro
 
-        val today = LocalDate.now(londonZone).toString()
+        val today = LocalDate.now(ZoneId.systemDefault()).toString()
         var allowed = false
 
         context.dataStore.edit { preferences ->
@@ -336,7 +334,7 @@ class BillingRepository(
         val isPro = isProFlow.first()
         if (isPro) return SubscriptionTier.PRO_MAX_DAILY_AI_QUERIES
 
-        val today = LocalDate.now(londonZone).toString()
+        val today = LocalDate.now(ZoneId.systemDefault()).toString()
         val preferences = context.dataStore.data.first()
         val storedDate = preferences[KEY_AI_QUERY_DATE] ?: ""
         val count = if (storedDate == today) preferences[KEY_AI_QUERY_COUNT] ?: 0 else 0
@@ -344,13 +342,15 @@ class BillingRepository(
     }
 
     /**
-     * For manual developer testing / previews.
+     * For manual developer testing / previews (debug builds only).
      */
     override fun setDebugPro(enabled: Boolean) {
+        if (!com.androidfung.departureboard.BuildConfig.DEBUG) return
         updateProStatusLocally(enabled)
     }
 
     override fun setDebugPlan(plan: UserPlan) {
+        if (!com.androidfung.departureboard.BuildConfig.DEBUG) return
         updatePlanLocally(plan)
     }
 }

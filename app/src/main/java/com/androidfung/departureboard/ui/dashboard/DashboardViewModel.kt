@@ -931,8 +931,8 @@ class DashboardViewModel @JvmOverloads constructor(
             val location = locationDataSource.getCurrentLocation()
             val currentRegion = _uiState.value.selectedRegion
             if (location != null) {
-                // Only query London TfL StopPoints API when in Great Britain (GB)
-                val apiNearbyStations = if (fetchApiNearby && currentRegion == com.androidfung.departureboard.data.model.TransitRegion.GB) {
+                // Polymorphically query nearby stations from the active regional transit provider
+                val apiNearbyStations = if (fetchApiNearby) {
                     repository.getNearbyStationsFromApi(
                         lat = location.latitude,
                         lon = location.longitude,

@@ -7,7 +7,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
@@ -84,6 +83,15 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val PREF_FILTER_LINE_NAME = stringPreferencesKey("widget_filter_line_name")
         val PREF_FILTER_DIRECTION = stringPreferencesKey("widget_filter_direction")
         val PREF_LAST_REFRESH_TIMESTAMP = androidx.datastore.preferences.core.longPreferencesKey("widget_last_refresh")
+
+        internal fun buildStationDeepLinkUri(station: Station): android.net.Uri {
+            return android.net.Uri.Builder()
+                .scheme(com.androidfung.departureboard.navigation.DeepLinkIntentParser.SCHEME_MIND_THE_BOARD)
+                .authority(com.androidfung.departureboard.navigation.DeepLinkIntentParser.HOST_STATION)
+                .appendPath(station.id)
+                .appendQueryParameter("name", station.name)
+                .build()
+        }
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -122,10 +130,16 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 if (stationId.isNullOrBlank()) {
                     WidgetUnconfiguredPlaceholder(appWidgetId = appWidgetId)
                 } else {
-                    val targetStation = Station(
+                    val region = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(stationId)
+                    val catalogStation = region.directory?.getStationById(stationId)
+                        ?: region.defaultStations.firstOrNull { it.id.equals(stationId, ignoreCase = true) }
+                    val targetStation = catalogStation?.copy(
+                        name = stationName ?: catalogStation.name,
+                        isFavorite = true
+                    ) ?: Station(
                         id = stationId,
                         name = stationName ?: context.getString(AppR.string.widget_station_name_fallback),
-                        modes = listOf("tube"),
+                        modes = listOf(region.defaultPrimaryModeId),
                         isFavorite = true
                     )
 
@@ -202,7 +216,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val context = androidx.glance.LocalContext.current
         val clickIntent = Intent(context, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
-            data = "mindtheboard://station/${station.id}?name=${java.net.URLEncoder.encode(station.name, "UTF-8")}".toUri()
+            data = buildStationDeepLinkUri(station)
             putExtra(MainActivity.EXTRA_STATION_ID, station.id)
             putExtra(MainActivity.EXTRA_STATION_NAME, station.name)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -364,7 +378,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val context = androidx.glance.LocalContext.current
         val clickIntent = Intent(context, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
-            data = "mindtheboard://station/${station.id}?name=${java.net.URLEncoder.encode(station.name, "UTF-8")}".toUri()
+            data = buildStationDeepLinkUri(station)
             putExtra(MainActivity.EXTRA_STATION_ID, station.id)
             putExtra(MainActivity.EXTRA_STATION_NAME, station.name)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

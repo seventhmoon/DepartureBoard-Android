@@ -360,7 +360,8 @@ fun WidgetStationPickerScreen(
 
     LaunchedEffect(Unit) {
         val saved = try {
-            repository.savedStationsFlow.first().ifEmpty { GbDefaultStations.POPULAR_STATIONS }
+            val activeRegion = repository.selectedRegionFlow.first()
+            repository.savedStationsFlow.first().ifEmpty { activeRegion.defaultStations }
         } catch (_: Exception) {
             GbDefaultStations.POPULAR_STATIONS
         }
@@ -377,7 +378,8 @@ fun WidgetStationPickerScreen(
             isLoading = false
         } else {
             val saved = try {
-                repository.savedStationsFlow.first().ifEmpty { GbDefaultStations.POPULAR_STATIONS }
+                val activeRegion = repository.selectedRegionFlow.first()
+                repository.savedStationsFlow.first().ifEmpty { activeRegion.defaultStations }
             } catch (_: Exception) {
                 GbDefaultStations.POPULAR_STATIONS
             }
@@ -514,10 +516,14 @@ fun WidgetStationPickerScreen(
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                                val stationRegion = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(station.id)
                                 val subtitleLabel = when {
-                                    station.id.startsWith("HK_") -> station.zone ?: stringResource(R.string.widget_config_hk_mtr)
+                                    stationRegion == com.androidfung.departureboard.data.model.TransitRegion.HK ->
+                                        station.zone ?: stringResource(R.string.widget_config_hk_mtr)
                                     station.displayZone != null -> stringResource(R.string.widget_config_zone, station.displayZone ?: "")
                                     station.zone != null -> station.zone
+                                    stationRegion != com.androidfung.departureboard.data.model.TransitRegion.GB ->
+                                        "${stationRegion.flagEmoji} ${stringResource(stationRegion.displayNameRes)}"
                                     else -> stringResource(R.string.widget_config_network)
                                 }
                                 Text(

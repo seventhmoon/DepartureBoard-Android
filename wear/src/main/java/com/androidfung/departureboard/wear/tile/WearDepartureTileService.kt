@@ -131,10 +131,14 @@ class WearDepartureTileService : TileService() {
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
 
         if (tracked != null) {
-            val platText = if (tracked.isPlatformTbd) "Plat TBD" else "Plat ${tracked.cleanPlatformCode}"
+            val platText = if (tracked.isPlatformTbd) {
+                context.getString(com.androidfung.departureboard.wear.R.string.wear_plat_tbd)
+            } else {
+                context.getString(com.androidfung.departureboard.wear.R.string.wear_plat_code, tracked.cleanPlatformCode)
+            }
             columnBuilder.addContent(
                 Text.Builder()
-                    .setText("🎯 LIVE TRACKING • $platText")
+                    .setText(context.getString(com.androidfung.departureboard.wear.R.string.wear_tile_live_tracking, platText))
                     .setFontStyle(
                         LayoutElementBuilders.FontStyle.Builder()
                             .setSize(sp(11f))
@@ -170,9 +174,11 @@ class WearDepartureTileService : TileService() {
                     .build()
             )
             val alightInfo = tracked.targetAlightStopName?.takeIf { it.isNotBlank() }?.let { stop ->
-                val stopsStr = tracked.stopsAway?.let { " ($it stops)" }.orEmpty()
-                "Alight: $stop$stopsStr"
-            } ?: (tracked.currentLocation ?: "Tap for Concourse Sprint HUD")
+                val stopsStr = tracked.stopsAway?.let {
+                    context.getString(com.androidfung.departureboard.wear.R.string.wear_stops_suffix, it)
+                }.orEmpty()
+                context.getString(com.androidfung.departureboard.wear.R.string.wear_alight_target, stop, stopsStr)
+            } ?: (tracked.currentLocation ?: context.getString(com.androidfung.departureboard.wear.R.string.wear_tile_tap_hud))
             columnBuilder.addContent(Spacer.Builder().setHeight(dp(4f)).build())
             columnBuilder.addContent(
                 Text.Builder()

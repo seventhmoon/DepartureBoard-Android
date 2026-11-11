@@ -72,13 +72,28 @@
     <!-- Tracking Notifications & Alerts -->
     <string name="notification_channel_live_tracking">即時班次追蹤</string>
     <string name="notification_channel_live_tracking_desc">顯示追蹤班次的即時抵達倒數</string>
-    <string name="notification_channel_alerts">班次追蹤通知</string>
-    <string name="notification_channel_alerts_desc">班次取消或異動的警示通知</string>
+    <string name="notification_channel_platform_alerts">月台公佈與變更通知</string>
+    <string name="notification_channel_platform_alerts_desc">當列車公佈月台（待定 → 指定月台）或更改月台時發出提示與震動</string>
+    <string name="notification_channel_alighting_alerts">目標落車站到站提示</string>
+    <string name="notification_channel_alighting_alerts_desc">於指定落車站前 1 站或即將進站時發出「準備落車」提示</string>
+    <string name="notification_channel_alerts">延誤、取消與路線變更警示</string>
+    <string name="notification_channel_alerts_desc">當追蹤班次嚴重延誤、取消或更改終點站時發出警示通知</string>
     <string name="notification_channel_widget_disruptions">主畫面小工具異常通知</string>
     <string name="notification_channel_widget_disruptions_desc">主畫面固定車站與路線的延誤、取消或關閉通知</string>
     <string name="settings_section_notifications">通知與警示</string>
+    <string name="settings_platform_alerts_title">月台公佈與變更通知</string>
+    <string name="settings_platform_alerts_desc">當追蹤列車公佈月台或變更月台時發送通知</string>
+    <string name="settings_alighting_alerts_title">目標落車站到站提示</string>
+    <string name="settings_alighting_alerts_desc">於選定的落車站前 1 站發送「準備落車」提示</string>
+    <string name="settings_disruption_alerts_title">追蹤列車延誤與取消警示</string>
+    <string name="settings_disruption_alerts_desc">當追蹤列車發生延誤、取消或更改終點站時發送通知</string>
+    <string name="settings_wear_auto_hud_title">追蹤時自動開啟手錶 Sprint HUD</string>
+    <string name="settings_wear_auto_hud_desc">點選「追蹤」時立即喚醒 Wear OS 手錶全螢幕大堂倒數面板</string>
+    <string name="settings_system_notification_channels_title">系統通知頻道設定</string>
+    <string name="settings_system_notification_channels_desc">於 Android 系統設定中個別調整各通知頻道的音效、震動與優先順序</string>
     <string name="settings_widget_disruptions_title">主畫面異常通知</string>
     <string name="settings_widget_disruptions_desc">當固定於主畫面的車站或路線發生延誤、取消或關閉時發送通知</string>
+    <string name="widget_notification_disruption_title_line">%1$s (%2$s)</string>
     <string name="widget_notification_station_closed">車站已關閉</string>
     <string name="widget_notification_service_closed">夜間服務已結束</string>
     <string name="widget_notification_service_closed_with_time">夜間服務已結束 • 首班車時間為 %1$s</string>
@@ -106,6 +121,9 @@
     <string name="tracking_default_train">列車</string>
     <string name="tracking_platform_default">月台</string>
     <string name="tracking_bus_stop_default">巴士站</string>
+    <string name="tracking_alight_soon_title">請準備落車</string>
+    <string name="tracking_alight_soon_message">%2$s 下一站為 %1$s</string>
+    <string name="tracking_alight_approaching_message">%2$s 即將抵達 %1$s</string>
 
     <!-- Debug & Settings -->
     <string name="switch_region_title">切換地區</string>
@@ -415,11 +433,11 @@
     <string name="paywall_prompt_station_limit">免費方案最多可儲存 %1$d 個車站。升級至 Pro 即可儲存最多 %2$d 個車站。</string>
     <string name="paywall_prompt_ai_limit">升級至 Pro 解鎖無限 EkiBoard AI 查詢</string>
     <string name="paywall_prompt_default">解鎖 EkiBoard Pro</string>
-    <string name="paywall_plan_annual_fallback">£9.99 / 年</string>
-    <string name="paywall_plan_monthly_fallback">£1.49 / 月</string>
+    <string name="paywall_plan_annual_fallback">HK$78 / 年</string>
+    <string name="paywall_plan_monthly_fallback">HK$12 / 月</string>
     <string name="paywall_plan_savings_tag">省下 %1$d%%</string>
     <string name="paywall_plan_annual_subtitle">1 年 Pro 存取權限（每月 %1$s%2$.2f）</string>
-    <string name="paywall_plan_annual_subtitle_fallback">1 年 Pro 存取權限（每月 £0.83）</string>
+    <string name="paywall_plan_annual_subtitle_fallback">1 年 Pro 存取權限（每月 HK$6.50）</string>
     <string name="paywall_plan_monthly_subtitle">按月扣款，隨時可取消</string>
 
     <!-- General Feedback & Errors -->
@@ -454,4 +472,59 @@
     <!-- AI Quota Exceeded -->
     <string name="ai_quota_exceeded">您已達到今日 %1$d 次免費 AI 查詢上限。升級至 Pro 即可享用無限制 AI 提問、即時路線受阻查詢及完整停車站資訊。</string>
     <string name="ai_input_placeholder">輸入或語音詢問：「前往 Mill Hill East 的列車」…</string>
+
+    <!-- Last Train Home & Night Service -->
+    <string name="badge_last_train">🌙 尾班車</string>
+    <string name="badge_night_service">🦉 通宵服務</string>
+    <string name="last_train_banner_title">🌙 尾班車提示 • %1$s</string>
+    <string name="last_train_banner_countdown">最後一班車約於 %1$d 分鐘後開出</string>
+    <string name="last_train_banner_first_train">頭班車預計於 ~%1$s 開出</string>
+    <string name="night_service_banner_title">🦉 24 小時通宵服務運作中</string>
+    <string name="night_service_banner_subtitle">通宵班次現正提供服務</string>
+
+    <!-- Full-Screen Desk Clock / Split-Flap & Tabletop Mode -->
+    <string name="desk_clock_title">翻頁式座檯班次鐘</string>
+    <string name="desk_clock_menu_item">座檯鐘 / 翻頁式離站板</string>
+    <string name="desk_clock_tabletop_banner">桌面摺疊模式 • 開啟翻頁式座檯班次鐘</string>
+    <string name="desk_clock_style_split_flap">機械翻頁</string>
+    <string name="desk_clock_style_amber_led">琥珀色 LED</string>
+    <string name="desk_clock_style_oled_dark">OLED 點陣</string>
+    <string name="desk_clock_auto_cycle">自動輪播 (15秒)</string>
+    <string name="desk_clock_tabletop_toggle">桌面面板</string>
+    <string name="desk_clock_dim_mode">夜間調暗</string>
+    <string name="desk_clock_col_line">路線</string>
+    <string name="desk_clock_col_destination">目的地</string>
+    <string name="desk_clock_col_platform">月台</string>
+    <string name="desk_clock_col_time">時間</string>
+    <string name="cd_open_desk_clock">開啟翻頁式座檯班次鐘</string>
+
+    <!-- Platform & Ecosystem Extensions -->
+    <string name="quick_settings_tile_name">即時班次</string>
+    <string name="corridor_route_menu_item">走廊快慢車路線比較</string>
+
+    <!-- Labs & Experimental Features -->
+    <string name="settings_section_labs">實驗室與預覽功能</string>
+    <string name="settings_labs_title">Labs 實驗室</string>
+    <string name="settings_labs_subtitle">體驗開發中的實驗性功能與搶先預覽</string>
+    <string name="labs_title">EkiBoard 實驗室</string>
+    <string name="labs_subtitle">搶先試用正在積極開發的進階通勤功能</string>
+    <string name="labs_disclaimer">實驗室中的功能為搶先預覽版本，可能會根據用戶意見作出調整或重新設計。</string>
+    <string name="labs_section_display">顯示與硬體模式</string>
+    <string name="labs_section_commute">智慧通勤分析</string>
+    <string name="labs_section_comparisons">車站與路線比較</string>
+    <string name="labs_section_ai">AI 與語音播報</string>
+    <string name="labs_desk_clock_title">座檯鐘 / 翻頁式離站板</string>
+    <string name="labs_desk_clock_desc">支援摺疊機桌面模式的全螢幕翻頁及 LED 班次顯示板</string>
+    <string name="labs_bilingual_title">雙語車站名稱</string>
+    <string name="labs_bilingual_desc">同時顯示英文與繁體中文車站名稱（如港鐵及香港巴士）</string>
+    <string name="labs_smart_commute_title">智慧通勤時段排序</string>
+    <string name="labs_smart_commute_desc">根據早晚上下班時段自動優先排列常用車站</string>
+    <string name="labs_twin_concourse_title">雙大堂即時比拼</string>
+    <string name="labs_twin_concourse_desc">並排比較兩個鄰近轉乘大堂的即時離站班次</string>
+    <string name="labs_corridor_route_title">走廊快慢車路線比較</string>
+    <string name="labs_corridor_route_desc">分析同一路線走廊上特快車超越普通車的抵達時間</string>
+    <string name="labs_ai_assistant_title">AI 路況顧問與語音朗讀</string>
+    <string name="labs_ai_assistant_desc">自然語言延誤改道建議及裝置端語音播報</string>
+    <string name="travel_alert_ask_ai_alternatives">詢問 AI 替代路線</string>
+    <string name="platform_backlog_banner_title">月台班次積壓 • %1$s</string>
 </resources>

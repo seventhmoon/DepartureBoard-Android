@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.compose.ui.graphics.toArgb
+import com.androidfung.departureboard.core.wearcontract.CompactTransitFormatter
+import com.androidfung.departureboard.core.wearcontract.WearSyncContract
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.ui.dashboard.StationCardUiModel
 import com.androidfung.departureboard.util.CommuteTag
@@ -22,25 +24,25 @@ import org.json.JSONObject
 object WearCompanionSyncPublisher {
 
     private const val TAG = "WearCompanionSync"
-    const val WEAR_PACKAGE = "com.androidfung.departureboard.wear"
-    const val PERMISSION_COMPANION_SYNC = "com.androidfung.departureboard.permission.COMPANION_SYNC"
+    const val WEAR_PACKAGE = WearSyncContract.COMPANION_APPLICATION_ID
+    const val PERMISSION_COMPANION_SYNC = WearSyncContract.PERMISSION_COMPANION_SYNC
 
-    const val ACTION_SYNC_STATION_BOARDS = "com.androidfung.departureboard.wear.action.SYNC_STATION_BOARDS"
-    const val ACTION_SYNC_TRACKED_DEPARTURE = "com.androidfung.departureboard.wear.action.SYNC_TRACKED_DEPARTURE"
-    const val ACTION_STOP_TRACKED_DEPARTURE = "com.androidfung.departureboard.wear.action.STOP_TRACKED_DEPARTURE"
-    const val ACTION_SYNC_AI_RESPONSE = "com.androidfung.departureboard.wear.action.SYNC_AI_RESPONSE"
-    const val ACTION_SYNC_NOTIFICATION_PREFS = "com.androidfung.departureboard.wear.action.SYNC_NOTIFICATION_PREFS"
+    const val ACTION_SYNC_STATION_BOARDS = WearSyncContract.ACTION_SYNC_STATION_BOARDS
+    const val ACTION_SYNC_TRACKED_DEPARTURE = WearSyncContract.ACTION_SYNC_TRACKED_DEPARTURE
+    const val ACTION_STOP_TRACKED_DEPARTURE = WearSyncContract.ACTION_STOP_TRACKED_DEPARTURE
+    const val ACTION_SYNC_AI_RESPONSE = WearSyncContract.ACTION_SYNC_AI_RESPONSE
+    const val ACTION_SYNC_NOTIFICATION_PREFS = WearSyncContract.ACTION_SYNC_NOTIFICATION_PREFS
 
-    const val PATH_SYNC_STATION_BOARDS = "/ekiboard/sync/station_boards"
-    const val PATH_SYNC_TRACKED_DEPARTURE = "/ekiboard/sync/tracked_departure"
-    const val PATH_STOP_TRACKED_DEPARTURE = "/ekiboard/sync/stop_tracking"
-    const val PATH_SYNC_AI_RESPONSE = "/ekiboard/sync/ai_response"
-    const val PATH_SYNC_NOTIFICATION_PREFS = "/ekiboard/sync/notification_prefs"
+    const val PATH_SYNC_STATION_BOARDS = WearSyncContract.PATH_SYNC_STATION_BOARDS
+    const val PATH_SYNC_TRACKED_DEPARTURE = WearSyncContract.PATH_SYNC_TRACKED_DEPARTURE
+    const val PATH_STOP_TRACKED_DEPARTURE = WearSyncContract.PATH_STOP_TRACKED_DEPARTURE
+    const val PATH_SYNC_AI_RESPONSE = WearSyncContract.PATH_SYNC_AI_RESPONSE
+    const val PATH_SYNC_NOTIFICATION_PREFS = WearSyncContract.PATH_SYNC_NOTIFICATION_PREFS
 
-    const val EXTRA_BOARDS_JSON = "extra_boards_json"
-    const val EXTRA_TRACKED_JSON = "extra_tracked_json"
-    const val EXTRA_AI_RESPONSE_JSON = "extra_ai_response_json"
-    const val EXTRA_NOTIFICATION_PREFS_JSON = "extra_notification_prefs_json"
+    const val EXTRA_BOARDS_JSON = WearSyncContract.EXTRA_BOARDS_JSON
+    const val EXTRA_TRACKED_JSON = WearSyncContract.EXTRA_TRACKED_JSON
+    const val EXTRA_AI_RESPONSE_JSON = WearSyncContract.EXTRA_AI_RESPONSE_JSON
+    const val EXTRA_NOTIFICATION_PREFS_JSON = WearSyncContract.EXTRA_NOTIFICATION_PREFS_JSON
 
     @Volatile
     private var lastPublishedBoardsJson: String? = null
@@ -334,40 +336,9 @@ object WearCompanionSyncPublisher {
         }.toString()
     }
 
-    private val PLATFORM_NUMBER_REGEX = Regex("""(?:Plat(?:form)?\s*)?(\d+[A-Za-z]?)\b""", RegexOption.IGNORE_CASE)
+    internal fun compactPlatformForWatch(raw: String): String =
+        CompactTransitFormatter.compactPlatformCode(raw)
 
-    internal fun compactPlatformForWatch(raw: String): String {
-        val trimmed = raw
-            .replace("Platform", "", ignoreCase = true)
-            .replace("Plat", "", ignoreCase = true)
-            .trim()
-        if (trimmed.isBlank() || trimmed.equals("TBD", ignoreCase = true)) return "TBD"
-
-        PLATFORM_NUMBER_REGEX.find(trimmed)?.groupValues?.getOrNull(1)?.let { num ->
-            if (num.isNotBlank()) return num.uppercase()
-        }
-
-        val lower = trimmed.lowercase()
-        return when {
-            lower.contains("eastbound") -> "EB"
-            lower.contains("westbound") -> "WB"
-            lower.contains("northbound") -> "NB"
-            lower.contains("southbound") -> "SB"
-            lower.contains("inner") -> "IR"
-            lower.contains("outer") -> "OR"
-            else -> trimmed.split("•", "-").first().trim().take(5).ifBlank { "TBD" }
-        }
-    }
-
-    internal fun deriveThreeLetterCode(stationId: String, stationName: String): String {
-        val cleanId = stationId.trim().uppercase()
-        if (cleanId.startsWith("910G") && cleanId.length >= 7) {
-            return cleanId.removePrefix("910G").take(3)
-        }
-        if (cleanId.startsWith("940GZZLU") && cleanId.length >= 11) {
-            return cleanId.removePrefix("940GZZLU").take(3)
-        }
-        val lettersOnly = stationName.uppercase().filter { it in 'A'..'Z' }
-        return if (lettersOnly.length >= 3) lettersOnly.take(3) else "STN"
-    }
+    internal fun deriveThreeLetterCode(stationId: String, stationName: String): String =
+        CompactTransitFormatter.deriveStationShortCode(stationId, stationName)
 }

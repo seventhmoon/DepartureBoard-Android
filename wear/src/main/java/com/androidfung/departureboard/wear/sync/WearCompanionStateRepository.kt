@@ -30,42 +30,42 @@ import org.json.JSONObject
  */
 object WearCompanionStateRepository {
 
-    const val PHONE_PACKAGE = "com.androidfung.departureboard"
-    const val PERMISSION_COMPANION_SYNC = "com.androidfung.departureboard.permission.COMPANION_SYNC"
+    const val PHONE_PACKAGE = com.androidfung.departureboard.core.wearcontract.WearSyncContract.COMPANION_APPLICATION_ID
+    const val PERMISSION_COMPANION_SYNC = com.androidfung.departureboard.core.wearcontract.WearSyncContract.PERMISSION_COMPANION_SYNC
 
-    const val ACTION_OPEN_ON_PHONE = "com.androidfung.departureboard.action.WEAR_OPEN_ON_PHONE"
-    const val ACTION_START_TRACKING_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_START_TRACKING"
-    const val ACTION_STOP_TRACKING_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_STOP_TRACKING"
-    const val ACTION_REQUEST_PHONE_BOARDS = "com.androidfung.departureboard.action.WEAR_REQUEST_BOARDS"
-    const val ACTION_ADD_STATION_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_ADD_STATION"
-    const val ACTION_REMOVE_STATION_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_REMOVE_STATION"
-    const val ACTION_ASK_AI_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_ASK_AI"
-    const val ACTION_OPEN_AI_ON_PHONE = "com.androidfung.departureboard.action.WEAR_OPEN_AI_ON_PHONE"
-    const val ACTION_SET_ALIGHT_STOP_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_SET_ALIGHT_STOP"
-    const val ACTION_SHARE_ETA_FROM_WATCH = "com.androidfung.departureboard.action.WEAR_SHARE_ETA"
+    const val ACTION_OPEN_ON_PHONE = com.androidfung.departureboard.core.wearcontract.WearSyncContract.ACTION_OPEN_ON_PHONE
+    const val ACTION_START_TRACKING_FROM_WATCH = com.androidfung.departureboard.core.wearcontract.WearSyncContract.ACTION_START_TRACKING_FROM_WATCH
+    const val ACTION_STOP_TRACKING_FROM_WATCH = com.androidfung.departureboard.core.wearcontract.WearSyncContract.ACTION_STOP_TRACKING_FROM_WATCH
+    const val ACTION_REQUEST_PHONE_BOARDS = com.androidfung.departureboard.core.wearcontract.WearSyncContract.ACTION_REQUEST_PHONE_BOARDS
+    const val ACTION_ADD_STATION_FROM_WATCH = com.androidfung.departureboard.core.wearcontract.WearSyncContract.ACTION_ADD_STATION_FROM_WATCH
+    const val ACTION_REMOVE_STATION_FROM_WATCH = com.androidfung.departureboard.core.wearcontract.WearSyncContract.ACTION_REMOVE_STATION_FROM_WATCH
+    const val ACTION_ASK_AI_FROM_WATCH = com.androidfung.departureboard.core.wearcontract.WearSyncContract.ACTION_ASK_AI_FROM_WATCH
+    const val ACTION_OPEN_AI_ON_PHONE = com.androidfung.departureboard.core.wearcontract.WearSyncContract.ACTION_OPEN_AI_ON_PHONE
+    const val ACTION_SET_ALIGHT_STOP_FROM_WATCH = com.androidfung.departureboard.core.wearcontract.WearSyncContract.ACTION_SET_ALIGHT_STOP_FROM_WATCH
+    const val ACTION_SHARE_ETA_FROM_WATCH = com.androidfung.departureboard.core.wearcontract.WearSyncContract.ACTION_SHARE_ETA_FROM_WATCH
 
-    const val EXTRA_STATION_ID = "extra_station_id"
-    const val EXTRA_STATION_NAME = "extra_station_name"
-    const val EXTRA_DEPARTURE_ID = "extra_departure_id"
-    const val EXTRA_DESTINATION_NAME = "extra_destination_name"
-    const val EXTRA_LINE_NAME = "extra_line_name"
-    const val EXTRA_PLATFORM_CODE = "extra_platform_code"
-    const val EXTRA_COUNTDOWN_MINUTES = "extra_countdown_minutes"
-    const val EXTRA_AI_PROMPT_TYPE = "extra_ai_prompt_type"
-    const val EXTRA_AI_QUERY_TEXT = "extra_ai_query_text"
-    const val EXTRA_TARGET_ALIGHT_STOP = "extra_target_alight_stop"
-    const val EXTRA_SHARE_ETA_TEXT = "extra_share_eta_text"
+    const val EXTRA_STATION_ID = com.androidfung.departureboard.core.wearcontract.WearSyncContract.EXTRA_STATION_ID
+    const val EXTRA_STATION_NAME = com.androidfung.departureboard.core.wearcontract.WearSyncContract.EXTRA_STATION_NAME
+    const val EXTRA_DEPARTURE_ID = com.androidfung.departureboard.core.wearcontract.WearSyncContract.EXTRA_DEPARTURE_ID
+    const val EXTRA_DESTINATION_NAME = com.androidfung.departureboard.core.wearcontract.WearSyncContract.EXTRA_DESTINATION_NAME
+    const val EXTRA_LINE_NAME = com.androidfung.departureboard.core.wearcontract.WearSyncContract.EXTRA_LINE_NAME
+    const val EXTRA_PLATFORM_CODE = com.androidfung.departureboard.core.wearcontract.WearSyncContract.EXTRA_PLATFORM_CODE
+    const val EXTRA_COUNTDOWN_MINUTES = com.androidfung.departureboard.core.wearcontract.WearSyncContract.EXTRA_COUNTDOWN_MINUTES
+    const val EXTRA_AI_PROMPT_TYPE = com.androidfung.departureboard.core.wearcontract.WearSyncContract.EXTRA_AI_PROMPT_TYPE
+    const val EXTRA_AI_QUERY_TEXT = com.androidfung.departureboard.core.wearcontract.WearSyncContract.EXTRA_AI_QUERY_TEXT
+    const val EXTRA_TARGET_ALIGHT_STOP = com.androidfung.departureboard.core.wearcontract.WearSyncContract.EXTRA_TARGET_ALIGHT_STOP
+    const val EXTRA_SHARE_ETA_TEXT = com.androidfung.departureboard.core.wearcontract.WearSyncContract.EXTRA_SHARE_ETA_TEXT
 
-    const val PATH_REQUEST_BOARDS = "/ekiboard/cmd/request_boards"
-    const val PATH_OPEN_ON_PHONE = "/ekiboard/cmd/open_on_phone"
-    const val PATH_START_TRACKING = "/ekiboard/cmd/start_tracking"
-    const val PATH_STOP_TRACKING = "/ekiboard/cmd/stop_tracking"
-    const val PATH_ADD_STATION = "/ekiboard/cmd/add_station"
-    const val PATH_REMOVE_STATION = "/ekiboard/cmd/remove_station"
-    const val PATH_ASK_AI = "/ekiboard/cmd/ask_ai"
-    const val PATH_OPEN_AI_ON_PHONE = "/ekiboard/cmd/open_ai_on_phone"
-    const val PATH_SET_ALIGHT_STOP = "/ekiboard/cmd/set_alight_stop"
-    const val PATH_SHARE_ETA = "/ekiboard/cmd/share_eta"
+    const val PATH_REQUEST_BOARDS = com.androidfung.departureboard.core.wearcontract.WearSyncContract.PATH_REQUEST_BOARDS
+    const val PATH_OPEN_ON_PHONE = com.androidfung.departureboard.core.wearcontract.WearSyncContract.PATH_OPEN_ON_PHONE
+    const val PATH_START_TRACKING = com.androidfung.departureboard.core.wearcontract.WearSyncContract.PATH_START_TRACKING
+    const val PATH_STOP_TRACKING = com.androidfung.departureboard.core.wearcontract.WearSyncContract.PATH_STOP_TRACKING
+    const val PATH_ADD_STATION = com.androidfung.departureboard.core.wearcontract.WearSyncContract.PATH_ADD_STATION
+    const val PATH_REMOVE_STATION = com.androidfung.departureboard.core.wearcontract.WearSyncContract.PATH_REMOVE_STATION
+    const val PATH_ASK_AI = com.androidfung.departureboard.core.wearcontract.WearSyncContract.PATH_ASK_AI
+    const val PATH_OPEN_AI_ON_PHONE = com.androidfung.departureboard.core.wearcontract.WearSyncContract.PATH_OPEN_AI_ON_PHONE
+    const val PATH_SET_ALIGHT_STOP = com.androidfung.departureboard.core.wearcontract.WearSyncContract.PATH_SET_ALIGHT_STOP
+    const val PATH_SHARE_ETA = com.androidfung.departureboard.core.wearcontract.WearSyncContract.PATH_SHARE_ETA
 
     private const val CACHE_PREFS_NAME = "wear_companion_cache"
     private const val KEY_CACHED_BOARDS_JSON = "cached_boards_json"

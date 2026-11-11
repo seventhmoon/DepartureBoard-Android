@@ -272,9 +272,8 @@ fun PaywallBottomSheet(
                                 Toast.LENGTH_LONG
                             ).show()
                         }
-                    } else {
-                        // Product is not yet live/configured in Google Play Console (local dev/testing mode).
-                        // Unlock Pro locally and confirm to developer.
+                    } else if (com.androidfung.departureboard.BuildConfig.DEBUG) {
+                        // Product is not yet live/configured in Google Play Console (debug-only local testing mode).
                         billingRepository.setDebugPro(true)
                         Toast.makeText(
                             context,
@@ -282,6 +281,12 @@ fun PaywallBottomSheet(
                             Toast.LENGTH_SHORT
                         ).show()
                         onDismissRequest()
+                    } else {
+                        Toast.makeText(
+                            context,
+                            errorPlayStoreText,
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 },
                 modifier = Modifier

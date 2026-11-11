@@ -337,7 +337,8 @@ class TrainTrackingService : Service() {
                 val isBus = intent.getBooleanExtra(EXTRA_IS_BUS, false)
                 val initialLocation = intent.getStringExtra(EXTRA_INITIAL_LOCATION)
                 val destinationId = intent.getStringExtra(EXTRA_DESTINATION_ID)
-                val modeName = intent.getStringExtra(EXTRA_MODE_NAME) ?: if (isBus) "bus" else "tube"
+                val defaultMode = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(stationId).defaultPrimaryModeId
+                val modeName = intent.getStringExtra(EXTRA_MODE_NAME) ?: if (isBus) "bus" else defaultMode
                 val vehicleId = intent.getStringExtra(EXTRA_VEHICLE_ID)
                 val lineColorArgb = intent.getIntExtra(EXTRA_LINE_COLOR_ARGB, DEFAULT_TRANSIT_BLUE_ARGB)
                 val trainCode = intent.getStringExtra(EXTRA_TRAIN_CODE)
@@ -614,8 +615,10 @@ class TrainTrackingService : Service() {
                                 }
                             }
 
-                            // 5. Auto-record Delay Repay receipt when tracked train qualifies (>=15m delay)
-                            if (!isBus) {
+                            // 5. Auto-record Delay Repay receipt when tracked UK train qualifies (>=15m delay)
+                            val supportsUkDelayRepay = com.androidfung.departureboard.data.model.TransitRegion
+                                .fromStationId(stationId).supportsUkDelayRepay
+                            if (!isBus && supportsUkDelayRepay) {
                                 com.androidfung.departureboard.util.DelayRepayCalculator.evaluate(target, cachedCallingPoints ?: target.callingPoints)?.let { dr ->
                                     com.androidfung.departureboard.util.DelayRepayReceiptLog.recordReceipt(
                                         context = applicationContext,
@@ -647,7 +650,7 @@ class TrainTrackingService : Service() {
 
                 if (isCancelled) {
                     isServiceCancelled = true
-                    if (!isBus) {
+                    if (!isBus && com.androidfung.departureboard.data.model.TransitRegion.fromStationId(stationId).supportsUkDelayRepay) {
                         com.androidfung.departureboard.util.DelayRepayReceiptLog.recordReceipt(
                             context = applicationContext,
                             departureId = activeDepartureId,
@@ -765,8 +768,8 @@ class TrainTrackingService : Service() {
                                 if (NotificationHelper.isAlightingAlertsEnabled(applicationContext)) {
                                     triggerConcourseHapticPulse()
                                     postDisruptionAlert(
-                                        title = "Get Ready to Alight",
-                                        message = "Next stop is $targetAlightStop on $lineName",
+                                        title = getString(R.string.tracking_alight_soon_title),
+                                        message = getString(R.string.tracking_alight_soon_message, targetAlightStop, lineName),
                                         stationId = stationId,
                                         stationName = stationName,
                                         departureId = activeDepartureId,
@@ -820,8 +823,8 @@ class TrainTrackingService : Service() {
                             if (NotificationHelper.isAlightingAlertsEnabled(applicationContext)) {
                                 triggerConcourseHapticPulse()
                                 postDisruptionAlert(
-                                    title = "Get Ready to Alight",
-                                    message = "Approaching $activeTargetAlight on $lineName",
+                                    title = getString(R.string.tracking_alight_soon_title),
+                                    message = getString(R.string.tracking_alight_approaching_message, activeTargetAlight, lineName),
                                     stationId = stationId,
                                     stationName = stationName,
                                     departureId = activeDepartureId,

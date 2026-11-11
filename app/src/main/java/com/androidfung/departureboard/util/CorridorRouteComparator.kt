@@ -120,8 +120,9 @@ object CorridorRouteComparator {
                 val earlierTravel = earlier.estimatedTravelMinutes ?: continue
                 val laterTravel = later.estimatedTravelMinutes ?: continue
 
-                val earlierTotal = earlier.departureTimeMinutes + earlierTravel
-                val laterTotal = later.departureTimeMinutes + laterTravel
+                // estimatedTravelMinutes already includes wait time until departure (stopsCount * 3 + dep.timeToStationSeconds / 60)
+                val earlierTotal = earlierTravel
+                val laterTotal = laterTravel
 
                 if (laterTotal < earlierTotal) {
                     val waitExtra = later.departureTimeMinutes - earlier.departureTimeMinutes

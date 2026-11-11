@@ -171,11 +171,33 @@ enum class TransitRegion(
         }
 
     /**
+     * Whether this region uses UK statutory Delay Repay / TfL Service Delay Refund rules.
+     */
+    val supportsUkDelayRepay: Boolean
+        get() = this == GB
+
+    /**
+     * Whether stations in this region display London TfL / National Rail Peak vs Off-Peak fare pills.
+     */
+    val supportsGbPeakFareIndicator: Boolean
+        get() = this == GB
+
+    /**
+     * Default primary rail/metro mode identifier for newly resolved stations in this region.
+     */
+    val defaultPrimaryModeId: String
+        get() = when (this) {
+            GB -> "tube"
+            HK -> "mtr"
+            SG, AU, JP -> "metro"
+        }
+
+    /**
      * Suffix used for external map directions queries for stations in this region.
      */
     val mapsSearchRegionSuffix: String
         get() = when (this) {
-            GB -> "London"
+            GB -> "United Kingdom"
             HK -> "Hong Kong"
             SG -> "Singapore"
             AU -> "Sydney"

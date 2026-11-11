@@ -10,6 +10,10 @@ android {
         version = release(37)
     }
 
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     defaultConfig {
         // Must match :app applicationId so Google Play Services Wearable Data Layer routes messages between Phone & Watch
         applicationId = "com.androidfung.departureboard"
@@ -43,6 +47,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:wear-contract"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

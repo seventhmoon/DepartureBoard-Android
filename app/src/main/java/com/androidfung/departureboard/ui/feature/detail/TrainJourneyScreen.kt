@@ -71,7 +71,7 @@ import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.ui.ads.NativeAdStyle
 import com.androidfung.departureboard.ui.ads.NativeAdViewContainer
-import com.androidfung.departureboard.ui.dashboard.LineDisruptionBanner
+import com.androidfung.departureboard.ui.designsystem.LineDisruptionBanner
 import com.androidfung.departureboard.ui.designsystem.UnifiedDepartureTimeBadge
 
 private sealed interface JourneyTimelineListItem {

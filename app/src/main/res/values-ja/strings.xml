@@ -73,13 +73,28 @@
     <!-- Tracking Notifications & Alerts -->
     <string name="notification_channel_live_tracking">列車追跡通知</string>
     <string name="notification_channel_live_tracking_desc">追跡中の電車のリアルタイムカウントダウンを表示</string>
-    <string name="notification_channel_alerts">列車運行アラート</string>
-    <string name="notification_channel_alerts_desc">列車の運休や行先変更に関する通知</string>
+    <string name="notification_channel_platform_alerts">のりば発表・変更アラート</string>
+    <string name="notification_channel_platform_alerts_desc">のりばの発表（未定 → のりば確定）や変更を振動と通知でお知らせ</string>
+    <string name="notification_channel_alighting_alerts">降車駅接近アラート</string>
+    <string name="notification_channel_alighting_alerts_desc">指定した降車駅の1駅手前または接近時にお知らせ</string>
+    <string name="notification_channel_alerts">遅延・運休・行先変更アラート</string>
+    <string name="notification_channel_alerts_desc">追跡中の列車の大幅な遅延、運休、行先変更に関する通知</string>
     <string name="notification_channel_widget_disruptions">ホーム画面運行情報アラート</string>
     <string name="notification_channel_widget_disruptions_desc">ホーム画面に配置された駅や路線の遅延・運休・閉鎖通知</string>
     <string name="settings_section_notifications">通知とアラート</string>
+    <string name="settings_platform_alerts_title">のりば発表・変更通知</string>
+    <string name="settings_platform_alerts_desc">追跡中の列車ののりば確定や変更を通知します</string>
+    <string name="settings_alighting_alerts_title">降車駅接近アラート</string>
+    <string name="settings_alighting_alerts_desc">選択した降車駅の1駅手前で「まもなく降車駅」を通知します</string>
+    <string name="settings_disruption_alerts_title">追跡列車の遅延・運休アラート</string>
+    <string name="settings_disruption_alerts_desc">追跡中の列車が遅延・運休・行先変更になった際に通知します</string>
+    <string name="settings_wear_auto_hud_title">追跡時にウォッチ HUD を自動表示</string>
+    <string name="settings_wear_auto_hud_desc">追跡開始時に Wear OS ウォッチのコンコース HUD を自動的に開きます</string>
+    <string name="settings_system_notification_channels_title">システムの通知チャンネル設定</string>
+    <string name="settings_system_notification_channels_desc">Android 設定で各通知チャンネルの音・バイブ・優先度を個別に調整</string>
     <string name="settings_widget_disruptions_title">ホーム画面の運行情報通知</string>
     <string name="settings_widget_disruptions_desc">ホーム画面の駅や路線で遅延、運休、閉鎖が発生した際に通知します</string>
+    <string name="widget_notification_disruption_title_line">%1$s (%2$s)</string>
     <string name="widget_notification_station_closed">駅は閉鎖中です</string>
     <string name="widget_notification_service_closed">本日の運行は終了しました</string>
     <string name="widget_notification_service_closed_with_time">本日の運行は終了しました • 始発 %1$s</string>
@@ -107,6 +122,9 @@
     <string name="tracking_default_train">列車</string>
     <string name="tracking_platform_default">のりば</string>
     <string name="tracking_bus_stop_default">バス停</string>
+    <string name="tracking_alight_soon_title">まもなく降車駅です</string>
+    <string name="tracking_alight_soon_message">%2$s の次の停車駅は %1$s です</string>
+    <string name="tracking_alight_approaching_message">%2$s はまもなく %1$s に到着します</string>
 
     <!-- Debug & Settings -->
     <string name="switch_region_title">地域を切り替え</string>
@@ -416,11 +434,11 @@
     <string name="paywall_prompt_station_limit">無料プランでは最大 %1$d 件の駅を登録できます。Pro にアップグレードすると最大 %2$d 件まで拡張できます。</string>
     <string name="paywall_prompt_ai_limit">Pro にアップグレードして EkiBoard AI を無制限に利用</string>
     <string name="paywall_prompt_default">EkiBoard Pro をアンロック</string>
-    <string name="paywall_plan_annual_fallback">£9.99 / 年</string>
-    <string name="paywall_plan_monthly_fallback">£1.49 / 月</string>
+    <string name="paywall_plan_annual_fallback">¥1,500 / 年</string>
+    <string name="paywall_plan_monthly_fallback">¥220 / 月</string>
     <string name="paywall_plan_savings_tag">%1$d%% お得</string>
     <string name="paywall_plan_annual_subtitle">Pro 1年間アクセス（月額 %1$s%2$.2f）</string>
-    <string name="paywall_plan_annual_subtitle_fallback">Pro 1年間アクセス（月額 £0.83）</string>
+    <string name="paywall_plan_annual_subtitle_fallback">Pro 1年間アクセス（月額 約¥125）</string>
     <string name="paywall_plan_monthly_subtitle">月額請求・いつでもキャンセル可能</string>
 
     <!-- General Feedback & Errors -->
@@ -455,4 +473,59 @@
     <!-- AI Quota Exceeded -->
     <string name="ai_quota_exceeded">本日の無料 AI クエリ上限（%1$d 回）に達しました。Pro にアップグレードすると、無制限の AI プロンプト、リアルタイムの運行情報確認、停車駅案内をご利用いただけます。</string>
     <string name="ai_input_placeholder">質問または音声入力:「Mill Hill East行きの電車」…</string>
+
+    <!-- Last Train Home & Night Service -->
+    <string name="badge_last_train">🌙 終電</string>
+    <string name="badge_night_service">🦉 深夜運行</string>
+    <string name="last_train_banner_title">🌙 本日の終電案内 • %1$s</string>
+    <string name="last_train_banner_countdown">最終便まで約 %1$d 分</string>
+    <string name="last_train_banner_first_train">翌朝の始発予定：%1$s 頃</string>
+    <string name="night_service_banner_title">🦉 24時間深夜運行中</string>
+    <string name="night_service_banner_subtitle">終夜運転を実施中</string>
+
+    <!-- Full-Screen Desk Clock / Split-Flap & Tabletop Mode -->
+    <string name="desk_clock_title">パタパタ卓上発車標</string>
+    <string name="desk_clock_menu_item">卓上時計 / パタパタ発車標</string>
+    <string name="desk_clock_tabletop_banner">テーブルトップモード • パタパタ発車標を開く</string>
+    <string name="desk_clock_style_split_flap">反転フラップ</string>
+    <string name="desk_clock_style_amber_led">アンバー LED</string>
+    <string name="desk_clock_style_oled_dark">OLED マトリクス</string>
+    <string name="desk_clock_auto_cycle">自動巡回 (15秒)</string>
+    <string name="desk_clock_tabletop_toggle">卓上デッキ</string>
+    <string name="desk_clock_dim_mode">夜間減光</string>
+    <string name="desk_clock_col_line">路線</string>
+    <string name="desk_clock_col_destination">行先</string>
+    <string name="desk_clock_col_platform">番線</string>
+    <string name="desk_clock_col_time">時刻</string>
+    <string name="cd_open_desk_clock">パタパタ卓上発車標を開く</string>
+
+    <!-- Platform & Ecosystem Extensions -->
+    <string name="quick_settings_tile_name">リアルタイム発車標</string>
+    <string name="corridor_route_menu_item">区間ルート比較（急行・各停）</string>
+
+    <!-- Labs & Experimental Features -->
+    <string name="settings_section_labs">Labs &amp; 先行機能</string>
+    <string name="settings_labs_title">Labs</string>
+    <string name="settings_labs_subtitle">開発中の実験的機能と先行プレビュー</string>
+    <string name="labs_title">EkiBoard Labs</string>
+    <string name="labs_subtitle">開発中の実験的な交通案内機能をいち早く体験</string>
+    <string name="labs_disclaimer">Labs の機能は実験的なプレビューです。フィードバックに基づき仕様変更や改善が行われる場合があります。</string>
+    <string name="labs_section_display">ディスプレイとハードウェア</string>
+    <string name="labs_section_commute">通勤インテリジェンス</string>
+    <string name="labs_section_comparisons">駅・ルートの比較</string>
+    <string name="labs_section_ai">AI と音声案内</string>
+    <string name="labs_desk_clock_title">卓上時計 / パタパタ発車標</string>
+    <string name="labs_desk_clock_desc">折りたたみ端末のテーブルトップにも対応した全画面フラップ＆LED発車標</string>
+    <string name="labs_bilingual_title">2言語駅名表示</string>
+    <string name="labs_bilingual_desc">MTR や香港・東京などの路線で英語と現地語を併記表示</string>
+    <string name="labs_smart_commute_title">スマート通勤ルーティン</string>
+    <string name="labs_smart_commute_desc">朝夕の通勤時間帯に応じてよく使う駅を自動優先表示</string>
+    <string name="labs_twin_concourse_title">ツインコンコース比較</string>
+    <string name="labs_twin_concourse_desc">近隣2駅のリアルタイム発車時刻を並べて比較</string>
+    <string name="labs_corridor_route_title">区間ルート比較</string>
+    <string name="labs_corridor_route_desc">急行と各駅停車の追い越しや到着時刻を比較</string>
+    <string name="labs_ai_assistant_title">AI 運行アドバイザー＆音声読み上げ</string>
+    <string name="labs_ai_assistant_desc">自然言語での迂回アドバイスとオンデバイス音声読み上げ</string>
+    <string name="travel_alert_ask_ai_alternatives">AI に迂回ルートを相談</string>
+    <string name="platform_backlog_banner_title">ホーム混雑・列車詰まり • %1$s</string>
 </resources>

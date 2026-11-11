@@ -1,7 +1,6 @@
 package com.androidfung.departureboard.ui.feature.detail
 
 import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -11,10 +10,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,8 +36,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.DesktopWindows
-import androidx.compose.material.icons.rounded.ExpandLess
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsNone
@@ -88,9 +81,11 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.ui.ads.NativeAdStyle
 import com.androidfung.departureboard.ui.ads.NativeAdViewContainer
-import com.androidfung.departureboard.ui.dashboard.LineDisruptionBanner
 import com.androidfung.departureboard.ui.designsystem.DepartureRowItem
 import com.androidfung.departureboard.ui.designsystem.DepartureRowVariant
+import com.androidfung.departureboard.ui.designsystem.LastTrainServiceBanner
+import com.androidfung.departureboard.ui.designsystem.LineDisruptionBanner
+import com.androidfung.departureboard.ui.designsystem.MultipleDisruptionsBanner
 import com.androidfung.departureboard.ui.designsystem.TransitIconHelper
 
 private sealed interface StationDetailListItem {
@@ -640,8 +635,6 @@ private fun StationDetailContent(
         }
     ) { _ ->
 
-        var isDisruptionsExpanded by remember { mutableStateOf(false) }
-
         // Lines badges serving this station - now interactive filter chips
         val distinctLines = remember(departures) {
             departures.map { it.lineBadge }
@@ -676,6 +669,7 @@ private fun StationDetailContent(
         ) {
             // Station Overview & Fares (GTFS-Fares v2 & OSM Station Accessibility)
             item(key = "station_meta_chips", contentType = "station_meta_chips") {
+                val stationRegion = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(station.id)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -683,22 +677,24 @@ private fun StationDetailContent(
                         .padding(vertical = 2.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val currentFarePeriod = com.androidfung.departureboard.data.model.FarePeriod.currentGbFarePeriod()
-                    val isPeak = currentFarePeriod == com.androidfung.departureboard.data.model.FarePeriod.PEAK
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isPeak) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                        border = androidx.compose.foundation.BorderStroke(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                        )
-                    ) {
-                        Text(
-                            text = if (isPeak) "🟠 ${stringResource(R.string.fare_peak)}" else "🟢 ${stringResource(R.string.fare_off_peak)}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (isPeak) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
+                    if (stationRegion.supportsGbPeakFareIndicator) {
+                        val currentFarePeriod = com.androidfung.departureboard.data.model.FarePeriod.currentGbFarePeriod()
+                        val isPeak = currentFarePeriod == com.androidfung.departureboard.data.model.FarePeriod.PEAK
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isPeak) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                            )
+                        ) {
+                            Text(
+                                text = if (isPeak) "🟠 ${stringResource(R.string.fare_peak)}" else "🟢 ${stringResource(R.string.fare_off_peak)}",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = if (isPeak) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
 
                     if (!station.zone.isNullOrBlank()) {
@@ -1017,85 +1013,7 @@ private fun StationDetailContent(
                     if (disruptedBadgesToShow.size == 1) {
                         LineDisruptionBanner(badge = disruptedBadgesToShow.first())
                     } else {
-                        // Compact expandable banner when multiple lines have disruptions
-                        val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-                        val hasSevere = disruptedBadgesToShow.any { it.statusSeverity <= 6 }
-
-                        val summaryAccentColor = if (hasSevere) {
-                            if (isDark) Color(0xFFFFB4A9) else Color(0xFFBA1A1A)
-                        } else {
-                            if (isDark) Color(0xFFFFB74D) else Color(0xFFC05600)
-                        }
-                        val summaryBgColor = if (hasSevere) {
-                            if (isDark) Color(0xFF930006).copy(alpha = 0.20f) else Color(0xFFFFDAD6).copy(alpha = 0.45f)
-                        } else {
-                            if (isDark) Color(0xFFFFA000).copy(alpha = 0.12f) else Color(0xFFFFF3CD).copy(alpha = 0.65f)
-                        }
-                        val summaryBorderColor = summaryAccentColor.copy(alpha = if (isDark) 0.45f else 0.35f)
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(summaryBgColor)
-                                .border(1.dp, summaryBorderColor, RoundedCornerShape(12.dp))
-                                .clickable { isDisruptionsExpanded = !isDisruptionsExpanded }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Column {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Text(
-                                            text = if (hasSevere) "✕" else "⚠",
-                                            color = summaryAccentColor,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(end = 6.dp)
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.station_detail_disruptions_count, disruptedBadgesToShow.size),
-                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                            color = summaryAccentColor
-                                        )
-                                        Text(
-                                            text = " (${disruptedBadgesToShow.joinToString(", ") { it.displayName }})",
-                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    Icon(
-                                        imageVector = if (isDisruptionsExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                                        contentDescription = if (isDisruptionsExpanded) stringResource(R.string.line_status_collapse_desc) else stringResource(R.string.line_status_expand_desc),
-                                        tint = summaryAccentColor,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-
-                                AnimatedVisibility(
-                                    visible = isDisruptionsExpanded,
-                                    enter = expandVertically() + fadeIn(),
-                                    exit = shrinkVertically() + fadeOut()
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(top = 8.dp),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        disruptedBadgesToShow.forEach { disruptedBadge ->
-                                            LineDisruptionBanner(badge = disruptedBadge)
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        MultipleDisruptionsBanner(disruptedBadges = disruptedBadgesToShow)
                     }
                 }
             }
@@ -1103,7 +1021,7 @@ private fun StationDetailContent(
             // 2.5 Last Train Home / Night Service Banner
             if (serviceHoursInfo != null && (serviceHoursInfo.isApproachingLastTrain || serviceHoursInfo.isNightServiceActive)) {
                 item(key = "last_train_banner", contentType = "last_train_banner") {
-                    com.androidfung.departureboard.ui.dashboard.LastTrainServiceBanner(
+                    LastTrainServiceBanner(
                         serviceHoursInfo = serviceHoursInfo
                     )
                 }

@@ -1,5 +1,6 @@
 package com.androidfung.departureboard.wear.sync
 
+import com.androidfung.departureboard.core.wearcontract.WearSyncContract
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
 
@@ -11,11 +12,11 @@ import com.google.android.gms.wearable.WearableListenerService
 class WearDataLayerListenerService : WearableListenerService() {
 
     companion object {
-        const val PATH_SYNC_STATION_BOARDS = "/ekiboard/sync/station_boards"
-        const val PATH_SYNC_TRACKED_DEPARTURE = "/ekiboard/sync/tracked_departure"
-        const val PATH_STOP_TRACKED_DEPARTURE = "/ekiboard/sync/stop_tracking"
-        const val PATH_SYNC_AI_RESPONSE = "/ekiboard/sync/ai_response"
-        const val PATH_SYNC_NOTIFICATION_PREFS = "/ekiboard/sync/notification_prefs"
+        const val PATH_SYNC_STATION_BOARDS = WearSyncContract.PATH_SYNC_STATION_BOARDS
+        const val PATH_SYNC_TRACKED_DEPARTURE = WearSyncContract.PATH_SYNC_TRACKED_DEPARTURE
+        const val PATH_STOP_TRACKED_DEPARTURE = WearSyncContract.PATH_STOP_TRACKED_DEPARTURE
+        const val PATH_SYNC_AI_RESPONSE = WearSyncContract.PATH_SYNC_AI_RESPONSE
+        const val PATH_SYNC_NOTIFICATION_PREFS = WearSyncContract.PATH_SYNC_NOTIFICATION_PREFS
     }
 
     override fun onMessageReceived(messageEvent: MessageEvent) {

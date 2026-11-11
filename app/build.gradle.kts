@@ -74,7 +74,7 @@ android {
     lint {
         warningsAsErrors = false
         abortOnError = false
-        disable += setOf("InvalidFragmentVersionForActivityResult", "MissingTranslation")
+        disable += setOf("InvalidFragmentVersionForActivityResult")
     }
     testOptions {
         unitTests {
@@ -102,6 +102,8 @@ ksp {
 }
 
 dependencies {
+    implementation(project(":core:wear-contract"))
+
     // Platform / BOMs
     implementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.firebase.bom))

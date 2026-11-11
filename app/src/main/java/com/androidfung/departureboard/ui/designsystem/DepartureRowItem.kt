@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -118,21 +119,33 @@ fun DepartureRowItem(
                 val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
                 val isNarrow = windowWidthClass.isNarrow
 
-                val rawPlatformLabel = if (isNarrow && variant == DepartureRowVariant.COMPACT) {
-                    departure.platformName
-                        .replace("Northbound", "NB", ignoreCase = true)
-                        .replace("Southbound", "SB", ignoreCase = true)
-                        .replace("Eastbound", "EB", ignoreCase = true)
-                        .replace("Westbound", "WB", ignoreCase = true)
-                } else {
-                    departure.platformName
-                }
+                val localizedNorth = stringResource(R.string.dir_northbound)
+                val localizedSouth = stringResource(R.string.dir_southbound)
+                val localizedEast = stringResource(R.string.dir_eastbound)
+                val localizedWest = stringResource(R.string.dir_westbound)
+                val useCompactEnglishDirs = isNarrow && variant == DepartureRowVariant.COMPACT
 
-                val platformLabel = rawPlatformLabel
-                    .replace("Northbound", stringResource(R.string.dir_northbound), ignoreCase = true)
-                    .replace("Southbound", stringResource(R.string.dir_southbound), ignoreCase = true)
-                    .replace("Eastbound", stringResource(R.string.dir_eastbound), ignoreCase = true)
-                    .replace("Westbound", stringResource(R.string.dir_westbound), ignoreCase = true)
+                val platformLabel = departure.platformName
+                    .replace(
+                        "Northbound",
+                        if (useCompactEnglishDirs && localizedNorth.equals("Northbound", ignoreCase = true)) "NB" else localizedNorth,
+                        ignoreCase = true
+                    )
+                    .replace(
+                        "Southbound",
+                        if (useCompactEnglishDirs && localizedSouth.equals("Southbound", ignoreCase = true)) "SB" else localizedSouth,
+                        ignoreCase = true
+                    )
+                    .replace(
+                        "Eastbound",
+                        if (useCompactEnglishDirs && localizedEast.equals("Eastbound", ignoreCase = true)) "EB" else localizedEast,
+                        ignoreCase = true
+                    )
+                    .replace(
+                        "Westbound",
+                        if (useCompactEnglishDirs && localizedWest.equals("Westbound", ignoreCase = true)) "WB" else localizedWest,
+                        ignoreCase = true
+                    )
                     .replace("Inbound", stringResource(R.string.dir_inbound), ignoreCase = true)
                     .replace("Outbound", stringResource(R.string.dir_outbound), ignoreCase = true)
                     .replace("Anti-Clockwise", stringResource(R.string.dir_anti_clockwise), ignoreCase = true)
@@ -141,8 +154,8 @@ fun DepartureRowItem(
                 val isPlatformTbd = platformLabel.contains("TBD", ignoreCase = true)
 
                 Spacer(modifier = Modifier.height(3.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                FlowRow(
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     if (platformLabel.isNotBlank()) {

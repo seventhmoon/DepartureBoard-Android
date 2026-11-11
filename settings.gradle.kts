@@ -23,6 +23,7 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "EkiBoard"
+include(":core:wear-contract")
 include(":app")
 include(":features:ai_assistant")
 include(":wear")

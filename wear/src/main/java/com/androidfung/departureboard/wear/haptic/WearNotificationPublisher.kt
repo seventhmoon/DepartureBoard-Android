@@ -150,7 +150,7 @@ object WearNotificationPublisher {
     fun ensureAllChannels(context: Context) {
         runCatching {
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
-            ensureChannels(nm)
+            ensureChannels(context, nm)
         }
     }
 
@@ -195,7 +195,7 @@ object WearNotificationPublisher {
         if (!hasNotificationPermission(context)) return
         runCatching {
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
-            ensureChannels(nm)
+            ensureChannels(context, nm)
 
             val openHudIntent = Intent(context, WearDepartureBoardActivity::class.java).apply {
                 putExtra(EXTRA_OPEN_SPRINT_HUD, true)
@@ -220,11 +220,21 @@ object WearNotificationPublisher {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val platLabel = if (journey.isPlatformTbd) "Plat TBD" else "Plat ${journey.cleanPlatformCode}"
+            val platLabel = if (journey.isPlatformTbd) {
+                context.getString(com.androidfung.departureboard.wear.R.string.wear_plat_tbd)
+            } else {
+                context.getString(com.androidfung.departureboard.wear.R.string.wear_plat_code, journey.cleanPlatformCode)
+            }
             val title = "$platLabel • ${journey.destinationName}"
             val subtitle = if (!journey.targetAlightStopName.isNullOrBlank()) {
-                val stopsStr = journey.stopsAway?.let { " ($it stops)" }.orEmpty()
-                "🎯 Alight: ${journey.targetAlightStopName}$stopsStr"
+                val stopsStr = journey.stopsAway?.let {
+                    context.getString(com.androidfung.departureboard.wear.R.string.wear_stops_suffix, it)
+                }.orEmpty()
+                "🎯 " + context.getString(
+                    com.androidfung.departureboard.wear.R.string.wear_alight_target,
+                    journey.targetAlightStopName,
+                    stopsStr
+                )
             } else {
                 journey.currentLocation?.takeIf { it.isNotBlank() } ?: journey.lineName
             }
@@ -255,12 +265,12 @@ object WearNotificationPublisher {
                 .setContentIntent(openHudPendingIntent)
                 .addAction(
                     android.R.drawable.ic_menu_compass,
-                    "Sprint HUD",
+                    context.getString(com.androidfung.departureboard.wear.R.string.wear_action_sprint_hud),
                     openHudPendingIntent
                 )
                 .addAction(
                     android.R.drawable.ic_menu_close_clear_cancel,
-                    "Stop",
+                    context.getString(com.androidfung.departureboard.wear.R.string.wear_action_stop),
                     stopPendingIntent
                 )
                 .extend(
@@ -269,7 +279,11 @@ object WearNotificationPublisher {
                 )
 
             if (shouldWakeWithFullScreen) {
-                builder.setFullScreenIntent(openHudPendingIntent, true)
+                val canUseFsi = android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
+                    nm.canUseFullScreenIntent()
+                if (canUseFsi) {
+                    builder.setFullScreenIntent(openHudPendingIntent, true)
+                }
             }
 
             if (isOngoing) {
@@ -323,7 +337,7 @@ object WearNotificationPublisher {
         if (!hasNotificationPermission(context)) return
         runCatching {
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
-            ensureChannels(nm)
+            ensureChannels(context, nm)
 
             val (channelId, notificationId) = when (event.type) {
                 WearConcourseHapticAnnouncer.WristAlertType.PLATFORM_ANNOUNCED,
@@ -373,52 +387,52 @@ object WearNotificationPublisher {
         }
     }
 
-    private fun ensureChannels(nm: NotificationManager) {
+    private fun ensureChannels(context: Context, nm: NotificationManager) {
         val trackingChannel = NotificationChannel(
             CHANNEL_TRACKING_ID,
-            "Live Train Tracker",
+            context.getString(com.androidfung.departureboard.wear.R.string.wear_channel_tracking_name),
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Ongoing live countdown timer and progress bar for your tracked train"
+            description = context.getString(com.androidfung.departureboard.wear.R.string.wear_channel_tracking_desc)
             setShowBadge(true)
         }
 
         val sprintHudChannel = NotificationChannel(
             CHANNEL_SPRINT_HUD_ID,
-            "Instant Sprint HUD Launch",
+            context.getString(com.androidfung.departureboard.wear.R.string.wear_channel_sprint_hud_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Wakes watch screen into the Concourse Sprint HUD when you tap Track on your phone"
+            description = context.getString(com.androidfung.departureboard.wear.R.string.wear_channel_sprint_hud_desc)
             enableVibration(true)
             setShowBadge(true)
         }
 
         val platformAlertsChannel = NotificationChannel(
             CHANNEL_PLATFORM_ALERTS_ID,
-            "Platform Announcement & Change Alerts",
+            context.getString(com.androidfung.departureboard.wear.R.string.wear_channel_platform_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Heads-up alerts when a platform is announced (TBD -> Plat X) or changed"
+            description = context.getString(com.androidfung.departureboard.wear.R.string.wear_channel_platform_desc)
             enableVibration(true)
             setShowBadge(true)
         }
 
         val alightingAlertsChannel = NotificationChannel(
             CHANNEL_ALIGHTING_ALERTS_ID,
-            "Target Alighting Stop Alerts",
+            context.getString(com.androidfung.departureboard.wear.R.string.wear_channel_alighting_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Get Ready to Alight alerts 1 stop before your selected destination station"
+            description = context.getString(com.androidfung.departureboard.wear.R.string.wear_channel_alighting_desc)
             enableVibration(true)
             setShowBadge(true)
         }
 
         val disruptionAlertsChannel = NotificationChannel(
             CHANNEL_DISRUPTION_ALERTS_ID,
-            "Delay Repay & Disruption Alerts",
+            context.getString(com.androidfung.departureboard.wear.R.string.wear_channel_disruption_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Alerts when a train crosses a Delay Repay threshold or is cancelled"
+            description = context.getString(com.androidfung.departureboard.wear.R.string.wear_channel_disruption_desc)
             enableVibration(true)
             setShowBadge(true)
         }

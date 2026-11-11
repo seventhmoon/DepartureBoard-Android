@@ -79,12 +79,14 @@ class MainActivity : AppCompatActivity() {
         const val EXTRA_STATION_NAME = "extra_station_name"
         const val EXTRA_DEPARTURE_ID = "extra_departure_id"
         const val EXTRA_AI_QUERY = "extra_ai_query"
+        const val EXTRA_AUTO_SUBMIT_AI_QUERY = "extra_auto_submit_ai_query"
         private const val TAG = "InAppUpdate"
     }
 
     private var initialStation by mutableStateOf<Station?>(null)
     private var initialDepartureId by mutableStateOf<String?>(null)
     private var initialAiQuery by mutableStateOf<String?>(null)
+    private var initialAutoSubmitAiQuery by mutableStateOf(false)
     private lateinit var appUpdateManager: AppUpdateManager
     private var installStateUpdatedListener: InstallStateUpdatedListener? = null
     private var debugProReceiver: BroadcastReceiver? = null
@@ -192,6 +194,7 @@ class MainActivity : AppCompatActivity() {
                     var showCorridorSheet by rememberSaveable { mutableStateOf(false) }
                     var showLabsSheet by rememberSaveable { mutableStateOf(false) }
                     var aiInitialQuery by rememberSaveable { mutableStateOf<String?>(null) }
+                    var aiAutoSubmitInitialQuery by rememberSaveable { mutableStateOf(true) }
 
                     LaunchedEffect(initialStation, initialDepartureId) {
                         initialStation?.let { station ->
@@ -205,8 +208,10 @@ class MainActivity : AppCompatActivity() {
                     LaunchedEffect(initialAiQuery) {
                         initialAiQuery?.takeIf { it.isNotBlank() }?.let { query ->
                             aiInitialQuery = query
+                            aiAutoSubmitInitialQuery = initialAutoSubmitAiQuery
                             showAiSheet = true
                             initialAiQuery = null
+                            initialAutoSubmitAiQuery = false
                         }
                     }
 
@@ -451,6 +456,7 @@ class MainActivity : AppCompatActivity() {
                                             onOpenDeskClock = { viewModel.openDeskClock() },
                                             onAskAiAlternative = { station, lineName ->
                                                 aiInitialQuery = "What are the best alternative routes or departures to avoid $lineName delays from ${station.displayName}?"
+                                                aiAutoSubmitInitialQuery = true
                                                 showAiSheet = true
                                             }
                                         )
@@ -611,12 +617,14 @@ class MainActivity : AppCompatActivity() {
                             onDismissRequest = {
                                 showAiSheet = false
                                 aiInitialQuery = null
+                                aiAutoSubmitInitialQuery = true
                             },
                             repository = viewModel.repository,
                             savedStations = uiState.stationCards.map { it.station },
                             nearestStation = nearest,
                             initialTriggerSpeech = false,
                             initialQuery = aiInitialQuery,
+                            autoSubmitInitialQuery = aiAutoSubmitInitialQuery,
                             billingRepository = viewModel.billingRepository,
                             aiModelType = uiState.aiModelType,
                             selectedRegion = uiState.selectedRegion,
@@ -920,17 +928,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        val uri = intent?.data
-        val stationId = intent?.getStringExtra(EXTRA_STATION_ID)
-            ?: if ((uri != null) && (uri.scheme == "mindtheboard") && (uri.host == "station")) uri.lastPathSegment else null
-        val stationName = intent?.getStringExtra(EXTRA_STATION_NAME)
-            ?: uri?.getQueryParameter("name")
-        val departureId = intent?.getStringExtra(EXTRA_DEPARTURE_ID)
-            ?: uri?.getQueryParameter("departureId")
-        initialDepartureId = departureId?.takeIf { it.isNotBlank() }
-        val aiQuery = intent?.getStringExtra(EXTRA_AI_QUERY)
-            ?: uri?.getQueryParameter("aiQuery")
-        initialAiQuery = aiQuery?.takeIf { it.isNotBlank() }
+        val parsed = com.androidfung.departureboard.navigation.DeepLinkIntentParser.parse(
+            intent = intent,
+            extraStationIdKey = EXTRA_STATION_ID,
+            extraStationNameKey = EXTRA_STATION_NAME,
+            extraDepartureIdKey = EXTRA_DEPARTURE_ID,
+            extraAiQueryKey = EXTRA_AI_QUERY,
+            extraAutoSubmitAiKey = EXTRA_AUTO_SUBMIT_AI_QUERY
+        )
+        val stationId = parsed.stationId
+        initialDepartureId = parsed.departureId
+        initialAutoSubmitAiQuery = parsed.autoSubmitAiQuery
+        initialAiQuery = parsed.aiQuery
 
         if (!stationId.isNullOrBlank()) {
             val region = TransitRegion.fromStationId(stationId)
@@ -942,16 +951,20 @@ class MainActivity : AppCompatActivity() {
                     .firstOrNull { it.id.equals(stationId, ignoreCase = true) }
 
             if (known != null) {
+                // Canonical catalog station name takes precedence over untrusted URI query hints to prevent UI spoofing.
                 initialStation = known.copy(
-                    name = stationName ?: known.name,
+                    name = parsed.trustedStationName ?: known.name,
                     isFavorite = true
                 )
             } else {
+                val placeholderName = parsed.trustedStationName
+                    ?: parsed.untrustedStationNameHint
+                    ?: getString(R.string.widget_station_name_fallback)
                 // Initial placeholder with region-appropriate defaults
                 initialStation = Station(
                     id = stationId,
-                    name = stationName ?: "Station",
-                    modes = if (region == TransitRegion.GB) listOf("tube") else emptyList(),
+                    name = placeholderName,
+                    modes = listOf(region.defaultPrimaryModeId),
                     zone = null,
                     lat = null,
                     lon = null,
@@ -966,7 +979,7 @@ class MainActivity : AppCompatActivity() {
                     val resolved = repo?.getStationById(stationId)
                     if (resolved != null) {
                         initialStation = resolved.copy(
-                            name = stationName ?: resolved.name,
+                            name = parsed.trustedStationName ?: resolved.name,
                             isFavorite = true
                         )
                     }

@@ -391,6 +391,7 @@ class TransitAiAssistant(
             val answer = "$prefix next ${next.lineName} departure towards ${next.destinationName} leaves from ${next.stationName} (${next.platformName}) $nextMinutes$clockSuffix$subsequentText."
 
             val targetStation = departureStation ?: defaultOrigin
+            val targetRegion = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(targetStation?.id)
             val actions = buildList {
                 if (targetStation != null) {
                     add(A2UiAction.PinStation(targetStation))
@@ -398,7 +399,9 @@ class TransitAiAssistant(
                 add(A2UiAction.TrackTrain(next))
                 if (explicitOriginName != null && targetDestinationName != null) {
                     add(A2UiAction.OpenGoogleMaps(explicitOriginName, targetDestinationName))
-                    add(A2UiAction.OpenTflJourneyPlanner(explicitOriginName, targetDestinationName))
+                    if (targetRegion == com.androidfung.departureboard.data.model.TransitRegion.GB) {
+                        add(A2UiAction.OpenTflJourneyPlanner(explicitOriginName, targetDestinationName))
+                    }
                 }
             }
 
@@ -603,6 +606,7 @@ class TransitAiAssistant(
     )
 
     private val KNOWN_LINES = listOf(
+        // Great Britain (TfL & National Rail)
         LineAlias("elizabeth-line", listOf("elizabeth line", "elizabeth")),
         LineAlias("central", listOf("central line", "central")),
         LineAlias("victoria", listOf("victoria line", "victoria")),
@@ -616,7 +620,36 @@ class TransitAiAssistant(
         LineAlias("hammersmith-city", listOf("hammersmith")),
         LineAlias("overground", listOf("overground")),
         LineAlias("dlr", listOf("dlr")),
-        LineAlias("thameslink", listOf("thameslink"))
+        LineAlias("thameslink", listOf("thameslink")),
+        // Hong Kong (MTR)
+        LineAlias("ISL", listOf("island line", "港島綫", "港島線")),
+        LineAlias("TWL", listOf("tsuen wan line", "荃灣綫", "荃灣線")),
+        LineAlias("KTL", listOf("kwun tong line", "觀塘綫", "觀塘線")),
+        LineAlias("TKL", listOf("tseung kwan o line", "將軍澳綫", "將軍澳線")),
+        LineAlias("EAL", listOf("east rail line", "東鐵綫", "東鐵線")),
+        LineAlias("TML", listOf("tuen ma line", "屯馬綫", "屯馬線")),
+        LineAlias("TCL", listOf("tung chung line", "東涌綫", "東涌線")),
+        LineAlias("SIL", listOf("south island line", "南港島綫", "南港島線")),
+        LineAlias("AEL", listOf("airport express", "機場快綫", "機場快線")),
+        // Singapore (MRT)
+        LineAlias("NSL", listOf("north-south line", "north south line")),
+        LineAlias("EWL", listOf("east-west line", "east west line")),
+        LineAlias("NEL", listOf("north east line", "north-east line")),
+        LineAlias("CCL", listOf("circle line mrt")),
+        LineAlias("DTL", listOf("downtown line")),
+        LineAlias("TEL", listOf("thomson-east coast line", "thomson east coast")),
+        // Tokyo (Metro & JR)
+        LineAlias("Ginza", listOf("ginza line", "銀座線")),
+        LineAlias("Marunouchi", listOf("marunouchi line", "丸ノ内線")),
+        LineAlias("Hibiya", listOf("hibiya line", "日比谷線")),
+        LineAlias("Yamanote", listOf("yamanote line", "山手線")),
+        LineAlias("Chuo", listOf("chuo line", "中央線")),
+        // Sydney (Trains & Metro)
+        LineAlias("M1", listOf("sydney metro", "metro north west")),
+        LineAlias("T1", listOf("t1 north shore", "t1 western")),
+        LineAlias("T2", listOf("t2 inner west")),
+        LineAlias("T4", listOf("t4 eastern suburbs", "illawarra")),
+        LineAlias("T8", listOf("t8 airport", "airport & south"))
     )
 
     private val STATUS_KEYWORDS = listOf(

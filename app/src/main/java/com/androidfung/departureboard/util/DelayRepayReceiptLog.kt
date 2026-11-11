@@ -29,9 +29,8 @@ object DelayRepayReceiptLog {
     private const val MAX_RECEIPTS = 25
 
     private val DAY_KEY_FORMATTER: DateTimeFormatter =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.UK)
-    private val DATE_LABEL_FORMATTER: DateTimeFormatter =
-        DateTimeFormatter.ofPattern("dd MMM HH:mm", Locale.UK)
+        DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ROOT)
+    private const val DATE_LABEL_PATTERN = "dd MMM HH:mm"
 
     data class DelayRepayReceipt(
         val id: String,
@@ -78,7 +77,7 @@ object DelayRepayReceiptLog {
         val zonedNow = Instant.ofEpochMilli(nowMs).atZone(ZoneId.systemDefault())
         val dayKey = DAY_KEY_FORMATTER.format(zonedNow)
         val receiptId = "${dayKey}_${departureId}_${lineName}_${destinationName}"
-        val dateLabel = DATE_LABEL_FORMATTER.format(zonedNow)
+        val dateLabel = DateTimeFormatter.ofPattern(DATE_LABEL_PATTERN, Locale.getDefault()).format(zonedNow)
         val claimUrl = resolveOperatorClaimUrl(lineName)
 
         val newReceipt = DelayRepayReceipt(
@@ -136,13 +135,18 @@ object DelayRepayReceiptLog {
     }
 
     fun resolveOperatorClaimUrl(lineOrOperator: String): String {
-        val key = lineOrOperator.lowercase()
+        val key = lineOrOperator.trim().lowercase()
         return when {
+            key.contains("northern rail") || key.contains("northernrailway") ||
+                key.contains("northern trains") || key.contains("arriva rail north") || key == "nt" ->
+                "https://www.northernrailway.co.uk/travel/delay-repay"
+            key.contains("great northern") || key == "gn" ->
+                "https://www.greatnorthernrail.com/help-and-support/journey-problems/delay-repay-compensation"
             key.contains("elizabeth") || key.contains("overground") || key.contains("dlr") ||
                 key.contains("bakerloo") || key.contains("central") || key.contains("circle") ||
                 key.contains("district") || key.contains("hammersmith") || key.contains("jubilee") ||
-                key.contains("metropolitan") || key.contains("northern") || key.contains("piccadilly") ||
-                key.contains("victoria") || key.contains("waterloo") || key.contains("tfl") ->
+                key.contains("metropolitan") || key.contains("northern line") || key == "northern" ||
+                key.contains("piccadilly") || key.contains("victoria") || key.contains("waterloo") || key.contains("tfl") ->
                 "https://tfl.gov.uk/fares/refunds-and-replacements"
             key.contains("avanti") -> "https://www.avantiwestcoast.co.uk/help-and-support/delay-repay"
             key.contains("lner") -> "https://www.lner.co.uk/support/delay-repay/"

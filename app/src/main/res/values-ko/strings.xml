@@ -73,13 +73,28 @@
     <!-- Tracking Notifications & Alerts -->
     <string name="notification_channel_live_tracking">실시간 열차 추적</string>
     <string name="notification_channel_live_tracking_desc">추적 중인 열차의 실시간 도착 카운트다운을 표시합니다</string>
-    <string name="notification_channel_alerts">열차 추적 알림</string>
-    <string name="notification_channel_alerts_desc">열차 취소 또는 변경 사항에 대한 알림</string>
+    <string name="notification_channel_platform_alerts">승강장 안내 및 변경 알림</string>
+    <string name="notification_channel_platform_alerts_desc">승강장이 확정되거나 변경될 때 진동 및 알림으로 안내합니다</string>
+    <string name="notification_channel_alighting_alerts">하차역 도착 알림</string>
+    <string name="notification_channel_alighting_alerts_desc">지정한 하차역 1정거장 전 또는 접근 시 하차 준비 알림을 보냅니다</string>
+    <string name="notification_channel_alerts">지연, 운행 취소 및 경로 변경 알림</string>
+    <string name="notification_channel_alerts_desc">추적 중인 열차의 지연, 운행 취소 또는 행선지 변경 알림</string>
     <string name="notification_channel_widget_disruptions">홈 화면 지연 및 운행 알림</string>
     <string name="notification_channel_widget_disruptions_desc">홈 화면에 고정된 역 및 노선의 지연, 운휴, 폐쇄 알림</string>
     <string name="settings_section_notifications">알림 및 경보</string>
+    <string name="settings_platform_alerts_title">승강장 확정 및 변경 알림</string>
+    <string name="settings_platform_alerts_desc">추적 중인 열차의 승강장이 확정되거나 변경되면 알림을 받습니다</string>
+    <string name="settings_alighting_alerts_title">하차역 도착 알림</string>
+    <string name="settings_alighting_alerts_desc">선택한 하차역 1정거장 전에 하차 준비 알림을 보냅니다</string>
+    <string name="settings_disruption_alerts_title">추적 열차 지연 및 취소 알림</string>
+    <string name="settings_disruption_alerts_desc">추적 중인 열차가 지연, 취소되거나 목적지가 변경될 때 알림을 보냅니다</string>
+    <string name="settings_wear_auto_hud_title">추적 시 워치 Sprint HUD 자동 열기</string>
+    <string name="settings_wear_auto_hud_desc">추적을 시작하면 Wear OS 워치에서 전체 화면 HUD를 즉시 표시합니다</string>
+    <string name="settings_system_notification_channels_title">시스템 알림 채널 설정</string>
+    <string name="settings_system_notification_channels_desc">Android 설정에서 각 알림 채널의 소리, 진동 및 중요도를 맞춤 설정합니다</string>
     <string name="settings_widget_disruptions_title">홈 화면 운행 지연 알림</string>
     <string name="settings_widget_disruptions_desc">홈 화면에 추가된 역이나 노선에 지연, 운휴 또는 폐쇄가 발생하면 알림을 받습니다</string>
+    <string name="widget_notification_disruption_title_line">%1$s (%2$s)</string>
     <string name="widget_notification_station_closed">역이 폐쇄되었습니다</string>
     <string name="widget_notification_service_closed">운행이 마감되었습니다</string>
     <string name="widget_notification_service_closed_with_time">운행이 마감되었습니다 • 첫차 %1$s</string>
@@ -107,6 +122,9 @@
     <string name="tracking_default_train">열차</string>
     <string name="tracking_platform_default">승강장</string>
     <string name="tracking_bus_stop_default">정류장</string>
+    <string name="tracking_alight_soon_title">하차 준비</string>
+    <string name="tracking_alight_soon_message">%2$s 다음 정차역은 %1$s입니다</string>
+    <string name="tracking_alight_approaching_message">%2$s 열차가 곧 %1$s에 도착합니다</string>
 
     <!-- Debug & Settings -->
     <string name="switch_region_title">지역 전환</string>
@@ -416,11 +434,11 @@
     <string name="paywall_prompt_station_limit">무료 플랜에서는 최대 %1$d개 역을 저장할 수 있습니다. Pro로 업그레이드하여 최대 %2$d개까지 저장하세요.</string>
     <string name="paywall_prompt_ai_limit">Pro로 업그레이드하여 EkiBoard AI를 무제한으로 이용하세요</string>
     <string name="paywall_prompt_default">EkiBoard Pro 잠금 해제</string>
-    <string name="paywall_plan_annual_fallback">£9.99 / 년</string>
-    <string name="paywall_plan_monthly_fallback">£1.49 / 월</string>
+    <string name="paywall_plan_annual_fallback">₩14,000 / 년</string>
+    <string name="paywall_plan_monthly_fallback">₩2,000 / 월</string>
     <string name="paywall_plan_savings_tag">%1$d%% 절약</string>
     <string name="paywall_plan_annual_subtitle">1년 Pro 이용권 (월 %1$s%2$.2f)</string>
-    <string name="paywall_plan_annual_subtitle_fallback">1년 Pro 이용권 (월 £0.83)</string>
+    <string name="paywall_plan_annual_subtitle_fallback">1년 Pro 이용권 (월 약 ₩1,160)</string>
     <string name="paywall_plan_monthly_subtitle">매월 결제, 언제든지 취소 가능</string>
 
     <!-- General Feedback & Errors -->
@@ -455,4 +473,59 @@
     <!-- AI Quota Exceeded -->
     <string name="ai_quota_exceeded">오늘 무료 AI 검색 한도(%1$d회)에 도달했습니다. Pro로 업그레이드하여 무제한 AI 질문, 실시간 지연 확인 및 전체 정차역 조회를 이용해 보세요.</string>
     <string name="ai_input_placeholder">질문 또는 음성 입력: \"Mill Hill East행 열차\"…</string>
+
+    <!-- Last Train Home & Night Service -->
+    <string name="badge_last_train">🌙 막차</string>
+    <string name="badge_night_service">🦉 심야 운행</string>
+    <string name="last_train_banner_title">🌙 오늘의 막차 안내 • %1$s</string>
+    <string name="last_train_banner_countdown">마지막 출발 약 %1$d분 전</string>
+    <string name="last_train_banner_first_train">아침 첫차 예정 시각 ~%1$s</string>
+    <string name="night_service_banner_title">🦉 24시간 심야 노선 운행 중</string>
+    <string name="night_service_banner_subtitle">야간 연장 운행 서비스가 진행 중입니다</string>
+
+    <!-- Full-Screen Desk Clock / Split-Flap & Tabletop Mode -->
+    <string name="desk_clock_title">스플릿 플랩 탁상 시계</string>
+    <string name="desk_clock_menu_item">탁상 시계 / 플랩 출발 안내판</string>
+    <string name="desk_clock_tabletop_banner">테이블탑 모드 • 스플릿 플랩 탁상 시계 열기</string>
+    <string name="desk_clock_style_split_flap">스플릿 플랩</string>
+    <string name="desk_clock_style_amber_led">앰버 LED</string>
+    <string name="desk_clock_style_oled_dark">OLED 매트릭스</string>
+    <string name="desk_clock_auto_cycle">자동 순환 (15초)</string>
+    <string name="desk_clock_tabletop_toggle">테이블탑 덱</string>
+    <string name="desk_clock_dim_mode">야간 밝기 감소</string>
+    <string name="desk_clock_col_line">노선</string>
+    <string name="desk_clock_col_destination">행선지</string>
+    <string name="desk_clock_col_platform">승강장</string>
+    <string name="desk_clock_col_time">시간</string>
+    <string name="cd_open_desk_clock">스플릿 플랩 탁상 시계 열기</string>
+
+    <!-- Platform & Ecosystem Extensions -->
+    <string name="quick_settings_tile_name">실시간 출발</string>
+    <string name="corridor_route_menu_item">구간 급행·완행 노선 비교</string>
+
+    <!-- Labs & Experimental Features -->
+    <string name="settings_section_labs">실험실 및 미리보기</string>
+    <string name="settings_labs_title">Labs 실험실</string>
+    <string name="settings_labs_subtitle">개발 중인 실험적 기능 및 사전 미리보기</string>
+    <string name="labs_title">EkiBoard Labs</string>
+    <string name="labs_subtitle">현재 활발히 개발 중인 새로운 대중교통 기능을 먼저 체험해 보세요</string>
+    <string name="labs_disclaimer">Labs의 기능은 실험적 미리보기이며 피드백에 따라 변경되거나 개선될 수 있습니다.</string>
+    <string name="labs_section_display">디스플레이 및 하드웨어</string>
+    <string name="labs_section_commute">통근 인텔리전스</string>
+    <string name="labs_section_comparisons">역 및 노선 비교</string>
+    <string name="labs_section_ai">AI 및 음성 안내</string>
+    <string name="labs_desk_clock_title">탁상 시계 / 플랩 출발 안내판</string>
+    <string name="labs_desk_clock_desc">폴더블 테이블탑 모드를 지원하는 전체 화면 플랩 및 LED 출발 안내판</string>
+    <string name="labs_bilingual_title">이중 언어 역명 표시</string>
+    <string name="labs_bilingual_desc">MTR 및 홍콩·도쿄 등 노선에서 영어와 현지어 역명을 함께 표시</string>
+    <string name="labs_smart_commute_title">스마트 통근 루틴</string>
+    <string name="labs_smart_commute_desc">출퇴근 시간대에 맞춰 자주 이용하는 역을 자동으로 우선 배치</string>
+    <string name="labs_twin_concourse_title">트윈 대합실 비교</string>
+    <string name="labs_twin_concourse_desc">인접한 두 환승 허브의 실시간 출발 시각을 나란히 비교</string>
+    <string name="labs_corridor_route_title">구간 급행·완행 비교</string>
+    <string name="labs_corridor_route_desc">같은 경로에서 급행 열차가 완행 열차를 추월하는지 도착 시간 비교</string>
+    <string name="labs_ai_assistant_title">AI 지연 어드바이저 및 음성 안내</string>
+    <string name="labs_ai_assistant_desc">자연어 우회 경로 안내 및 온디바이스 TTS 음성 읽기</string>
+    <string name="travel_alert_ask_ai_alternatives">AI에게 대체 경로 질문하기</string>
+    <string name="platform_backlog_banner_title">승강장 열차 밀림 • %1$s</string>
 </resources>

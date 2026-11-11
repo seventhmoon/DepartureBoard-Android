@@ -89,6 +89,7 @@ fun AiTransitSheet(
     nearestStation: Station? = null,
     initialTriggerSpeech: Boolean = false,
     initialQuery: String? = null,
+    autoSubmitInitialQuery: Boolean = true,
     billingRepository: BillingDataSource? = null,
     aiModelType: com.androidfung.departureboard.ai.AiModelType = com.androidfung.departureboard.ai.AiModelType.DEFAULT,
     selectedRegion: com.androidfung.departureboard.data.model.TransitRegion = com.androidfung.departureboard.data.model.TransitRegion.GB,
@@ -347,9 +348,13 @@ fun AiTransitSheet(
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(initialQuery) {
+    androidx.compose.runtime.LaunchedEffect(initialQuery, autoSubmitInitialQuery) {
         if (!initialQuery.isNullOrBlank()) {
-            submitQuery(initialQuery)
+            if (autoSubmitInitialQuery) {
+                submitQuery(initialQuery)
+            } else {
+                queryText = initialQuery
+            }
         }
     }
 

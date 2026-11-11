@@ -68,9 +68,17 @@ class WearNextTrainComplicationService : SuspendingComplicationDataSourceService
         )
 
         return if (tracked != null) {
-            val platTitle = if (tracked.isPlatformTbd) "Plat TBD" else "Plat ${tracked.cleanPlatformCode}"
+            val platTitle = if (tracked.isPlatformTbd) {
+                getString(com.androidfung.departureboard.wear.R.string.wear_plat_tbd)
+            } else {
+                getString(com.androidfung.departureboard.wear.R.string.wear_plat_code, tracked.cleanPlatformCode)
+            }
             val mins = (tracked.remainingSeconds / 60).coerceAtLeast(0)
-            val shortCountdown = if (tracked.remainingSeconds <= 30) "Due" else "${mins}m"
+            val shortCountdown = if (tracked.remainingSeconds <= 30) {
+                getString(com.androidfung.departureboard.wear.R.string.wear_status_due)
+            } else {
+                getString(com.androidfung.departureboard.wear.R.string.wear_minutes_short, mins)
+            }
             createComplicationData(
                 type = request.complicationType,
                 shortTitle = platTitle,
@@ -83,10 +91,12 @@ class WearNextTrainComplicationService : SuspendingComplicationDataSourceService
             val snapshot = WearSnapshotFormatter.buildComplicationSnapshot(activeBoard)
             val firstDep = activeBoard.departures.firstOrNull()
             val shortTitle = firstDep?.let {
-                if (it.isPlatformTbd) "${activeBoard.stationCrs} TBD" else "Plat ${it.cleanPlatformCode}"
+                if (it.isPlatformTbd) "${activeBoard.stationCrs} TBD"
+                else getString(com.androidfung.departureboard.wear.R.string.wear_plat_code, it.cleanPlatformCode)
             } ?: activeBoard.stationCrs
             val shortVal = firstDep?.let {
-                if (it.countdownMinutes <= 0) "Due" else "${it.countdownMinutes}m"
+                if (it.countdownMinutes <= 0) getString(com.androidfung.departureboard.wear.R.string.wear_status_due)
+                else getString(com.androidfung.departureboard.wear.R.string.wear_minutes_short, it.countdownMinutes)
             } ?: "--"
             createComplicationData(
                 type = request.complicationType,
@@ -101,7 +111,7 @@ class WearNextTrainComplicationService : SuspendingComplicationDataSourceService
                 type = request.complicationType,
                 shortTitle = "EkiBoard",
                 shortText = "--",
-                longText = "Tap to open EkiBoard",
+                longText = getString(com.androidfung.departureboard.wear.R.string.wear_complication_tap_open),
                 progressPercent = 0,
                 tapAction = tapPendingIntent
             )
