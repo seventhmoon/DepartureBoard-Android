@@ -15,6 +15,8 @@ import com.androidfung.departureboard.data.repository.region.gb.TflStopPointUtil
  */
 object StationBadgeSynthesizer {
 
+    private val NUMERIC_BUS_ROUTE_REGEX = Regex("^[A-Za-z]?[0-9]+[A-Za-z]?$")
+
     /**
      * Builds and enriches line badges for a station based on active departures,
      * station metadata fallback, and real-time line disruptions/statuses.
@@ -52,7 +54,7 @@ object StationBadgeSynthesizer {
         // Sort line badges logically: Tube/Rail lines alphabetically, then numeric Bus routes in ascending order
         val sortedBadges = rawBadges.sortedWith(
             compareBy<LineBadgeInfo> { badge ->
-                if (badge.mode == TransitMode.BUS || badge.displayName.matches(Regex("^[A-Za-z]?[0-9]+[A-Za-z]?$"))) 1 else 0
+                if (badge.mode == TransitMode.BUS || badge.displayName.matches(NUMERIC_BUS_ROUTE_REGEX)) 1 else 0
             }.thenBy { badge ->
                 val num = badge.displayName.filter { it.isDigit() }.toIntOrNull()
                 num ?: Int.MAX_VALUE

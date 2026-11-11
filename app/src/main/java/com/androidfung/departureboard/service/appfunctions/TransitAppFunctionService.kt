@@ -79,10 +79,12 @@ abstract class BaseTransitAppFunctionService : AppFunctionService() {
         val depResult = transitRepository.getDepartures(station.id, station.name)
         val departures = depResult.getOrNull() ?: emptyList()
 
-        // Find the first departure going to the requested destination
-        val targetDeparture = departures.firstOrNull { 
-            it.destinationName.contains(destinationName, ignoreCase = true) ||
-            (it.towards?.contains(destinationName, ignoreCase = true) == true)
+        // Find the first non-cancelled departure going to the requested destination
+        val targetDeparture = departures.firstOrNull {
+            it.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED && (
+                it.destinationName.contains(destinationName, ignoreCase = true) ||
+                    (it.towards?.contains(destinationName, ignoreCase = true) == true)
+                )
         }
 
         if (targetDeparture == null) {

@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -51,6 +52,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -104,6 +109,7 @@ class WearDepartureBoardActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         lifecycle.addObserver(ambientObserver)
         setShowWhenLocked(true)
         setTurnScreenOn(true)
@@ -191,8 +197,6 @@ fun WearConcourseBoardScreen(
     val coroutineScope = rememberCoroutineScope()
     val rotaryFocusRequester = remember { FocusRequester() }
 
-    val currentBoard: WearStationBoard = boards[selectedStationIndex % boards.size]
-
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { _ -> }
@@ -254,32 +258,6 @@ fun WearConcourseBoardScreen(
         return
     }
 
-    if (showAskAiScreen) {
-        WearAskAiScreen(
-            station = currentBoard,
-            aiResponse = latestAiResponse?.takeIf { it.stationId == currentBoard.stationId },
-            onSelectPrompt = { promptType, queryText ->
-                WearCompanionStateRepository.askAiConcourseTriage(
-                    context = context,
-                    station = currentBoard,
-                    promptType = promptType,
-                    queryText = queryText
-                )
-            },
-            onOpenAiOnPhone = { queryText ->
-                WearCompanionStateRepository.openAiOnPhone(
-                    context = context,
-                    stationId = currentBoard.stationId,
-                    stationName = currentBoard.stationName,
-                    queryText = queryText
-                )
-                Toast.makeText(context, "Opening AI on Phone…", Toast.LENGTH_SHORT).show()
-            },
-            onBack = { showAskAiScreen = false }
-        )
-        return
-    }
-
     if (showStationManager) {
         WearStationManagerScreen(
             activeBoards = boards,
@@ -319,6 +297,72 @@ fun WearConcourseBoardScreen(
                 WearNotificationPublisher.openSystemNotificationSettings(context, channelId)
             },
             onBack = { showNotificationSettings = false }
+        )
+        return
+    }
+
+    if (boards.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "No Stations Synced",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = Color(0xFF1E2229),
+                    border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .clickable { showStationManager = true }
+                ) {
+                    Text(
+                        text = "+ Add Station",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = Color(0xFF81D4FA),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+            }
+        }
+        return
+    }
+
+    val currentBoard: WearStationBoard = boards[selectedStationIndex.mod(boards.size)]
+
+    if (showAskAiScreen) {
+        WearAskAiScreen(
+            station = currentBoard,
+            aiResponse = latestAiResponse?.takeIf { it.stationId == currentBoard.stationId },
+            onSelectPrompt = { promptType, queryText ->
+                WearCompanionStateRepository.askAiConcourseTriage(
+                    context = context,
+                    station = currentBoard,
+                    promptType = promptType,
+                    queryText = queryText
+                )
+            },
+            onOpenAiOnPhone = { queryText ->
+                WearCompanionStateRepository.openAiOnPhone(
+                    context = context,
+                    stationId = currentBoard.stationId,
+                    stationName = currentBoard.stationName,
+                    queryText = queryText
+                )
+                Toast.makeText(context, "Opening AI on Phone…", Toast.LENGTH_SHORT).show()
+            },
+            onBack = { showAskAiScreen = false }
         )
         return
     }
@@ -441,7 +485,13 @@ fun WearConcourseBoardScreen(
                         ?.takeIf { it.isNotBlank() && !it.equals("Phone Board", ignoreCase = true) }
                     val subtitle = buildList {
                         shortTag?.let { add(it) }
-                        add(if (isPhoneSynced) "📱 Synced" else "Live")
+                        add(
+                            when {
+                                currentBoard.isStale() -> "⚠️ Sync needed"
+                                isPhoneSynced -> "📱 Synced"
+                                else -> "Live"
+                            }
+                        )
                     }.joinToString(" • ")
                     Text(
                         text = subtitle,
@@ -528,6 +578,10 @@ fun WearConcourseBoardScreen(
                             border = BorderStroke(1.dp, Color(0xFF37474F)),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
+                                .semantics {
+                                    role = Role.Button
+                                    contentDescription = "Notification settings"
+                                }
                                 .clickable { showNotificationSettings = true }
                         ) {
                             Text(
@@ -543,6 +597,10 @@ fun WearConcourseBoardScreen(
                             border = BorderStroke(1.dp, Color(0xFF37474F)),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
+                                .semantics {
+                                    role = Role.Button
+                                    contentDescription = "Ambient mode"
+                                }
                                 .clickable { manualAmbientMode = true }
                         ) {
                             Text(
@@ -636,7 +694,8 @@ fun WearConcourseBoardScreen(
             // 5. Departure Rows
             items(
                 items = if (isAmbientMode) currentBoard.departures.take(2) else currentBoard.departures,
-                key = { it.id }
+                key = { it.id },
+                contentType = { "departure_row" }
             ) { dep ->
                 val isWatched = watchedDepartureIds.contains(dep.id) || trackedJourney?.departureId == dep.id
                 val isExpanded = expandedDepartureId == dep.id && !isAmbientMode

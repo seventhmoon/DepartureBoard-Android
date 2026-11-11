@@ -29,6 +29,14 @@ object DeepLinkIntentParser {
 
     const val SCHEME_MIND_THE_BOARD = "mindtheboard"
     const val HOST_STATION = "station"
+    const val EXTRA_INTERNAL_TRUST_TOKEN = "extra_internal_trust_token"
+
+    /**
+     * Per-process random capability token attached ONLY by trusted internal components
+     * (e.g. [com.androidfung.departureboard.wear.PhoneCompanionSyncReceiver]) so external apps
+     * targeting exported `MainActivity` cannot spoof trusted extras or auto-submit AI queries.
+     */
+    val INTERNAL_CAPABILITY_TOKEN: String = java.util.UUID.randomUUID().toString()
 
     private const val MAX_ID_LENGTH = 96
     private const val MAX_NAME_LENGTH = 80
@@ -85,7 +93,8 @@ object DeepLinkIntentParser {
             extraStationName = intent.getStringExtra(extraStationNameKey),
             extraDepartureId = intent.getStringExtra(extraDepartureIdKey),
             extraAiQuery = intent.getStringExtra(extraAiQueryKey),
-            extraAutoSubmitAi = intent.getBooleanExtra(extraAutoSubmitAiKey, false)
+            extraAutoSubmitAi = intent.getBooleanExtra(extraAutoSubmitAiKey, false),
+            hasInternalTrustToken = intent.getStringExtra(EXTRA_INTERNAL_TRUST_TOKEN) == INTERNAL_CAPABILITY_TOKEN
         )
     }
 
@@ -103,7 +112,8 @@ object DeepLinkIntentParser {
         extraStationName: String?,
         extraDepartureId: String?,
         extraAiQuery: String?,
-        extraAutoSubmitAi: Boolean
+        extraAutoSubmitAi: Boolean,
+        hasInternalTrustToken: Boolean = false
     ): ParsedDeepLinkPayload {
         val isValidStationDeepLink = isHierarchicalUri &&
             uriScheme.equals(SCHEME_MIND_THE_BOARD, ignoreCase = true) &&
@@ -116,7 +126,7 @@ object DeepLinkIntentParser {
         val rawStationIdFromUri = if (isValidStationDeepLink) sanitizeTransitId(uriLastPathSegment) else null
         val stationId = rawStationIdFromExtra ?: rawStationIdFromUri
 
-        val trustedExtraName = if (!isBrowsableExternalLink) {
+        val trustedExtraName = if (hasInternalTrustToken && !isBrowsableExternalLink) {
             sanitizeDisplayText(extraStationName, MAX_NAME_LENGTH)
         } else null
 
@@ -135,7 +145,8 @@ object DeepLinkIntentParser {
         } else null
         val aiQuery = sanitizedExtraAi ?: sanitizedUriAi
 
-        val autoSubmitAi = !isBrowsableExternalLink &&
+        val autoSubmitAi = hasInternalTrustToken &&
+            !isBrowsableExternalLink &&
             sanitizedExtraAi != null &&
             extraAutoSubmitAi
 

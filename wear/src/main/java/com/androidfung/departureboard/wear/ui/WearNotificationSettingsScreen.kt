@@ -1,5 +1,6 @@
 package com.androidfung.departureboard.wear.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,6 +32,10 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +60,8 @@ internal fun WearNotificationSettingsScreen(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
+
+    BackHandler(onBack = onBack)
 
     LaunchedEffect(Unit) {
         runCatching { focusRequester.requestFocus() }
@@ -263,7 +271,11 @@ private fun WearNotificationToggleRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onToggle)
+            .toggleable(
+                value = enabled,
+                role = Role.Switch,
+                onValueChange = { onToggle() }
+            )
     ) {
         Row(
             modifier = Modifier
@@ -314,6 +326,10 @@ private fun WearNotificationToggleRow(
                     color = Color(0xFF263238),
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "$title channel settings"
+                        }
                         .clickable(onClick = onChannelSettings)
                 ) {
                     Text(

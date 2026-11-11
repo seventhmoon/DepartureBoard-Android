@@ -65,6 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.CallingPoint
@@ -73,6 +74,8 @@ import com.androidfung.departureboard.ui.ads.NativeAdStyle
 import com.androidfung.departureboard.ui.ads.NativeAdViewContainer
 import com.androidfung.departureboard.ui.designsystem.LineDisruptionBanner
 import com.androidfung.departureboard.ui.designsystem.UnifiedDepartureTimeBadge
+
+private val HH_MM_REGEX = Regex("^[0-9]{2}:[0-9]{2}$")
 
 private sealed interface JourneyTimelineListItem {
     data class CallingPointItem(val callingPoint: CallingPoint, val index: Int) : JourneyTimelineListItem
@@ -91,11 +94,12 @@ fun TrainJourneyScreen(
     onCallingPointClick: (CallingPoint, List<CallingPoint>) -> Unit = { _, _ -> }
 ) {
     val departureList = remember(departures, departure) {
-        if (departures.none { it.id == departure.id }) {
+        val combined = if (departures.none { it.id == departure.id }) {
             listOf(departure) + departures
         } else {
             departures
         }
+        combined.distinctBy { it.id }
     }
 
     val initialIndex = remember(departureList, departure.id) {
@@ -423,7 +427,7 @@ private fun TrainJourneyContent(
                 }
             }
         }
-    ) { _ ->
+    ) { scaffoldPadding ->
         val isThreePane = LocalIsThreePaneMode.current
         val isDelayedOrCancelled = departure.status == com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED ||
                 departure.status == com.androidfung.departureboard.data.model.DepartureStatus.DELAYED
@@ -431,7 +435,7 @@ private fun TrainJourneyContent(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 16.dp),
+            contentPadding = PaddingValues(bottom = 16.dp + scaffoldPadding.calculateBottomPadding()),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // 1. Main Destination Title & Departure Time Badge
@@ -509,7 +513,7 @@ private fun TrainJourneyContent(
                 rawLocation.equals("On time", ignoreCase = true) ||
                 rawLocation.equals("Delayed", ignoreCase = true) ||
                 rawLocation.equals("Cancelled", ignoreCase = true) ||
-                rawLocation.matches(Regex("^[0-9]{2}:[0-9]{2}$"))
+                rawLocation.matches(HH_MM_REGEX)
             val hasMeaningfulLocation = rawLocation.isNotBlank() && !isTimeOrGenericStatus
 
             if (hasMeaningfulLocation) {
@@ -677,6 +681,8 @@ private fun TrainJourneyContent(
             // Delay Repay Compensation Eligibility Banner
             if (delayRepay != null) {
                 item(key = "delay_repay_banner", contentType = "delay_repay_banner") {
+                    val isDarkTheme = com.androidfung.departureboard.ui.theme.LocalIsDarkTheme.current
+                    val tealAccent = if (isDarkTheme) Color(0xFF4DB6AC) else Color(0xFF00695C)
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         shape = RoundedCornerShape(10.dp),
@@ -702,7 +708,7 @@ private fun TrainJourneyContent(
                                     Text(
                                         text = "${delayRepay.badgeLabel} • Receipt Saved",
                                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = Color(0xFF26A69A)
+                                        color = tealAccent
                                     )
                                     Text(
                                         text = delayRepay.compensationSummary,
@@ -717,12 +723,12 @@ private fun TrainJourneyContent(
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = Color(0xFF00897B).copy(alpha = 0.28f),
+                                    color = Color(0xFF00897B).copy(alpha = 0.22f),
                                     modifier = Modifier.clickable {
                                         val claimUrl = com.androidfung.departureboard.util.DelayRepayReceiptLog.resolveOperatorClaimUrl(delayRepay.operatorLabel)
                                         val intent = android.content.Intent(
                                             android.content.Intent.ACTION_VIEW,
-                                            android.net.Uri.parse(claimUrl)
+                                            claimUrl.toUri()
                                         )
                                         runCatching { context.startActivity(intent) }
                                     }
@@ -730,7 +736,7 @@ private fun TrainJourneyContent(
                                     Text(
                                         text = "Claim Online ↗",
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = Color(0xFF4DB6AC),
+                                        color = tealAccent,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                     )
                                 }
@@ -738,13 +744,11 @@ private fun TrainJourneyContent(
                                     shape = RoundedCornerShape(6.dp),
                                     color = MaterialTheme.colorScheme.surfaceContainerHighest,
                                     modifier = Modifier.clickable {
-                                        val latestReceipt = com.androidfung.departureboard.util.DelayRepayReceiptLog
-                                            .receiptsFlow.value.firstOrNull()
-                                            ?: com.androidfung.departureboard.util.DelayRepayReceiptLog
-                                                .loadReceipts(context)
-                                                .firstOrNull()
-                                        if (latestReceipt != null) {
-                                            com.androidfung.departureboard.util.DelayRepayReceiptLog.copyReceiptToClipboard(context, latestReceipt)
+                                        val cachedReceipts = com.androidfung.departureboard.util.DelayRepayReceiptLog.receiptsFlow.value
+                                        val matchedReceipt = cachedReceipts.firstOrNull { it.id.contains("_${departure.id}_") }
+                                            ?: cachedReceipts.firstOrNull()
+                                        if (matchedReceipt != null) {
+                                            com.androidfung.departureboard.util.DelayRepayReceiptLog.copyReceiptToClipboard(context, matchedReceipt)
                                             android.widget.Toast.makeText(context, "Delay Repay receipt copied", android.widget.Toast.LENGTH_SHORT).show()
                                         }
                                     }
@@ -1718,7 +1722,7 @@ private fun TrainTripAlertBanner(
     isCancelled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = com.androidfung.departureboard.ui.theme.LocalIsDarkTheme.current
     val containerColor = if (isCancelled) {
         if (isDark) Color(0xFF930006).copy(alpha = 0.20f) else Color(0xFFFFDAD6).copy(alpha = 0.45f)
     } else {

@@ -86,7 +86,10 @@ object WearCompanionStateRepository {
     private val _latestAiResponseFlow = MutableStateFlow<WearAiConcourseResponse?>(null)
     val latestAiResponseFlow: StateFlow<WearAiConcourseResponse?> = _latestAiResponseFlow.asStateFlow()
 
+    @Volatile
     private var lastAlertedAlightStop: String? = null
+
+    private val cacheLoadLock = Any()
 
     fun clearWristAlert() {
         _latestWristAlertFlow.value = null
@@ -202,21 +205,24 @@ object WearCompanionStateRepository {
      */
     fun ensureCachedStateLoaded(context: Context) {
         if (_isPhoneSyncedFlow.value) return
-        runCatching {
-            val sp = context.applicationContext.getSharedPreferences(CACHE_PREFS_NAME, Context.MODE_PRIVATE)
-            val cachedJson = sp.getString(KEY_CACHED_BOARDS_JSON, null) ?: return
-            val cachedTs = sp.getLong(KEY_CACHED_BOARDS_TIMESTAMP_MS, 0L)
-            val parsed = parseStationBoardsJson(cachedJson)
-            if (parsed.isNotEmpty()) {
-                val ageMins = if (cachedTs > 0L) {
-                    ((System.currentTimeMillis() - cachedTs) / 60_000L).coerceAtLeast(0L)
-                } else 0L
-                val ageLabel = when {
-                    ageMins <= 1L -> "📱 Cached • just now"
-                    ageMins < 60L -> "📱 Cached • ${ageMins}m ago"
-                    else -> "📱 Offline Cache"
+        synchronized(cacheLoadLock) {
+            if (_isPhoneSyncedFlow.value) return
+            runCatching {
+                val sp = context.applicationContext.getSharedPreferences(CACHE_PREFS_NAME, Context.MODE_PRIVATE)
+                val cachedJson = sp.getString(KEY_CACHED_BOARDS_JSON, null) ?: return
+                val cachedTs = sp.getLong(KEY_CACHED_BOARDS_TIMESTAMP_MS, 0L)
+                val parsed = parseStationBoardsJson(cachedJson, fallbackSyncedAtEpochMs = cachedTs)
+                if (parsed.isNotEmpty()) {
+                    val ageMins = if (cachedTs > 0L) {
+                        ((System.currentTimeMillis() - cachedTs) / 60_000L).coerceAtLeast(0L)
+                    } else 0L
+                    val ageLabel = when {
+                        ageMins <= 1L -> "📱 Cached • just now"
+                        ageMins < 60L -> "📱 Cached • ${ageMins}m ago"
+                        else -> "📱 Offline Cache"
+                    }
+                    _stationBoardsFlow.value = parsed.map { it.copy(lastUpdatedLabel = ageLabel) }
                 }
-                _stationBoardsFlow.value = parsed.map { it.copy(lastUpdatedLabel = ageLabel) }
             }
         }
     }
@@ -480,8 +486,10 @@ object WearCompanionStateRepository {
     }
 
     internal fun onReceiveStationBoardsJson(boardsJson: String, context: Context? = null) {
-        val parsed = parseStationBoardsJson(boardsJson)
-        if (parsed.isNotEmpty()) {
+        val nowMs = System.currentTimeMillis()
+        val trimmed = boardsJson.trim()
+        val parsed = parseStationBoardsJson(boardsJson, fallbackSyncedAtEpochMs = nowMs)
+        if (parsed.isNotEmpty() || trimmed == "[]") {
             _stationBoardsFlow.value = parsed
             _isPhoneSyncedFlow.value = true
             context?.let { ctx ->
@@ -490,7 +498,7 @@ object WearCompanionStateRepository {
                         .getSharedPreferences(CACHE_PREFS_NAME, Context.MODE_PRIVATE)
                         .edit {
                             putString(KEY_CACHED_BOARDS_JSON, boardsJson)
-                            putLong(KEY_CACHED_BOARDS_TIMESTAMP_MS, System.currentTimeMillis())
+                            putLong(KEY_CACHED_BOARDS_TIMESTAMP_MS, nowMs)
                         }
                 }
                 WearDepartureTileService.requestTileUpdate(ctx)
@@ -615,12 +623,16 @@ object WearCompanionStateRepository {
         }
     }
 
-    internal fun parseStationBoardsJson(boardsJson: String): List<WearStationBoard> {
+    internal fun parseStationBoardsJson(
+        boardsJson: String,
+        fallbackSyncedAtEpochMs: Long = 0L
+    ): List<WearStationBoard> {
         return try {
             val array = JSONArray(boardsJson)
             buildList {
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)
+                    val boardSyncedAt = obj.optLong("syncedAtEpochMs", fallbackSyncedAtEpochMs)
                     val depsArray = obj.optJSONArray("departures") ?: JSONArray()
                     val departures = buildList {
                         for (j in 0 until depsArray.length()) {
@@ -642,7 +654,8 @@ object WearCompanionStateRepository {
                                     delayRepayBadge = d.optString("delayRepayBadge").takeIf { it.isNotBlank() },
                                     isLastTrain = d.optBoolean("isLastTrain", false),
                                     coachCount = d.optInt("coachCount", 0),
-                                    callingPointsSummary = d.optString("callingPointsSummary").takeIf { it.isNotBlank() }
+                                    callingPointsSummary = d.optString("callingPointsSummary").takeIf { it.isNotBlank() },
+                                    syncedAtEpochMs = d.optLong("syncedAtEpochMs", boardSyncedAt)
                                 )
                             )
                         }
@@ -655,7 +668,8 @@ object WearCompanionStateRepository {
                             lastUpdatedLabel = "📱 Synced from Phone",
                             commuteLabel = obj.optString("commuteLabel").takeIf { it.isNotBlank() },
                             departures = departures,
-                            isAtConcourse = obj.optBoolean("isAtConcourse", false)
+                            isAtConcourse = obj.optBoolean("isAtConcourse", false),
+                            syncedAtEpochMs = boardSyncedAt
                         )
                     )
                 }
@@ -684,7 +698,8 @@ object WearCompanionStateRepository {
                     stopsAway = if (stopsAwayRaw >= 0) stopsAwayRaw else null,
                     targetAlightStopName = obj.optString("targetAlightStopName").takeIf { it.isNotBlank() },
                     isCancelled = obj.optBoolean("isCancelled", false),
-                    lineColorArgb = obj.optLong("lineColorArgb", 0xFF1976D2L)
+                    lineColorArgb = obj.optLong("lineColorArgb", 0xFF1976D2L),
+                    syncedAtEpochMs = obj.optLong("syncedAtEpochMs", 0L)
                 )
             }
         } catch (_: Throwable) {
@@ -715,7 +730,8 @@ object WearCompanionStateRepository {
             stopsAway = if (stopsAwayRaw >= 0) stopsAwayRaw else null,
             targetAlightStopName = extractString("targetAlightStopName")?.takeIf { it.isNotBlank() },
             isCancelled = extractBool("isCancelled"),
-            lineColorArgb = extractLong("lineColorArgb", 0xFF1976D2L)
+            lineColorArgb = extractLong("lineColorArgb", 0xFF1976D2L),
+            syncedAtEpochMs = extractLong("syncedAtEpochMs", 0L)
         )
     }
 }

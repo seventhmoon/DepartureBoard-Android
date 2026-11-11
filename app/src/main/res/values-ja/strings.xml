@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">EkiBoard</string>
-    <string name="launcher_name">EkiBoard</string>
-    <string name="widget_name">EkiBoard</string>
     <string name="widget_description">登録した駅のリアルタイム発車予測と運行状況</string>
 
     <!-- Region Names -->
@@ -132,10 +129,6 @@
     <string name="settings_language_title">アプリの言語</string>
     <string name="settings_language_desc">システムの言語または特定の言語を選択</string>
     <string name="language_system">システム</string>
-    <string name="language_en">English</string>
-    <string name="language_zh_hant">中文</string>
-    <string name="language_ja">日本語</string>
-    <string name="language_ko">한국어</string>
 
     <!-- Settings Bottom Sheet -->
     <string name="settings_title">設定</string>

@@ -1,7 +1,4 @@
 <resources>
-    <string name="app_name">EkiBoard</string>
-    <string name="launcher_name">EkiBoard</string>
-    <string name="widget_name">EkiBoard</string>
     <string name="widget_description">即時抵達時間與車站班次預測</string>
 
     <!-- Region Names -->
@@ -131,10 +128,6 @@
     <string name="settings_language_title">應用程式語言</string>
     <string name="settings_language_desc">選擇系統預設或指定語言</string>
     <string name="language_system">系統預設</string>
-    <string name="language_en">English</string>
-    <string name="language_zh_hant">中文</string>
-    <string name="language_ja">日本語</string>
-    <string name="language_ko">한국어</string>
 
     <!-- Settings Bottom Sheet -->
     <string name="settings_title">設定</string>

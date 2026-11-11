@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <include domain="file" path="datastore" />
-        <exclude domain="file" path="models" />
-        <exclude domain="database" path="." />
-        <exclude domain="sharedpref" path="delay_repay_receipt_log.xml" />
-        <exclude domain="sharedpref" path="wear_companion_cache.xml" />
-        <exclude domain="sharedpref" path="widget_config.xml" />
+        <!-- Only back up user station/theme/region DataStore preferences (excludes Glance per-widget files,
+             Room cache databases, downloaded AI models, and ephemeral SharedPreferences). -->
+        <include domain="file" path="datastore/station_preferences.preferences_pb" />
     </cloud-backup>
     <device-transfer>
-        <include domain="file" path="datastore" />
-        <exclude domain="file" path="models" />
-        <exclude domain="database" path="." />
-        <exclude domain="sharedpref" path="wear_companion_cache.xml" />
-        <exclude domain="sharedpref" path="widget_config.xml" />
+        <include domain="file" path="datastore/station_preferences.preferences_pb" />
     </device-transfer>
 </data-extraction-rules>

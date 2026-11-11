@@ -43,13 +43,16 @@ data class FasterDepartureAlert(
  */
 object CorridorRouteComparator {
 
+    private val HH_MM_REGEX = Regex("""^([01]?\d|2[0-3]):([0-5]\d)$""")
+
     /**
      * Filters departures from an origin station that serve [targetStationName] and computes
      * corridor telemetry (speed type, stops count, travel duration).
      */
     fun evaluateCorridorDepartures(
         departures: List<Departure>,
-        targetStationName: String
+        targetStationName: String,
+        nowLocalTime: java.time.LocalTime? = null
     ): List<CorridorDepartureItem> {
         val cleanTarget = targetStationName.trim().lowercase()
         if (cleanTarget.isBlank()) return emptyList()
@@ -61,28 +64,43 @@ object CorridorRouteComparator {
 
             val isTerminus = dep.destinationName.lowercase().contains(cleanTarget)
             val matchedCallingPointIndex = dep.callingPoints.indexOfFirst { cp ->
-                cp.stationName.lowercase().contains(cleanTarget)
+                !cp.isCurrentStation && cp.stationName.lowercase().contains(cleanTarget)
             }
 
             if (!isTerminus && matchedCallingPointIndex < 0) continue
 
-            val stopsCount = if (isTerminus) {
-                if (dep.callingPoints.isNotEmpty()) dep.callingPoints.size else 1
-            } else {
-                matchedCallingPointIndex + 1
+            val hasOriginAtZero = dep.callingPoints.firstOrNull()?.isCurrentStation == true
+            val hasLoadedCallingPoints = dep.callingPoints.isNotEmpty()
+            val stopsCount = when {
+                matchedCallingPointIndex >= 0 -> {
+                    val rawCount = if (hasOriginAtZero) matchedCallingPointIndex else matchedCallingPointIndex + 1
+                    rawCount.coerceAtLeast(1)
+                }
+                isTerminus && hasLoadedCallingPoints -> {
+                    val rawCount = if (hasOriginAtZero) dep.callingPoints.size - 1 else dep.callingPoints.size
+                    rawCount.coerceAtLeast(1)
+                }
+                else -> 0 // Calling points not yet loaded; avoid misclassifying as 1-stop Express
             }
 
-            val targetArrivalTime = if (!isTerminus && matchedCallingPointIndex >= 0) {
+            val targetArrivalTime = if (matchedCallingPointIndex >= 0) {
                 val cp = dep.callingPoints[matchedCallingPointIndex]
-                cp.estimatedTime ?: cp.scheduledTime
+                val est = cp.estimatedTime?.takeIf { HH_MM_REGEX.matches(it.trim()) }
+                est ?: cp.scheduledTime?.takeIf { HH_MM_REGEX.matches(it.trim()) }
             } else {
-                dep.expectedArrivalIso?.substringAfter("T")?.take(5)
+                dep.expectedArrivalIso?.substringAfter("T")?.take(5)?.takeIf { HH_MM_REGEX.matches(it) }
             }
 
-            // Estimate travel time: roughly 2-3 mins per stop if not explicitly scheduled
-            val travelMinutes = stopsCount * 3 + (dep.timeToStationSeconds / 60)
+            val regionZone = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(dep.stationId).timeZone
+            val referenceNow = nowLocalTime ?: java.time.LocalTime.now(regionZone)
+            val waitMinutes = (dep.timeToStationSeconds / 60).coerceAtLeast(0)
+
+            // Prefer actual arrival clock time when available; otherwise fall back to stop-count heuristic
+            val travelMinutes = computeMinutesUntilClockTime(referenceNow, targetArrivalTime, minMinutes = waitMinutes + 1)
+                ?: if (stopsCount > 0) (stopsCount * 3 + waitMinutes) else null
 
             val serviceType = when {
+                !hasLoadedCallingPoints && matchedCallingPointIndex < 0 -> CorridorServiceType.SEMI_FAST
                 stopsCount <= 3 -> CorridorServiceType.EXPRESS
                 stopsCount <= 7 -> CorridorServiceType.SEMI_FAST
                 else -> CorridorServiceType.ALL_STATIONS
@@ -92,7 +110,7 @@ object CorridorRouteComparator {
                 CorridorDepartureItem(
                     departure = dep,
                     targetStationName = targetStationName,
-                    departureTimeMinutes = dep.timeToStationSeconds / 60,
+                    departureTimeMinutes = waitMinutes,
                     targetArrivalTime = targetArrivalTime,
                     stopsCountToDestination = stopsCount,
                     estimatedTravelMinutes = travelMinutes,
@@ -101,7 +119,27 @@ object CorridorRouteComparator {
             )
         }
 
-        return matchedItems.sortedBy { it.estimatedTravelMinutes ?: Int.MAX_VALUE }
+        return matchedItems.sortedWith(
+            compareBy<CorridorDepartureItem> { it.estimatedTravelMinutes ?: Int.MAX_VALUE }
+                .thenBy { it.departureTimeMinutes }
+        )
+    }
+
+    private fun computeMinutesUntilClockTime(
+        now: java.time.LocalTime,
+        hhMm: String?,
+        minMinutes: Int
+    ): Int? {
+        if (hhMm.isNullOrBlank()) return null
+        val match = HH_MM_REGEX.matchEntire(hhMm.trim()) ?: return null
+        val h = match.groupValues[1].toIntOrNull() ?: return null
+        val m = match.groupValues[2].toIntOrNull() ?: return null
+        val nowMins = now.hour * 60 + now.minute
+        var diff = (h * 60 + m) - nowMins
+        if (diff < -180) {
+            diff += 24 * 60 // Next-day arrival after midnight
+        }
+        return if (diff >= minMinutes) diff else null
     }
 
     /**

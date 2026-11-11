@@ -10,7 +10,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,7 +51,10 @@ import androidx.core.net.toUri
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.StationServiceHoursInfo
+import com.androidfung.departureboard.ui.theme.LocalIsDarkTheme
 import com.androidfung.departureboard.util.PlatformBacklogAlert
+
+private val HTTPS_URL_REGEX = Regex("""(https://[^\s]+)""")
 
 /**
  * Standardized Transit Alert Banner Container that enforces identical margins, padding,
@@ -144,7 +146,7 @@ fun MultipleDisruptionsBanner(
     onAskAiAlternative: ((lineName: String) -> Unit)? = null
 ) {
     var isDisruptionsExpanded by rememberSaveable { mutableStateOf(false) }
-    val isDark = isSystemInDarkTheme()
+    val isDark = LocalIsDarkTheme.current
     val hasSevere = disruptedBadges.any { it.statusSeverity <= 6 }
 
     val summaryAccentColor = if (hasSevere) {
@@ -214,7 +216,7 @@ fun LineDisruptionBanner(
     onAskAiAlternative: ((lineName: String) -> Unit)? = null
 ) {
     val context = LocalContext.current
-    val isDark = isSystemInDarkTheme()
+    val isDark = LocalIsDarkTheme.current
     val isSevere = badge.statusSeverity <= 6
 
     val accentColor = if (isSevere) {
@@ -240,8 +242,7 @@ fun LineDisruptionBanner(
         bodyContent = {
             val reason = badge.disruptionReason?.trim()
             if (!reason.isNullOrBlank()) {
-                val urlRegex = Regex("""(https://[^\s]+)""")
-                val urlMatch = urlRegex.find(reason)
+                val urlMatch = HTTPS_URL_REGEX.find(reason)
                 val url = urlMatch?.value
 
                 if (url != null && reason.startsWith("https://")) {
@@ -339,7 +340,7 @@ fun PlatformBacklogBanner(
     alert: PlatformBacklogAlert,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = LocalIsDarkTheme.current
     val accentColor = if (isDark) Color(0xFFFFB74D) else Color(0xFFC05600)
     val backgroundColor = if (isDark) Color(0xFFFFA000).copy(alpha = 0.12f) else Color(0xFFFFF3CD).copy(alpha = 0.65f)
     val borderColor = accentColor.copy(alpha = if (isDark) 0.45f else 0.35f)
@@ -373,10 +374,19 @@ fun LastTrainServiceBanner(
     serviceHoursInfo: StationServiceHoursInfo,
     modifier: Modifier = Modifier
 ) {
+    val isDark = LocalIsDarkTheme.current
     val isNightService = serviceHoursInfo.isNightServiceActive
-    val accentColor = if (isNightService) Color(0xFFB388FF) else Color(0xFFFFB300)
-    val bgColor = if (isNightService) Color(0xFF311B92).copy(alpha = 0.25f) else Color(0xFFFFB300).copy(alpha = 0.14f)
-    val borderColor = accentColor.copy(alpha = 0.45f)
+    val accentColor = if (isNightService) {
+        if (isDark) Color(0xFFB388FF) else Color(0xFF5E35B1)
+    } else {
+        if (isDark) Color(0xFFFFB300) else Color(0xFF8C5000)
+    }
+    val bgColor = if (isNightService) {
+        if (isDark) Color(0xFF311B92).copy(alpha = 0.25f) else Color(0xFFEDE7F6)
+    } else {
+        if (isDark) Color(0xFFFFB300).copy(alpha = 0.14f) else Color(0xFFFFF3CD).copy(alpha = 0.65f)
+    }
+    val borderColor = accentColor.copy(alpha = if (isDark) 0.45f else 0.35f)
 
     val titleText = if (isNightService) {
         stringResource(R.string.night_service_banner_title)

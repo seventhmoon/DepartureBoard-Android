@@ -7,7 +7,9 @@
     <string name="wear_status_due">まもなく</string>
     <string name="wear_minutes_short">%1$d分</string>
     <string name="wear_alight_target">降車駅: %1$s%2$s</string>
-    <string name="wear_stops_suffix"> (あと%1$d駅)</string>
+    <plurals name="wear_stops_suffix">
+        <item quantity="other"> (あと%1$d駅)</item>
+    </plurals>
     <string name="wear_complication_tap_open">タップして EkiBoard を開く</string>
     <string name="wear_action_sprint_hud">スプリント HUD</string>
     <string name="wear_action_stop">停止</string>

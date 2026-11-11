@@ -101,9 +101,15 @@ object SharedNetworkConfig {
             .readTimeout(readTimeoutSeconds, TimeUnit.SECONDS)
     }
 
+    private val cacheLock = Any()
+    private val cachesByDir = mutableMapOf<String, Cache>()
+
     /**
      * Attaches a disk-backed HTTP response cache plus the [OfflineCacheInterceptor] so clients
      * can serve the last known response while offline or when a request fails.
+     *
+     * Reuses a single [Cache] instance per [cacheDirName] across OkHttpClients so concurrent
+     * clients never contend on the same DiskLruCache journal file.
      *
      * Only active once [initialize] has registered an application context; otherwise the
      * builder is returned unchanged (e.g. in unit tests).
@@ -114,10 +120,14 @@ object SharedNetworkConfig {
         cacheDirName: String = "http_cache"
     ): OkHttpClient.Builder {
         val context = appContext ?: return builder
-        val cacheDir = File(context.cacheDir, cacheDirName)
         return try {
+            val sharedCache = synchronized(cacheLock) {
+                cachesByDir.getOrPut(cacheDirName) {
+                    Cache(File(context.cacheDir, cacheDirName), cacheSizeBytes)
+                }
+            }
             builder
-                .cache(Cache(cacheDir, cacheSizeBytes))
+                .cache(sharedCache)
                 .addOfflineCacheSupport(isNetworkAvailable = ::isNetworkAvailable)
         } catch (_: Throwable) {
             // Cache is an optimisation — never let it break client construction

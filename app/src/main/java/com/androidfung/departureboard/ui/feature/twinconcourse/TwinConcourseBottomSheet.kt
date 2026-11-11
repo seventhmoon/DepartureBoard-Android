@@ -133,7 +133,10 @@ fun TwinConcourseContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
                     modifier = Modifier
                         .size(dimensions.iconContainerSize)
@@ -149,7 +152,7 @@ fun TwinConcourseContent(
                     )
                 }
                 Spacer(modifier = Modifier.width(dimensions.paddingLarge))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Twin Concourse Race",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
@@ -174,6 +177,8 @@ fun TwinConcourseContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        val allStations = remember(stationCards) { stationCards.map { it.station } }
+
         // Station Selector Pill Row
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -182,7 +187,7 @@ fun TwinConcourseContent(
             StationPickerBox(
                 label = "Hub A",
                 currentStation = cardA.station,
-                allStations = stationCards.map { it.station },
+                allStations = allStations,
                 currentIndex = stationAIndex,
                 onSelectIndex = { stationAIndex = it },
                 modifier = Modifier.weight(1f)
@@ -191,7 +196,7 @@ fun TwinConcourseContent(
             StationPickerBox(
                 label = "Hub B",
                 currentStation = cardB.station,
-                allStations = stationCards.map { it.station },
+                allStations = allStations,
                 currentIndex = stationBIndex,
                 onSelectIndex = { stationBIndex = it },
                 modifier = Modifier.weight(1f)
@@ -200,9 +205,9 @@ fun TwinConcourseContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Who leaves next? Winner banner
-        val firstA = cardA.departures.firstOrNull()
-        val firstB = cardB.departures.firstOrNull()
+        // Who leaves next? Winner banner (exclude cancelled services!)
+        val firstA = cardA.departures.firstOrNull { it.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED }
+        val firstB = cardB.departures.firstOrNull { it.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED }
 
         val winnerCard = when {
             firstA != null && firstB != null -> {
@@ -216,6 +221,8 @@ fun TwinConcourseContent(
         val winningDeparture = if (winnerCard === cardA) firstA else firstB
 
         if (winnerCard != null && winningDeparture != null) {
+            val isDark = com.androidfung.departureboard.ui.theme.LocalIsDarkTheme.current
+            val winnerAccentColor = if (isDark) Color(0xFFFFB300) else Color(0xFF8C5000)
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = Color(0xFFFFD54F).copy(alpha = 0.16f),
@@ -230,14 +237,14 @@ fun TwinConcourseContent(
                     Icon(
                         imageVector = Icons.Rounded.EmojiEvents,
                         contentDescription = null,
-                        tint = Color(0xFFFFB300),
+                        tint = winnerAccentColor,
                         modifier = Modifier.size(24.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Next Immediate Departure: ${winnerCard.station.displayName}",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFFFFB300)
+                            color = winnerAccentColor
                         )
                         val mins = winningDeparture.timeToStationSeconds / 60
                         val minLabel = if (mins == 0) "Due now" else "in $mins mins"

@@ -323,7 +323,7 @@ data class Station(
 
         val letter = com.androidfung.departureboard.data.repository.region.gb.TflStopPointUtils.extractBusStopLetter(id)
         if (letter != null) {
-            if (!baseName.contains(Regex("\\bStop\\s+$letter\\b", RegexOption.IGNORE_CASE)) && !baseName.contains("(")) {
+            if (!containsStopStandIndicator(baseName, letter) && !baseName.contains("(")) {
                 return "$baseName (Stop $letter)"
             }
         }
@@ -352,12 +352,24 @@ data class Station(
 
             val letter = com.androidfung.departureboard.data.repository.region.gb.TflStopPointUtils.extractBusStopLetter(id)
             if (letter != null) {
-                if (!name.contains(Regex("\\bStop\\s+$letter\\b", RegexOption.IGNORE_CASE)) && !name.contains("(")) {
+                if (!containsStopStandIndicator(name, letter) && !name.contains("(")) {
                     return "$name (Stop $letter)"
                 }
             }
             return name
         }
+}
+
+private val PLATFORM_NUMBER_REGEX = Regex("""^\d+[A-Za-z]?$""")
+
+private fun containsStopStandIndicator(text: String, letter: String): Boolean {
+    val needle = "stop $letter"
+    val idx = text.lowercase().indexOf(needle.lowercase())
+    if (idx < 0) return false
+    val beforeOk = idx == 0 || !text[idx - 1].isLetterOrDigit()
+    val endIdx = idx + needle.length
+    val afterOk = endIdx >= text.length || !text[endIdx].isLetterOrDigit()
+    return beforeOk && afterOk
 }
 
 /**
@@ -422,7 +434,7 @@ data class PlatformInfo(
      * Formats user-facing label (e.g. "Platform 4", "Stop B", "Plat 2 (TBD)", "Platform 9 (Expected)").
      */
     fun formatDisplay(includeDirection: Boolean = false): String {
-        val base = if (code.matches(Regex("""^\d+[A-Za-z]?$"""))) "Platform $code" else code
+        val base = if (code.matches(PLATFORM_NUMBER_REGEX)) "Platform $code" else code
         val suffix = when {
             isHistoricalExpected -> " (Expected)"
             !isConfirmed -> " (TBD)"

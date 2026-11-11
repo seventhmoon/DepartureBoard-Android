@@ -14,6 +14,9 @@ interface GtfsDao {
     @Query("SELECT * FROM gtfs_stops WHERE stopId = :stopId LIMIT 1")
     suspend fun getStopById(stopId: String): GtfsStopEntity?
 
+    @Query("SELECT * FROM gtfs_stops WHERE stopId IN (:stopIds)")
+    suspend fun getStopsByIds(stopIds: List<String>): List<GtfsStopEntity>
+
     @Query("SELECT * FROM gtfs_stops WHERE stopName LIKE '%' || :query || '%' LIMIT :limit")
     suspend fun searchStopsByName(query: String, limit: Int = 20): List<GtfsStopEntity>
 
@@ -109,4 +112,30 @@ interface GtfsDao {
 
     @Query("DELETE FROM gtfs_calendar_dates")
     suspend fun clearCalendarDates()
+
+    @androidx.room.Transaction
+    suspend fun importScheduleBatchTransactional(
+        stops: List<GtfsStopEntity>,
+        routes: List<GtfsRouteEntity>,
+        trips: List<GtfsTripEntity>,
+        stopTimes: List<GtfsStopTimeEntity>,
+        calendars: List<GtfsCalendarEntity>,
+        calendarDates: List<GtfsCalendarDateEntity>,
+        clearExisting: Boolean
+    ) {
+        if (clearExisting) {
+            clearStopTimes()
+            clearTrips()
+            clearRoutes()
+            clearStops()
+            clearCalendars()
+            clearCalendarDates()
+        }
+        if (stops.isNotEmpty()) insertStops(stops)
+        if (routes.isNotEmpty()) insertRoutes(routes)
+        if (trips.isNotEmpty()) insertTrips(trips)
+        if (stopTimes.isNotEmpty()) insertStopTimes(stopTimes)
+        if (calendars.isNotEmpty()) insertCalendars(calendars)
+        if (calendarDates.isNotEmpty()) insertCalendarDates(calendarDates)
+    }
 }

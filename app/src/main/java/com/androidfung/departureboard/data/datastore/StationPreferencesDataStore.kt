@@ -448,7 +448,9 @@ data class StationDto(
     val lat: Double? = null,
     val lon: Double? = null,
     val isFavorite: Boolean = false,
-    val lines: List<StationLineDto> = emptyList()
+    val lines: List<StationLineDto> = emptyList(),
+    val commuteTag: String? = null,
+    val localizedNames: Map<String, String>? = null
 ) {
     fun toStation(): Station = Station(
         id = id,
@@ -458,7 +460,11 @@ data class StationDto(
         lat = lat,
         lon = lon,
         isFavorite = isFavorite,
-        lines = lines.map { it.toStationLineInfo() }
+        lines = lines.map { it.toStationLineInfo() },
+        commuteTag = commuteTag?.let {
+            runCatching { com.androidfung.departureboard.util.CommuteTag.valueOf(it) }.getOrNull()
+        } ?: com.androidfung.departureboard.util.CommuteTag.NONE,
+        localizedNames = localizedNames.orEmpty()
     )
 }
 
@@ -490,6 +496,8 @@ fun Station.toDto(): StationDto = StationDto(
     lat = lat,
     lon = lon,
     isFavorite = isFavorite,
-    lines = lines.map { it.toDto() }
+    lines = lines.map { it.toDto() },
+    commuteTag = if (commuteTag != com.androidfung.departureboard.util.CommuteTag.NONE) commuteTag.name else null,
+    localizedNames = localizedNames.takeIf { it.isNotEmpty() }
 )
 

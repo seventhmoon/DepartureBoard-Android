@@ -72,7 +72,9 @@ class GtfsScheduleResolver(
      */
     suspend fun getScheduledDepartures(
         stopId: String,
-        now: ZonedDateTime = ZonedDateTime.now(),
+        now: ZonedDateTime = ZonedDateTime.now(
+            com.androidfung.departureboard.data.model.TransitRegion.fromStationId(stopId).timeZone
+        ),
         limit: Int = 10
     ): List<Departure> {
         val parentStop = dao.getStopById(stopId)
@@ -236,7 +238,7 @@ class GtfsScheduleResolver(
     }
 
     override fun canHandle(departure: Departure): Boolean {
-        return departure.id.isNotBlank()
+        return departure.id.isNotBlank() && departure.train?.serviceId != null
     }
 
     override suspend fun resolveCallingPoints(departure: Departure): List<CallingPoint> {
@@ -263,9 +265,11 @@ class GtfsScheduleResolver(
         val subsequent = tripStopTimes.filter { it.stopSequence >= currentStopSequence }
         if (subsequent.isEmpty()) return emptyList()
         val lastSeq = subsequent.last().stopSequence
+        val distinctStopIds = subsequent.map { it.stopId }.distinct()
+        val stopsById = dao.getStopsByIds(distinctStopIds).associateBy { it.stopId }
 
         return subsequent.map { st ->
-            val stop = dao.getStopById(st.stopId)
+            val stop = stopsById[st.stopId]
             val timeFormatted = GtfsTimeUtils.formatSecondsToClockTime(st.departureTimeSeconds)
             CallingPoint(
                 stationName = stop?.stopName ?: st.stopId,

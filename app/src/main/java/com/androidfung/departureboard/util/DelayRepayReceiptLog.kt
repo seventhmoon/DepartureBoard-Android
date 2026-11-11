@@ -74,7 +74,7 @@ object DelayRepayReceiptLog {
     ) {
         val current = loadReceipts(context)
         val nowMs = System.currentTimeMillis()
-        val zonedNow = Instant.ofEpochMilli(nowMs).atZone(ZoneId.systemDefault())
+        val zonedNow = Instant.ofEpochMilli(nowMs).atZone(ZoneId.of("Europe/London"))
         val dayKey = DAY_KEY_FORMATTER.format(zonedNow)
         val receiptId = "${dayKey}_${departureId}_${lineName}_${destinationName}"
         val dateLabel = DateTimeFormatter.ofPattern(DATE_LABEL_PATTERN, Locale.getDefault()).format(zonedNow)

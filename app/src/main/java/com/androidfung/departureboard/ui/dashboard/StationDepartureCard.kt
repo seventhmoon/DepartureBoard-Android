@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -424,7 +425,9 @@ private fun StationHeaderSection(
                     // Subtitle: Bus stop "towards ..." indicator (e.g. "towards Edgware or Millbrook Park")
                     // Only show for single-stand bus stops where all routes share the same direction.
                     // Multi-stand bus stations/hubs (like North Finchley Bus Station) have divergent directions and sub-stops.
-                    val distinctTowards = departures.mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }.distinct()
+                    val distinctTowards = remember(departures) {
+                        departures.mapNotNull { it.towards?.takeIf { t -> t.isNotBlank() && t.lowercase() != "null" } }.distinct()
+                    }
                     val isSingleDirectionBusStop = station.isBusOnly && distinctTowards.size == 1
 
                     if (isSingleDirectionBusStop) {
@@ -478,6 +481,8 @@ private fun StationHeaderSection(
     }
 }
 
+private val NUMERIC_BADGE_REGEX = Regex("^[A-Za-z]?[0-9]+[A-Za-z]?$")
+
 /**
  * TfL-branded pill chip badge displaying official line colors and typography with selection/dimmed states.
  */
@@ -491,7 +496,7 @@ fun LinePillBadge(
     onClick: (() -> Unit)? = null
 ) {
     val isBusOrNumeric = badge.mode == TransitMode.BUS ||
-            badge.displayName.matches(Regex("^[A-Za-z]?[0-9]+[A-Za-z]?$")) ||
+            badge.displayName.matches(NUMERIC_BADGE_REGEX) ||
             badge.displayName.all { it.isDigit() }
 
     val alpha = if (isDimmed) 0.35f else 1.0f
@@ -525,8 +530,9 @@ fun LinePillBadge(
             )
             .background(badge.backgroundColor.copy(alpha = alpha))
             .then(
-                if (onClick != null) Modifier.clickable(
-                    role = androidx.compose.ui.semantics.Role.Checkbox,
+                if (onClick != null) Modifier.selectable(
+                    selected = isSelected,
+                    role = androidx.compose.ui.semantics.Role.Tab,
                     onClick = onClick
                 )
                 else Modifier
@@ -607,19 +613,13 @@ private fun StationDeparturesContainer(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     val displayList = departures.take(maxRows)
                     displayList.forEachIndexed { index, departure ->
-                        androidx.compose.animation.AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            DepartureRowItem(
-                                departure = departure,
-                                isFirst = index == 0,
-                                showLineBadge = showLineBadge,
-                                busSpacing = busSpacingMap[departure.id],
-                                onClick = { onDepartureClick?.invoke(departure) }
-                            )
-                        }
+                        DepartureRowItem(
+                            departure = departure,
+                            isFirst = index == 0,
+                            showLineBadge = showLineBadge,
+                            busSpacing = busSpacingMap[departure.id],
+                            onClick = { onDepartureClick?.invoke(departure) }
+                        )
                         if (index < displayList.lastIndex) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(start = 38.dp, end = 4.dp),

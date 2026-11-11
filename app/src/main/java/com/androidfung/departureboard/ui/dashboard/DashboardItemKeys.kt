@@ -7,6 +7,7 @@ package com.androidfung.departureboard.ui.dashboard
 object DashboardItemKeys {
     const val HEADER = "header"
     const val SEARCH_BAR = "search_bar"
+    const val TABLETOP_POSTURE_BANNER = "tabletop_posture_banner"
     const val OFFLINE_BANNER = "offline_banner"
     const val EMPTY_STATE = "empty_state"
     const val QUICK_JUMP_PILLS = "quick_jump_pills"
@@ -17,6 +18,7 @@ object DashboardItemKeys {
     private val FIXED_ITEM_KEYS = setOf(
         HEADER,
         SEARCH_BAR,
+        TABLETOP_POSTURE_BANNER,
         OFFLINE_BANNER,
         EMPTY_STATE,
         QUICK_JUMP_PILLS,

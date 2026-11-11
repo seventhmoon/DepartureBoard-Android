@@ -73,5 +73,11 @@ class StationIdUtilsTest {
 
         assertTrue(railStation.isNationalRail)
         assertFalse(railStation.isHkStation)
+
+        // Bare 3-letter UK CRS / Metro codes that overlap with HK MTR station codes must NOT be classified as HK
+        for (ukCrs in listOf("PRE", "UNI", "KET", "SUN", "CEN", "AIR")) {
+            assertFalse("Expected $ukCrs to not be HK transit ID", ukCrs.isHkTransitId)
+            assertFalse("Expected $ukCrs to not be HK MTR station ID", ukCrs.isHkMtrStationId)
+        }
     }
 }

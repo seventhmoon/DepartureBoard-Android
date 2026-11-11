@@ -1,6 +1,7 @@
 package com.androidfung.departureboard.wear.ui
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,10 +14,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +58,8 @@ internal fun WearSprintHudScreen(
     val hudListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val focusReq = remember { FocusRequester() }
+
+    BackHandler(onBack = onBackToBoard)
 
     LaunchedEffect(Unit) {
         runCatching { focusReq.requestFocus() }
@@ -238,18 +241,18 @@ internal fun WearSprintHudScreen(
             }
 
             // Visual Journey Progress Bar
-            item(key = "hud_progress_bar") {
+            item(key = "hud_progress_bar", contentType = "progress_bar") {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.82f)
-                        .size(height = 5.dp, width = 120.dp)
+                        .height(5.dp)
                         .clip(RoundedCornerShape(50))
                         .background(Color(0xFF263238))
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(journey.progressPercent / 100f)
-                            .size(height = 5.dp, width = 120.dp)
+                            .fillMaxWidth((journey.progressPercent / 100f).coerceIn(0f, 1f))
+                            .height(5.dp)
                             .clip(RoundedCornerShape(50))
                             .background(ringColor)
                     )
@@ -258,7 +261,7 @@ internal fun WearSprintHudScreen(
 
             // On-Watch Target Alighting Stop Selector (when calling points are available & not in Ambient Mode)
             if (!isAmbientMode && journey.callingPoints.isNotEmpty()) {
-                item(key = "hud_alight_header") {
+                item(key = "hud_alight_header", contentType = "alight_header") {
                     Text(
                         text = "🎯 Tap Stop for Alight Alert",
                         style = MaterialTheme.typography.labelSmall.copy(
@@ -270,10 +273,11 @@ internal fun WearSprintHudScreen(
                     )
                 }
 
-                items(
+                itemsIndexed(
                     items = journey.callingPoints,
-                    key = { "stop_$it" }
-                ) { stopName ->
+                    key = { index, stopName -> "stop_${index}_$stopName" },
+                    contentType = { _, _ -> "calling_point" }
+                ) { _, stopName ->
                     val isSelected = journey.targetAlightStopName.equals(stopName, ignoreCase = true)
                     Surface(
                         shape = RoundedCornerShape(10.dp),

@@ -57,9 +57,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -89,7 +92,7 @@ import com.androidfung.departureboard.ui.designsystem.MultipleDisruptionsBanner
 import com.androidfung.departureboard.ui.designsystem.TransitIconHelper
 
 private sealed interface StationDetailListItem {
-    data class DepartureItem(val departure: Departure, val index: Int) : StationDetailListItem
+    data class DepartureItem(val departure: Departure, val index: Int, val stableKey: String) : StationDetailListItem
     data class AdItem(val key: String, val style: NativeAdStyle = NativeAdStyle.ROW) : StationDetailListItem
 }
 
@@ -102,6 +105,7 @@ fun StationDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     isSaved: Boolean = false,
+    savedStationIds: Set<String> = if (isSaved) setOf(station.id) else emptySet(),
     onToggleSaveStation: (Station) -> Unit = {},
     initialSelectedLineId: String? = null,
     onDepartureClick: ((departure: Departure, contextDepartures: List<Departure>) -> Unit)? = null,
@@ -112,11 +116,12 @@ fun StationDetailScreen(
     onOpenDeskClock: ((Station) -> Unit)? = null
 ) {
     val stationList = remember(stations, station) {
-        if (stations.none { it.id == station.id }) {
+        val combined = if (stations.none { it.id == station.id }) {
             listOf(station) + stations
         } else {
             stations
         }
+        combined.distinctBy { it.id }
     }
 
     val initialIndex = remember(stationList, station.id) {
@@ -177,7 +182,7 @@ fun StationDetailScreen(
                 onRefresh = onRefresh,
                 onBack = onBack,
                 modifier = Modifier.fillMaxSize(),
-                isSaved = isSaved,
+                isSaved = pageStation.id in savedStationIds || (pageStation.id == station.id && isSaved),
                 onToggleSaveStation = onToggleSaveStation,
                 initialSelectedLineId = initialSelectedLineId,
                 onDepartureClick = onDepartureClick,
@@ -231,13 +236,13 @@ private fun StationDetailPagerIndicator(
             val isSelected = i == currentPage
             val isEdge = shouldLimitDots && (i == visiblePageRange.first || i == visiblePageRange.last) && (i != 0 && i != pageCount - 1)
             val baseDotSize = if (isEdge) 4.dp else 6.dp
-            val dotWidth by animateDpAsState(
+            val dotWidthState = animateDpAsState(
                 targetValue = if (isSelected) 16.dp else baseDotSize,
                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                 label = "dotWidth_$i"
             )
             val dotHeight = if (isSelected) 6.dp else baseDotSize
-            val dotColor by animateColorAsState(
+            val dotColorState = animateColorAsState(
                 targetValue = if (isSelected) {
                     MaterialTheme.colorScheme.primary
                 } else {
@@ -259,10 +264,22 @@ private fun StationDetailPagerIndicator(
 
             Box(
                 modifier = Modifier
-                    .size(width = dotWidth, height = dotHeight)
-                    .clip(CircleShape)
-                    .background(dotColor)
                     .then(clickModifier)
+                    .padding(vertical = 4.dp, horizontal = 1.dp)
+                    .layout { measurable, _ ->
+                        val wPx = dotWidthState.value.roundToPx()
+                        val hPx = dotHeight.roundToPx()
+                        val placeable = measurable.measure(
+                            Constraints.fixed(wPx, hPx)
+                        )
+                        layout(wPx, hPx) {
+                            placeable.placeRelative(0, 0)
+                        }
+                    }
+                    .clip(CircleShape)
+                    .drawBehind {
+                        drawRect(dotColorState.value)
+                    }
             )
         }
     }
@@ -322,6 +339,14 @@ private fun StationDetailContent(
     // Dynamically calculate whether the departures fit with ample space for a rich media Card ad,
     // or whether they fill/overflow the viewport, requiring in-stream compact ROW ads.
     val displayItems = remember(filteredDepartures, isPro, screenHeightDp) {
+        val seenIds = HashMap<String, Int>()
+        fun uniqueKeyFor(dep: Departure): String {
+            val base = dep.id.ifBlank { "${dep.stationId}_${dep.lineId}_${dep.destinationName}_${dep.expectedArrivalIso.orEmpty()}" }
+            val count = seenIds.getOrDefault(base, 0)
+            seenIds[base] = count + 1
+            return if (count == 0) base else "${base}#$count"
+        }
+
         buildList<StationDetailListItem> {
             val departureItemHeightDp = 72 // DepartureDetailItemRow height + 8dp spacing
             val headerHeightEstimateDp = 220 // Top bar, station header, line chips, section title
@@ -332,13 +357,13 @@ private fun StationDetailContent(
             if (!isPro && filteredDepartures.isNotEmpty() && hasRoomForBottomCardAd) {
                 // Viewport has room below all departures: show uninterrupted departures + bottom rich card ad
                 filteredDepartures.forEachIndexed { index, departure ->
-                    add(StationDetailListItem.DepartureItem(departure, index))
+                    add(StationDetailListItem.DepartureItem(departure, index, uniqueKeyFor(departure)))
                 }
                 add(StationDetailListItem.AdItem("ad_bottom_card", style = NativeAdStyle.CARD))
             } else {
                 // List fills or overflows screen: interleave compact ROW ads so they don't dominate the content
                 filteredDepartures.forEachIndexed { index, departure ->
-                    add(StationDetailListItem.DepartureItem(departure, index))
+                    add(StationDetailListItem.DepartureItem(departure, index, uniqueKeyFor(departure)))
                     if (!isPro && (index == 2 || (index > 2 && (index - 2) % 6 == 0))) {
                         add(StationDetailListItem.AdItem("ad_$index", style = NativeAdStyle.ROW))
                     }
@@ -633,7 +658,7 @@ private fun StationDetailContent(
                 )
             }
         }
-    ) { _ ->
+    ) { scaffoldPadding ->
 
         // Lines badges serving this station - now interactive filter chips
         val distinctLines = remember(departures) {
@@ -664,7 +689,7 @@ private fun StationDetailContent(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 16.dp),
+            contentPadding = PaddingValues(bottom = 16.dp + scaffoldPadding.calculateBottomPadding()),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Station Overview & Fares (GTFS-Fares v2 & OSM Station Accessibility)
@@ -1207,11 +1232,7 @@ private fun StationDetailContent(
                     items = displayItems,
                     key = { item ->
                         when (item) {
-                            is StationDetailListItem.DepartureItem -> {
-                                val dep = item.departure
-                                val baseId = dep.id.ifBlank { "${dep.stationId}_${dep.lineId}" }
-                                "${baseId}_${item.index}"
-                            }
+                            is StationDetailListItem.DepartureItem -> item.stableKey
                             is StationDetailListItem.AdItem -> item.key
                         }
                     },

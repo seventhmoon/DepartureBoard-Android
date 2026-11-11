@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -48,7 +50,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,16 +64,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidfung.departureboard.BuildConfig
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.billing.BillingDataSource
 import com.androidfung.departureboard.ui.theme.AppThemeMode
+import com.androidfung.departureboard.ui.theme.LocalIsDarkTheme
 
 /**
  * Production-ready Settings bottom sheet allowing users to configure
  * departure rows, theme preferences, manage subscriptions, view legal/help info, and restore purchases.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsBottomSheet(
     onDismissRequest: () -> Unit,
@@ -106,8 +109,9 @@ fun SettingsBottomSheet(
             com.androidfung.departureboard.util.DelayRepayReceiptLog.loadReceipts(context)
         }
     }
-    val notificationPrefs by com.androidfung.departureboard.util.NotificationHelper.preferencesFlow.collectAsState()
-    val savedDelayRepayReceipts by com.androidfung.departureboard.util.DelayRepayReceiptLog.receiptsFlow.collectAsState()
+    val notificationPrefs by com.androidfung.departureboard.util.NotificationHelper.preferencesFlow.collectAsStateWithLifecycle()
+    val savedDelayRepayReceipts by com.androidfung.departureboard.util.DelayRepayReceiptLog.receiptsFlow.collectAsStateWithLifecycle()
+    val isDark = LocalIsDarkTheme.current
     val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -135,7 +139,10 @@ fun SettingsBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(38.dp)
@@ -228,9 +235,10 @@ fun SettingsBottomSheet(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Row(
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         (1..5).forEach { rows ->
                             val selected = departureRowsCount == rows
@@ -279,9 +287,10 @@ fun SettingsBottomSheet(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Row(
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         listOf(
                             AppThemeMode.SYSTEM to stringResource(R.string.settings_theme_system),
@@ -753,7 +762,11 @@ fun SettingsBottomSheet(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     SettingsActionItem(
                         icon = Icons.Rounded.WorkspacePremium,
-                        iconTint = if (isPro) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        iconTint = if (isPro) {
+                            if (isDark) Color(0xFFFFB300) else Color(0xFF8C5000)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         title = if (isPro) stringResource(R.string.settings_plan_pro_title) else stringResource(R.string.settings_plan_free_title),
                         subtitle = if (isPro) stringResource(R.string.settings_plan_pro_subtitle) else stringResource(R.string.settings_plan_free_subtitle),
                         onClick = onUpgradeClick
@@ -852,7 +865,7 @@ fun SettingsBottomSheet(
                         icon = Icons.Rounded.Info,
                         title = stringResource(R.string.settings_app_version_title),
                         subtitle = stringResource(R.string.settings_app_version_subtitle, BuildConfig.VERSION_NAME),
-                        onClick = {}
+                        onClick = null
                     )
 
                     if (BuildConfig.DEBUG && onOpenDebugSettings != null) {
@@ -881,13 +894,13 @@ private fun SettingsActionItem(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     iconTint: Color = MaterialTheme.colorScheme.primary
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

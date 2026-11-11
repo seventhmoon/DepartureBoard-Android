@@ -36,6 +36,7 @@ class LiteRtTransitClassifier(
         private const val TAG = "LiteRtClassifier"
         private const val MODEL_ASSET_NAME = "transit_classifier.tflite"
         private val WHITESPACE_REGEX = Regex("\\s+")
+        private val initExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
     }
 
     private val interpreterLock = Any()
@@ -43,18 +44,22 @@ class LiteRtTransitClassifier(
     private var interpreter: InterpreterApi? = null
     @Volatile
     private var isPlayServicesInitialized = false
+    @Volatile
+    private var isClosed = false
 
     init {
-        // Initialize Play Services LiteRT runtime asynchronously
+        // Initialize Play Services LiteRT runtime asynchronously and map model off the Main thread
         val opt = TfLiteInitializationOptions.builder()
             .setEnableGpuDelegateSupport(false)
             .build()
 
         TfLite.initialize(context.applicationContext, opt)
-            .addOnSuccessListener {
-                isPlayServicesInitialized = true
-                Log.d(TAG, "Play Services LiteRT initialized successfully")
-                tryLoadModel()
+            .addOnSuccessListener(initExecutor) {
+                if (!isClosed) {
+                    isPlayServicesInitialized = true
+                    Log.d(TAG, "Play Services LiteRT initialized successfully")
+                    tryLoadModel()
+                }
             }
             .addOnFailureListener { e ->
                 Log.w(TAG, "Play Services LiteRT unavailable, using heuristic fallback", e)
@@ -81,8 +86,12 @@ class LiteRtTransitClassifier(
                     }
                 }
                 synchronized(interpreterLock) {
-                    interpreter?.close()
-                    interpreter = created
+                    if (isClosed) {
+                        created.close()
+                    } else {
+                        interpreter?.close()
+                        interpreter = created
+                    }
                 }
                 Log.d(TAG, "Interpreter loaded via Google Play Services runtime.")
             }
@@ -157,6 +166,7 @@ class LiteRtTransitClassifier(
     }
 
     override fun close() {
+        isClosed = true
         synchronized(interpreterLock) {
             interpreter?.close()
             interpreter = null

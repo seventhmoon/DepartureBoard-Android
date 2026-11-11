@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imeNestedScroll
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -156,7 +159,7 @@ fun SearchStationBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.search_stations_title),
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -172,10 +175,12 @@ fun SearchStationBottomSheet(
                     )
                 }
 
+                Spacer(modifier = Modifier.width(12.dp))
+
                 IconButton(
                     onClick = onDismissRequest,
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 ) {
@@ -317,15 +322,20 @@ fun SearchStationBottomSheet(
                     }
                 }
 
+                @OptIn(ExperimentalLayoutApi::class)
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .imeNestedScroll()
+                        .imePadding(),
                     contentPadding = PaddingValues(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (searchQuery.isBlank()) {
                         // 1. Recent Searches Section
                         if (recentSearchedStations.isNotEmpty()) {
-                            item(key = "header_recent") {
+                            item(key = "header_recent", contentType = "section_header") {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -389,7 +399,7 @@ fun SearchStationBottomSheet(
                                     }
                                     IconButton(
                                         onClick = { onRemoveRecentSearch(station.id) },
-                                        modifier = Modifier.size(32.dp)
+                                        modifier = Modifier.size(48.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Rounded.Close,
@@ -403,7 +413,7 @@ fun SearchStationBottomSheet(
                         }
 
                         if (hasLocationPermission && filteredNearby.isNotEmpty()) {
-                            item(key = "header_nearby") {
+                            item(key = "header_nearby", contentType = "section_header") {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -452,7 +462,7 @@ fun SearchStationBottomSheet(
                                 )
                             }
 
-                            item(key = "header_popular") {
+                            item(key = "header_popular", contentType = "section_header") {
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
                                     text = stringResource(R.string.search_stations_popular),
@@ -464,7 +474,7 @@ fun SearchStationBottomSheet(
                                 )
                             }
                         } else if (!hasLocationPermission) {
-                            item(key = "prompt_location") {
+                            item(key = "prompt_location", contentType = "location_prompt") {
                                 Surface(
                                     onClick = onRequestLocation,
                                     shape = RoundedCornerShape(16.dp),

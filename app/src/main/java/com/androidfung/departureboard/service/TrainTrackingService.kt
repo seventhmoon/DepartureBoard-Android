@@ -151,11 +151,21 @@ class TrainTrackingService : Service() {
             context.startForegroundService(intent)
         }
 
-        fun stopTracking(context: Context) {
-            val intent = Intent(context, TrainTrackingService::class.java).apply {
-                action = ACTION_STOP_TRACKING
+        fun stopTracking(context: Context, notifyWear: Boolean = true) {
+            val appCtx = context.applicationContext
+            val wasActive = currentlyTrackedDepartureId != null
+            currentlyTrackedDepartureId = null
+            _targetAlightStopFlow.value = null
+            runCatching { appCtx.stopService(Intent(appCtx, TrainTrackingService::class.java)) }
+            runCatching {
+                val nm = appCtx.getSystemService(NotificationManager::class.java)
+                nm?.cancel(NOTIFICATION_ID)
             }
-            context.startService(intent)
+            if (notifyWear && wasActive) {
+                com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishTrackingStopped(appCtx)
+            } else {
+                com.androidfung.departureboard.wear.WearCompanionSyncPublisher.clearCachedTrackedDeparture()
+            }
         }
 
         fun getPollIntervalSeconds(remainingSeconds: Int): Long = when {
@@ -326,7 +336,30 @@ class TrainTrackingService : Service() {
             }
             ACTION_START_TRACKING -> {
                 retainNotificationOnDestroy = false
-                val departureId = intent.getStringExtra(EXTRA_DEPARTURE_ID) ?: return START_NOT_STICKY
+                val departureId = intent.getStringExtra(EXTRA_DEPARTURE_ID)
+                if (departureId.isNullOrBlank()) {
+                    // Fulfill startForeground contract before stopping to prevent ForegroundServiceDidNotStartInTimeException
+                    runCatching {
+                        val fallbackNotification = NotificationCompat.Builder(this, CHANNEL_ID)
+                            .setSmallIcon(R.drawable.ic_train)
+                            .setContentTitle(getString(R.string.app_name))
+                            .setPriority(NotificationCompat.PRIORITY_MIN)
+                            .build()
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            ServiceCompat.startForeground(
+                                this,
+                                NOTIFICATION_ID,
+                                fallbackNotification,
+                                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                            )
+                        } else {
+                            startForeground(NOTIFICATION_ID, fallbackNotification)
+                        }
+                        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+                    }
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
                 val stationId = intent.getStringExtra(EXTRA_STATION_ID) ?: ""
                 val stationName = intent.getStringExtra(EXTRA_STATION_NAME) ?: ""
                 val destination = intent.getStringExtra(EXTRA_DESTINATION_NAME) ?: getString(R.string.tracking_default_destination)
@@ -387,12 +420,24 @@ class TrainTrackingService : Service() {
                         } else {
                             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
                         }
-                        ServiceCompat.startForeground(
-                            this,
-                            NOTIFICATION_ID,
-                            notification,
-                            fgsType
-                        )
+                        try {
+                            ServiceCompat.startForeground(
+                                this,
+                                NOTIFICATION_ID,
+                                notification,
+                                fgsType
+                            )
+                        } catch (se: SecurityException) {
+                            // Background starts (e.g. from Wear OS watch or AppFunction) with "while-in-use" location
+                            // cannot claim FOREGROUND_SERVICE_TYPE_LOCATION on Android 14+; fall back to SPECIAL_USE.
+                            Log.w(TAG, "Location FGS blocked from background; falling back to SPECIAL_USE", se)
+                            ServiceCompat.startForeground(
+                                this,
+                                NOTIFICATION_ID,
+                                notification,
+                                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                            )
+                        }
                     } else {
                         startForeground(NOTIFICATION_ID, notification)
                     }
@@ -901,6 +946,8 @@ class TrainTrackingService : Service() {
                 _targetAlightStopFlow.value = null
                 if (!isServiceCancelled) {
                     com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishTrackingStopped(applicationContext)
+                } else {
+                    com.androidfung.departureboard.wear.WearCompanionSyncPublisher.clearCachedTrackedDeparture()
                 }
                 try {
                     ServiceCompat.stopForeground(this@TrainTrackingService, ServiceCompat.STOP_FOREGROUND_DETACH)

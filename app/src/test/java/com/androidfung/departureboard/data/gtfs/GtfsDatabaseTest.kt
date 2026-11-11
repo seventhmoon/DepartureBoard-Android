@@ -25,6 +25,9 @@ class GtfsDatabaseTest {
             override suspend fun getStopById(stopId: String): GtfsStopEntity? =
                 stopsList.firstOrNull { it.stopId.equals(stopId, ignoreCase = true) }
 
+            override suspend fun getStopsByIds(stopIds: List<String>): List<GtfsStopEntity> =
+                stopsList.filter { stop -> stopIds.any { it.equals(stop.stopId, ignoreCase = true) } }
+
             override suspend fun getChildStops(parentStationId: String): List<GtfsStopEntity> =
                 stopsList.filter { it.parentStation == parentStationId }
 

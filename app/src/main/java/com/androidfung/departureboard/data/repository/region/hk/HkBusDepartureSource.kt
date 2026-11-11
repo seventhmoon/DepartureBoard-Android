@@ -188,13 +188,11 @@ class HkBusDepartureSource(
                 )
             }.sortedBy { it.timeToStationSeconds }
 
-            if (departures.isEmpty()) {
-                Result.success(HkDefaultStations.getFallbackDepartures(stationId, stationName))
-            } else {
-                Result.success(departures)
-            }
-        } catch (_: Exception) {
-            Result.success(HkDefaultStations.getFallbackDepartures(stationId, stationName))
+            Result.success(departures)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

@@ -30,8 +30,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -228,7 +228,7 @@ fun DeskClockScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .systemBarsPadding()
+                    .safeDrawingPadding()
             ) {
                 // TOP PANE: Viewing Screen angled towards the user
                 DeskClockBoardPane(
@@ -293,7 +293,7 @@ fun DeskClockScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .systemBarsPadding()
+                    .safeDrawingPadding()
                     .padding(horizontal = 20.dp, vertical = 12.dp)
             ) {
                 DeskClockBoardPane(
@@ -579,6 +579,17 @@ private fun DeskClockBoardPane(
                 }
             }
         } else {
+            val cappedDepartures = remember(departures, isCompactTabletop) {
+                val maxRows = if (isCompactTabletop) 6 else 10
+                val seen = HashMap<String, Int>()
+                departures.take(maxRows).map { dep ->
+                    val base = dep.id.ifBlank { "${dep.stationId}_${dep.lineId}_${dep.destinationName}" }
+                    val c = seen.getOrDefault(base, 0)
+                    seen[base] = c + 1
+                    val key = if (c == 0) base else "${base}#$c"
+                    key to dep
+                }
+            }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -587,9 +598,10 @@ private fun DeskClockBoardPane(
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
                 itemsIndexed(
-                    items = departures.take(if (isCompactTabletop) 6 else 10),
-                    key = { index, dep -> "${dep.id}_$index" }
-                ) { index, departure ->
+                    items = cappedDepartures,
+                    key = { _, pair -> pair.first },
+                    contentType = { _, _ -> "split_flap_row" }
+                ) { index, (_, departure) ->
                     SplitFlapDepartureRow(
                         departure = departure,
                         index = index,
@@ -921,7 +933,8 @@ private fun FlapTileBox(
                 letterSpacing = 0.5.sp
             ),
             color = textColor,
-            maxLines = 1
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
     }
 }
@@ -1186,7 +1199,10 @@ private fun FullScreenControlStrip(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     DeckControlChip(
                         label = stringResource(R.string.desk_clock_tabletop_toggle),
                         icon = Icons.Rounded.DevicesFold,

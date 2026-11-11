@@ -60,11 +60,19 @@ data class CachedDepartureEntity(
     val delayReason: String? = null,
     val headwaySeconds: Int? = null,
     val stopActivityName: String? = null,
+    val statusName: String? = null,
+    val scheduledDepartureEpochMillis: Long? = null,
+    val expectedDepartureEpochMillis: Long? = null,
     val cachedAtMillis: Long = System.currentTimeMillis()
 ) {
     fun toDeparture(nowMillis: Long = System.currentTimeMillis()): Departure {
+        val explicitStatus = statusName?.let { runCatching { DepartureStatus.valueOf(it) }.getOrNull() }
         // Compute accurate remaining seconds based on expectedArrivalIso or elapsed time since cachedAtMillis
-        val adjustedSeconds = computeRemainingSeconds(nowMillis)
+        val adjustedSeconds = if (explicitStatus == DepartureStatus.CANCELLED) {
+            timeToStationSeconds
+        } else {
+            computeRemainingSeconds(nowMillis)
+        }
 
         val resolvedBadge = if (badgeBgColorArgb != null && badgeTextColorArgb != null) {
             LineBadgeInfo(
@@ -113,6 +121,12 @@ data class CachedDepartureEntity(
         } ?: StopActivityType.NORMAL
         val restoredFrequency = headwaySeconds?.let { ServiceFrequency(headwaySeconds = it) }
 
+        val restoredStatus = when (explicitStatus) {
+            DepartureStatus.CANCELLED -> DepartureStatus.CANCELLED
+            DepartureStatus.DELAYED -> DepartureStatus.DELAYED
+            else -> DepartureStatus.fromString(currentLocation, adjustedSeconds)
+        }
+
         return Departure(
             id = id,
             stationId = stationId,
@@ -128,12 +142,14 @@ data class CachedDepartureEntity(
             currentLocation = currentLocation,
             modeName = modeName,
             lineBadge = resolvedBadge,
-            status = DepartureStatus.fromString(currentLocation, adjustedSeconds),
+            status = restoredStatus,
             destinationStationId = destinationStationId,
             isWheelchairAccessible = isWheelchairAccessible,
             occupancyStatus = occupancyStatus,
             platform = restoredPlatform,
             train = restoredTrain,
+            scheduledDepartureInstant = scheduledDepartureEpochMillis?.let { Instant.ofEpochMilli(it) },
+            expectedDepartureInstant = expectedDepartureEpochMillis?.let { Instant.ofEpochMilli(it) },
             stopActivity = restoredStopActivity,
             frequency = restoredFrequency
         )
@@ -199,6 +215,9 @@ data class CachedDepartureEntity(
                 delayReason = trainInfo?.delayReason ?: departure.delayReason,
                 headwaySeconds = departure.frequency?.headwaySeconds,
                 stopActivityName = if (departure.stopActivity != StopActivityType.NORMAL) departure.stopActivity.name else null,
+                statusName = departure.status.name,
+                scheduledDepartureEpochMillis = departure.scheduledDepartureInstant?.toEpochMilli(),
+                expectedDepartureEpochMillis = departure.expectedDepartureInstant?.toEpochMilli(),
                 cachedAtMillis = nowMillis
             )
         }

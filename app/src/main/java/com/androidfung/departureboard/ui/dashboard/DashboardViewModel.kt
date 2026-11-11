@@ -649,7 +649,8 @@ class DashboardViewModel @JvmOverloads constructor(
     fun openStationDetail(
         station: Station,
         stationsContext: List<Station>? = null,
-        targetDepartureId: String? = null
+        targetDepartureId: String? = null,
+        preserveActiveJourney: Boolean = false
     ) {
         val existingCard = _uiState.value.stationCards.firstOrNull { it.station.id == station.id }
         val cachedDepartures = existingCard?.departures ?: emptyList()
@@ -662,14 +663,21 @@ class DashboardViewModel @JvmOverloads constructor(
             cachedDepartures.firstOrNull { it.id == depId }
         }
 
-        _uiState.update {
-            it.copy(
+        _uiState.update { current ->
+            val keptJourney = initialMatchedJourney
+                ?: current.selectedJourneyDeparture.takeIf { preserveActiveJourney }
+            val keptJourneyContext = when {
+                initialMatchedJourney != null -> cachedDepartures
+                preserveActiveJourney && keptJourney != null -> current.journeyDeparturesContext
+                else -> emptyList()
+            }
+            current.copy(
                 selectedDetailStation = station,
                 detailStationsContext = resolvedStationsContext,
                 detailDepartures = cachedDepartures,
                 isDetailLoading = cachedDepartures.isEmpty(),
-                selectedJourneyDeparture = initialMatchedJourney,
-                journeyDeparturesContext = if (initialMatchedJourney != null) cachedDepartures else emptyList()
+                selectedJourneyDeparture = keptJourney,
+                journeyDeparturesContext = keptJourneyContext
             )
         }
 
@@ -1135,10 +1143,13 @@ class DashboardViewModel @JvmOverloads constructor(
         _uiState.update { state ->
             val newEnabled = !state.isSmartCommuteEnabled
             val currentCards = state.stationCards
+            val regionalNow = java.time.LocalTime.now(state.selectedRegion.timeZone)
+            val activePeriod = com.androidfung.departureboard.util.SmartCommuteHelper.getCommutePeriod(regionalNow)
             val reordered = if (newEnabled) {
                 com.androidfung.departureboard.util.SmartCommuteHelper.reorderForCommute(
                     items = currentCards,
-                    tagSelector = { it.station.commuteTag }
+                    tagSelector = { it.station.commuteTag },
+                    period = activePeriod
                 )
             } else {
                 currentCards
@@ -1146,7 +1157,7 @@ class DashboardViewModel @JvmOverloads constructor(
             state.copy(
                 isSmartCommuteEnabled = newEnabled,
                 stationCards = reordered,
-                userMessage = if (newEnabled) "Smart Commute active: Prioritizing ${com.androidfung.departureboard.util.SmartCommuteHelper.getCommutePeriod().name.lowercase()} stations" else "Smart Commute disabled"
+                userMessage = if (newEnabled) "Smart Commute active: Prioritizing ${activePeriod.name.lowercase()} stations" else "Smart Commute disabled"
             )
         }
     }

@@ -304,6 +304,7 @@ fun DepartureRowItem(
                         }
                     }
 
+                    val isDarkTheme = com.androidfung.departureboard.ui.theme.LocalIsDarkTheme.current
                     if (departure.isLastTrain) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
@@ -313,7 +314,7 @@ fun DepartureRowItem(
                             Text(
                                 text = stringResource(R.string.badge_last_train),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.ExtraBold),
-                                color = Color(0xFFFFB300),
+                                color = if (isDarkTheme) Color(0xFFFFB300) else Color(0xFF8C5000),
                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                             )
                         }
@@ -326,7 +327,7 @@ fun DepartureRowItem(
                             Text(
                                 text = stringResource(R.string.badge_night_service),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
-                                color = Color(0xFFB388FF),
+                                color = if (isDarkTheme) Color(0xFFB388FF) else Color(0xFF5E35B1),
                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                             )
                         }
@@ -368,7 +369,7 @@ fun DepartureRowItem(
                             Text(
                                 text = "💸 ${delayRepay.badgeLabel}",
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
-                                color = Color(0xFF26A69A),
+                                color = if (isDarkTheme) Color(0xFF4DB6AC) else Color(0xFF00695C),
                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                             )
                         }
@@ -607,7 +608,7 @@ fun UnifiedDepartureTimeBadge(
 
                     if (isDelayed) {
                         Spacer(modifier = Modifier.height(1.dp))
-                        val isDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
+                        val isDarkTheme = com.androidfung.departureboard.ui.theme.LocalIsDarkTheme.current
                         val delayedColor = if (isDarkTheme) Color(0xFFFFB74D) else Color(0xFFC05600)
                         Text(
                             text = stringResource(R.string.status_delayed),

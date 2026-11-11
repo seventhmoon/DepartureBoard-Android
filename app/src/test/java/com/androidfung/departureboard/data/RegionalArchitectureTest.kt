@@ -293,7 +293,14 @@ class RegionalArchitectureTest {
     fun `RegionalTransitProviders claim ownership of their respective station IDs`() = runTest {
         val hkProvider = HkRegionalTransitProvider()
         assertTrue(hkProvider.ownsStationId("HK_MTR_ISL_CEN"))
-        assertTrue(hkProvider.ownsStationId("CEN"))
+        assertTrue(hkProvider.ownsStationId("HK_BUS_KMB_001406"))
+        // 3-letter UK National Rail CRS & Tyne and Wear Metro codes must NOT be hijacked by HK MTR
+        assertFalse(hkProvider.ownsStationId("CEN"))
+        assertFalse(hkProvider.ownsStationId("PRE"))
+        assertFalse(hkProvider.ownsStationId("UNI"))
+        assertFalse(hkProvider.ownsStationId("KET"))
+        assertFalse(hkProvider.ownsStationId("SUN"))
+        assertFalse(hkProvider.ownsStationId("AIR"))
         assertFalse(hkProvider.ownsStationId("SG_MRT_EW13_NS25"))
 
         assertTrue(SgRegionalTransitProvider.ownsStationId("SG_MRT_EW13_NS25"))

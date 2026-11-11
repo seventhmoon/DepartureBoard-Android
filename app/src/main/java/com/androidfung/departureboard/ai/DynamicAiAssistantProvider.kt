@@ -84,11 +84,16 @@ class DynamicAiAssistantProvider(
             .addModule(MODULE_NAME)
             .build()
 
-        var currentSessionId = 0
+        val currentSessionId = java.util.concurrent.atomic.AtomicInteger(0)
         val listener = SplitInstallStateUpdatedListener { state ->
-            if (state.sessionId() == currentSessionId) {
+            val sessionId = currentSessionId.get()
+            val matchesSession = (sessionId != 0 && state.sessionId() == sessionId) ||
+                (sessionId == 0 && state.moduleNames().contains(MODULE_NAME))
+            if (matchesSession) {
                 when (state.status()) {
-                    SplitInstallSessionStatus.DOWNLOADING -> {
+                    SplitInstallSessionStatus.DOWNLOADING,
+                    SplitInstallSessionStatus.INSTALLING,
+                    SplitInstallSessionStatus.PENDING -> {
                         val total = state.totalBytesToDownload()
                         val downloaded = state.bytesDownloaded()
                         val progress = if (total > 0) downloaded.toFloat() / total.toFloat() else 0f
@@ -98,7 +103,9 @@ class DynamicAiAssistantProvider(
                         trySend(AiFeatureInstallStatus.Installed)
                         close()
                     }
-                    SplitInstallSessionStatus.FAILED -> {
+                    SplitInstallSessionStatus.FAILED,
+                    SplitInstallSessionStatus.CANCELED,
+                    SplitInstallSessionStatus.REQUIRES_USER_CONFIRMATION -> {
                         trySend(AiFeatureInstallStatus.Failed(state.errorCode()))
                         close()
                     }
@@ -110,7 +117,7 @@ class DynamicAiAssistantProvider(
         splitInstallManager.registerListener(listener)
         splitInstallManager.startInstall(request)
             .addOnSuccessListener { sessionId ->
-                currentSessionId = sessionId
+                currentSessionId.set(sessionId)
             }
             .addOnFailureListener { e ->
                 trySend(AiFeatureInstallStatus.Failed(-1))

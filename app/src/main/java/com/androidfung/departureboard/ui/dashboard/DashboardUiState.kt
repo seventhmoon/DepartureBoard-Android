@@ -1,6 +1,5 @@
 package com.androidfung.departureboard.ui.dashboard
 
-import androidx.compose.runtime.Immutable
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
@@ -9,7 +8,6 @@ import com.androidfung.departureboard.util.DepartureFilterHelper
 /**
  * UI model representing a station departure card on the dashboard.
  */
-@Immutable
 data class StationCardUiModel(
     val station: Station,
     val departures: List<Departure> = emptyList(),
@@ -44,7 +42,6 @@ data class StationCardUiModel(
 /**
  * Screen state for the Departure Board Dashboard.
  */
-@Immutable
 data class DashboardUiState(
     val stationCards: List<StationCardUiModel> = emptyList(),
     val isRefreshing: Boolean = false,

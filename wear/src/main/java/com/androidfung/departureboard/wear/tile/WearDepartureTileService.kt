@@ -47,6 +47,7 @@ class WearDepartureTileService : TileService() {
 
     companion object {
         private const val RESOURCES_VERSION = "1"
+        private val tileExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
         fun requestTileUpdate(context: Context) {
             runCatching {
@@ -57,36 +58,43 @@ class WearDepartureTileService : TileService() {
     }
 
     override fun onTileRequest(requestParams: RequestBuilders.TileRequest): ListenableFuture<Tile> {
-        WearCompanionStateRepository.ensureCachedStateLoaded(applicationContext)
-        val tracked = WearCompanionStateRepository.trackedJourneyFlow.value
-        val boards = WearCompanionStateRepository.stationBoardsFlow.value
-        val activeBoard = boards.firstOrNull { it.isAtConcourse } ?: boards.firstOrNull()
+        val appCtx = applicationContext
+        return Futures.submit(
+            java.util.concurrent.Callable {
+                WearCompanionStateRepository.ensureCachedStateLoaded(appCtx)
+                val nowMs = System.currentTimeMillis()
+                val tracked = WearCompanionStateRepository.trackedJourneyFlow.value
+                    ?.takeUnless { it.isStale(nowMs) }
+                val boards = WearCompanionStateRepository.stationBoardsFlow.value
+                val activeBoard = boards.firstOrNull { it.isAtConcourse } ?: boards.firstOrNull()
 
-        val rootElement = buildTileLayout(
-            context = applicationContext,
-            tracked = tracked,
-            board = activeBoard
-        )
+                val rootElement = buildTileLayout(
+                    context = appCtx,
+                    tracked = tracked,
+                    board = activeBoard,
+                    nowEpochMs = nowMs
+                )
 
-        val tile = Tile.Builder()
-            .setResourcesVersion(RESOURCES_VERSION)
-            .setFreshnessIntervalMillis(30_000L)
-            .setTileTimeline(
-                Timeline.Builder()
-                    .addTimelineEntry(
-                        TimelineEntry.Builder()
-                            .setLayout(
-                                Layout.Builder()
-                                    .setRoot(rootElement)
+                Tile.Builder()
+                    .setResourcesVersion(RESOURCES_VERSION)
+                    .setFreshnessIntervalMillis(30_000L)
+                    .setTileTimeline(
+                        Timeline.Builder()
+                            .addTimelineEntry(
+                                TimelineEntry.Builder()
+                                    .setLayout(
+                                        Layout.Builder()
+                                            .setRoot(rootElement)
+                                            .build()
+                                    )
                                     .build()
                             )
                             .build()
                     )
                     .build()
-            )
-            .build()
-
-        return Futures.immediateFuture(tile)
+            },
+            tileExecutor
+        )
     }
 
     override fun onTileResourcesRequest(
@@ -102,7 +110,8 @@ class WearDepartureTileService : TileService() {
     private fun buildTileLayout(
         context: Context,
         tracked: WearTrackedJourneyState?,
-        board: WearStationBoard?
+        board: WearStationBoard?,
+        nowEpochMs: Long = System.currentTimeMillis()
     ): LayoutElement {
         val openActivityClickable = Clickable.Builder()
             .setId("open_wear_board")
@@ -151,7 +160,7 @@ class WearDepartureTileService : TileService() {
             columnBuilder.addContent(Spacer.Builder().setHeight(dp(4f)).build())
             columnBuilder.addContent(
                 Text.Builder()
-                    .setText(tracked.formattedMmSsCountdown)
+                    .setText(tracked.effectiveMmSsCountdown(nowEpochMs))
                     .setFontStyle(
                         LayoutElementBuilders.FontStyle.Builder()
                             .setSize(sp(24f))
@@ -175,7 +184,7 @@ class WearDepartureTileService : TileService() {
             )
             val alightInfo = tracked.targetAlightStopName?.takeIf { it.isNotBlank() }?.let { stop ->
                 val stopsStr = tracked.stopsAway?.let {
-                    context.getString(com.androidfung.departureboard.wear.R.string.wear_stops_suffix, it)
+                    context.resources.getQuantityString(com.androidfung.departureboard.wear.R.plurals.wear_stops_suffix, it, it)
                 }.orEmpty()
                 context.getString(com.androidfung.departureboard.wear.R.string.wear_alight_target, stop, stopsStr)
             } ?: (tracked.currentLocation ?: context.getString(com.androidfung.departureboard.wear.R.string.wear_tile_tap_hud))
@@ -210,7 +219,7 @@ class WearDepartureTileService : TileService() {
             columnBuilder.addContent(Spacer.Builder().setHeight(dp(4f)).build())
 
             board.departures.take(3).forEach { dep ->
-                columnBuilder.addContent(buildDepartureTileRow(dep))
+                columnBuilder.addContent(buildDepartureTileRow(dep, nowEpochMs))
                 columnBuilder.addContent(Spacer.Builder().setHeight(dp(3f)).build())
             }
         } else {
@@ -249,9 +258,17 @@ class WearDepartureTileService : TileService() {
             .build()
     }
 
-    private fun buildDepartureTileRow(dep: WearDepartureItem): LayoutElement {
+    private fun buildDepartureTileRow(
+        dep: WearDepartureItem,
+        nowEpochMs: Long = System.currentTimeMillis()
+    ): LayoutElement {
         val platLabel = if (dep.isPlatformTbd) "TBD" else "P${dep.cleanPlatformCode}"
-        val minsLabel = if (dep.countdownMinutes <= 0) "Due" else "${dep.countdownMinutes}m"
+        val effectiveMins = dep.effectiveCountdownMinutes(nowEpochMs)
+        val minsLabel = when {
+            dep.isStale(nowEpochMs) -> "--"
+            effectiveMins <= 0 -> "Due"
+            else -> "${effectiveMins}m"
+        }
         val platColor = if (dep.isPlatformTbd) 0xFFFFB74D.toInt() else 0xFF00E676.toInt()
 
         return Box.Builder()

@@ -43,10 +43,15 @@ object CountdownTicker {
         if (departures.isEmpty()) return departures
         var hasChanged = false
         val result = departures.map { departure ->
-            if (departure.timeToStationSeconds > 0) {
+            if (departure.status == DepartureStatus.CANCELLED) {
+                departure
+            } else if (departure.timeToStationSeconds > 0) {
                 hasChanged = true
                 val newSeconds = departure.timeToStationSeconds - 1
-                val newStatus = DepartureStatus.fromString(departure.currentLocation, newSeconds)
+                val newStatus = when (departure.status) {
+                    DepartureStatus.DELAYED -> DepartureStatus.DELAYED
+                    else -> DepartureStatus.fromString(departure.currentLocation, newSeconds)
+                }
                 departure.copy(
                     timeToStationSeconds = newSeconds,
                     status = newStatus
@@ -63,9 +68,13 @@ object CountdownTicker {
      */
     fun tickDeparture(departure: Departure?): Departure? {
         if (departure == null) return null
+        if (departure.status == DepartureStatus.CANCELLED) return departure
         return if (departure.timeToStationSeconds > 0) {
             val newSeconds = departure.timeToStationSeconds - 1
-            val newStatus = DepartureStatus.fromString(departure.currentLocation, newSeconds)
+            val newStatus = when (departure.status) {
+                DepartureStatus.DELAYED -> DepartureStatus.DELAYED
+                else -> DepartureStatus.fromString(departure.currentLocation, newSeconds)
+            }
             departure.copy(
                 timeToStationSeconds = newSeconds,
                 status = newStatus

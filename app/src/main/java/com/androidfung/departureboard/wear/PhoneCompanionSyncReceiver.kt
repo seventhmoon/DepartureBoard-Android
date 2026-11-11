@@ -81,9 +81,11 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
             }
             when (action) {
                 ACTION_OPEN_ON_PHONE -> {
-                    val stationId = intent.getStringExtra(EXTRA_STATION_ID).orEmpty()
+                    val stationId = com.androidfung.departureboard.navigation.DeepLinkIntentParser
+                        .sanitizeTransitId(intent.getStringExtra(EXTRA_STATION_ID)).orEmpty()
                     val stationName = intent.getStringExtra(EXTRA_STATION_NAME).orEmpty()
-                    val departureId = intent.getStringExtra(EXTRA_DEPARTURE_ID).orEmpty()
+                    val departureId = com.androidfung.departureboard.navigation.DeepLinkIntentParser
+                        .sanitizeTransitId(intent.getStringExtra(EXTRA_DEPARTURE_ID)).orEmpty()
                     if (stationId.isNotBlank()) {
                         val deepLinkUri = Uri.Builder()
                             .scheme("mindtheboard")
@@ -95,6 +97,10 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                         val openIntent = Intent(Intent.ACTION_VIEW, deepLinkUri, context, MainActivity::class.java).apply {
                             putExtra(MainActivity.EXTRA_STATION_ID, stationId)
                             putExtra(MainActivity.EXTRA_STATION_NAME, stationName)
+                            putExtra(
+                                com.androidfung.departureboard.navigation.DeepLinkIntentParser.EXTRA_INTERNAL_TRUST_TOKEN,
+                                com.androidfung.departureboard.navigation.DeepLinkIntentParser.INTERNAL_CAPABILITY_TOKEN
+                            )
                             if (departureId.isNotBlank()) {
                                 putExtra(MainActivity.EXTRA_DEPARTURE_ID, departureId)
                             }
@@ -107,9 +113,12 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                 }
 
                 ACTION_START_TRACKING_FROM_WATCH -> {
-                    val departureId = intent.getStringExtra(EXTRA_DEPARTURE_ID)
-                    if (!departureId.isNullOrBlank()) {
-                        val stationId = intent.getStringExtra(EXTRA_STATION_ID).orEmpty()
+                    val departureId = com.androidfung.departureboard.navigation.DeepLinkIntentParser
+                        .sanitizeTransitId(intent.getStringExtra(EXTRA_DEPARTURE_ID))
+                    val sanitizedStationId = com.androidfung.departureboard.navigation.DeepLinkIntentParser
+                        .sanitizeTransitId(intent.getStringExtra(EXTRA_STATION_ID))
+                    if (!departureId.isNullOrBlank() && !sanitizedStationId.isNullOrBlank()) {
+                        val stationId = sanitizedStationId
                         val stationName = intent.getStringExtra(EXTRA_STATION_NAME).orEmpty()
                         val destination = intent.getStringExtra(EXTRA_DESTINATION_NAME).orEmpty()
                         val region = TransitRegion.fromStationId(stationId)
@@ -145,7 +154,7 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                 }
 
                 ACTION_STOP_TRACKING_FROM_WATCH -> {
-                    runCatching { TrainTrackingService.stopTracking(context) }
+                    runCatching { TrainTrackingService.stopTracking(context, notifyWear = false) }
                         .onFailure { Log.w(TAG, "Failed to stop tracking from watch request", it) }
                     pendingResult?.finish()
                 }
@@ -196,7 +205,9 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                                         ?: repo.searchStations(q).getOrNull()?.firstOrNull()
                                 } else null
 
-                                val stationId = matchedFromQuery?.id ?: rawStationId
+                                val stationId = matchedFromQuery?.id
+                                    ?: com.androidfung.departureboard.navigation.DeepLinkIntentParser.sanitizeTransitId(rawStationId)
+                                    ?: return@withTimeoutOrNull
                                 val stationName = matchedFromQuery?.name ?: rawStationName.ifBlank { stationId }
                                 val region = TransitRegion.fromStationId(stationId)
                                 val fallbackMode = if (stationId.startsWith("910G")) "national-rail" else region.defaultPrimaryModeId
@@ -222,7 +233,8 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                 }
 
                 ACTION_REMOVE_STATION_FROM_WATCH -> {
-                    val stationId = intent.getStringExtra(EXTRA_STATION_ID)?.takeIf { it.isNotBlank() }
+                    val stationId = com.androidfung.departureboard.navigation.DeepLinkIntentParser
+                        .sanitizeTransitId(intent.getStringExtra(EXTRA_STATION_ID))
                     if (stationId == null) {
                         pendingResult?.finish()
                         return
@@ -245,7 +257,8 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
 
                 ACTION_OPEN_AI_ON_PHONE -> {
                     val queryText = intent.getStringExtra(EXTRA_AI_QUERY_TEXT).orEmpty()
-                    val stationId = intent.getStringExtra(EXTRA_STATION_ID).orEmpty()
+                    val stationId = com.androidfung.departureboard.navigation.DeepLinkIntentParser
+                        .sanitizeTransitId(intent.getStringExtra(EXTRA_STATION_ID)).orEmpty()
                     val stationName = intent.getStringExtra(EXTRA_STATION_NAME).orEmpty()
                     val openIntent = Intent(context, MainActivity::class.java).apply {
                         if (stationId.isNotBlank()) {
@@ -256,6 +269,10 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                             putExtra(MainActivity.EXTRA_AI_QUERY, queryText)
                             putExtra(MainActivity.EXTRA_AUTO_SUBMIT_AI_QUERY, true)
                         }
+                        putExtra(
+                            com.androidfung.departureboard.navigation.DeepLinkIntentParser.EXTRA_INTERNAL_TRUST_TOKEN,
+                            com.androidfung.departureboard.navigation.DeepLinkIntentParser.INTERNAL_CAPABILITY_TOKEN
+                        )
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     }
                     runCatching { context.startActivity(openIntent) }
@@ -264,7 +281,12 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                 }
 
                 ACTION_ASK_AI_FROM_WATCH -> {
-                    val stationId = intent.getStringExtra(EXTRA_STATION_ID).orEmpty()
+                    val stationId = com.androidfung.departureboard.navigation.DeepLinkIntentParser
+                        .sanitizeTransitId(intent.getStringExtra(EXTRA_STATION_ID)).orEmpty()
+                    if (stationId.isBlank()) {
+                        pendingResult?.finish()
+                        return
+                    }
                     val stationName = intent.getStringExtra(EXTRA_STATION_NAME).orEmpty()
                     val promptType = intent.getStringExtra(EXTRA_AI_PROMPT_TYPE).orEmpty()
                     val queryText = intent.getStringExtra(EXTRA_AI_QUERY_TEXT).orEmpty()

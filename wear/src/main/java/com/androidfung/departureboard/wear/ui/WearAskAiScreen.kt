@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.speech.RecognizerIntent
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -56,6 +58,12 @@ import com.androidfung.departureboard.wear.model.WearAiConcourseResponse
 import com.androidfung.departureboard.wear.model.WearAiPromptType
 import com.androidfung.departureboard.wear.model.WearStationBoard
 
+private val TRIAGE_PROMPTS = listOf(
+    WearAiPromptType.FASTEST_TRAIN to "⚡ Fastest / Best Train",
+    WearAiPromptType.DELAYS_AND_BACKLOG to "⚠️ Delays & Delay Repay",
+    WearAiPromptType.LAST_TRAIN to "🌙 Last Train Tonight"
+)
+
 @Composable
 internal fun WearAskAiScreen(
     station: WearStationBoard,
@@ -68,6 +76,8 @@ internal fun WearAskAiScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val inputFocusRequester = remember { FocusRequester() }
     var textQuery by remember { mutableStateOf("") }
+
+    BackHandler(onBack = onBack)
 
     val speechLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -91,12 +101,14 @@ internal fun WearAskAiScreen(
         contentAlignment = Alignment.Center
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding(),
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 22.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            item(key = "back_button") {
+            item(key = "back_button", contentType = "back_button") {
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = Color(0xFF1E2229),
@@ -299,14 +311,10 @@ internal fun WearAskAiScreen(
             }
 
             // 1-Tap Concourse Triage Prompts
-            val prompts = listOf(
-                WearAiPromptType.FASTEST_TRAIN to "⚡ Fastest / Best Train",
-                WearAiPromptType.DELAYS_AND_BACKLOG to "⚠️ Delays & Delay Repay",
-                WearAiPromptType.LAST_TRAIN to "🌙 Last Train Tonight"
-            )
             items(
-                items = prompts,
-                key = { it.first.name }
+                items = TRIAGE_PROMPTS,
+                key = { it.first.name },
+                contentType = { "triage_prompt" }
             ) { (promptType, label) ->
                 Surface(
                     shape = RoundedCornerShape(12.dp),

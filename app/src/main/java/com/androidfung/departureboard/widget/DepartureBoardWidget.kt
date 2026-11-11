@@ -277,7 +277,9 @@ class DepartureBoardWidget : GlanceAppWidget() {
                         ),
                         maxLines = 1
                     )
-                    val currentClockStr = LocalTime.now().format(TIME_FORMATTER)
+                    val currentClockStr = LocalTime.now(
+                        com.androidfung.departureboard.data.model.TransitRegion.fromStationId(station.id).timeZone
+                    ).format(TIME_FORMATTER)
                     val liveLabel = when {
                         interruptionInfo.statusText != null -> context.getString(AppR.string.widget_warning_prefix, interruptionInfo.statusText)
                         isLiveData -> context.getString(AppR.string.widget_live_label, currentClockStr)
@@ -509,11 +511,17 @@ class DepartureBoardWidget : GlanceAppWidget() {
         appWidgetId: Int
     ) {
         val context = androidx.glance.LocalContext.current
-        val configIntent = Intent(context, WidgetConfigurationActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            if (appWidgetId != -1) {
+        val clickAction = if (appWidgetId != -1) {
+            val configIntent = Intent(context, WidgetConfigurationActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
             }
+            actionStartActivity(configIntent)
+        } else {
+            val fallbackIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            actionStartActivity(fallbackIntent)
         }
 
         Column(
@@ -522,7 +530,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 .background(GlanceTheme.colors.surface)
                 .cornerRadius(22.dp)
                 .padding(16.dp)
-                .clickable(actionStartActivity(configIntent)),
+                .clickable(clickAction),
             verticalAlignment = Alignment.CenterVertically,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

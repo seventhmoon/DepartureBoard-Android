@@ -7,7 +7,9 @@
     <string name="wear_status_due">곧 도착</string>
     <string name="wear_minutes_short">%1$d분</string>
     <string name="wear_alight_target">하차역: %1$s%2$s</string>
-    <string name="wear_stops_suffix"> (%1$d역 전)</string>
+    <plurals name="wear_stops_suffix">
+        <item quantity="other"> (%1$d역 전)</item>
+    </plurals>
     <string name="wear_complication_tap_open">탭하여 EkiBoard 열기</string>
     <string name="wear_action_sprint_hud">Sprint HUD</string>
     <string name="wear_action_stop">중지</string>

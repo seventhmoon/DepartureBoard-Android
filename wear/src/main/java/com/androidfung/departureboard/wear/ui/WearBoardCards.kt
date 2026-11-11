@@ -255,8 +255,9 @@ internal fun WearDepartureCard(
 
                 Spacer(modifier = Modifier.width(6.dp))
 
+                val liveCountdownMins = departure.effectiveCountdownMinutes()
                 Text(
-                    text = departure.formattedCountdown,
+                    text = departure.formattedLiveCountdown(),
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.ExtraBold,
@@ -264,7 +265,8 @@ internal fun WearDepartureCard(
                     ),
                     color = when {
                         isAmbientMode -> Color.White
-                        departure.countdownMinutes <= 2 -> Color(0xFFFFB74D)
+                        departure.isStale() -> Color(0xFF90A4AE)
+                        liveCountdownMins <= 2 -> Color(0xFFFFB74D)
                         else -> Color(0xFF4FC3F7)
                     }
                 )

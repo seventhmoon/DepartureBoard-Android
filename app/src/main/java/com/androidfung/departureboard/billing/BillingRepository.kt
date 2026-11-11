@@ -171,7 +171,11 @@ class BillingRepository(
     override fun refreshPurchases(onResult: ((Boolean, String) -> Unit)?) {
         if (!billingClient.isReady) {
             startBillingConnection()
-            onResult?.invoke(false, "Connecting to Google Play Store... Please try again in a moment.")
+            scope.launch {
+                kotlinx.coroutines.withContext(Dispatchers.Main.immediate) {
+                    onResult?.invoke(false, "Connecting to Google Play Store... Please try again in a moment.")
+                }
+            }
             return
         }
 
@@ -192,17 +196,27 @@ class BillingRepository(
                         }
                     }
                     updateProStatusLocally(hasActivePro)
-                    if (hasActivePro) {
-                        onResult?.invoke(true, "Pro subscription restored successfully!")
-                    } else {
-                        onResult?.invoke(false, "No active subscription found for this Google Play account.")
+                    kotlinx.coroutines.withContext(Dispatchers.Main.immediate) {
+                        if (hasActivePro) {
+                            onResult?.invoke(true, "Pro subscription restored successfully!")
+                        } else {
+                            onResult?.invoke(false, "No active subscription found for this Google Play account.")
+                        }
                     }
                 } else {
-                    onResult?.invoke(false, "Failed to restore: ${result.debugMessage.ifBlank { "Error code ${result.responseCode}" }}")
+                    val errMsg = "Failed to restore: ${result.debugMessage.ifBlank { "Error code ${result.responseCode}" }}"
+                    kotlinx.coroutines.withContext(Dispatchers.Main.immediate) {
+                        onResult?.invoke(false, errMsg)
+                    }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 android.util.Log.w("BillingRepository", "Failed to query purchases", e)
-                onResult?.invoke(false, "Failed to restore purchases: ${e.localizedMessage ?: "Unknown error"}")
+                val errMsg = "Failed to restore purchases: ${e.localizedMessage ?: "Unknown error"}"
+                kotlinx.coroutines.withContext(Dispatchers.Main.immediate) {
+                    onResult?.invoke(false, errMsg)
+                }
             }
         }
     }

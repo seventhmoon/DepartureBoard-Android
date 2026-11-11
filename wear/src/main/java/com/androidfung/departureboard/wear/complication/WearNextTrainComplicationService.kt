@@ -49,8 +49,12 @@ class WearNextTrainComplicationService : SuspendingComplicationDataSourceService
     }
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
-        WearCompanionStateRepository.ensureCachedStateLoaded(applicationContext)
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            WearCompanionStateRepository.ensureCachedStateLoaded(applicationContext)
+        }
+        val nowMs = System.currentTimeMillis()
         val tracked = WearCompanionStateRepository.trackedJourneyFlow.value
+            ?.takeUnless { it.isStale(nowMs) }
         val boards = WearCompanionStateRepository.stationBoardsFlow.value
         val activeBoard = boards.firstOrNull { it.isAtConcourse } ?: boards.firstOrNull()
 
@@ -73,8 +77,9 @@ class WearNextTrainComplicationService : SuspendingComplicationDataSourceService
             } else {
                 getString(com.androidfung.departureboard.wear.R.string.wear_plat_code, tracked.cleanPlatformCode)
             }
-            val mins = (tracked.remainingSeconds / 60).coerceAtLeast(0)
-            val shortCountdown = if (tracked.remainingSeconds <= 30) {
+            val effectiveSecs = tracked.effectiveRemainingSeconds(nowMs)
+            val mins = (effectiveSecs / 60).coerceAtLeast(0)
+            val shortCountdown = if (effectiveSecs <= 30) {
                 getString(com.androidfung.departureboard.wear.R.string.wear_status_due)
             } else {
                 getString(com.androidfung.departureboard.wear.R.string.wear_minutes_short, mins)
@@ -83,7 +88,7 @@ class WearNextTrainComplicationService : SuspendingComplicationDataSourceService
                 type = request.complicationType,
                 shortTitle = platTitle,
                 shortText = shortCountdown,
-                longText = "$platTitle • ${tracked.destinationName} (${tracked.formattedMmSsCountdown})",
+                longText = "$platTitle • ${tracked.destinationName} (${tracked.effectiveMmSsCountdown(nowMs)})",
                 progressPercent = tracked.progressPercent,
                 tapAction = tapPendingIntent
             )
@@ -95,14 +100,18 @@ class WearNextTrainComplicationService : SuspendingComplicationDataSourceService
                 else getString(com.androidfung.departureboard.wear.R.string.wear_plat_code, it.cleanPlatformCode)
             } ?: activeBoard.stationCrs
             val shortVal = firstDep?.let {
-                if (it.countdownMinutes <= 0) getString(com.androidfung.departureboard.wear.R.string.wear_status_due)
-                else getString(com.androidfung.departureboard.wear.R.string.wear_minutes_short, it.countdownMinutes)
+                val effectiveMins = it.effectiveCountdownMinutes(nowMs)
+                when {
+                    it.isStale(nowMs) -> "--"
+                    effectiveMins <= 0 -> getString(com.androidfung.departureboard.wear.R.string.wear_status_due)
+                    else -> getString(com.androidfung.departureboard.wear.R.string.wear_minutes_short, effectiveMins)
+                }
             } ?: "--"
             createComplicationData(
                 type = request.complicationType,
                 shortTitle = shortTitle,
                 shortText = shortVal,
-                longText = snapshot.shortText,
+                longText = if (firstDep?.isStale(nowMs) == true) "${activeBoard.stationCrs} • --" else snapshot.shortText,
                 progressPercent = snapshot.rangedProgressPercent,
                 tapAction = tapPendingIntent
             )

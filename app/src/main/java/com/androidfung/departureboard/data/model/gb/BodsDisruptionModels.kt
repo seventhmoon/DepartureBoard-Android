@@ -26,27 +26,43 @@ object BodsDisruptionXmlParser {
         xmlString: String,
         pullParser: XmlPullParser? = null
     ): List<BodsDisruption> {
+        return parseReader(StringReader(xmlString), pullParser)
+    }
+
+    fun parseStream(
+        inputStream: java.io.InputStream,
+        pullParser: XmlPullParser? = null
+    ): List<BodsDisruption> {
+        return parseReader(inputStream.bufferedReader(Charsets.UTF_8), pullParser)
+    }
+
+    private fun parseReader(
+        reader: java.io.Reader,
+        pullParser: XmlPullParser? = null
+    ): List<BodsDisruption> {
         val disruptions = mutableListOf<BodsDisruption>()
         try {
-            val parser = pullParser ?: try {
-                XmlPullParserFactory.newInstance().apply { isNamespaceAware = false }.newPullParser().apply {
-                    setInput(StringReader(xmlString))
-                }
-            } catch (_: Throwable) {
-                val kxml = Class.forName("org.kxml2.io.KXmlParser").getDeclaredConstructor().newInstance() as XmlPullParser
-                kxml.setInput(StringReader(xmlString))
-                kxml
-            }
-
-            var eventType = parser.eventType
-            while (eventType != XmlPullParser.END_DOCUMENT) {
-                if (eventType == XmlPullParser.START_TAG && (parser.name?.equals("PtSituationElement", ignoreCase = true) == true)) {
-                    val disruption = parseSituationElement(parser)
-                    if (disruption != null) {
-                        disruptions.add(disruption)
+            reader.use { safeReader ->
+                val parser = pullParser ?: try {
+                    XmlPullParserFactory.newInstance().apply { isNamespaceAware = false }.newPullParser().apply {
+                        setInput(safeReader)
                     }
+                } catch (_: Throwable) {
+                    val kxml = Class.forName("org.kxml2.io.KXmlParser").getDeclaredConstructor().newInstance() as XmlPullParser
+                    kxml.setInput(safeReader)
+                    kxml
                 }
-                eventType = parser.next()
+
+                var eventType = parser.eventType
+                while (eventType != XmlPullParser.END_DOCUMENT) {
+                    if (eventType == XmlPullParser.START_TAG && (parser.name?.equals("PtSituationElement", ignoreCase = true) == true)) {
+                        val disruption = parseSituationElement(parser)
+                        if (disruption != null) {
+                            disruptions.add(disruption)
+                        }
+                    }
+                    eventType = parser.next()
+                }
             }
         } catch (_: Exception) {}
         return disruptions

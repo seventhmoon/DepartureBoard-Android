@@ -21,19 +21,14 @@ class GtfsStaticScheduleImporter(
         calendarDates: List<GtfsCalendarDateEntity> = emptyList(),
         clearExisting: Boolean = false
     ) {
-        if (clearExisting) {
-            dao.clearStopTimes()
-            dao.clearTrips()
-            dao.clearRoutes()
-            dao.clearStops()
-            dao.clearCalendars()
-            dao.clearCalendarDates()
-        }
-        if (stops.isNotEmpty()) dao.insertStops(stops)
-        if (routes.isNotEmpty()) dao.insertRoutes(routes)
-        if (trips.isNotEmpty()) dao.insertTrips(trips)
-        if (stopTimes.isNotEmpty()) dao.insertStopTimes(stopTimes)
-        if (calendars.isNotEmpty()) dao.insertCalendars(calendars)
-        if (calendarDates.isNotEmpty()) dao.insertCalendarDates(calendarDates)
+        dao.importScheduleBatchTransactional(
+            stops = stops,
+            routes = routes,
+            trips = trips,
+            stopTimes = stopTimes,
+            calendars = calendars,
+            calendarDates = calendarDates,
+            clearExisting = clearExisting
+        )
     }
 }

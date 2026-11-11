@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <!-- Persist user saved stations, region, theme, and notification channel preferences -->
-    <include domain="file" path="datastore" />
-    <!-- Exclude downloaded LiteRT-LM / Gemma on-device model weights, transit cache DBs, and local commute logs -->
-    <exclude domain="file" path="models" />
-    <exclude domain="database" path="." />
-    <exclude domain="sharedpref" path="delay_repay_receipt_log.xml" />
-    <exclude domain="sharedpref" path="wear_companion_cache.xml" />
-    <exclude domain="sharedpref" path="widget_config.xml" />
+    <!-- Only persist user saved stations, region, theme, and notification channel preferences in DataStore.
+         In Android Auto Backup, specifying an <include> rule automatically excludes all other paths
+         (including downloaded LiteRT-LM models, Room cache DBs, and local SharedPreferences). -->
+    <include domain="file" path="datastore/station_preferences.preferences_pb" />
 </full-backup-content>

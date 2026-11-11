@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-feature android:name="android.hardware.type.watch" />
 
@@ -13,7 +14,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <queries>
         <package android:name="com.androidfung.departureboard" />
@@ -27,6 +27,7 @@
 
     <application
         android:allowBackup="false"
+        tools:ignore="DataExtractionRules"
         android:usesCleartextTraffic="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -44,6 +45,7 @@
             android:launchMode="singleTop"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
+            android:windowSoftInputMode="adjustResize"
             android:taskAffinity=""
             android:theme="@android:style/Theme.DeviceDefault">
             <intent-filter>
@@ -60,6 +62,7 @@
                 <action android:name="com.androidfung.departureboard.wear.action.SYNC_STATION_BOARDS" />
                 <action android:name="com.androidfung.departureboard.wear.action.SYNC_TRACKED_DEPARTURE" />
                 <action android:name="com.androidfung.departureboard.wear.action.STOP_TRACKED_DEPARTURE" />
+                <action android:name="com.androidfung.departureboard.wear.action.LOCAL_STOP_TRACKING_BUTTON" />
                 <action android:name="com.androidfung.departureboard.wear.action.SYNC_AI_RESPONSE" />
                 <action android:name="com.androidfung.departureboard.wear.action.SYNC_NOTIFICATION_PREFS" />
             </intent-filter>

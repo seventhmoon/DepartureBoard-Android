@@ -198,6 +198,10 @@ class MainActivity : AppCompatActivity() {
 
                     LaunchedEffect(initialStation, initialDepartureId) {
                         initialStation?.let { station ->
+                            com.androidfung.departureboard.util.DynamicShortcutHelper.reportStationUsed(
+                                context = applicationContext,
+                                stationId = station.id
+                            )
                             viewModel.openStationDetail(
                                 station = station,
                                 targetDepartureId = initialDepartureId
@@ -215,15 +219,20 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
-                    // Contextual smart review trigger for active users:
-                    // Checks if conditions are met after the dashboard loads with saved stations
-                    // without interrupting the user during active navigation or urgent departure checks.
-                    LaunchedEffect(uiState.stationCards) {
-                        if (uiState.stationCards.isNotEmpty()) {
-                            com.androidfung.departureboard.util.DynamicShortcutHelper.updateShortcuts(
-                                context = applicationContext,
-                                stations = uiState.stationCards.map { it.station }
-                            )
+                    // Only refresh launcher shortcuts when the top-3 station IDs/names actually change
+                    // (not on every 1-second CountdownTicker emission), and execute IPC off the Main thread.
+                    val shortcutStationKeys = remember(uiState.stationCards) {
+                        uiState.stationCards.take(3).map { it.station.id to it.station.name }
+                    }
+                    LaunchedEffect(shortcutStationKeys) {
+                        if (shortcutStationKeys.isNotEmpty()) {
+                            val topStations = uiState.stationCards.take(3).map { it.station }
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                com.androidfung.departureboard.util.DynamicShortcutHelper.updateShortcuts(
+                                    context = applicationContext,
+                                    stations = topStations
+                                )
+                            }
                         }
                     }
 
@@ -466,25 +475,39 @@ class MainActivity : AppCompatActivity() {
                                     ) {
                                         val station = uiState.selectedDetailStation
                                         if (station != null) {
-                                            val isSaved = uiState.stationCards.any { it.station.id == station.id }
+                                            val savedIds = remember(uiState.stationCards) {
+                                                uiState.stationCards.asSequence().map { it.station.id }.toSet()
+                                            }
+                                            val isSaved = station.id in savedIds
                                             StationDetailScreen(
                                                 station = station,
                                                 departures = uiState.detailDepartures,
                                                 isLoading = uiState.isDetailLoading,
                                                 isSaved = isSaved,
+                                                savedStationIds = savedIds,
                                                 serviceHoursInfo = uiState.serviceHoursInfo,
                                                 stations = uiState.detailStationsContext.ifEmpty { listOf(station) },
                                                 onStationChange = { nextStation ->
-                                                    viewModel.openStationDetail(nextStation, uiState.detailStationsContext)
+                                                    viewModel.openStationDetail(
+                                                        station = nextStation,
+                                                        stationsContext = uiState.detailStationsContext,
+                                                        preserveActiveJourney = true
+                                                    )
                                                 },
                                                 onToggleSaveStation = { st ->
-                                                    if (isSaved) {
+                                                    if (uiState.stationCards.any { it.station.id == st.id }) {
                                                         viewModel.removeStation(st)
                                                     } else {
                                                         viewModel.addStation(st)
                                                     }
                                                 },
-                                                onRefresh = { viewModel.openStationDetail(station, uiState.detailStationsContext) },
+                                                onRefresh = {
+                                                    viewModel.openStationDetail(
+                                                        station = station,
+                                                        stationsContext = uiState.detailStationsContext,
+                                                        preserveActiveJourney = true
+                                                    )
+                                                },
                                                 onDepartureClick = { departure, contextDepartures ->
                                                     viewModel.openTrainJourney(departure, contextDepartures)
                                                 },
@@ -613,6 +636,9 @@ class MainActivity : AppCompatActivity() {
                         val nearest = uiState.nearestStation
                             ?: uiState.nearbyStations.firstOrNull()?.first
                             ?: uiState.stationCards.firstOrNull { it.station.id == uiState.nearestStationId }?.station
+                        val rememberedSavedStations = remember(uiState.stationCards.size, uiState.stationCards.firstOrNull()?.station?.id) {
+                            uiState.stationCards.map { it.station }
+                        }
                         com.androidfung.departureboard.ui.feature.ai.AiTransitSheet(
                             onDismissRequest = {
                                 showAiSheet = false
@@ -620,7 +646,7 @@ class MainActivity : AppCompatActivity() {
                                 aiAutoSubmitInitialQuery = true
                             },
                             repository = viewModel.repository,
-                            savedStations = uiState.stationCards.map { it.station },
+                            savedStations = rememberedSavedStations,
                             nearestStation = nearest,
                             initialTriggerSpeech = false,
                             initialQuery = aiInitialQuery,
@@ -951,9 +977,8 @@ class MainActivity : AppCompatActivity() {
                     .firstOrNull { it.id.equals(stationId, ignoreCase = true) }
 
             if (known != null) {
-                // Canonical catalog station name takes precedence over untrusted URI query hints to prevent UI spoofing.
+                // Canonical catalog station name ALWAYS takes precedence over Intent extras/query hints to prevent UI spoofing.
                 initialStation = known.copy(
-                    name = parsed.trustedStationName ?: known.name,
                     isFavorite = true
                 )
             } else {
@@ -979,7 +1004,6 @@ class MainActivity : AppCompatActivity() {
                     val resolved = repo?.getStationById(stationId)
                     if (resolved != null) {
                         initialStation = resolved.copy(
-                            name = parsed.trustedStationName ?: resolved.name,
                             isFavorite = true
                         )
                     }

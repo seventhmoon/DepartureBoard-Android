@@ -91,4 +91,42 @@ class CorridorRouteComparatorTest {
         assertEquals(4, alert.waitExtraMinutes)
         assertEquals(14, alert.minutesSavedAtDestination)
     }
+
+    @Test
+    fun `excludes isCurrentStation origin from stop count and uses HH_mm arrival clock time`() {
+        val depWithOriginAndClock = Departure(
+            id = "d_clock",
+            stationId = "KGX",
+            stationName = "London King's Cross",
+            lineId = "rail",
+            lineName = "LNER",
+            platformName = "Platform 4",
+            destinationName = "Edinburgh",
+            towards = "Edinburgh",
+            timeToStationSeconds = 5 * 60,
+            expectedArrivalIso = null,
+            currentLocation = null,
+            modeName = "national-rail",
+            lineBadge = LineBadgeInfo(lineId = "rail", displayName = "LNER", backgroundColor = Color.Red, textColor = Color.White),
+            callingPoints = listOf(
+                CallingPoint(stationName = "London King's Cross", scheduledTime = "14:05", isCurrentStation = true),
+                CallingPoint(stationName = "Stevenage", scheduledTime = "14:28", estimatedTime = "14:30"),
+                CallingPoint(stationName = "Peterborough", scheduledTime = "14:52", estimatedTime = "14:55")
+            )
+        )
+
+        val items = CorridorRouteComparator.evaluateCorridorDepartures(
+            departures = listOf(depWithOriginAndClock),
+            targetStationName = "Peterborough",
+            nowLocalTime = java.time.LocalTime.of(14, 0)
+        )
+
+        assertEquals(1, items.size)
+        val item = items.first()
+        // Origin at index 0 is excluded -> Stevenage (1), Peterborough (2) = 2 stops
+        assertEquals(2, item.stopsCountToDestination)
+        assertEquals("14:55", item.targetArrivalTime)
+        assertEquals(55, item.estimatedTravelMinutes)
+        assertEquals(CorridorServiceType.EXPRESS, item.serviceType)
+    }
 }

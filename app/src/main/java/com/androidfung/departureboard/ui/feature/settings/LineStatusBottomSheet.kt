@@ -140,6 +140,7 @@ fun LineStatusBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -148,7 +149,7 @@ fun LineStatusBottomSheet(
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(selectedRegion.lineStatusTitleRes),
                             style = MaterialTheme.typography.titleLarge,
@@ -180,29 +181,33 @@ fun LineStatusBottomSheet(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Summary Banner
+            val isDark = com.androidfung.departureboard.ui.theme.LocalIsDarkTheme.current
+            val accessibleGreen = if (isDark) GoodServiceGreen else Color(0xFF1B5E20)
+            val accessibleAmber = if (isDark) MinorDelaysAmber else Color(0xFF8C5000)
             val bannerBgColor = if (disruptedCount == 0) {
                 GoodServiceGreen.copy(alpha = 0.12f)
             } else {
                 MinorDelaysAmber.copy(alpha = 0.15f)
             }
-            val bannerAccentColor = if (disruptedCount == 0) GoodServiceGreen else MinorDelaysAmber
+            val bannerAccentColor = if (disruptedCount == 0) accessibleGreen else accessibleAmber
 
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = bannerBgColor,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
+                @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                androidx.compose.foundation.layout.FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    itemVerticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.weight(1f)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Icon(
                             imageVector = if (disruptedCount == 0) Icons.Rounded.CheckCircle else Icons.Rounded.Warning,
@@ -395,11 +400,12 @@ private fun LineStatusCard(
     isExpanded: Boolean,
     onToggleExpand: () -> Unit
 ) {
+    val isDark = com.androidfung.departureboard.ui.theme.LocalIsDarkTheme.current
     val hasReason = !item.reason.isNullOrBlank()
     val statusColor = when {
-        !item.isDisrupted -> GoodServiceGreen
-        item.severity <= 6 -> SevereDelaysRed
-        else -> MinorDelaysAmber
+        !item.isDisrupted -> if (isDark) GoodServiceGreen else Color(0xFF1B5E20)
+        item.severity <= 6 -> if (isDark) SevereDelaysRed else Color(0xFFB71C1C)
+        else -> if (isDark) MinorDelaysAmber else Color(0xFF8C5000)
     }
 
     Surface(

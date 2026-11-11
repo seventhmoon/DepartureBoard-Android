@@ -84,7 +84,7 @@ class HkRegionalTransitProvider(
     )
 
     override fun ownsStationId(stationId: String): Boolean =
-        stationId.isHkTransitId || HkMtrStationRegistry.getStation(stationId) != null
+        stationId.isHkTransitId
 
     override suspend fun searchStations(query: String): Result<List<Station>> {
         val routeStops = if (hkBusSearchEngine.isRouteQuery(query)) {

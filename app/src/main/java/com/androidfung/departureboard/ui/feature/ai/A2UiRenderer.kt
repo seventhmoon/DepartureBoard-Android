@@ -67,6 +67,18 @@ fun A2UiRenderer(
     onActionClick: (A2UiAction) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val trackedDepartureId by TrainTrackingService.currentlyTrackedDepartureIdFlow.collectAsStateWithLifecycle()
+    var pendingTrackDeparture by remember { mutableStateOf<Departure?>(null) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            pendingTrackDeparture?.let { dep ->
+                TrainTrackingService.startTracking(context, dep)
+            }
+        }
+        pendingTrackDeparture = null
+    }
 
     Column(
         modifier = modifier,
@@ -115,19 +127,6 @@ fun A2UiRenderer(
                 }
 
                 is A2UiBlock.LiveDeparturesCard -> {
-                    val trackedDepartureId by TrainTrackingService.currentlyTrackedDepartureIdFlow.collectAsStateWithLifecycle()
-                    var pendingTrackDeparture by remember { mutableStateOf<Departure?>(null) }
-                    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-                        contract = ActivityResultContracts.RequestPermission()
-                    ) { isGranted ->
-                        if (isGranted) {
-                            pendingTrackDeparture?.let { dep ->
-                                TrainTrackingService.startTracking(context, dep)
-                            }
-                        }
-                        pendingTrackDeparture = null
-                    }
-
                     DeparturesActionCard(
                         station = block.station,
                         departures = block.departures,
@@ -164,6 +163,7 @@ fun A2UiRenderer(
 
 @Composable
 private fun LineStatusCard(block: A2UiBlock.LineStatusBanner) {
+    val isInfo = block.severity == A2UiSeverity.INFO
     val (bgColor, icon, tint) = when (block.severity) {
         A2UiSeverity.GOOD_SERVICE -> Triple(
             Color(0xFFE8F5E9),
@@ -186,6 +186,8 @@ private fun LineStatusCard(block: A2UiBlock.LineStatusBanner) {
             MaterialTheme.colorScheme.primary
         )
     }
+    val titleColor = if (isInfo) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF1C1B1F)
+    val reasonColor = if (isInfo) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f) else Color(0xFF49454F)
 
     Card(
         shape = RoundedCornerShape(14.dp),
@@ -207,7 +209,7 @@ private fun LineStatusCard(block: A2UiBlock.LineStatusBanner) {
                 Text(
                     text = block.lineName,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = Color.Black
+                    color = titleColor
                 )
                 Text(
                     text = block.statusDescription,
@@ -219,7 +221,7 @@ private fun LineStatusCard(block: A2UiBlock.LineStatusBanner) {
                     Text(
                         text = block.reason,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.DarkGray
+                        color = reasonColor
                     )
                 }
             }

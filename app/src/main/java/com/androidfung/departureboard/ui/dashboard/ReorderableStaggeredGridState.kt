@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 class ReorderableStaggeredGridState(
     val staggeredGridState: LazyStaggeredGridState,
     private val scope: CoroutineScope,
-    private val onMove: (fromIndex: Int, toIndex: Int) -> Unit
+    private val onMoveKeys: (fromKey: Any, toKey: Any) -> Unit
 ) {
     var draggingKey by mutableStateOf<Any?>(null)
         private set
@@ -42,7 +42,7 @@ class ReorderableStaggeredGridState(
                     y in item.offset.y..(item.offset.y + item.size.height)
         } ?: return
 
-        // Skip non-station items like header, quick_jump_pills, loading, or empty_state
+        // Skip non-station items like header, quick_jump_pills, loading, banners, ads, or empty_state
         if (DashboardItemKeys.isNonStationKey(hitItem.key)) {
             return
         }
@@ -52,38 +52,27 @@ class ReorderableStaggeredGridState(
     }
 
     fun onDrag(dragAmount: Offset) {
-        if (draggingKey == null) return
+        val activeDraggingKey = draggingKey ?: return
 
         scope.launch {
             dragOffset.snapTo(dragOffset.value + dragAmount)
 
-            val currentDraggedItem = staggeredGridState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == draggingKey }
+            val currentDraggedItem = staggeredGridState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == activeDraggingKey }
                 ?: return@launch
 
             val targetCenterX = currentDraggedItem.offset.x + currentDraggedItem.size.width / 2 + dragOffset.value.x
             val targetCenterY = currentDraggedItem.offset.y + currentDraggedItem.size.height / 2 + dragOffset.value.y
 
             val targetItem = staggeredGridState.layoutInfo.visibleItemsInfo.firstOrNull { item ->
-                item.key != draggingKey &&
+                item.key != activeDraggingKey &&
                         !DashboardItemKeys.isNonStationKey(item.key) &&
                         targetCenterX.toInt() in item.offset.x..(item.offset.x + item.size.width) &&
                         targetCenterY.toInt() in item.offset.y..(item.offset.y + item.size.height)
             }
 
             if (targetItem != null) {
-                // Find station indices by accounting for header and quick-jump items
-                val visibleKeys = staggeredGridState.layoutInfo.visibleItemsInfo
-                val fromGridIndex = currentDraggedItem.index
-                val toGridIndex = targetItem.index
-
-                val headerOffset = if (visibleKeys.any { it.key == DashboardItemKeys.QUICK_JUMP_PILLS }) 2 else 1
-                val fromStationIndex = fromGridIndex - headerOffset
-                val toStationIndex = toGridIndex - headerOffset
-
-                if (fromStationIndex >= 0 && toStationIndex >= 0 && fromStationIndex != toStationIndex) {
-                    onMove(fromStationIndex, toStationIndex)
-                    dragOffset.snapTo(Offset.Zero)
-                }
+                onMoveKeys(activeDraggingKey, targetItem.key)
+                dragOffset.snapTo(Offset.Zero)
             }
         }
     }
@@ -108,11 +97,11 @@ class ReorderableStaggeredGridState(
 @Composable
 fun rememberReorderableStaggeredGridState(
     staggeredGridState: LazyStaggeredGridState = rememberLazyStaggeredGridState(),
-    onMove: (fromIndex: Int, toIndex: Int) -> Unit
+    onMoveKeys: (fromKey: Any, toKey: Any) -> Unit
 ): ReorderableStaggeredGridState {
     val scope = rememberCoroutineScope()
-    return remember(staggeredGridState, onMove) {
-        ReorderableStaggeredGridState(staggeredGridState, scope, onMove)
+    return remember(staggeredGridState, onMoveKeys) {
+        ReorderableStaggeredGridState(staggeredGridState, scope, onMoveKeys)
     }
 }
 

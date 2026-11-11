@@ -20,8 +20,18 @@ data class WearDepartureItem(
     val delayRepayBadge: String? = null,
     val isLastTrain: Boolean = false,
     val coachCount: Int = 0,
-    val callingPointsSummary: String? = null
+    val callingPointsSummary: String? = null,
+    val syncedAtEpochMs: Long = 0L
 ) {
+    fun isStale(nowEpochMs: Long = System.currentTimeMillis(), maxStaleMs: Long = 15 * 60_000L): Boolean =
+        syncedAtEpochMs > 0L && (nowEpochMs - syncedAtEpochMs) > maxStaleMs
+
+    fun effectiveCountdownMinutes(nowEpochMs: Long = System.currentTimeMillis()): Int {
+        if (syncedAtEpochMs <= 0L) return countdownMinutes
+        val elapsedMins = ((nowEpochMs - syncedAtEpochMs).coerceAtLeast(0L) / 60_000L).toInt()
+        return (countdownMinutes - elapsedMins).coerceAtLeast(0)
+    }
+
     val cleanPlatformCode: String
         get() = WearSnapshotFormatter.compactPlatformCode(platformCode)
 
@@ -33,6 +43,12 @@ data class WearDepartureItem(
             countdownMinutes <= 0 -> "Due"
             else -> "${countdownMinutes}m"
         }
+
+    fun formattedLiveCountdown(nowEpochMs: Long = System.currentTimeMillis()): String {
+        if (isStale(nowEpochMs)) return "--"
+        val mins = effectiveCountdownMinutes(nowEpochMs)
+        return if (mins <= 0) "Due" else "${mins}m"
+    }
 
     val formattedPlatformShort: String
         get() {
@@ -55,8 +71,12 @@ data class WearStationBoard(
     val lastUpdatedLabel: String,
     val departures: List<WearDepartureItem>,
     val commuteLabel: String? = null,
-    val isAtConcourse: Boolean = false
+    val isAtConcourse: Boolean = false,
+    val syncedAtEpochMs: Long = 0L
 ) {
+    fun isStale(nowEpochMs: Long = System.currentTimeMillis(), maxStaleMs: Long = 15 * 60_000L): Boolean =
+        syncedAtEpochMs > 0L && (nowEpochMs - syncedAtEpochMs) > maxStaleMs
+
     val compactStationName: String
         get() = WearSnapshotFormatter.compactStationName(stationName)
 }
@@ -78,8 +98,26 @@ data class WearTrackedJourneyState(
     val targetAlightStopName: String?,
     val isCancelled: Boolean,
     val lineColorArgb: Long = 0xFF1976D2,
-    val callingPoints: List<String> = emptyList()
+    val callingPoints: List<String> = emptyList(),
+    val syncedAtEpochMs: Long = 0L
 ) {
+    fun isStale(nowEpochMs: Long = System.currentTimeMillis(), maxStaleMs: Long = 10 * 60_000L): Boolean =
+        syncedAtEpochMs > 0L && (nowEpochMs - syncedAtEpochMs) > maxStaleMs
+
+    fun effectiveRemainingSeconds(nowEpochMs: Long = System.currentTimeMillis()): Int {
+        if (syncedAtEpochMs <= 0L) return remainingSeconds
+        val elapsedSecs = ((nowEpochMs - syncedAtEpochMs).coerceAtLeast(0L) / 1000L).toInt()
+        return (remainingSeconds - elapsedSecs).coerceAtLeast(0)
+    }
+
+    fun effectiveMmSsCountdown(nowEpochMs: Long = System.currentTimeMillis()): String {
+        if (isCancelled) return "CANC"
+        if (isStale(nowEpochMs)) return "--:--"
+        val rem = effectiveRemainingSeconds(nowEpochMs)
+        if (rem <= 0) return "DUE"
+        return "%02d:%02d".format(rem / 60, rem % 60)
+    }
+
     val cleanPlatformCode: String
         get() = WearSnapshotFormatter.compactPlatformCode(platformCode)
 
@@ -277,12 +315,18 @@ object WearSnapshotFormatter {
      */
     fun buildComplicationSnapshot(
         station: WearStationBoard,
-        departure: WearDepartureItem? = station.departures.firstOrNull()
+        departure: WearDepartureItem? = station.departures.firstOrNull(),
+        nowEpochMs: Long = System.currentTimeMillis()
     ): WearComplicationSnapshot {
-        if (departure == null) {
+        if (station.isStale(nowEpochMs) || departure == null || departure.isStale(nowEpochMs)) {
+            val noTrainsLabel = if (station.isStale(nowEpochMs) || departure?.isStale(nowEpochMs) == true) {
+                "${station.stationName}: Sync needed"
+            } else {
+                "${station.stationName}: No upcoming trains"
+            }
             return WearComplicationSnapshot(
                 shortText = "${station.stationCrs} • --",
-                longText = "${station.stationName}: No upcoming trains",
+                longText = noTrainsLabel,
                 titleText = station.stationName,
                 rangedProgressPercent = 0
             )
@@ -294,11 +338,12 @@ object WearSnapshotFormatter {
             cleanPlat.firstOrNull()?.isDigit() == true -> "P$cleanPlat"
             else -> cleanPlat
         }
-        val shortText = "${departure.destinationCrs} • ${departure.formattedCountdown} • $platShort"
-        val longText = "${departure.compactDestination} in ${departure.formattedCountdown} • ${departure.formattedPlatformShort}"
+        val liveCountdownStr = departure.formattedLiveCountdown(nowEpochMs)
+        val shortText = "${departure.destinationCrs} • $liveCountdownStr • $platShort"
+        val longText = "${departure.compactDestination} in $liveCountdownStr • ${departure.formattedPlatformShort}"
 
         // Ranged value (0..100) for circular watch face progress ring as train approaches (15m -> 0m)
-        val clampedMins = departure.countdownMinutes.coerceIn(0, 15)
+        val clampedMins = departure.effectiveCountdownMinutes(nowEpochMs).coerceIn(0, 15)
         val progress = ((15 - clampedMins) * 100) / 15
 
         return WearComplicationSnapshot(

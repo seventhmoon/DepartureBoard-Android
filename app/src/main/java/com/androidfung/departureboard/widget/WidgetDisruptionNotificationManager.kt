@@ -339,7 +339,7 @@ object WidgetDisruptionNotificationManager {
                 context = context
             )
 
-            val targetKey = "${target.stationId}_${target.filterLineId.orEmpty()}"
+            val targetKey = "${target.stationId}|${target.filterLineId.orEmpty()}"
             val prefKey = "$PREF_KEY_PREFIX$targetKey"
             val lastFingerprint = statePrefs.getString(prefKey, null)
             val notificationId = getNotificationId(target.stationId, target.filterLineId)
@@ -410,7 +410,8 @@ object WidgetDisruptionNotificationManager {
 
         statePrefs.all.keys.filter { it.startsWith(PREF_KEY_PREFIX) }.forEach { key ->
             val targetKey = key.removePrefix(PREF_KEY_PREFIX)
-            val parts = targetKey.split("_", limit = 2)
+            val delimiter = if ('|' in targetKey) "|" else "_"
+            val parts = targetKey.split(delimiter, limit = 2)
             val stationId = parts.getOrNull(0).orEmpty()
             val filterLineId = parts.getOrNull(1)?.takeIf { it.isNotBlank() }
             val notificationId = getNotificationId(stationId, filterLineId)
@@ -428,8 +429,12 @@ object WidgetDisruptionNotificationManager {
         notificationManager?.cancel(notificationId)
 
         val statePrefs = context.getSharedPreferences(PREFS_DISRUPTION_STATE, Context.MODE_PRIVATE)
-        val targetKey = "${stationId}_${filterLineId.orEmpty()}"
-        statePrefs.edit { remove("$PREF_KEY_PREFIX$targetKey") }
+        val pipeKey = "${stationId}|${filterLineId.orEmpty()}"
+        val legacyKey = "${stationId}_${filterLineId.orEmpty()}"
+        statePrefs.edit {
+            remove("$PREF_KEY_PREFIX$pipeKey")
+            remove("$PREF_KEY_PREFIX$legacyKey")
+        }
     }
 
     fun getNotificationId(stationId: String, filterLineId: String?): Int {

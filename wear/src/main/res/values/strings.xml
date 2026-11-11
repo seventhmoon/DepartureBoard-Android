@@ -8,7 +8,10 @@
     <string name="wear_status_due">Due</string>
     <string name="wear_minutes_short">%1$dm</string>
     <string name="wear_alight_target">Alight: %1$s%2$s</string>
-    <string name="wear_stops_suffix"> (%1$d stops)</string>
+    <plurals name="wear_stops_suffix">
+        <item quantity="one"> (%1$d stop)</item>
+        <item quantity="other"> (%1$d stops)</item>
+    </plurals>
     <string name="wear_complication_tap_open">Tap to open EkiBoard</string>
     <string name="wear_action_sprint_hud">Sprint HUD</string>
     <string name="wear_action_stop">Stop</string>

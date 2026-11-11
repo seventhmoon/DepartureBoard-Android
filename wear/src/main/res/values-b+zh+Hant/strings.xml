@@ -7,7 +7,9 @@
     <string name="wear_status_due">即將抵達</string>
     <string name="wear_minutes_short">%1$d分</string>
     <string name="wear_alight_target">落車站: %1$s%2$s</string>
-    <string name="wear_stops_suffix"> (尚餘%1$d站)</string>
+    <plurals name="wear_stops_suffix">
+        <item quantity="other"> (尚餘%1$d站)</item>
+    </plurals>
     <string name="wear_complication_tap_open">輕觸開啟 EkiBoard</string>
     <string name="wear_action_sprint_hud">大堂 HUD</string>
     <string name="wear_action_stop">停止</string>

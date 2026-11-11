@@ -210,4 +210,53 @@ class NationalRailDepartureMapperTest {
         assertEquals("Cambridge", assoc.portionDestination)
         assertTrue(assoc.notice?.contains("Divides at Cambridge") == true)
     }
+
+    @Test
+    fun testMapToDeparture_midnightRollover_handlesPastMidnightAndCrossMidnightDelays() {
+        val zone = java.time.ZoneId.of("Europe/London")
+
+        // Case 1: Viewing at 00:02 a train that was scheduled at 23:55 ("On time") -> past train, 0s (not +23h53m)
+        val now0002 = java.time.ZonedDateTime.of(2026, 11, 11, 0, 2, 0, 0, zone)
+        val pastLateTrain = NrTrainService(
+            serviceId = "RID_LATE_PAST",
+            std = "23:55",
+            etd = "On time",
+            platform = "3",
+            operator = "Thameslink",
+            operatorCode = "TL",
+            destination = listOf(NrLocation(locationName = "Bedford", crs = "BDM"))
+        )
+        val mappedPast = NationalRailDepartureMapper.mapToDeparture(
+            service = pastLateTrain,
+            stationId = "STP",
+            stationName = "London St Pancras",
+            nowZdt = now0002
+        )
+        assertEquals(0, mappedPast.timeToStationSeconds)
+
+        // Case 2: Viewing at 23:55 a train scheduled at 23:50 delayed to 00:15 (+25m across midnight)
+        val now2355 = java.time.ZonedDateTime.of(2026, 11, 10, 23, 55, 0, 0, zone)
+        val delayedCrossMidnight = NrTrainService(
+            serviceId = "RID_CROSS_MIDNIGHT",
+            std = "23:50",
+            etd = "00:15",
+            platform = "5",
+            operator = "LNER",
+            operatorCode = "GR",
+            destination = listOf(NrLocation(locationName = "Peterborough", crs = "PBO"))
+        )
+        val mappedDelayed = NationalRailDepartureMapper.mapToDeparture(
+            service = delayedCrossMidnight,
+            stationId = "KGX",
+            stationName = "London King's Cross",
+            nowZdt = now2355
+        )
+        assertEquals(20 * 60, mappedDelayed.timeToStationSeconds)
+        assertEquals(com.androidfung.departureboard.data.model.DepartureStatus.DELAYED, mappedDelayed.status)
+        val delayMins = java.time.Duration.between(
+            mappedDelayed.scheduledDepartureInstant,
+            mappedDelayed.expectedDepartureInstant
+        ).toMinutes()
+        assertEquals(25L, delayMins)
+    }
 }

@@ -205,10 +205,14 @@ object LastTrainServiceCalculator {
 
         val nowNorm = normalizeServiceMinutes(now.hour, now.minute)
         val lastNorm = parseNormalizedMinutes(defaultLastTrain) ?: return null
-        val firstNorm = parseNormalizedMinutes(defaultFirstTrain) ?: (5 * 60 + 30)
 
         // 1. Check if currently in the overnight closed window (after lastTrain and before firstTrain)
-        val isOvernightClosedWindow = nowNorm > lastNorm && nowNorm < firstNorm + 24 * 60 && now.hour in 0..5
+        val isOvernightClosedWindow = isInOvernightClosedWindow(
+            nowHour = now.hour,
+            nowMinute = now.minute,
+            lastHhMm = defaultLastTrain,
+            firstHhMm = defaultFirstTrain
+        )
         if (isOvernightClosedWindow && departures.isEmpty()) {
             return StationServiceHoursInfo(
                 isClosedForNight = true,
@@ -422,11 +426,39 @@ object LastTrainServiceCalculator {
     }
 
     internal fun parseNormalizedMinutes(hhMm: String?): Int? {
+        val raw = parseRawMinutesOfDay(hhMm) ?: return null
+        return normalizeServiceMinutes(raw / 60, raw % 60)
+    }
+
+    internal fun parseRawMinutesOfDay(hhMm: String?): Int? {
         if (hhMm.isNullOrBlank()) return null
         val parts = hhMm.trim().split(":")
         if (parts.size != 2) return null
         val h = parts[0].toIntOrNull() ?: return null
         val m = parts[1].toIntOrNull() ?: return null
-        return normalizeServiceMinutes(h, m)
+        if (h !in 0..23 || m !in 0..59) return null
+        return h * 60 + m
+    }
+
+    /**
+     * Circular 24-hour check determining whether `(nowHour:nowMinute)` falls strictly after `lastHhMm`
+     * and strictly before `firstHhMm` (handling both pre-midnight `23:55 -> 05:30` and post-midnight `00:35 -> 06:30`).
+     */
+    internal fun isInOvernightClosedWindow(
+        nowHour: Int,
+        nowMinute: Int,
+        lastHhMm: String?,
+        firstHhMm: String?
+    ): Boolean {
+        val lastMins = parseRawMinutesOfDay(lastHhMm) ?: return false
+        val firstMins = parseRawMinutesOfDay(firstHhMm) ?: (5 * 60 + 30)
+        val nowMins = nowHour * 60 + nowMinute
+        return if (lastMins > firstMins) {
+            // Spans midnight (e.g. last 23:55, first 05:30)
+            nowMins > lastMins || nowMins < firstMins
+        } else {
+            // Both after midnight (e.g. last 00:35, first 06:30)
+            nowMins > lastMins && nowMins < firstMins
+        }
     }
 }

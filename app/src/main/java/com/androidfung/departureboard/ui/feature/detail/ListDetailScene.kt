@@ -53,8 +53,10 @@ data class ListDetailScene<T : Any>(
     val listEntry: NavEntry<T>,
     val detailEntry: NavEntry<T>?,
     val supportingEntry: NavEntry<T>?,
+    val activeSecondaryEntry: NavEntry<T>? = supportingEntry ?: detailEntry,
+    val secondaryCount: Int = listOfNotNull(detailEntry, supportingEntry).size,
 ) : Scene<T> {
-    override val entries: List<NavEntry<T>> = listOfNotNull(listEntry, detailEntry, supportingEntry)
+    override val entries: List<NavEntry<T>> = listOfNotNull(listEntry, detailEntry, supportingEntry).distinct()
     
     override val content: @Composable (() -> Unit) = {
         val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
@@ -133,9 +135,9 @@ data class ListDetailScene<T : Any>(
                     }
 
                     // Active right pane is whichever secondary entry is last in the backstack
-                    val activeRightPane = supportingEntry ?: detailEntry
+                    val activeRightPane = activeSecondaryEntry ?: supportingEntry ?: detailEntry
                     if (activeRightPane != null) {
-                        CompositionLocalProvider(LocalBackButtonVisibility provides false) {
+                        CompositionLocalProvider(LocalBackButtonVisibility provides (secondaryCount > 1)) {
                             Column(modifier = Modifier.weight(detailWeight)) {
                                 AnimatedContent(
                                     targetState = activeRightPane,
@@ -205,10 +207,11 @@ class ListDetailSceneStrategy<T : Any>(val windowSizeClass: WindowSizeClass) : S
             return null
         }
 
-        // In 3-pane mode, middle pane is secondaryEntries[0] and right pane is secondaryEntries[1]
-        // In 2-pane mode, active right pane is secondaryEntries.last() (top of backstack)
-        val detailEntry = secondaryEntries.getOrNull(0)
-        val supportingEntry = secondaryEntries.getOrNull(1)
+        // Resolve the latest Detail pane and Supporting pane entries by their metadata keys
+        val detailEntry = secondaryEntries.findLast { it.metadata.contains(ListDetailScene.DetailKey) }
+            ?: secondaryEntries.firstOrNull()
+        val supportingEntry = secondaryEntries.findLast { it.metadata.contains(ListDetailScene.SupportingKey) }
+        val activeSecondaryEntry = secondaryEntries.lastOrNull()
 
         val sceneKey = listEntry.contentKey
 
@@ -217,7 +220,9 @@ class ListDetailSceneStrategy<T : Any>(val windowSizeClass: WindowSizeClass) : S
             previousEntries = entries.dropLast(1),
             listEntry = listEntry,
             detailEntry = detailEntry,
-            supportingEntry = supportingEntry
+            supportingEntry = supportingEntry,
+            activeSecondaryEntry = activeSecondaryEntry,
+            secondaryCount = secondaryEntries.size
         )
     }
 }

@@ -102,9 +102,17 @@ fun DashboardContent(
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val pullToRefreshState = rememberPullToRefreshState()
+    val currentCards by androidx.compose.runtime.rememberUpdatedState(uiState.stationCards)
+    val currentOnMoveStation by androidx.compose.runtime.rememberUpdatedState(onMoveStation)
     val reorderState = rememberReorderableStaggeredGridState(
         staggeredGridState = staggeredGridState,
-        onMove = onMoveStation
+        onMoveKeys = { fromKey, toKey ->
+            val fromIndex = currentCards.indexOfFirst { it.station.id == fromKey }
+            val toIndex = currentCards.indexOfFirst { it.station.id == toKey }
+            if (fromIndex >= 0 && toIndex >= 0 && fromIndex != toIndex) {
+                currentOnMoveStation(fromIndex, toIndex)
+            }
+        }
     )
 
     // Expressive gradient background matching the design mockup (top dark-indigo / slate-blue to rich deep surface)
@@ -420,10 +428,15 @@ fun DashboardContent(
             Pair(first, remaining)
         }
 
+        val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(
+                    top = innerPadding.calculateTopPadding(),
+                    start = innerPadding.calculateLeftPadding(layoutDirection),
+                    end = innerPadding.calculateRightPadding(layoutDirection)
+                )
         ) {
             PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
@@ -441,13 +454,17 @@ fun DashboardContent(
                         start = 16.dp,
                         end = 16.dp,
                         top = 10.dp,
-                        bottom = 96.dp // Extra clearance for the expressive FAB
+                        bottom = 96.dp + innerPadding.calculateBottomPadding() // Extra clearance for FAB + edge-to-edge nav bar
                     ),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalItemSpacing = 20.dp
                 ) {
                     // Search bar as the first item spanning full line
-                    item(key = DashboardItemKeys.SEARCH_BAR, span = StaggeredGridItemSpan.FullLine) {
+                    item(
+                        key = DashboardItemKeys.SEARCH_BAR,
+                        contentType = "search_bar",
+                        span = StaggeredGridItemSpan.FullLine
+                    ) {
                         DashboardSearchBar(
                             onClick = onAddStationClick,
                             lastUpdatedTimestamp = uiState.lastUpdatedTimestamp,
@@ -458,7 +475,11 @@ fun DashboardContent(
 
                     // Foldable Tabletop Posture quick-launch banner
                     if (windowPosture.isTabletop) {
-                        item(key = "tabletop_posture_banner", span = StaggeredGridItemSpan.FullLine) {
+                        item(
+                            key = DashboardItemKeys.TABLETOP_POSTURE_BANNER,
+                            contentType = "tabletop_banner",
+                            span = StaggeredGridItemSpan.FullLine
+                        ) {
                             Surface(
                                 shape = RoundedCornerShape(16.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer,
@@ -488,7 +509,11 @@ fun DashboardContent(
                     }
 
                     if (!uiState.isOnline) {
-                        item(key = DashboardItemKeys.OFFLINE_BANNER, span = StaggeredGridItemSpan.FullLine) {
+                        item(
+                            key = DashboardItemKeys.OFFLINE_BANNER,
+                            contentType = "offline_banner",
+                            span = StaggeredGridItemSpan.FullLine
+                        ) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
@@ -549,7 +574,7 @@ fun DashboardContent(
                         if (nativeAds.isEmpty()) {
                             items(
                                 items = uiState.stationCards,
-                                key = { it.station.id + it.station.name },
+                                key = { it.station.id },
                                 contentType = { "station_card" },
                                 span = { StaggeredGridItemSpan.SingleLane }
                             ) { cardModel ->
@@ -572,7 +597,7 @@ fun DashboardContent(
                         } else {
                             items(
                                 items = firstChunk,
-                                key = { it.station.id + it.station.name },
+                                key = { it.station.id },
                                 contentType = { "station_card" },
                                 span = { StaggeredGridItemSpan.SingleLane }
                             ) { cardModel ->
@@ -613,7 +638,7 @@ fun DashboardContent(
                             remainingChunks.forEachIndexed { chunkIndex, chunk ->
                                 items(
                                     items = chunk,
-                                    key = { it.station.id + it.station.name },
+                                    key = { it.station.id },
                                     contentType = { "station_card" },
                                     span = { StaggeredGridItemSpan.SingleLane }
                                 ) { cardModel ->
@@ -657,6 +682,9 @@ fun DashboardContent(
     }
 }
 
+private val DASHBOARD_TIME_FORMATTER: java.time.format.DateTimeFormatter =
+    java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+
 /**
  * Material 3 Search Bar Pill Anchor displayed directly below the Dashboard AppBar.
  * Tapping it smoothly launches the station search and discovery experience.
@@ -672,7 +700,7 @@ fun DashboardSearchBar(
         if (lastUpdatedTimestamp <= 0L) null
         else java.time.Instant.ofEpochMilli(lastUpdatedTimestamp)
             .atZone(java.time.ZoneId.systemDefault())
-            .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+            .format(DASHBOARD_TIME_FORMATTER)
     }
 
     Surface(

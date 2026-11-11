@@ -20,9 +20,10 @@ class DepartureBoardApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = DefaultAppContainer(this)
-        com.androidfung.departureboard.util.NotificationHelper.ensureAllNotificationChannels(this)
-        // Initialize Google Mobile Ads SDK on a background thread to prevent blocking main thread
+        // Initialize notification channels, station code DB warmup, and Mobile Ads off the Main thread
         CoroutineScope(Dispatchers.IO).launch {
+            com.androidfung.departureboard.util.NotificationHelper.ensureAllNotificationChannels(this@DepartureBoardApp)
+            com.androidfung.departureboard.data.repository.region.gb.NationalRailStationCodes.initialize(this@DepartureBoardApp)
             com.google.android.gms.ads.MobileAds.initialize(this@DepartureBoardApp) {}
         }
     }

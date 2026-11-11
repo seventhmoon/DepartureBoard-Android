@@ -50,6 +50,10 @@ object WearCompanionSyncPublisher {
     @Volatile
     private var lastPublishedTrackedJson: String? = null
 
+    fun clearCachedTrackedDeparture() {
+        lastPublishedTrackedJson = null
+    }
+
     /**
      * Serializes the phone's active station cards (Favorites + Morning/Evening Commute)
      * and dispatches them to the Wear OS companion app.
@@ -58,7 +62,6 @@ object WearCompanionSyncPublisher {
         context: Context,
         stationCards: List<StationCardUiModel>
     ) {
-        if (stationCards.isEmpty()) return
         try {
             val boardsJson = serializeStationBoards(stationCards)
             lastPublishedBoardsJson = boardsJson
@@ -234,7 +237,10 @@ object WearCompanionSyncPublisher {
         }
     }
 
-    internal fun serializeStationBoards(stationCards: List<StationCardUiModel>): String {
+    internal fun serializeStationBoards(
+        stationCards: List<StationCardUiModel>,
+        syncedAtEpochMs: Long = System.currentTimeMillis()
+    ): String {
         val rootArray = JSONArray()
         val orderedCards = stationCards.sortedByDescending { it.isAtConcourseStation }
         orderedCards.take(8).forEach { card ->
@@ -244,6 +250,7 @@ object WearCompanionSyncPublisher {
                 put("stationName", st.name)
                 put("stationCrs", deriveThreeLetterCode(st.id, st.name))
                 put("isAtConcourse", card.isAtConcourseStation)
+                put("syncedAtEpochMs", syncedAtEpochMs)
                 put(
                     "commuteLabel",
                     when {
@@ -316,7 +323,8 @@ object WearCompanionSyncPublisher {
         stopsAway: Int?,
         targetAlightStopName: String?,
         isCancelled: Boolean,
-        lineColorArgb: Int
+        lineColorArgb: Int,
+        syncedAtEpochMs: Long = System.currentTimeMillis()
     ): String {
         val cleanPlat = compactPlatformForWatch(platform)
         return JSONObject().apply {
@@ -333,6 +341,7 @@ object WearCompanionSyncPublisher {
             put("targetAlightStopName", targetAlightStopName ?: "")
             put("isCancelled", isCancelled)
             put("lineColorArgb", lineColorArgb.toLong() and 0xFFFFFFFFL)
+            put("syncedAtEpochMs", syncedAtEpochMs)
         }.toString()
     }
 

@@ -2,30 +2,43 @@ package com.androidfung.departureboard.widget
 
 import android.app.Activity
 import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
@@ -103,10 +116,27 @@ class WidgetConfigurationActivity : AppCompatActivity() {
             return
         }
 
+        val providerInfo = AppWidgetManager.getInstance(this).getAppWidgetInfo(appWidgetId)
+        if (providerInfo != null && providerInfo.provider != ComponentName(this, DepartureBoardWidgetReceiver::class.java)) {
+            finish()
+            return
+        }
+
         val billingRepo = BillingRepository.getInstance(applicationContext)
+        val prefsDataSource = applicationContext.appContainer.stationPreferencesDataSource
 
         setContent {
-            DepartureBoardTheme {
+            val themeMode by prefsDataSource.themeModeFlow.collectAsStateWithLifecycle(
+                initialValue = com.androidfung.departureboard.ui.theme.AppThemeMode.SYSTEM
+            )
+            val isDynamicColor by prefsDataSource.dynamicColorFlow.collectAsStateWithLifecycle(
+                initialValue = true
+            )
+
+            DepartureBoardTheme(
+                themeMode = themeMode,
+                dynamicColor = isDynamicColor
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -132,6 +162,7 @@ class WidgetConfigurationActivity : AppCompatActivity() {
                         }
                     } else {
                         WidgetConfigurationContent(
+                            appWidgetId = appWidgetId,
                             billingRepository = billingRepo,
                             onStationAndLineSelected = { station, lineBadge, direction ->
                                 selectStationAndFinish(station, lineBadge, direction)
@@ -234,6 +265,7 @@ private sealed interface WidgetLimitReason {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WidgetConfigurationContent(
+    appWidgetId: Int,
     billingRepository: BillingDataSource,
     onStationAndLineSelected: (Station, com.androidfung.departureboard.data.model.LineBadgeInfo?, String?) -> Unit,
     onCancel: () -> Unit
@@ -243,23 +275,23 @@ fun WidgetConfigurationContent(
     var limitReachedReason by remember { mutableStateOf<WidgetLimitReason?>(null) }
     var showPaywall by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        val glanceManager = GlanceAppWidgetManager(context)
-        val existingGlanceIds = glanceManager.getGlanceIds(DepartureBoardWidget::class.java)
-        val userPlan = billingRepository.userPlanFlow.first()
+    LaunchedEffect(appWidgetId) {
+        val sp = context.getSharedPreferences("widget_config", android.content.Context.MODE_PRIVATE)
+        val isReconfiguringExisting = sp.getString("station_id_$appWidgetId", null) != null
+        if (!isReconfiguringExisting) {
+            val glanceManager = GlanceAppWidgetManager(context)
+            val existingGlanceIds = glanceManager.getGlanceIds(DepartureBoardWidget::class.java)
+            val userPlan = billingRepository.userPlanFlow.first()
 
-        // Glance returns ALL registered instance IDs. For a new placement, the new appWidgetId
-        // is already included in existingGlanceIds.size by the time this Activity starts.
-        // E.g., if you have 1 widget on screen, and are adding a 2nd, the count is already 2.
-        // If we are currently configuring a widget, its ID is already registered in existingGlanceIds.
-        // Since we can't reliably map GlanceId to appWidgetId synchronously without exceptions, 
-        // we just subtract 1 to account for the current widget being added.
-        val activeCount = (existingGlanceIds.size - 1).coerceAtLeast(0)
+            // Glance returns ALL registered instance IDs. For a new placement, the new appWidgetId
+            // is already included in existingGlanceIds.size by the time this Activity starts.
+            val activeCount = (existingGlanceIds.size - 1).coerceAtLeast(0)
 
-        if (!userPlan.isPaidOrAbove && activeCount >= userPlan.maxWidgets) {
-            limitReachedReason = WidgetLimitReason.FreeLimit(userPlan.maxWidgets, SubscriptionTier.PRO_MAX_WIDGETS)
-        } else if (userPlan.isPaidOrAbove && activeCount >= userPlan.maxWidgets) {
-            limitReachedReason = WidgetLimitReason.MaxLimit(userPlan.maxWidgets)
+            if (!userPlan.isPaidOrAbove && activeCount >= userPlan.maxWidgets) {
+                limitReachedReason = WidgetLimitReason.FreeLimit(userPlan.maxWidgets, SubscriptionTier.PRO_MAX_WIDGETS)
+            } else if (userPlan.isPaidOrAbove && activeCount >= userPlan.maxWidgets) {
+                limitReachedReason = WidgetLimitReason.MaxLimit(userPlan.maxWidgets)
+            }
         }
         isCheckingLimits = false
     }
@@ -391,15 +423,18 @@ fun WidgetStationPickerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .safeDrawingPadding()
-            .padding(20.dp)
+            .windowInsetsPadding(
+                WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+            )
+            .padding(horizontal = 20.dp)
+            .padding(top = 20.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.widget_config_select_station),
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
@@ -412,10 +447,12 @@ fun WidgetStationPickerScreen(
                 )
             }
 
+            Spacer(modifier = Modifier.width(12.dp))
+
             IconButton(
                 onClick = onCancel,
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
@@ -463,10 +500,13 @@ fun WidgetStationPickerScreen(
                 CircularProgressIndicator(strokeWidth = 3.dp)
             }
         } else {
+            val navBarBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    .imePadding(),
+                contentPadding = PaddingValues(bottom = navBarBottomPadding + 20.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(
@@ -567,6 +607,7 @@ fun WidgetStationPickerScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                         .padding(vertical = 8.dp)
                 ) {
                     Text(

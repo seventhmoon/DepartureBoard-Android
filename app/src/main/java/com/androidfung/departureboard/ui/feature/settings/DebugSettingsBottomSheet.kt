@@ -230,7 +230,10 @@ fun DebugSettingsBody(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(dimensions.iconContainerSize)
@@ -513,7 +516,7 @@ fun DebugSettingsBody(
                     }
 
                     // App Language Selector
-                    var currentLanguageTag = LocaleHelper.getAppLocale()?.toLanguageTag().orEmpty()
+                    val currentLanguageTag = LocaleHelper.getAppLocale()?.toLanguageTag().orEmpty()
                     var showLanguagePicker by remember { mutableStateOf(false) }
 
                     Row(
@@ -662,7 +665,7 @@ fun DebugSettingsBody(
                         title = "Force Widget Update",
                         subtitle = "Triggers Glance WidgetUpdateWorker now",
                         onClick = {
-                            WidgetUpdateWorker.enqueuePeriodicUpdate(context)
+                            WidgetUpdateWorker.enqueuePeriodicUpdate(context, forceUpdate = true)
                             Toast.makeText(context, "Enqueued widget update work", Toast.LENGTH_SHORT).show()
                         }
                     )

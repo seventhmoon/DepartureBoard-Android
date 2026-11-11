@@ -65,13 +65,40 @@ class DeepLinkIntentParserTest {
             extraStationName = "Central",
             extraDepartureId = null,
             extraAiQuery = "Next Island Line train from Central",
-            extraAutoSubmitAi = true
+            extraAutoSubmitAi = true,
+            hasInternalTrustToken = true
         )
 
         assertEquals("HK_MTR_CEN", parsed.stationId)
         assertEquals("Central", parsed.trustedStationName)
         assertEquals("Next Island Line train from Central", parsed.aiQuery)
         assertTrue(parsed.autoSubmitAiQuery)
+    }
+
+    @Test
+    fun `spoofed companion action without internal capability token never trusts station name or auto-submits AI`() {
+        val parsed = DeepLinkIntentParser.parseParameters(
+            action = "com.androidfung.departureboard.action.WEAR_OPEN_AI_ON_PHONE",
+            hasBrowsableCategory = false,
+            isHierarchicalUri = false,
+            uriScheme = null,
+            uriHost = null,
+            uriLastPathSegment = null,
+            uriQueryName = null,
+            uriQueryDepartureId = null,
+            uriQueryAi = null,
+            extraStationId = "HK_MTR_CEN",
+            extraStationName = "Spoofed Name",
+            extraDepartureId = null,
+            extraAiQuery = "Drain AI quota without user tap",
+            extraAutoSubmitAi = true,
+            hasInternalTrustToken = false
+        )
+
+        assertEquals("HK_MTR_CEN", parsed.stationId)
+        assertNull(parsed.trustedStationName)
+        assertEquals("Spoofed Name", parsed.untrustedStationNameHint)
+        assertFalse(parsed.autoSubmitAiQuery)
     }
 
     @Test

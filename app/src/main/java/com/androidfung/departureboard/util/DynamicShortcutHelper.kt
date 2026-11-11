@@ -42,4 +42,13 @@ object DynamicShortcutHelper {
             // Graceful fallback if shortcuts cannot be updated on legacy launcher
         }
     }
+
+    fun reportStationUsed(context: Context, stationId: String) {
+        if (stationId.isBlank()) return
+        try {
+            ShortcutManagerCompat.reportShortcutUsed(context, "station_$stationId")
+        } catch (_: Throwable) {
+            // Ignore on unsupported launchers
+        }
+    }
 }

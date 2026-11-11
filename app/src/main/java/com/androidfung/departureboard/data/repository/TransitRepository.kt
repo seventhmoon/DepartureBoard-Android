@@ -117,7 +117,21 @@ class TransitRepositoryImpl(
         bodsApiService = bodsApiService,
         stationSearchEngine = stationSearchEngine,
         timetableScheduleResolver = timetableScheduleResolver,
-        stationLookup = { id -> GbDefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(id, ignoreCase = true) } }
+        stationLookup = { id ->
+            GbDefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(id, ignoreCase = true) }
+                ?: runCatching {
+                    dataStore.savedStationsFlow.first().firstOrNull { it.id.equals(id, ignoreCase = true) }
+                }.getOrNull()
+                ?: runCatching {
+                    val detail = apiService.getStopPointDetail(id)
+                    Station(
+                        id = detail.id,
+                        name = detail.commonName ?: id,
+                        lat = detail.children.firstOrNull()?.lat,
+                        lon = detail.children.firstOrNull()?.lon
+                    )
+                }.getOrNull()
+        }
     )
 
     private val regionalProviders: List<RegionalTransitProvider> = customRegionalProviders ?: listOf(

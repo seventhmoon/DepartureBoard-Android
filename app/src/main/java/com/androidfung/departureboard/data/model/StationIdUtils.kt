@@ -1,6 +1,5 @@
 package com.androidfung.departureboard.data.model
 
-import com.androidfung.departureboard.data.model.hk.HkMtrStationRegistry
 import com.androidfung.departureboard.data.model.hk.HkMtrStationRef as HkMtrStationRefInternal
 import com.androidfung.departureboard.data.model.hk.parseHkMtrStationId as parseHkMtrStationIdInternal
 import com.androidfung.departureboard.data.model.hk.extractRawHkBusStopId as extractRawHkBusStopIdInternal
@@ -82,7 +81,6 @@ val String.isJpTransitId: Boolean
  */
 val String.isHkMtrStationId: Boolean
     get() = startsWith(StationIdPrefixes.HK_MTR, ignoreCase = true) ||
-            HkMtrStationRegistry.getStation(this) != null ||
             (startsWith(StationIdPrefixes.HK, ignoreCase = true) && !isHkBusStationId)
 
 /**

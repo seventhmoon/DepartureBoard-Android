@@ -43,15 +43,25 @@ class TransitAiAssistant(
     private val locationDataSource: com.androidfung.departureboard.util.LocationDataSource? = context?.let {
         com.androidfung.departureboard.util.LocationDataSourceImpl(it.applicationContext)
     }
-) : AiTransitAssistant {
+) : AiTransitAssistant, AutoCloseable {
 
     private val classifier: LiteRtTransitClassifier? = context?.let {
         runCatching { LiteRtTransitClassifier(it.applicationContext) }.getOrNull()
     }
 
+    private val ownsDynamicProvider: Boolean = context != null &&
+        (context.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.container == null
+
     private val dynamicAiProvider: DynamicAiAssistantProvider? = context?.let { ctx ->
         (ctx.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.container?.dynamicAiAssistantProvider
             ?: DynamicAiAssistantProvider(ctx.applicationContext)
+    }
+
+    override fun close() {
+        runCatching { classifier?.close() }
+        if (ownsDynamicProvider) {
+            runCatching { dynamicAiProvider?.close() }
+        }
     }
 
     private val queryRouter: AiQueryRouter? = context?.let {

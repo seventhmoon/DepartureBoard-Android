@@ -59,12 +59,18 @@ fun DetailPaneScaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Transparent
     ) { innerPadding ->
+        val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+        val bottomInset = innerPadding.calculateBottomPadding()
+        val contentBottomPadding = contentPadding.calculateBottomPadding()
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(backgroundBrush)
-                .padding(innerPadding)
-                .padding(contentPadding)
+                .padding(
+                    top = innerPadding.calculateTopPadding() + contentPadding.calculateTopPadding(),
+                    start = innerPadding.calculateLeftPadding(layoutDirection) + contentPadding.calculateLeftPadding(layoutDirection),
+                    end = innerPadding.calculateRightPadding(layoutDirection) + contentPadding.calculateRightPadding(layoutDirection)
+                )
         ) {
             val showBackButton = LocalBackButtonVisibility.current
 
@@ -79,18 +85,25 @@ fun DetailPaneScaffold(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                             .clickable(onClick = onBack),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.cd_back),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(19.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.cd_back),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
                     }
 
                     if (headerActions != null) {
@@ -163,7 +176,7 @@ fun DetailPaneScaffold(
                 }
             }
 
-            content(innerPadding)
+            content(PaddingValues(bottom = bottomInset + contentBottomPadding))
         }
     }
 }

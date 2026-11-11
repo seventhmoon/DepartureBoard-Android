@@ -36,13 +36,14 @@ class OfflineCacheInterceptor(
 
         return try {
             val response = chain.proceed(request)
-            if (!response.isSuccessful && !isNetworkAvailable()) {
+            if (!response.isSuccessful && !isNetworkAvailable() && !request.cacheControl.onlyIfCached) {
                 response.close()
                 chain.proceed(originalRequest.toOfflineCachedRequest())
             } else {
                 response
             }
-        } catch (_: IOException) {
+        } catch (e: IOException) {
+            if (request.cacheControl.onlyIfCached) throw e
             chain.proceed(originalRequest.toOfflineCachedRequest())
         }
     }

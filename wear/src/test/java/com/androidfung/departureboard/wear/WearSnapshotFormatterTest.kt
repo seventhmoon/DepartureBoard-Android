@@ -207,4 +207,60 @@ class WearSnapshotFormatterTest {
         assertEquals("EB", WearSnapshotFormatter.compactPlatformCode("Eastbound"))
         assertEquals("King's Cross", WearSnapshotFormatter.compactStationName("King's Cross St. Pancras Underground Station"))
     }
+
+    @Test
+    fun `live elapsed countdown and staleness prevent frozen watch tile and complication times`() {
+        val baseEpochMs = 1_700_000_000_000L
+        val dep = WearDepartureItem(
+            id = "vic_live",
+            lineName = "Victoria line",
+            destination = "Brixton",
+            destinationCrs = "BRX",
+            platformCode = "4",
+            isPlatformConfirmed = true,
+            countdownMinutes = 8,
+            scheduledTime = "18:20",
+            syncedAtEpochMs = baseEpochMs
+        )
+        val board = com.androidfung.departureboard.wear.model.WearStationBoard(
+            stationId = "940GZZLUVIC",
+            stationName = "Victoria",
+            stationCrs = "VIC",
+            lastUpdatedLabel = "Live",
+            departures = listOf(dep),
+            syncedAtEpochMs = baseEpochMs
+        )
+
+        // 3 minutes after sync -> 8m - 3m = 5m
+        val threeMinsLater = baseEpochMs + 3 * 60_000L
+        assertEquals(5, dep.effectiveCountdownMinutes(threeMinsLater))
+        val freshSnapshot = WearSnapshotFormatter.buildComplicationSnapshot(board, dep, nowEpochMs = threeMinsLater)
+        assertEquals("BRX • 5m • P4", freshSnapshot.shortText)
+
+        // 20 minutes after sync -> stale (>15m), renders "--" instead of frozen "8m"
+        val twentyMinsLater = baseEpochMs + 20 * 60_000L
+        assertTrue(board.isStale(twentyMinsLater))
+        val staleSnapshot = WearSnapshotFormatter.buildComplicationSnapshot(board, dep, nowEpochMs = twentyMinsLater)
+        assertEquals("VIC • --", staleSnapshot.shortText)
+
+        // Tracked journey live MM:SS subtraction & staleness
+        val tracked = com.androidfung.departureboard.wear.model.WearTrackedJourneyState(
+            departureId = "t1",
+            stationId = "940GZZLUVIC",
+            stationName = "Victoria",
+            destinationName = "Brixton",
+            lineName = "Victoria",
+            platformCode = "4",
+            isPlatformConfirmed = true,
+            remainingSeconds = 180,
+            currentLocation = null,
+            stopsAway = null,
+            targetAlightStopName = null,
+            isCancelled = false,
+            syncedAtEpochMs = baseEpochMs
+        )
+        assertEquals(135, tracked.effectiveRemainingSeconds(baseEpochMs + 45_000L))
+        assertEquals("02:15", tracked.effectiveMmSsCountdown(baseEpochMs + 45_000L))
+        assertEquals("--:--", tracked.effectiveMmSsCountdown(baseEpochMs + 15 * 60_000L))
+    }
 }

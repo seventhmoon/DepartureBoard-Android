@@ -103,6 +103,11 @@ fun AiTransitSheet(
     val localContext = LocalContext.current
     val resources = LocalResources.current
     val assistant = remember(repository, localContext) { TransitAiAssistant(repository, localContext) }
+    androidx.compose.runtime.DisposableEffect(assistant) {
+        onDispose {
+            assistant.close()
+        }
+    }
     val dynamicAiProvider = remember(localContext) {
         (localContext.applicationContext as? com.androidfung.departureboard.DepartureBoardApp)?.container?.dynamicAiAssistantProvider
             ?: com.androidfung.departureboard.ai.DynamicAiAssistantProvider(localContext.applicationContext)
@@ -163,7 +168,7 @@ fun AiTransitSheet(
     // Dynamic, location-aware & frequently asked suggestions
     val quickPrompts = remember(nearestStation, savedStations, selectedRegion, resources) {
         val prompts = mutableListOf<String>()
-        val currentHour = java.time.LocalTime.now().hour
+        val currentHour = java.time.LocalTime.now(selectedRegion.timeZone).hour
 
         // Stationmaster High-Impact Prompts
         prompts.add("🏃 Should I run for the next train?")
@@ -378,7 +383,10 @@ fun AiTransitSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -401,7 +409,7 @@ fun AiTransitSheet(
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(R.string.ai_sheet_title),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),

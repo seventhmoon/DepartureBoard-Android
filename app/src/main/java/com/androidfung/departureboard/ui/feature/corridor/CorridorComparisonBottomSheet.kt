@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -139,10 +140,12 @@ fun CorridorComparisonContent(
     }
 
     val scrollState = rememberScrollState()
+    val isDark = com.androidfung.departureboard.ui.theme.LocalIsDarkTheme.current
 
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .imePadding()
             .verticalScroll(scrollState)
             .padding(horizontal = dimensions.paddingScreenEdge, vertical = dimensions.paddingMedium)
     ) {
@@ -152,7 +155,10 @@ fun CorridorComparisonContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
                     modifier = Modifier
                         .size(dimensions.iconContainerSize)
@@ -168,7 +174,7 @@ fun CorridorComparisonContent(
                     )
                 }
                 Spacer(modifier = Modifier.width(dimensions.paddingLarge))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Corridor Departure Status",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
@@ -248,6 +254,7 @@ fun CorridorComparisonContent(
 
         // Overtake / Faster Arrival Alert
         if (overtakeAlert != null) {
+            val overtakeAccentColor = if (isDark) Color(0xFFFFB300) else Color(0xFF8C5000)
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = Color(0xFFFFB300).copy(alpha = 0.16f),
@@ -262,14 +269,14 @@ fun CorridorComparisonContent(
                     Icon(
                         imageVector = Icons.Rounded.Bolt,
                         contentDescription = null,
-                        tint = Color(0xFFFFB300),
+                        tint = overtakeAccentColor,
                         modifier = Modifier.size(24.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "⚡ Faster Express Train Recommendation",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFFFFB300)
+                            color = overtakeAccentColor
                         )
                         Text(
                             text = overtakeAlert.recommendationMessage,
@@ -308,8 +315,8 @@ fun CorridorComparisonContent(
                     corridorItems.forEachIndexed { idx, item ->
                         val dep = item.departure
                         val serviceColor = when (item.serviceType) {
-                            CorridorServiceType.EXPRESS -> Color(0xFF4CAF50)
-                            CorridorServiceType.SEMI_FAST -> Color(0xFFFF9800)
+                            CorridorServiceType.EXPRESS -> if (isDark) Color(0xFF4CAF50) else Color(0xFF1B5E20)
+                            CorridorServiceType.SEMI_FAST -> if (isDark) Color(0xFFFF9800) else Color(0xFF8C5000)
                             CorridorServiceType.ALL_STATIONS -> MaterialTheme.colorScheme.onSurfaceVariant
                         }
 

@@ -56,9 +56,8 @@ class DefaultAppContainer(
 ) : AppContainer {
 
     init {
-        // Ensure shared network and station code singletons receive application context
+        // Register lightweight application context reference for shared OkHttp cache/connectivity
         TflNetworkClient.initialize(applicationContext)
-        NationalRailStationCodes.initialize(applicationContext)
     }
 
     override val tflApiService: TflApiService by lazy {

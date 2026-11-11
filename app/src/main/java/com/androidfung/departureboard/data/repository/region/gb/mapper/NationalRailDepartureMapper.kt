@@ -73,7 +73,8 @@ object NationalRailDepartureMapper {
     fun mapToDeparture(
         service: NrTrainService,
         stationId: String,
-        stationName: String
+        stationName: String,
+        nowZdt: ZonedDateTime = ZonedDateTime.now(UK_ZONE)
     ): Departure {
         val rawDestination = service.destination.firstOrNull()?.locationName ?: "Terminus"
         val destination = StationNameFormatter.clean(rawDestination)
@@ -83,7 +84,7 @@ object NationalRailDepartureMapper {
         val std = service.std ?: "00:00"
         val etd = service.etd ?: "On time"
 
-        val (timeToStationSeconds, expectedInstant, scheduledInstant) = calculateDepartureTimes(std, etd)
+        val (timeToStationSeconds, expectedInstant, scheduledInstant) = calculateDepartureTimes(std, etd, nowZdt)
         val platformStr = service.platform?.let { "Platform $it" } ?: "Platform TBD"
         val platformInfo = service.platform?.let {
             PlatformInfo(
@@ -253,6 +254,20 @@ object NationalRailDepartureMapper {
             terminusStationId = destCrs
         )
 
+        val isDelayedNumericEtd = scheduledInstant != null &&
+            expectedInstant != null &&
+            java.time.Duration.between(scheduledInstant, expectedInstant).toMinutes() >= 1L
+        val resolvedStatus = when {
+            service.isCancelled || etd.equals("Cancelled", ignoreCase = true) ->
+                com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED
+            etd.equals("Delayed", ignoreCase = true) || isDelayedNumericEtd ->
+                com.androidfung.departureboard.data.model.DepartureStatus.DELAYED
+            timeToStationSeconds <= 30 ->
+                com.androidfung.departureboard.data.model.DepartureStatus.DUE
+            else ->
+                com.androidfung.departureboard.data.model.DepartureStatus.ON_TIME
+        }
+
         return Departure(
             id = service.serviceId,
             stationId = stationId,
@@ -268,6 +283,7 @@ object NationalRailDepartureMapper {
             currentLocation = statusDescription,
             modeName = modeId,
             lineBadge = badge,
+            status = resolvedStatus,
             destinationStationId = destCrs,
             callingPoints = fullCallingPoints,
             platform = platformInfo.copy(directionHint = resolvedDirection),
@@ -278,11 +294,22 @@ object NationalRailDepartureMapper {
         )
     }
 
-    private fun calculateDepartureTimes(std: String, etd: String): Triple<Int, Instant?, Instant?> {
-        val nowZdt = ZonedDateTime.now(UK_ZONE)
+    internal fun calculateDepartureTimes(
+        std: String,
+        etd: String,
+        nowZdt: ZonedDateTime = ZonedDateTime.now(UK_ZONE)
+    ): Triple<Int, Instant?, Instant?> {
         val scheduledZdt = parseTimeToZonedDateTime(std, nowZdt)
         val expectedZdt = if (etd.matches(TIME_FORMAT_REGEX)) {
-            parseTimeToZonedDateTime(etd, nowZdt)
+            val anchor = scheduledZdt ?: nowZdt
+            val rawExpected = parseTimeToZonedDateTime(etd, anchor)
+            // If scheduled is late evening (e.g. 23:50) and expected rolled into early morning (e.g. 00:15),
+            // ensure expectedZdt stays after scheduledZdt rather than 23h earlier.
+            if (scheduledZdt != null && rawExpected != null && rawExpected.isBefore(scheduledZdt.minusHours(6))) {
+                rawExpected.plusDays(1)
+            } else {
+                rawExpected
+            }
         } else {
             scheduledZdt
         }
@@ -295,15 +322,20 @@ object NationalRailDepartureMapper {
         return Triple(diffSeconds, expectedZdt?.toInstant(), scheduledZdt?.toInstant())
     }
 
-    private fun parseTimeToZonedDateTime(timeStr: String, nowZdt: ZonedDateTime): ZonedDateTime? {
+    internal fun parseTimeToZonedDateTime(timeStr: String, referenceZdt: ZonedDateTime): ZonedDateTime? {
         val parts = timeStr.split(":")
         if (parts.size != 2) return null
         val hour = parts[0].toIntOrNull() ?: return null
         val minute = parts[1].toIntOrNull() ?: return null
+        if (hour !in 0..23 || minute !in 0..59) return null
 
-        var target = nowZdt.with(LocalTime.of(hour, minute, 0))
-        if (target.isBefore(nowZdt.minusHours(1))) {
+        var target = referenceZdt.with(LocalTime.of(hour, minute, 0))
+        // Forward midnight rollover: e.g. reference is 23:45 and train is 00:15 next day
+        if (target.isBefore(referenceZdt.minusHours(6))) {
             target = target.plusDays(1)
+        } else if (target.isAfter(referenceZdt.plusHours(18))) {
+            // Backward midnight rollover: e.g. reference is 00:05 and train was scheduled 23:50 previous day
+            target = target.minusDays(1)
         }
         return target
     }

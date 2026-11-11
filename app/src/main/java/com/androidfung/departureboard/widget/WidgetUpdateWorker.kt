@@ -2,6 +2,8 @@ package com.androidfung.departureboard.widget
 
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -28,8 +30,15 @@ class WidgetUpdateWorker(
             if (glanceIds.isEmpty()) {
                 return Result.success()
             }
+            val nowMs = System.currentTimeMillis()
+            val widget = DepartureBoardWidget()
             glanceIds.forEach { glanceId ->
-                DepartureBoardWidget().update(appContext, glanceId)
+                updateAppWidgetState(appContext, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+                    prefs.toMutablePreferences().apply {
+                        this[DepartureBoardWidget.PREF_LAST_REFRESH_TIMESTAMP] = nowMs
+                    }
+                }
+                widget.update(appContext, glanceId)
             }
 
             // Check for service interruptions or closures on pinned stations/lines and notify user
@@ -57,10 +66,9 @@ class WidgetUpdateWorker(
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
         }
 
-        fun enqueuePeriodicUpdate(context: Context) {
+        fun enqueuePeriodicUpdate(context: Context, forceUpdate: Boolean = false) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
-                .setRequiresBatteryNotLow(true)
                 .build()
 
             val request = PeriodicWorkRequestBuilder<WidgetUpdateWorker>(
@@ -71,7 +79,7 @@ class WidgetUpdateWorker(
 
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 WORK_NAME,
-                ExistingPeriodicWorkPolicy.UPDATE,
+                if (forceUpdate) ExistingPeriodicWorkPolicy.UPDATE else ExistingPeriodicWorkPolicy.KEEP,
                 request
             )
         }

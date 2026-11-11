@@ -211,7 +211,7 @@ object WearNotificationPublisher {
             )
 
             val stopIntent = Intent(context, WearCompanionSyncReceiver::class.java).apply {
-                action = WearCompanionSyncReceiver.ACTION_STOP_TRACKED_DEPARTURE
+                action = WearCompanionSyncReceiver.ACTION_LOCAL_STOP_TRACKING_BUTTON
             }
             val stopPendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -228,7 +228,7 @@ object WearNotificationPublisher {
             val title = "$platLabel • ${journey.destinationName}"
             val subtitle = if (!journey.targetAlightStopName.isNullOrBlank()) {
                 val stopsStr = journey.stopsAway?.let {
-                    context.getString(com.androidfung.departureboard.wear.R.string.wear_stops_suffix, it)
+                    context.resources.getQuantityString(com.androidfung.departureboard.wear.R.plurals.wear_stops_suffix, it, it)
                 }.orEmpty()
                 "🎯 " + context.getString(
                     com.androidfung.departureboard.wear.R.string.wear_alight_target,
@@ -387,7 +387,11 @@ object WearNotificationPublisher {
         }
     }
 
+    @Volatile
+    private var channelsInitialized = false
+
     private fun ensureChannels(context: Context, nm: NotificationManager) {
+        if (channelsInitialized) return
         val trackingChannel = NotificationChannel(
             CHANNEL_TRACKING_ID,
             context.getString(com.androidfung.departureboard.wear.R.string.wear_channel_tracking_name),
@@ -442,5 +446,6 @@ object WearNotificationPublisher {
         nm.createNotificationChannel(platformAlertsChannel)
         nm.createNotificationChannel(alightingAlertsChannel)
         nm.createNotificationChannel(disruptionAlertsChannel)
+        channelsInitialized = true
     }
 }

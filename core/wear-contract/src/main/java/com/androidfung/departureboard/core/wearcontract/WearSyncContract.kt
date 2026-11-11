@@ -22,6 +22,7 @@ object WearSyncContract {
     const val ACTION_SYNC_STATION_BOARDS = "com.androidfung.departureboard.wear.action.SYNC_STATION_BOARDS"
     const val ACTION_SYNC_TRACKED_DEPARTURE = "com.androidfung.departureboard.wear.action.SYNC_TRACKED_DEPARTURE"
     const val ACTION_STOP_TRACKED_DEPARTURE = "com.androidfung.departureboard.wear.action.STOP_TRACKED_DEPARTURE"
+    const val ACTION_LOCAL_STOP_TRACKING_BUTTON = "com.androidfung.departureboard.wear.action.LOCAL_STOP_TRACKING_BUTTON"
     const val ACTION_SYNC_AI_RESPONSE = "com.androidfung.departureboard.wear.action.SYNC_AI_RESPONSE"
     const val ACTION_SYNC_NOTIFICATION_PREFS = "com.androidfung.departureboard.wear.action.SYNC_NOTIFICATION_PREFS"
 

@@ -115,23 +115,31 @@ class DynamicLmEngineImpl(
     }
 
     override fun streamReply(prompt: String): Flow<String> = callbackFlow {
+        var activeConv: com.google.ai.edge.litertlm.Conversation? = null
         val job = scope.launch {
             val conv = mutex.withLock {
-                if (conversation == null) {
+                val current = conversation
+                if (current == null) {
                     trySend("Local LLM model is not ready.")
                     close()
                     return@launch
                 }
-                isBusy.set(true)
-                conversation
+                if (!isBusy.compareAndSet(false, true)) {
+                    trySend("Local LLM is currently generating a reply. Please wait a moment.")
+                    close()
+                    return@launch
+                }
+                current
             }
+            activeConv = conv
 
             try {
-                val replies = checkNotNull(conv).sendMessageAsync(prompt)
+                val replies = conv.sendMessageAsync(prompt)
                 replies.collect { message ->
                     trySend(message.toString())
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
+                runCatching { conv.cancelProcess() }
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Error during LiteRT-LM reply streaming", e)
@@ -143,6 +151,7 @@ class DynamicLmEngineImpl(
         }
 
         awaitClose {
+            runCatching { activeConv?.cancelProcess() }
             job.cancel()
         }
     }
@@ -151,14 +160,16 @@ class DynamicLmEngineImpl(
         if (isBusy.get()) {
             runCatching { conversation?.cancelProcess() }
             var waitCount = 0
-            while (isBusy.get() && waitCount++ < 30) {
+            while (isBusy.get() && waitCount++ < 200) {
                 delay(50L.milliseconds)
             }
         }
-        runCatching { conversation?.close() }
-        conversation = null
-        runCatching { engine?.close() }
-        engine = null
+        if (!isBusy.get()) {
+            runCatching { conversation?.close() }
+            conversation = null
+            runCatching { engine?.close() }
+            engine = null
+        }
     }
 
     override fun close() {

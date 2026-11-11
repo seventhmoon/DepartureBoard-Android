@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.speech.RecognizerIntent
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -16,10 +17,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -71,6 +74,8 @@ internal fun WearStationManagerScreen(
     val searchFocusRequester = remember { FocusRequester() }
     var searchQuery by remember { mutableStateOf("") }
 
+    BackHandler(onBack = onBack)
+
     val speechLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -103,12 +108,14 @@ internal fun WearStationManagerScreen(
         contentAlignment = Alignment.Center
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding(),
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 22.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            item(key = "back_button") {
+            item(key = "back_button", contentType = "back_button") {
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = Color(0xFF1E2229),
@@ -310,10 +317,11 @@ internal fun WearStationManagerScreen(
                 )
             }
 
-            items(
-                items = activeBoards.mapIndexed { idx, board -> idx to board },
-                key = { (_, board) -> "active_${board.stationId}" }
-            ) { (idx, board) ->
+            itemsIndexed(
+                items = activeBoards,
+                key = { _, board -> "active_${board.stationId}" },
+                contentType = { _, _ -> "active_station" }
+            ) { idx, board ->
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = Color(0xFF14171C),
@@ -383,7 +391,8 @@ internal fun WearStationManagerScreen(
 
                 items(
                     items = availableToAdd,
-                    key = { "add_${it.stationId}" }
+                    key = { "add_${it.stationId}" },
+                    contentType = { "add_station" }
                 ) { candidate ->
                     Surface(
                         shape = RoundedCornerShape(12.dp),

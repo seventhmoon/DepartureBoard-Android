@@ -310,5 +310,30 @@ class LastTrainServiceCalculatorTest {
         assertEquals(13, reconciled.minutesUntilLastTrain)
         assertTrue(enriched.first().isLastTrain)
     }
+
+    @Test
+    fun `detects overnight closed window past 0400 AM and Sunday 0615 AM before first train`() {
+        // Sunday 06:15 AM London time on non-Night-Tube Bakerloo line (first train on Sunday is ~06:30)
+        val sunday0615 = ZonedDateTime.of(2026, 11, 8, 6, 15, 0, 0, ZoneId.of("Europe/London"))
+        val bakerlooSunday = LastTrainServiceCalculator.evaluateServiceHours(
+            stationId = "940GZZLUMYB",
+            lineId = "bakerloo",
+            departures = emptyList(),
+            nowOverride = sunday0615
+        )
+        assertNotNull(bakerlooSunday)
+        assertTrue(bakerlooSunday!!.isClosedForNight)
+
+        // Thursday 04:20 AM Hong Kong MTR (last train 00:50, first train 06:00) -> still closed!
+        val hk0420 = ZonedDateTime.of(2026, 11, 5, 4, 20, 0, 0, ZoneId.of("Asia/Hong_Kong"))
+        val hkClosed = LastTrainServiceCalculator.evaluateServiceHours(
+            stationId = "HK_MTR_CEN",
+            lineId = "TWL",
+            departures = emptyList(),
+            nowOverride = hk0420
+        )
+        assertNotNull(hkClosed)
+        assertTrue(hkClosed!!.isClosedForNight)
+    }
 }
 

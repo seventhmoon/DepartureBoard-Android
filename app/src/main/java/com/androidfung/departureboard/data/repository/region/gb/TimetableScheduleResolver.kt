@@ -189,15 +189,19 @@ class TimetableScheduleResolver(
             val lastNorm = latestNightPair?.first
                 ?: com.androidfung.departureboard.util.LastTrainServiceCalculator.parseNormalizedMinutes(latestNight)
 
-            val nowNorm = com.androidfung.departureboard.util.LastTrainServiceCalculator.normalizeServiceMinutes(
-                nowLondon.hour,
-                nowLondon.minute
-            )
+            val nowH = nowLondon.hour
+            val nowM = nowLondon.minute
+            val nowNorm = if (nowH < 4 || (nowH == 4 && nowM < 30)) (nowH + 24) * 60 + nowM else nowH * 60 + nowM
             val minutesUntilLast = if (lastNorm != null && lastNorm > nowNorm) (lastNorm - nowNorm) else null
 
-            val isLateNight = nowLondon.hour in 0..4 || (nowLondon.hour == 23 && nowLondon.minute >= 45)
+            val isClosedNow = com.androidfung.departureboard.util.LastTrainServiceCalculator.isInOvernightClosedWindow(
+                nowHour = nowH,
+                nowMinute = nowM,
+                lastHhMm = latestNight,
+                firstHhMm = earliestMorning ?: "05:20"
+            )
 
-            return if (isLateNight && (minutesUntilLast == null || minutesUntilLast <= 0)) {
+            return if (isClosedNow) {
                 StationServiceHoursInfo(
                     isClosedForNight = true,
                     lastTrainTime = latestNight,

@@ -35,7 +35,7 @@ class GbRegionalTransitProvider(
     private val bodsApiService: BodsApiService,
     private val stationSearchEngine: GbStationSearchEngine,
     private val timetableScheduleResolver: TimetableScheduleResolver,
-    private val stationLookup: (String) -> Station? = { null }
+    private val stationLookup: suspend (String) -> Station? = { null }
 ) : RegionalTransitProvider {
 
     override val region: TransitRegion = TransitRegion.GB
@@ -189,8 +189,9 @@ class GbRegionalTransitProvider(
             try {
                 val fresh = apiService.getLineStatuses().associateBy { it.id.lowercase() }.toMutableMap()
                 try {
-                    val bodsDisruptionsXml = bodsApiService.getDisruptions().string()
-                    val bodsDisruptions = com.androidfung.departureboard.data.model.gb.BodsDisruptionXmlParser.parse(bodsDisruptionsXml)
+                    val bodsDisruptions = bodsApiService.getDisruptions().byteStream().use { stream ->
+                        com.androidfung.departureboard.data.model.gb.BodsDisruptionXmlParser.parseStream(stream)
+                    }
                     bodsDisruptions.forEach { bd ->
                         val line = bd.lineRef?.lowercase()
                         if (!line.isNullOrBlank()) {
