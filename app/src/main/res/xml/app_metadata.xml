@@ -1,11 +1,15 @@
 <AppFunctionAppMetadata xmlns:appfn="http://schemas.android.com/apk/androidx.appfunctions"
-    appfn:description="EkiBoard provides live public transport departure boards, train and bus countdowns, and live journey tracking for UK/London transit.
+    appfn:description="EkiBoard provides multi-region live public transport departure boards (UK/London, Hong Kong, Tokyo, Singapore, Sydney), walk-adjusted concourse comparisons, disruption alerts, last-train checks, Delay Repay receipts, and live journey tracking.
     Operational Patterns:
     - Use 'getLiveDepartures' when the user asks for upcoming trains, buses, departures, or timetables at a station.
+    - Use 'compareTwinConcourses' when the user asks which of two nearby stations or concourses is faster or catchable right now.
+    - Use 'checkLineDisruptions' when the user asks about delays, suspensions, or line status.
+    - Use 'getLastTrainHome' when the user asks for the last train or latest departure from a station.
+    - Use 'getSavedDelayRepayReceipts' when the user asks about delayed train compensation or Delay Repay claims.
     - Use 'trackDeparture' when the user asks to track a journey or train countdown to a destination.
     - Use 'pinStation' when the user asks to save, bookmark, or pin a station to their dashboard.
-    - Use 'requestWidgetPin' when the user asks to add a station widget to their home screen.
+    - Use 'requestWidgetPin' when the user asks to add a station or Smart Commute widget to their home screen.
     Constraints:
-    - stationName must be provided for all queries.
+    - stationName must be provided for station-specific queries.
     - Destination is required for trackDeparture."
     appfn:displayDescription="@string/app_name" />

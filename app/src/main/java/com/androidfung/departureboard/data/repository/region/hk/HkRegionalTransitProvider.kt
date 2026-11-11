@@ -50,12 +50,16 @@ class HkRegionalTransitProvider(
     override val region: TransitRegion = TransitRegion.HK
 
     private val hkMtrDepartureSource = HkMtrDepartureSource(mtrApiService)
+    private val hkLightRailDepartureSource = HkLightRailDepartureSource()
+    private val hkGmbDepartureSource = HkGmbDepartureSource()
     private val hkBusDepartureSource = HkBusDepartureSource()
     private val hkMtrCallingPointsResolver = HkMtrCallingPointsResolver()
     private val hkBusCallingPointsResolver = HkBusCallingPointsResolver()
 
     override val departureSources: List<DepartureSource> = listOf(
         hkMtrDepartureSource,
+        hkLightRailDepartureSource,
+        hkGmbDepartureSource,
         hkBusDepartureSource
     )
 

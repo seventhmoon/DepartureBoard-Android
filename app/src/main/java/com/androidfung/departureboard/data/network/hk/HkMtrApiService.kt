@@ -1,13 +1,13 @@
 package com.androidfung.departureboard.data.network.hk
 
+import com.androidfung.departureboard.data.model.hk.HkLightRailScheduleResponse
 import com.androidfung.departureboard.data.model.hk.HkMtrScheduleResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 
 /**
- * Retrofit interface for Hong Kong MTR open data schedule endpoint.
+ * Retrofit interface for Hong Kong MTR & Light Rail open data schedule endpoints.
  * Base URL: https://rt.data.gov.hk/
- * Endpoint: https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=AEL&sta=HOK
  */
 interface HkMtrApiService {
 
@@ -17,4 +17,11 @@ interface HkMtrApiService {
         @Query("sta") station: String,
         @Query("lang") lang: String = "en"
     ): HkMtrScheduleResponse
+}
+
+interface HkLightRailApiService {
+    @GET("v1/transport/mtr/lrt/getSchedule")
+    suspend fun getLightRailSchedule(
+        @Query("station_id") stationId: String
+    ): HkLightRailScheduleResponse
 }

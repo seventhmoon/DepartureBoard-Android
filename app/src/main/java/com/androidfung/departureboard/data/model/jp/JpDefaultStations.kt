@@ -19,6 +19,8 @@ object JpDefaultStations {
             id = "JP_METRO_M17_JY01",
             name = "Tokyo (東京)",
             modes = listOf("national-rail", "tube"),
+            lat = 35.6812,
+            lon = 139.7671,
             lines = listOf(
                 StationLineInfo("M", "Marunouchi Line"),
                 StationLineInfo("JY", "Yamanote Line"),
@@ -29,6 +31,8 @@ object JpDefaultStations {
             id = "JP_BUS_TYO_S",
             name = "Tokyo Sta. Marunouchi South (東京駅丸の内南口)",
             modes = listOf("bus"),
+            lat = 35.6797,
+            lon = 139.7652,
             lines = listOf(
                 StationLineInfo("東98", "東98", "bus"),
                 StationLineInfo("都05", "都05", "bus")
@@ -41,6 +45,8 @@ object JpDefaultStations {
             id = "JP_METRO_M17_JY01",
             name = "Tokyo (東京)",
             modes = listOf("national-rail", "tube"),
+            lat = 35.6812,
+            lon = 139.7671,
             lines = listOf(
                 StationLineInfo("M", "Marunouchi Line"),
                 StationLineInfo("JY", "Yamanote Line"),
@@ -51,6 +57,8 @@ object JpDefaultStations {
             id = "JP_METRO_M08_JY17",
             name = "Shinjuku (新宿)",
             modes = listOf("national-rail", "tube"),
+            lat = 35.6896,
+            lon = 139.7006,
             lines = listOf(
                 StationLineInfo("M", "Marunouchi Line"),
                 StationLineInfo("S", "Shinjuku Line"),
@@ -68,6 +76,8 @@ object JpDefaultStations {
             id = "JP_METRO_G01_Z01_F16_JY20",
             name = "Shibuya (渋谷)",
             modes = listOf("national-rail", "tube"),
+            lat = 35.6580,
+            lon = 139.7016,
             lines = listOf(
                 StationLineInfo("G", "Ginza Line"),
                 StationLineInfo("Z", "Hanzomon Line"),
@@ -84,6 +94,8 @@ object JpDefaultStations {
             id = "JP_METRO_G09_M16_H08",
             name = "Ginza (銀座)",
             modes = listOf("tube"),
+            lat = 35.6712,
+            lon = 139.7650,
             lines = listOf(
                 StationLineInfo("G", "Ginza Line"),
                 StationLineInfo("M", "Marunouchi Line"),
@@ -94,6 +106,8 @@ object JpDefaultStations {
             id = "JP_METRO_H15_JY03",
             name = "Akihabara (秋葉原)",
             modes = listOf("national-rail", "tube"),
+            lat = 35.6984,
+            lon = 139.7731,
             lines = listOf(
                 StationLineInfo("H", "Hibiya Line"),
                 StationLineInfo("JY", "Yamanote Line")
@@ -103,6 +117,8 @@ object JpDefaultStations {
             id = "JP_METRO_G16_H17_JY05",
             name = "Ueno (上野)",
             modes = listOf("national-rail", "tube"),
+            lat = 35.7141,
+            lon = 139.7774,
             lines = listOf(
                 StationLineInfo("G", "Ginza Line"),
                 StationLineInfo("H", "Hibiya Line"),
@@ -113,6 +129,8 @@ object JpDefaultStations {
             id = "JP_METRO_M25_Y09_F09_JY13",
             name = "Ikebukuro (池袋)",
             modes = listOf("national-rail", "tube"),
+            lat = 35.7295,
+            lon = 139.7109,
             lines = listOf(
                 StationLineInfo("M", "Marunouchi Line"),
                 StationLineInfo("Y", "Yurakucho Line"),
@@ -124,9 +142,22 @@ object JpDefaultStations {
             id = "JP_METRO_H04_JY21",
             name = "Ebisu (恵比寿)",
             modes = listOf("national-rail", "tube"),
+            lat = 35.6467,
+            lon = 139.7101,
             lines = listOf(
                 StationLineInfo("H", "Hibiya Line"),
                 StationLineInfo("JY", "Yamanote Line")
+            )
+        ),
+        Station(
+            id = "JP_BUS_TYO_S",
+            name = "Tokyo Sta. Marunouchi South (東京駅丸の内南口)",
+            modes = listOf("bus"),
+            lat = 35.6797,
+            lon = 139.7652,
+            lines = listOf(
+                StationLineInfo("東98", "東98", "bus"),
+                StationLineInfo("都05", "都05", "bus")
             )
         )
     )
@@ -317,7 +348,52 @@ object JpDefaultStations {
         val headwaysSeconds: List<Int>
     )
 
-    fun getFallbackDepartures(stationId: String, stationName: String): List<Departure> {
+    /**
+     * Returns true when the Tokyo local clock is inside the final *Shūden* (終電 / last-train)
+     * departure window (`23:30–00:45` JST).
+     */
+    fun isShudenWindow(tokyoNow: java.time.ZonedDateTime = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Tokyo"))): Boolean {
+        val minuteOfDay = tokyoNow.hour * 60 + tokyoNow.minute
+        return minuteOfDay >= (23 * 60 + 30) || minuteOfDay <= 45
+    }
+
+    fun getFallbackDepartures(
+        stationId: String,
+        stationName: String,
+        now: Instant = Instant.now()
+    ): List<Departure> {
+        if (stationId.startsWith("JP_BUS_", ignoreCase = true)) {
+            val toeiBusGreen = androidx.compose.ui.graphics.Color(0xFF6CC24A)
+            return listOf(
+                Triple("都05", "Harumi Pier (晴海埠頭)", 180),
+                Triple("東98", "Todoroki (等々力操車所)", 360)
+            ).mapIndexed { idx, (route, dest, waitSec) ->
+                val arr = now.plusSeconds(waitSec.toLong())
+                Departure(
+                    id = "${stationId}_${route}_$idx",
+                    stationId = stationId,
+                    stationName = stationName,
+                    lineId = route,
+                    lineName = route,
+                    platformName = "Stop 2",
+                    destinationName = dest,
+                    towards = dest,
+                    timeToStationSeconds = waitSec,
+                    expectedArrivalIso = DateTimeFormatter.ISO_INSTANT.format(arr),
+                    currentLocation = if (waitSec <= 60) "Approaching" else "In Transit",
+                    modeName = "bus",
+                    lineBadge = com.androidfung.departureboard.data.model.LineBadgeInfo(
+                        lineId = route,
+                        displayName = route,
+                        backgroundColor = toeiBusGreen,
+                        textColor = androidx.compose.ui.graphics.Color.White,
+                        mode = TransitMode.BUS,
+                        lineCode = route
+                    ),
+                    status = if (waitSec <= 60) DepartureStatus.DUE else DepartureStatus.ON_TIME
+                )
+            }
+        }
         val cleanName = stationName.replace(Regex("\\s*\\(.*\\)"), "").trim()
         val stationEntry = JpStationDirectory.ALL_STATIONS.firstOrNull { 
             it.englishName.equals(cleanName, ignoreCase = true) || it.japaneseName == cleanName 
@@ -330,7 +406,7 @@ object JpDefaultStations {
                 DepartureTemplate(defaultLineCode, "Outbound", "2", listOf(240, 540))
             )
 
-        val now = Instant.now()
+        val tokyoZone = java.time.ZoneId.of("Asia/Tokyo")
         val departures = mutableListOf<Departure>()
 
         templates.forEach { template ->
@@ -338,6 +414,8 @@ object JpDefaultStations {
             template.headwaysSeconds.forEachIndexed { idx, waitSec ->
                 val departureInstant = now.plusSeconds(waitSec.toLong())
                 val formattedArrival = DateTimeFormatter.ISO_INSTANT.format(departureInstant)
+                val isFinalTrainWindow = isShudenWindow(departureInstant.atZone(tokyoZone)) &&
+                    idx == template.headwaysSeconds.lastIndex
 
                 departures.add(
                     Departure(
@@ -358,7 +436,8 @@ object JpDefaultStations {
                         callingPoints = listOf(
                             CallingPoint(cleanName, "Dep"),
                             CallingPoint(template.destination, "${waitSec / 60 + 6} min")
-                        )
+                        ),
+                        isLastTrain = isFinalTrainWindow
                     )
                 )
             }

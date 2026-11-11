@@ -53,6 +53,7 @@ import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 
@@ -84,6 +85,35 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val PREF_FILTER_DIRECTION = stringPreferencesKey("widget_filter_direction")
         val PREF_LAST_REFRESH_TIMESTAMP = androidx.datastore.preferences.core.longPreferencesKey("widget_last_refresh")
 
+        const val SMART_COMMUTE_WIDGET_STATION_ID = "__SMART_COMMUTE_AUTO__"
+        const val PREF_PENDING_PIN_STATION_ID = "pending_pin_station_id"
+        const val PREF_PENDING_PIN_STATION_NAME = "pending_pin_station_name"
+        const val PREF_PENDING_PIN_TIMESTAMP_MS = "pending_pin_timestamp_ms"
+        const val PENDING_PIN_MAX_AGE_MS = 120_000L
+
+        internal suspend fun resolveSmartCommuteStation(
+            repository: com.androidfung.departureboard.data.repository.TransitRepository
+        ): Pair<Station, String> {
+            val period = com.androidfung.departureboard.util.SmartCommuteHelper.getCommutePeriod()
+            val saved = runCatching { repository.savedStationsFlow.firstOrNull().orEmpty() }.getOrDefault(emptyList())
+            val ordered = com.androidfung.departureboard.util.SmartCommuteHelper.reorderForCommute(
+                items = saved,
+                tagSelector = { it.commuteTag },
+                period = period
+            )
+            val fallbackRegion = runCatching { repository.selectedRegionFlow.firstOrNull() }
+                .getOrNull() ?: com.androidfung.departureboard.data.model.TransitRegion.GB
+            val chosen = ordered.firstOrNull()
+                ?: fallbackRegion.defaultStations.firstOrNull()
+                ?: com.androidfung.departureboard.data.model.gb.GbDefaultStations.POPULAR_STATIONS.first()
+            val prefix = when (period) {
+                com.androidfung.departureboard.util.CommutePeriod.MORNING -> "☀ "
+                com.androidfung.departureboard.util.CommutePeriod.EVENING -> "🌙 "
+                com.androidfung.departureboard.util.CommutePeriod.OFF_PEAK -> "⇄ "
+            }
+            return chosen to prefix
+        }
+
         internal fun buildStationDeepLinkUri(station: Station): android.net.Uri {
             return android.net.Uri.Builder()
                 .scheme(com.androidfung.departureboard.navigation.DeepLinkIntentParser.SCHEME_MIND_THE_BOARD)
@@ -105,22 +135,36 @@ class DepartureBoardWidget : GlanceAppWidget() {
 
         // Read local SharedPreferences fallback once per provideGlance (outside SizeMode.Exact provideContent passes)
         val sp = context.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
-        val fastStationId = if (appWidgetId != -1) sp.getString("station_id_$appWidgetId", null) else null
-        val fastStationName = if (appWidgetId != -1) sp.getString("station_name_$appWidgetId", null) else null
+        val pendingPinTs = sp.getLong(PREF_PENDING_PIN_TIMESTAMP_MS, 0L)
+        val isPendingPinFresh = (System.currentTimeMillis() - pendingPinTs) in 0..PENDING_PIN_MAX_AGE_MS
+        val fastStationId = (if (appWidgetId != -1) sp.getString("station_id_$appWidgetId", null) else null)
+            ?: (if (isPendingPinFresh) sp.getString(PREF_PENDING_PIN_STATION_ID, null) else null)
+        val fastStationName = (if (appWidgetId != -1) sp.getString("station_name_$appWidgetId", null) else null)
+            ?: (if (isPendingPinFresh) sp.getString(PREF_PENDING_PIN_STATION_NAME, null) else null)
         val fastFilterLineId = if (appWidgetId != -1) sp.getString("filter_line_id_$appWidgetId", null) else null
         val fastFilterLineName = if (appWidgetId != -1) sp.getString("filter_line_name_$appWidgetId", null) else null
         val fastFilterDirection = if (appWidgetId != -1) sp.getString("filter_direction_$appWidgetId", null) else null
+
+        val smartCommuteResolved = resolveSmartCommuteStation(repository)
 
         provideContent {
             GlanceTheme {
                 val prefs = currentState<Preferences>()
 
-                val stationId = prefs[PREF_STATION_ID] ?: fastStationId
-                val stationName = prefs[PREF_STATION_NAME] ?: fastStationName
+                val rawStationId = prefs[PREF_STATION_ID] ?: fastStationId
+                val rawStationName = prefs[PREF_STATION_NAME] ?: fastStationName
                 val filterLineId = prefs[PREF_FILTER_LINE_ID] ?: fastFilterLineId
                 val filterLineName = prefs[PREF_FILTER_LINE_NAME] ?: fastFilterLineName
                 val filterDirection = prefs[PREF_FILTER_DIRECTION] ?: fastFilterDirection
                 val refreshTimestamp = prefs[PREF_LAST_REFRESH_TIMESTAMP] ?: 0L
+
+                val isSmartCommuteMode = rawStationId == SMART_COMMUTE_WIDGET_STATION_ID
+                val stationId = if (isSmartCommuteMode) smartCommuteResolved.first.id else rawStationId
+                val stationName = if (isSmartCommuteMode) {
+                    "${smartCommuteResolved.second}${smartCommuteResolved.first.displayName}"
+                } else {
+                    rawStationName
+                }
 
                 val combinedFilterLabel = listOfNotNull(
                     filterLineName?.takeIf { it.isNotBlank() },

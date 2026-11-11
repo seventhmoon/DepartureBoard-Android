@@ -1,8 +1,14 @@
 package com.androidfung.departureboard.ai
 
 import com.androidfung.departureboard.data.model.Departure
+import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.repository.TransitRepository
+import com.androidfung.departureboard.util.CarriageExitAdvisor
+import com.androidfung.departureboard.util.DelayRepayCalculator
+import com.androidfung.departureboard.util.DelayRepayReceiptLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -109,6 +115,7 @@ class TransitAiAssistant(
                     "🤖 [Local AI] ${result.answer}"
                 }
             }
+            AiExecutionTier.SYSTEM_AICORE -> "✨ [System AICore] ${SystemAiCoreHelper.synthesizeConciseReply(query, result.answer)}"
             AiExecutionTier.CLOUD_SYNTHESIS -> "☁️ [Cloud LLM] ${result.answer}"
             AiExecutionTier.INSTANT_DETERMINISTIC -> "⚡ [Instant Rules] ${result.answer}"
             AiExecutionTier.LITERT_LOCAL_CLASSIFIER -> result.answer
@@ -200,8 +207,13 @@ class TransitAiAssistant(
             alias.keywords.any { kw -> cleanQuery.contains(kw) }
         }
 
+        val isDelayRepayQuery = cleanQuery.contains("delay repay") ||
+                cleanQuery.contains("service delay refund") ||
+                cleanQuery.contains("compensation") ||
+                cleanQuery.contains("claim refund")
+
         // 6. Service-status intent (e.g. "Any Tube delays or disruptions?", "Elizabeth line status")
-        val isStatusQuery = isClassifiedStatus || STATUS_KEYWORDS.any { kw -> cleanQuery.contains(kw) }
+        val isStatusQuery = !isDelayRepayQuery && (isClassifiedStatus || STATUS_KEYWORDS.any { kw -> cleanQuery.contains(kw) })
         if (isStatusQuery) {
             return answerStatusQuery(namedLine, defaultOrigin)
         }
@@ -357,11 +369,20 @@ class TransitAiAssistant(
             val next = primaryDeps.first()
             val plat = next.platformName.ifBlank { "Platform" }
             val formation = next.train?.formation
+            val recommendation = CarriageExitAdvisor.recommend(
+                formation = formation,
+                targetStopOrDestination = targetDestinationName ?: next.destinationName
+            )
             val advice = if (formation != null && formation.coaches.isNotEmpty()) {
                 val coachCount = formation.coaches.size
                 val quietCoach = formation.coaches.firstOrNull { it.isQuietCoach == true }?.coachNumber
                 val quietMsg = if (quietCoach != null) " Quiet coach is Coach $quietCoach." else ""
-                "🚆 [Stationmaster] The upcoming ${next.lineName} to ${next.destinationName} is formed of $coachCount coaches.$quietMsg Board near the middle of $plat for the best seat availability."
+                if (recommendation != null) {
+                    val coachList = recommendation.recommendedCoachLabels.joinToString("/")
+                    "🚆 [Stationmaster] The upcoming ${next.lineName} to ${next.destinationName} is formed of $coachCount coaches.$quietMsg Best carriage for boarding on $plat: Coach $coachList (${recommendation.reason})."
+                } else {
+                    "🚆 [Stationmaster] The upcoming ${next.lineName} to ${next.destinationName} is formed of $coachCount coaches.$quietMsg Board near the middle of $plat for the best seat availability."
+                }
             } else {
                 "📍 [Stationmaster] For the ${next.lineName} to ${next.destinationName} on $plat, boarding near the middle of the platform offers the best seat availability and easiest egress at busy interchange stations."
             }
@@ -379,6 +400,37 @@ class TransitAiAssistant(
                 destinationQuery = targetDestinationName,
                 a2uiResponse = A2UiResponse(blocks)
             )
+        }
+
+        if (isDelayRepayQuery) {
+            val allCandidateDeps = departuresByStation.flatMap { it.second }
+            val claimBlock = buildDelayRepayBlockOrNull(primaryDeps)
+                ?: buildDelayRepayBlockOrNull(allCandidateDeps)
+            if (claimBlock != null) {
+                val advice = "💷 [Stationmaster] ${claimBlock.compensationSummary}. Tap Save & Copy Receipt below to log ${claimBlock.lineName} (${claimBlock.stationName} → ${claimBlock.destinationName}) or open the operator claim portal."
+                val blocks = buildList {
+                    add(A2UiBlock.TextSummary(advice))
+                    add(claimBlock)
+                    if (primaryStation != null && primaryDeps.isNotEmpty()) {
+                        add(A2UiBlock.LiveDeparturesCard(primaryStation, primaryDeps.take(3)))
+                    }
+                }
+                return AiTransitResult(
+                    answer = advice,
+                    matchedStation = primaryStation,
+                    matchedDepartures = primaryDeps.take(3),
+                    originQuery = explicitOriginName,
+                    destinationQuery = targetDestinationName,
+                    a2uiResponse = A2UiResponse(blocks)
+                )
+            } else {
+                val advice = "💷 [Stationmaster] No active UK rail or Tube departures on your monitored boards currently meet the Delay Repay / Service Delay Refund threshold (15+ minutes late or cancelled)."
+                return AiTransitResult(
+                    answer = advice,
+                    matchedStation = primaryStation,
+                    a2uiResponse = A2UiResponse(listOf(A2UiBlock.TextSummary(advice)))
+                )
+            }
         }
 
         return if (matchingDepartures.isNotEmpty()) {
@@ -401,7 +453,7 @@ class TransitAiAssistant(
             val answer = "$prefix next ${next.lineName} departure towards ${next.destinationName} leaves from ${next.stationName} (${next.platformName}) $nextMinutes$clockSuffix$subsequentText."
 
             val targetStation = departureStation ?: defaultOrigin
-            val targetRegion = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(targetStation?.id)
+            val targetRegion = TransitRegion.fromStationId(targetStation?.id)
             val actions = buildList {
                 if (targetStation != null) {
                     add(A2UiAction.PinStation(targetStation))
@@ -409,16 +461,20 @@ class TransitAiAssistant(
                 add(A2UiAction.TrackTrain(next))
                 if (explicitOriginName != null && targetDestinationName != null) {
                     add(A2UiAction.OpenGoogleMaps(explicitOriginName, targetDestinationName))
-                    if (targetRegion == com.androidfung.departureboard.data.model.TransitRegion.GB) {
+                    if (targetRegion == TransitRegion.GB) {
                         add(A2UiAction.OpenTflJourneyPlanner(explicitOriginName, targetDestinationName))
                     }
                 }
             }
 
+            val delayRepayBlock = buildDelayRepayBlockOrNull(matchingDepartures)
             val blocks = buildList {
                 add(A2UiBlock.TextSummary(answer))
                 if (targetStation != null) {
                     add(A2UiBlock.LiveDeparturesCard(targetStation, matchingDepartures.take(4)))
+                }
+                if (delayRepayBlock != null) {
+                    add(delayRepayBlock)
                 }
                 if (actions.isNotEmpty()) {
                     add(A2UiBlock.ActionButtons(actions))
@@ -447,11 +503,15 @@ class TransitAiAssistant(
                     A2UiAction.PinStation(bestStation),
                     A2UiAction.TrackTrain(next)
                 )
-                val blocks = listOf(
-                    A2UiBlock.TextSummary(answer),
-                    A2UiBlock.LiveDeparturesCard(bestStation, stationDepartures.take(3)),
-                    A2UiBlock.ActionButtons(actions)
-                )
+                val delayRepayBlock = buildDelayRepayBlockOrNull(stationDepartures)
+                val blocks = buildList {
+                    add(A2UiBlock.TextSummary(answer))
+                    add(A2UiBlock.LiveDeparturesCard(bestStation, stationDepartures.take(3)))
+                    if (delayRepayBlock != null) {
+                        add(delayRepayBlock)
+                    }
+                    add(A2UiBlock.ActionButtons(actions))
+                }
                 AiTransitResult(
                     answer = answer,
                     matchedStation = bestStation,
@@ -596,6 +656,46 @@ class TransitAiAssistant(
             }
         }
 
+        val disruptedLineItems = relevant.values.filter { (it.lineStatuses.firstOrNull()?.statusSeverity ?: 10) != 10 }
+        if (disruptedLineItems.isNotEmpty()) {
+            val primaryDisrupted = disruptedLineItems.first()
+            val concourseAlt = getConcourseAlternative(primaryDisrupted.id, primaryDisrupted.name)
+            val allDisruptedIds = allStatuses.filter { (_, item) ->
+                (item.lineStatuses.firstOrNull()?.statusSeverity ?: 10) != 10
+            }.keys.map { it.lowercase() }.toSet()
+            val allDisruptedNames = allStatuses.values.filter {
+                (it.lineStatuses.firstOrNull()?.statusSeverity ?: 10) != 10
+            }.map { it.name.lowercase() }.toSet()
+
+            val unaffectedDeps = if (contextStation != null) {
+                repository.getDepartures(contextStation.id, contextStation.name)
+                    .getOrNull()
+                    .orEmpty()
+                    .filter { dep ->
+                        val depLineId = dep.lineId.lowercase()
+                        val depLineName = dep.lineName.lowercase()
+                        depLineId !in allDisruptedIds &&
+                            allDisruptedNames.none { dn -> dn.contains(depLineName) || depLineName.contains(dn) }
+                    }
+                    .take(3)
+            } else {
+                emptyList()
+            }
+
+            if (concourseAlt != null || unaffectedDeps.isNotEmpty()) {
+                val guidance = concourseAlt
+                    ?: "Switch to an unaffected service departing from ${contextStation?.displayName ?: "your station"}."
+                a2uiBlocks.add(
+                    A2UiBlock.AlternativeRouteCard(
+                        disruptedLineName = primaryDisrupted.name,
+                        guidanceSummary = guidance,
+                        station = contextStation,
+                        alternativeDepartures = unaffectedDeps
+                    )
+                )
+            }
+        }
+
         if (a2uiBlocks.isEmpty() || a2uiBlocks.none { it is A2UiBlock.TextSummary }) {
             a2uiBlocks.add(0, A2UiBlock.TextSummary(answer))
         }
@@ -605,6 +705,46 @@ class TransitAiAssistant(
             matchedStation = contextStation,
             a2uiResponse = A2UiResponse(a2uiBlocks)
         )
+    }
+
+    private fun buildDelayRepayBlockOrNull(departures: List<Departure>): A2UiBlock.DelayRepayClaimBlock? {
+        for (dep in departures) {
+            val eligibility = DelayRepayCalculator.evaluate(dep)
+            if (eligibility != null) {
+                val opOrLine = dep.operator?.name?.takeIf { it.isNotBlank() } ?: dep.lineName
+                return A2UiBlock.DelayRepayClaimBlock(
+                    departureId = dep.id,
+                    stationName = dep.stationName,
+                    destinationName = dep.destinationName,
+                    lineName = dep.lineName,
+                    trainCode = dep.displayTrainCode,
+                    delayMinutes = eligibility.delayMinutes,
+                    isCancelled = dep.status == DepartureStatus.CANCELLED,
+                    badgeLabel = eligibility.badgeLabel,
+                    compensationSummary = eligibility.compensationSummary,
+                    claimUrl = DelayRepayReceiptLog.resolveOperatorClaimUrl(opOrLine)
+                )
+            }
+            val region = TransitRegion.fromStationId(dep.stationId.ifBlank { dep.id })
+            val mode = TransitMode.fromModeString(dep.modeName)
+            val isRailOrMetro = mode == TransitMode.RAIL || mode == TransitMode.METRO || mode == TransitMode.TRAM
+            if (region.supportsUkDelayRepay && !dep.isBus && isRailOrMetro && dep.status == DepartureStatus.CANCELLED) {
+                val opOrLine = dep.operator?.name?.takeIf { it.isNotBlank() } ?: dep.lineName
+                return A2UiBlock.DelayRepayClaimBlock(
+                    departureId = dep.id,
+                    stationName = dep.stationName,
+                    destinationName = dep.destinationName,
+                    lineName = dep.lineName,
+                    trainCode = dep.displayTrainCode,
+                    delayMinutes = 0,
+                    isCancelled = true,
+                    badgeLabel = "Cancelled • Delay Repay",
+                    compensationSummary = "Cancelled service with $opOrLine — eligible for full refund if unused or Delay Repay based on arrival delay on next service",
+                    claimUrl = DelayRepayReceiptLog.resolveOperatorClaimUrl(opOrLine)
+                )
+            }
+        }
+        return null
     }
 
     /**

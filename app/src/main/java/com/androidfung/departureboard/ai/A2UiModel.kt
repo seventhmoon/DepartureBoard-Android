@@ -56,6 +56,32 @@ sealed interface A2UiBlock {
     ) : A2UiBlock
 
     /**
+     * Disruption bypass card presenting unaffected alternative lines/departures with 1-tap tracking.
+     */
+    data class AlternativeRouteCard(
+        val disruptedLineName: String,
+        val guidanceSummary: String,
+        val station: Station? = null,
+        val alternativeDepartures: List<Departure> = emptyList()
+    ) : A2UiBlock
+
+    /**
+     * 1-tap UK National Rail Delay Repay / TfL Service Delay Refund compensation card.
+     */
+    data class DelayRepayClaimBlock(
+        val departureId: String,
+        val stationName: String,
+        val destinationName: String,
+        val lineName: String,
+        val trainCode: String? = null,
+        val delayMinutes: Int,
+        val isCancelled: Boolean = false,
+        val badgeLabel: String,
+        val compensationSummary: String,
+        val claimUrl: String
+    ) : A2UiBlock
+
+    /**
      * Group of quick action buttons (e.g., Maps directions, tracking, suggested follow-ups).
      */
     data class ActionButtons(

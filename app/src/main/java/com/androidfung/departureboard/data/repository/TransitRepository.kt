@@ -7,7 +7,13 @@ import com.androidfung.departureboard.data.datastore.StationPreferencesDataStore
 import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
 import com.androidfung.departureboard.data.db.cache.DepartureCacheDatabase
 import com.androidfung.departureboard.data.db.cache.DepartureDao
+import com.androidfung.departureboard.data.db.cache.PlatformPredictionDao
+import com.androidfung.departureboard.data.gtfs.GtfsDao
+import com.androidfung.departureboard.data.gtfs.GtfsDatabase
+import com.androidfung.departureboard.data.gtfs.GtfsScheduleResolver
+import com.androidfung.departureboard.data.gtfs.GtfsTunnelSeedHelper
 import com.androidfung.departureboard.data.model.CallingPoint
+import com.androidfung.departureboard.data.model.DataFreshness
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitAlert
@@ -15,6 +21,7 @@ import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
+import com.androidfung.departureboard.data.network.SharedNetworkConfig
 import com.androidfung.departureboard.data.network.gb.BodsApiService
 import com.androidfung.departureboard.data.network.gb.BodsNetworkClient
 import com.androidfung.departureboard.data.network.gb.NationalRailApiService
@@ -32,7 +39,9 @@ import com.androidfung.departureboard.data.repository.region.sg.SgRegionalTransi
 import com.androidfung.departureboard.data.topology.CallingPointsEngine
 import com.androidfung.departureboard.ui.theme.AppThemeMode
 import com.androidfung.departureboard.util.CoalescingTimedCache
+import com.androidfung.departureboard.util.PlatformHistoryPredictor
 import com.androidfung.departureboard.widget.DepartureBoardWidget
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -70,6 +79,7 @@ interface TransitRepository {
     suspend fun getCachedDepartures(stationId: String): List<Departure>
     suspend fun getLineStatuses(): Map<String, TflLineStatusItem>
     suspend fun getTransitAlerts(): List<TransitAlert> = emptyList()
+    suspend fun getStationAccessibilityAlerts(stationId: String): List<TransitAlert> = emptyList()
     suspend fun getCallingPoints(departure: Departure): List<CallingPoint>
     suspend fun checkStationServiceHours(stationId: String, lineId: String? = null): StationServiceHoursInfo?
     suspend fun saveStation(station: Station)
@@ -100,10 +110,15 @@ class TransitRepositoryImpl(
     private val bodsApiService: BodsApiService = BodsNetworkClient.apiService,
     private val dataStore: StationPreferencesDataSource,
     private val departureDao: DepartureDao? = null,
+    private val platformPredictionDao: PlatformPredictionDao? = null,
+    private val gtfsDao: GtfsDao? = null,
+    private val gtfsScheduleResolver: GtfsScheduleResolver? = null,
     private val timetableScheduleResolver: TimetableScheduleResolver = TimetableScheduleResolver(apiService),
     private val context: Context? = null,
     customRegionalProviders: List<RegionalTransitProvider>? = null
 ) : TransitRepository {
+
+    private val platformHistoryPredictor = PlatformHistoryPredictor(platformPredictionDao)
 
     private val stationSearchEngine = GbStationSearchEngine(
         apiService = apiService,
@@ -146,7 +161,12 @@ class TransitRepositoryImpl(
         regionalProviders.associateBy { it.region }
 
     private val callingPointsEngine = CallingPointsEngine(
-        regionalProviders.flatMap { it.callingPointsResolvers }
+        buildList {
+            addAll(regionalProviders.flatMap { it.callingPointsResolvers })
+            if (gtfsScheduleResolver != null) {
+                add(gtfsScheduleResolver)
+            }
+        }
     )
 
     constructor(context: Context) : this(
@@ -155,6 +175,9 @@ class TransitRepositoryImpl(
         bodsApiService = BodsNetworkClient.apiService,
         dataStore = StationPreferencesDataStore(context.applicationContext),
         departureDao = DepartureCacheDatabase.getInstance(context.applicationContext).departureDao(),
+        platformPredictionDao = DepartureCacheDatabase.getInstance(context.applicationContext).platformPredictionDao(),
+        gtfsDao = GtfsDatabase.getInstance(context.applicationContext).gtfsDao(),
+        gtfsScheduleResolver = GtfsScheduleResolver(GtfsDatabase.getInstance(context.applicationContext).gtfsDao()),
         context = context.applicationContext
     )
 
@@ -208,13 +231,32 @@ class TransitRepositoryImpl(
                 scope = repositoryScope
             ) {
                 val provider = regionalProviders.firstOrNull { it.ownsStationId(stationId) } ?: gbRegionalProvider
+                val isOnlineNow = SharedNetworkConfig.isNetworkAvailable()
                 val queryResult = provider.getDepartures(stationId, stationName)
                 queryResult.fold(
-                    onSuccess = { departures ->
-                        if (departures.isNotEmpty()) {
-                            cacheDeparturesSafely(stationId, departures)
+                    onSuccess = { rawDepartures ->
+                        if (rawDepartures.isEmpty() && !isOnlineNow) {
+                            fallbackDepartures(stationId, IOException("Offline — Tunnel Mode fallback"))
+                        } else {
+                            val enriched = try {
+                                platformHistoryPredictor.processLiveDepartures(stationId, rawDepartures)
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (_: Exception) {
+                                rawDepartures
+                            }
+                            val tagged = if (!isOnlineNow) {
+                                enriched.map {
+                                    if (it.dataFreshness == DataFreshness.LIVE) {
+                                        it.copy(dataFreshness = DataFreshness.CACHED_LIVE)
+                                    } else it
+                                }
+                            } else enriched
+                            if (tagged.isNotEmpty() && isOnlineNow) {
+                                cacheDeparturesSafely(stationId, tagged)
+                            }
+                            Result.success(tagged)
                         }
-                        Result.success(departures)
                     },
                     onFailure = { error ->
                         val exception = error as? Exception ?: Exception(error)
@@ -264,6 +306,20 @@ class TransitRepositoryImpl(
         val currentRegion = currentRegionOrDefault()
         val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
         provider.getTransitAlerts()
+    }
+
+    override suspend fun getStationAccessibilityAlerts(stationId: String): List<TransitAlert> = withContext(Dispatchers.IO) {
+        val provider = regionalProviders.firstOrNull { it.ownsStationId(stationId) } ?: gbRegionalProvider
+        val allAlerts = buildList {
+            addAll(provider.getTransitAlerts())
+            if (provider === gbRegionalProvider) {
+                addAll(gbRegionalProvider.getStationDisruptionAlerts(stationId))
+            }
+        }
+        allAlerts.filter { alert ->
+            alert.effect == com.androidfung.departureboard.data.model.AlertEffect.ACCESSIBILITY_ISSUE &&
+                (alert.appliesToStation(stationId) || alert.informedEntities.isEmpty())
+        }
     }
 
     override suspend fun getCallingPoints(departure: Departure): List<CallingPoint> = withContext(Dispatchers.IO) {
@@ -345,10 +401,24 @@ class TransitRepositoryImpl(
             ?.filter { !it.isExpired(now) }
             ?.map { it.toDeparture(now) }
             ?.sortedBy { it.timeToStationSeconds }
-        return if (!cached.isNullOrEmpty()) {
-            Result.success(cached)
-        } else {
-            Result.failure(originalException)
+        if (!cached.isNullOrEmpty()) {
+            return Result.success(cached)
         }
+
+        // Underground Tunnel Mode: seamlessly resolve static GTFS schedule when live & cached predictions are unavailable
+        if (gtfsScheduleResolver != null) {
+            try {
+                gtfsDao?.let { GtfsTunnelSeedHelper.ensureCoreMetroSeeded(it) }
+                val scheduled = gtfsScheduleResolver.getScheduledDepartures(stationId)
+                    .map { it.copy(dataFreshness = DataFreshness.OFFLINE_SCHEDULED) }
+                if (scheduled.isNotEmpty()) {
+                    return Result.success(scheduled)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {}
+        }
+
+        return Result.failure(originalException)
     }
 }

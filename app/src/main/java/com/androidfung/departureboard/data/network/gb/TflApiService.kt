@@ -117,4 +117,22 @@ interface TflApiService {
         @Path("toStopPointId") toStopPointId: String
     ): com.androidfung.departureboard.data.model.gb.TflTimetableResponse =
         getLineTimetable(lineId, fromStopPointId)
+
+    /**
+     * Fetches nearby Santander Cycles BikePoints around [lat], [lon] within [radius] meters.
+     */
+    @GET("BikePoint")
+    suspend fun getNearbyBikePoints(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        @Query("radius") radius: Int = 450
+    ): com.androidfung.departureboard.data.model.gb.TflBikePointPlacesResponse
+
+    /**
+     * Fetches station-specific disruptions (such as step-free lift or escalator outages) for [stopPointId].
+     */
+    @GET("StopPoint/{ids}/Disruption")
+    suspend fun getStopPointDisruptions(
+        @Path("ids") stopPointId: String
+    ): List<com.androidfung.departureboard.data.model.gb.TflStopPointDisruption>
 }

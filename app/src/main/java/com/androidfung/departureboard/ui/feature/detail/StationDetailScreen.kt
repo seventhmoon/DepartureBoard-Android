@@ -110,6 +110,7 @@ fun StationDetailScreen(
     initialSelectedLineId: String? = null,
     onDepartureClick: ((departure: Departure, contextDepartures: List<Departure>) -> Unit)? = null,
     serviceHoursInfo: com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo? = null,
+    accessibilityAlerts: List<com.androidfung.departureboard.data.model.TransitAlert> = emptyList(),
     isPro: Boolean = false,
     stations: List<Station> = listOf(station),
     onStationChange: ((Station) -> Unit)? = null,
@@ -141,6 +142,7 @@ fun StationDetailScreen(
             initialSelectedLineId = initialSelectedLineId,
             onDepartureClick = onDepartureClick,
             serviceHoursInfo = serviceHoursInfo,
+            accessibilityAlerts = accessibilityAlerts,
             isPro = isPro,
             onOpenDeskClock = onOpenDeskClock
         )
@@ -187,6 +189,7 @@ fun StationDetailScreen(
                 initialSelectedLineId = initialSelectedLineId,
                 onDepartureClick = onDepartureClick,
                 serviceHoursInfo = if (pageStation.id == station.id) serviceHoursInfo else null,
+                accessibilityAlerts = if (pageStation.id == station.id) accessibilityAlerts else emptyList(),
                 isPro = isPro,
                 pageInfo = stringResource(R.string.pager_page_of_total, page + 1, stationList.size),
                 pageCount = stationList.size,
@@ -298,6 +301,7 @@ private fun StationDetailContent(
     initialSelectedLineId: String? = null,
     onDepartureClick: ((departure: Departure, contextDepartures: List<Departure>) -> Unit)? = null,
     serviceHoursInfo: com.androidfung.departureboard.data.model.gb.StationServiceHoursInfo? = null,
+    accessibilityAlerts: List<com.androidfung.departureboard.data.model.TransitAlert> = emptyList(),
     isPro: Boolean = false,
     pageInfo: String? = null,
     pageCount: Int = 1,
@@ -1032,6 +1036,15 @@ private fun StationDetailContent(
                     }
                 }
 
+            // 1.9 Live Step-Free Lift Outage Guard
+            if (accessibilityAlerts.isNotEmpty()) {
+                item(key = "step_free_outage_guard", contentType = "step_free_outage_guard") {
+                    com.androidfung.departureboard.ui.designsystem.StepFreeOutageBanner(
+                        alerts = accessibilityAlerts
+                    )
+                }
+            }
+
             // 2. Interruption & Disruption Banners (inside LazyColumn so they scroll away):
             if (disruptedBadgesToShow.isNotEmpty()) {
                 item(key = "disruptions", contentType = "disruptions") {
@@ -1126,14 +1139,28 @@ private fun StationDetailContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val isTunnelScheduled = filteredDepartures.any {
+                            it.dataFreshness == com.androidfung.departureboard.data.model.DataFreshness.OFFLINE_SCHEDULED
+                        }
+                        val isCachedSnapshot = !isTunnelScheduled && filteredDepartures.any {
+                            it.dataFreshness == com.androidfung.departureboard.data.model.DataFreshness.CACHED_LIVE
+                        }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Pulsing live indicator deferred to Draw phase
-                            PulsingLiveDot()
+                            if (!isTunnelScheduled && !isCachedSnapshot) {
+                                // Pulsing live indicator deferred to Draw phase
+                                PulsingLiveDot()
+                            }
                             Text(
-                                text = stringResource(R.string.station_detail_live_departures),
+                                text = stringResource(
+                                    when {
+                                        isTunnelScheduled -> R.string.badge_tunnel_mode_scheduled
+                                        isCachedSnapshot -> R.string.badge_cached_predictions
+                                        else -> R.string.station_detail_live_departures
+                                    }
+                                ),
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold
                                 ),

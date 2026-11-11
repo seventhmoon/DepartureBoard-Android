@@ -13,6 +13,7 @@ import androidx.core.content.getSystemService
 enum class AiExecutionTier(val tag: String) {
     INSTANT_DETERMINISTIC("⚡ [Fast Heuristics]"),
     LITERT_LOCAL_CLASSIFIER("🧠 [LiteRT Intent]"),
+    SYSTEM_AICORE("✨ [System AICore]"),
     ON_DEVICE_LLM("🤖 [On-Device LLM]"),
     CLOUD_SYNTHESIS("☁️ [Cloud LLM]")
 }
@@ -20,12 +21,13 @@ enum class AiExecutionTier(val tag: String) {
 /**
  * Intelligent Query Router and Cascade Orchestrator.
  * Dynamically resolves whether a transit query can be resolved in <5ms via deterministic lookups,
- * LiteRT intent classification, or elevated to on-device/cloud LLM synthesis based on battery,
- * memory, network status, and hardware capability.
+ * LiteRT intent classification, zero-download Android System AICore, or elevated to on-device/cloud
+ * LLM synthesis based on battery, memory, network status, and hardware capability.
  */
 class AiQueryRouter(
     private val context: Context,
-    private val dynamicAiProvider: DynamicAiAssistantProvider? = null
+    private val dynamicAiProvider: DynamicAiAssistantProvider? = null,
+    private val isSystemAiCoreAvailable: () -> Boolean = { SystemAiCoreHelper.isSystemAiCoreAvailable(context) }
 ) {
 
     /**
@@ -37,11 +39,16 @@ class AiQueryRouter(
         classifiedIntent: TransitQueryIntent?,
         preferredModelType: AiModelType
     ): AiExecutionTier {
+        val hasSystemAiCore = isSystemAiCoreAvailable()
+
         // 1. Explicit user override from Developer / AI settings
         when (preferredModelType) {
             AiModelType.LOGIC_FALLBACK -> return AiExecutionTier.INSTANT_DETERMINISTIC
             AiModelType.CLOUD -> return AiExecutionTier.CLOUD_SYNTHESIS
             AiModelType.LOCAL -> {
+                if (hasSystemAiCore) {
+                    return AiExecutionTier.SYSTEM_AICORE
+                }
                 if (dynamicAiProvider?.isFeatureInstalled == true) {
                     return AiExecutionTier.ON_DEVICE_LLM
                 }
@@ -64,12 +71,12 @@ class AiQueryRouter(
         val isLowMemory = isLowMemoryDevice()
         val isOnline = isNetworkConnected()
 
-        // 4. Offline scenario -> prioritize on-device LLM if available, else fast classifier/rules
+        // 4. Offline scenario -> prioritize System AICore or on-device LLM if available, else fast rules
         if (!isOnline) {
-            return if (dynamicAiProvider?.isFeatureInstalled == true && !isLowMemory) {
-                AiExecutionTier.ON_DEVICE_LLM
-            } else {
-                AiExecutionTier.INSTANT_DETERMINISTIC
+            return when {
+                hasSystemAiCore && !isLowMemory -> AiExecutionTier.SYSTEM_AICORE
+                dynamicAiProvider?.isFeatureInstalled == true && !isLowMemory -> AiExecutionTier.ON_DEVICE_LLM
+                else -> AiExecutionTier.INSTANT_DETERMINISTIC
             }
         }
 
@@ -80,10 +87,10 @@ class AiQueryRouter(
                 classifiedIntent == TransitQueryIntent.GENERAL_QUERY
 
         if (needsReasoning) {
-            return if (dynamicAiProvider?.isFeatureInstalled == true && !isLowBattery && !isLowMemory) {
-                AiExecutionTier.ON_DEVICE_LLM
-            } else {
-                AiExecutionTier.CLOUD_SYNTHESIS
+            return when {
+                hasSystemAiCore && !isLowBattery && !isLowMemory -> AiExecutionTier.SYSTEM_AICORE
+                dynamicAiProvider?.isFeatureInstalled == true && !isLowBattery && !isLowMemory -> AiExecutionTier.ON_DEVICE_LLM
+                else -> AiExecutionTier.CLOUD_SYNTHESIS
             }
         }
 

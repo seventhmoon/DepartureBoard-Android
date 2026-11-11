@@ -20,7 +20,9 @@ object SgStationDirectory : BaseStationDirectory<SgStationDirectory.SgStationEnt
         override val code: String,
         val englishName: String,
         val chineseName: String,
-        val lines: List<Pair<String, String>>
+        val lines: List<Pair<String, String>>,
+        val lat: Double? = null,
+        val lon: Double? = null
     ) : CatalogStationEntry {
         override fun matchesQuery(normalizedQuery: String): Boolean {
             return englishName.lowercase().contains(normalizedQuery) ||
@@ -36,9 +38,55 @@ object SgStationDirectory : BaseStationDirectory<SgStationDirectory.SgStationEnt
             id = "SG_MRT_$code",
             name = englishName,
             modes = listOf("tube"),
+            lat = lat ?: STATION_COORDS[englishName]?.first,
+            lon = lon ?: STATION_COORDS[englishName]?.second,
             lines = lines.map { StationLineInfo(it.first, it.second) }
         )
     }
+
+    internal val STATION_COORDS: Map<String, Pair<Double, Double>> = mapOf(
+        "Jurong East" to (1.3331 to 103.7423),
+        "Bukit Batok" to (1.3490 to 103.7496),
+        "Bukit Gombak" to (1.3586 to 103.7518),
+        "Choa Chu Kang" to (1.3854 to 103.7443),
+        "Woodlands" to (1.4369 to 103.7865),
+        "Khatib" to (1.4173 to 103.8330),
+        "Yio Chu Kang" to (1.3817 to 103.8449),
+        "Ang Mo Kio" to (1.3700 to 103.8495),
+        "Bishan" to (1.3513 to 103.8491),
+        "Toa Payoh" to (1.3326 to 103.8475),
+        "Novena" to (1.3204 to 103.8438),
+        "Newton" to (1.3138 to 103.8380),
+        "Orchard" to (1.3040 to 103.8318),
+        "Somerset" to (1.3003 to 103.8390),
+        "Dhoby Ghaut" to (1.2993 to 103.8456),
+        "City Hall" to (1.2931 to 103.8520),
+        "Raffles Place" to (1.2839 to 103.8515),
+        "Marina Bay" to (1.2764 to 103.8546),
+        "Marina South Pier" to (1.2711 to 103.8636),
+        "Pasir Ris" to (1.3730 to 103.9493),
+        "Tampines" to (1.3533 to 103.9452),
+        "Tanah Merah" to (1.3272 to 103.9465),
+        "Changi Airport" to (1.3574 to 103.9888),
+        "Paya Lebar" to (1.3177 to 103.8927),
+        "Lavender" to (1.3074 to 103.8630),
+        "Bugis" to (1.3005 to 103.8560),
+        "Outram Park" to (1.2803 to 103.8395),
+        "Buona Vista" to (1.3072 to 103.7902),
+        "Boon Lay" to (1.3386 to 103.7061),
+        "Tuas Link" to (1.3405 to 103.6368),
+        "HarbourFront" to (1.2654 to 103.8223),
+        "Chinatown" to (1.2848 to 103.8440),
+        "Clarke Quay" to (1.2884 to 103.8465),
+        "Little India" to (1.3068 to 103.8496),
+        "Farrer Park" to (1.3124 to 103.8542),
+        "Serangoon" to (1.3497 to 103.8736),
+        "Sengkang" to (1.3917 to 103.8955),
+        "Punggol" to (1.4052 to 103.9024),
+        "Promenade" to (1.2932 to 103.8609),
+        "Bayfront" to (1.2819 to 103.8591),
+        "Gardens by the Bay" to (1.2784 to 103.8674)
+    )
 
     val ALL_STATIONS: List<SgStationEntry> = listOf(
         SgStationEntry("NS1_EW24", "Jurong East", "裕廊東", listOf("NSL" to "North-South Line", "EWL" to "East-West Line")),

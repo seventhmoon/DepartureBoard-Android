@@ -7,6 +7,8 @@ import com.androidfung.departureboard.data.datastore.StationPreferencesDataSourc
 import com.androidfung.departureboard.data.datastore.StationPreferencesDataStore
 import com.androidfung.departureboard.data.db.cache.DepartureCacheDatabase
 import com.androidfung.departureboard.data.db.cache.DepartureDao
+import com.androidfung.departureboard.data.db.cache.PlatformPredictionDao
+import com.androidfung.departureboard.data.gtfs.GtfsScheduleResolver
 import com.androidfung.departureboard.data.db.gb.GbStationDatabase
 import com.androidfung.departureboard.data.db.gb.GbStationCrsDao
 import com.androidfung.departureboard.data.db.gb.StationCrsDao
@@ -42,6 +44,7 @@ interface AppContainer {
     val citybusApiService: HkBusApiService
     val stationPreferencesDataSource: StationPreferencesDataSource
     val departureDao: DepartureDao
+    val platformPredictionDao: PlatformPredictionDao
     val stationCrsDao: GbStationCrsDao
     val gbStationCrsDao: GbStationCrsDao get() = stationCrsDao
     val hkBusStopDao: HkBusStopDao
@@ -92,6 +95,10 @@ class DefaultAppContainer(
         DepartureCacheDatabase.getInstance(applicationContext).departureDao()
     }
 
+    override val platformPredictionDao: PlatformPredictionDao by lazy {
+        DepartureCacheDatabase.getInstance(applicationContext).platformPredictionDao()
+    }
+
     override val stationCrsDao: StationCrsDao by lazy {
         GbStationDatabase.getInstance(applicationContext).stationCrsDao()
     }
@@ -101,12 +108,16 @@ class DefaultAppContainer(
     }
 
     override val transitRepository: TransitRepository by lazy {
+        val gtfsDao = gtfsDatabase.gtfsDao()
         TransitRepositoryImpl(
             apiService = tflApiService,
             nrApiService = nationalRailApiService,
             bodsApiService = bodsApiService,
             dataStore = stationPreferencesDataSource,
             departureDao = departureDao,
+            platformPredictionDao = platformPredictionDao,
+            gtfsDao = gtfsDao,
+            gtfsScheduleResolver = GtfsScheduleResolver(gtfsDao),
             context = applicationContext
         )
     }

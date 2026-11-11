@@ -35,9 +35,40 @@ object AuStationDirectory : BaseStationDirectory<AuStationDirectory.AuStationEnt
             id = "AU_TRAIN_$code",
             name = name,
             modes = if (isMetroOnly) listOf("tube") else listOf("national-rail"),
+            lat = STATION_COORDS[code]?.first,
+            lon = STATION_COORDS[code]?.second,
             lines = lines.map { StationLineInfo(it.first, it.second) }
         )
     }
+
+    internal val STATION_COORDS: Map<String, Pair<Double, Double>> = mapOf(
+        "CENTRAL" to (-33.8832 to 151.2070),
+        "TOWNHALL" to (-33.8736 to 151.2069),
+        "WYNYARD" to (-33.8657 to 151.2064),
+        "CIRCULARQUAY" to (-33.8613 to 151.2108),
+        "STJAMES" to (-33.8706 to 151.2116),
+        "MUSEUM" to (-33.8765 to 151.2098),
+        "MARTINPLACE" to (-33.8679 to 151.2115),
+        "KINGSX" to (-33.8744 to 151.2245),
+        "EDGECLIFF" to (-33.8797 to 151.2370),
+        "BONDIJUNCTION" to (-33.8914 to 151.2484),
+        "REDFERN" to (-33.8922 to 151.1995),
+        "STRATHFIELD" to (-33.8716 to 151.0942),
+        "PARRAMATTA" to (-33.8175 to 151.0053),
+        "BLACKTOWN" to (-33.7686 to 150.9061),
+        "PENRITH" to (-33.7501 to 150.6953),
+        "NORTHSYDNEY" to (-33.8415 to 151.2074),
+        "CHATSWOOD" to (-33.7973 to 151.1809),
+        "HORNSBY" to (-33.7034 to 151.0984),
+        "SYDNEYDOMESTIC" to (-33.9336 to 151.1812),
+        "SYDNEYINTL" to (-33.9351 to 151.1660),
+        "SYDENHAM" to (-33.9148 to 151.1662),
+        "TALLAWONG" to (-33.6920 to 150.9056),
+        "CASTLEHILL" to (-33.7318 to 151.0046),
+        "MACQUARIEUNI" to (-33.7768 to 151.1180),
+        "BARANGAROO" to (-33.8602 to 151.2022),
+        "VICTORIACROSS" to (-33.8368 to 151.2075)
+    )
 
     val ALL_STATIONS: List<AuStationEntry> = listOf(
         AuStationEntry("CENTRAL", "Central", listOf("M1" to "Metro M1", "T1" to "T1 North Shore & Western", "T2" to "T2 Inner West", "T4" to "T4 Eastern Suburbs", "T8" to "T8 Airport & South")),

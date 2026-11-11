@@ -53,6 +53,8 @@ data class CachedDepartureEntity(
     val occupancyStatus: String? = null,
     val platformCode: String? = null,
     val isPlatformConfirmed: Boolean? = null,
+    val isHistoricalExpectedPlatform: Boolean? = null,
+    val expectedPlatformConfidence: Int? = null,
     val operatorCode: String? = null,
     val operatorName: String? = null,
     val coachCount: Int? = null,
@@ -92,7 +94,9 @@ data class CachedDepartureEntity(
         val restoredPlatform = if (!platformCode.isNullOrBlank()) {
             PlatformInfo(
                 code = platformCode,
-                isConfirmed = isPlatformConfirmed ?: true
+                isConfirmed = isPlatformConfirmed ?: true,
+                isHistoricalExpected = isHistoricalExpectedPlatform ?: false,
+                expectedConfidencePercent = expectedPlatformConfidence
             )
         } else if (platformName.isNotBlank()) {
             PlatformInfo(
@@ -151,7 +155,8 @@ data class CachedDepartureEntity(
             scheduledDepartureInstant = scheduledDepartureEpochMillis?.let { Instant.ofEpochMilli(it) },
             expectedDepartureInstant = expectedDepartureEpochMillis?.let { Instant.ofEpochMilli(it) },
             stopActivity = restoredStopActivity,
-            frequency = restoredFrequency
+            frequency = restoredFrequency,
+            dataFreshness = com.androidfung.departureboard.data.model.DataFreshness.CACHED_LIVE
         )
     }
 
@@ -208,6 +213,8 @@ data class CachedDepartureEntity(
                 occupancyStatus = departure.occupancyStatus,
                 platformCode = platformInfo?.code,
                 isPlatformConfirmed = platformInfo?.isConfirmed,
+                isHistoricalExpectedPlatform = platformInfo?.isHistoricalExpected,
+                expectedPlatformConfidence = platformInfo?.expectedConfidencePercent,
                 operatorCode = trainInfo?.operator?.id,
                 operatorName = trainInfo?.operator?.name,
                 coachCount = trainInfo?.formation?.coachCount,

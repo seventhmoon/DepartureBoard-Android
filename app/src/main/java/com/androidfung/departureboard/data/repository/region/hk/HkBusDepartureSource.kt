@@ -11,6 +11,8 @@ import com.androidfung.departureboard.data.model.hk.extractRawHkBusStopId
 import com.androidfung.departureboard.data.model.hk.HkDefaultStations
 import com.androidfung.departureboard.data.model.hk.HkKmbEtaItem
 import com.androidfung.departureboard.data.model.isHkBusStationId
+import com.androidfung.departureboard.data.model.isHkGmbStopId
+import com.androidfung.departureboard.data.model.isHkLightRailStationId
 import com.androidfung.departureboard.data.network.hk.HkBusApiService
 import com.androidfung.departureboard.data.network.hk.HkBusNetworkClient
 import com.androidfung.departureboard.data.repository.DepartureSource
@@ -31,6 +33,7 @@ class HkBusDepartureSource(
 ) : DepartureSource {
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
+        if (stationId.isHkGmbStopId || stationId.isHkLightRailStationId) return false
         val isRawNumeric = stationId.matches(Regex("^[0-9]{6}$"))
         return stationId.isHkBusStationId ||
                 isRawNumeric ||

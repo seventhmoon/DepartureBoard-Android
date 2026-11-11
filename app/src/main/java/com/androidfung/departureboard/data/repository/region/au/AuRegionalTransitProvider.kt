@@ -27,10 +27,13 @@ object AuRegionalTransitProvider : RegionalTransitProvider {
         Result.success(AuStationDirectory.searchStations(query))
 
     override suspend fun getStationById(stationId: String): Station? =
-        AuStationDirectory.getStationById(stationId)
+        com.androidfung.departureboard.data.model.au.AuDefaultStations.POPULAR_STATIONS.firstOrNull {
+            it.id.equals(stationId, ignoreCase = true)
+        } ?: AuStationDirectory.getStationById(stationId)
 
     override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> {
-        return departureSource.fetchDepartures(stationId, stationName, isBusStop = false)
+        val isBusStop = stationId.startsWith("AU_BUS_", ignoreCase = true)
+        return departureSource.fetchDepartures(stationId, stationName, isBusStop = isBusStop)
     }
 
     override suspend fun checkStationServiceHours(

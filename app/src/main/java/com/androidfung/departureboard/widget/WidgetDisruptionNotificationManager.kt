@@ -14,6 +14,7 @@ import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import com.androidfung.departureboard.MainActivity
 import com.androidfung.departureboard.R
+import com.androidfung.departureboard.appContainer
 import com.androidfung.departureboard.data.model.AlertEffect
 import com.androidfung.departureboard.data.model.AlertSeverity
 import com.androidfung.departureboard.data.model.Departure
@@ -118,18 +119,25 @@ object WidgetDisruptionNotificationManager {
             val fastFilterLineName = if (appWidgetId != -1) sp.getString("filter_line_name_$appWidgetId", null) else null
             val fastFilterDirection = if (appWidgetId != -1) sp.getString("filter_direction_$appWidgetId", null) else null
 
-            val stationId = prefs?.get(DepartureBoardWidget.PREF_STATION_ID) ?: fastStationId
-            val stationName = prefs?.get(DepartureBoardWidget.PREF_STATION_NAME) ?: fastStationName
+            val rawStationId = prefs?.get(DepartureBoardWidget.PREF_STATION_ID) ?: fastStationId
+            val rawStationName = prefs?.get(DepartureBoardWidget.PREF_STATION_NAME) ?: fastStationName
             val filterLineId = prefs?.get(DepartureBoardWidget.PREF_FILTER_LINE_ID) ?: fastFilterLineId
             val filterLineName = prefs?.get(DepartureBoardWidget.PREF_FILTER_LINE_NAME) ?: fastFilterLineName
             val filterDirection = prefs?.get(DepartureBoardWidget.PREF_FILTER_DIRECTION) ?: fastFilterDirection
 
-            if (!stationId.isNullOrBlank()) {
+            if (!rawStationId.isNullOrBlank()) {
+                val (resolvedId, resolvedName) = if (rawStationId == DepartureBoardWidget.SMART_COMMUTE_WIDGET_STATION_ID) {
+                    val repo = context.appContainer.transitRepository
+                    val (st, _) = DepartureBoardWidget.resolveSmartCommuteStation(repo)
+                    st.id to st.displayName
+                } else {
+                    rawStationId to (rawStationName ?: context.getString(R.string.widget_station_name_fallback))
+                }
                 targets.add(
                     MonitoredWidgetTarget(
                         appWidgetId = appWidgetId,
-                        stationId = stationId,
-                        stationName = stationName ?: context.getString(R.string.widget_station_name_fallback),
+                        stationId = resolvedId,
+                        stationName = resolvedName,
                         filterLineId = filterLineId?.takeIf { it.isNotBlank() },
                         filterLineName = filterLineName?.takeIf { it.isNotBlank() },
                         filterDirection = filterDirection?.takeIf { it.isNotBlank() }

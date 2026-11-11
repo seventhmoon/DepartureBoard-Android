@@ -12,11 +12,8 @@ import com.androidfung.departureboard.data.repository.DepartureSource
 class JpDepartureSource : DepartureSource {
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
-        if (isBusStop) return false
         return stationId.isJpTransitId ||
-                JpStationDirectory.getStationById(stationId) != null ||
-                stationName.contains("Tokyo", ignoreCase = true) ||
-                stationName.contains("東京")
+            (!isBusStop && JpStationDirectory.getStationById(stationId) != null)
     }
 
     override suspend fun fetchDepartures(

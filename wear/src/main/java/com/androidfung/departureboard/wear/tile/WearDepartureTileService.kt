@@ -47,6 +47,7 @@ class WearDepartureTileService : TileService() {
 
     companion object {
         private const val RESOURCES_VERSION = "1"
+        const val CLICKABLE_ID_REFRESH_TILE = "refresh_wear_tile"
         private val tileExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
         fun requestTileUpdate(context: Context) {
@@ -62,6 +63,9 @@ class WearDepartureTileService : TileService() {
         return Futures.submit(
             java.util.concurrent.Callable {
                 WearCompanionStateRepository.ensureCachedStateLoaded(appCtx)
+                if (requestParams.currentState.lastClickableId == CLICKABLE_ID_REFRESH_TILE) {
+                    WearCompanionStateRepository.requestPhoneSync(appCtx)
+                }
                 val nowMs = System.currentTimeMillis()
                 val tracked = WearCompanionStateRepository.trackedJourneyFlow.value
                     ?.takeUnless { it.isStale(nowMs) }
@@ -135,6 +139,44 @@ class WearDepartureTileService : TileService() {
             )
             .build()
 
+        val refreshClickable = Clickable.Builder()
+            .setId(CLICKABLE_ID_REFRESH_TILE)
+            .setOnClick(ActionBuilders.LoadAction.Builder().build())
+            .build()
+        val refreshPill = Box.Builder()
+            .setModifiers(
+                Modifiers.Builder()
+                    .setBackground(
+                        Background.Builder()
+                            .setColor(argb(0xFF1E2630.toInt()))
+                            .setCorner(Corner.Builder().setRadius(dp(10f)).build())
+                            .build()
+                    )
+                    .setPadding(
+                        Padding.Builder()
+                            .setStart(dp(7f))
+                            .setEnd(dp(7f))
+                            .setTop(dp(2f))
+                            .setBottom(dp(2f))
+                            .build()
+                    )
+                    .setClickable(refreshClickable)
+                    .build()
+            )
+            .addContent(
+                Text.Builder()
+                    .setText("↻")
+                    .setFontStyle(
+                        LayoutElementBuilders.FontStyle.Builder()
+                            .setSize(sp(11f))
+                            .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
+                            .setColor(argb(0xFF81D4FA.toInt()))
+                            .build()
+                    )
+                    .build()
+            )
+            .build()
+
         val columnBuilder = Column.Builder()
             .setWidth(expand())
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
@@ -146,15 +188,22 @@ class WearDepartureTileService : TileService() {
                 context.getString(com.androidfung.departureboard.wear.R.string.wear_plat_code, tracked.cleanPlatformCode)
             }
             columnBuilder.addContent(
-                Text.Builder()
-                    .setText(context.getString(com.androidfung.departureboard.wear.R.string.wear_tile_live_tracking, platText))
-                    .setFontStyle(
-                        LayoutElementBuilders.FontStyle.Builder()
-                            .setSize(sp(11f))
-                            .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
-                            .setColor(argb(0xFF00E676.toInt()))
+                Row.Builder()
+                    .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+                    .addContent(
+                        Text.Builder()
+                            .setText(context.getString(com.androidfung.departureboard.wear.R.string.wear_tile_live_tracking, platText))
+                            .setFontStyle(
+                                LayoutElementBuilders.FontStyle.Builder()
+                                    .setSize(sp(11f))
+                                    .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
+                                    .setColor(argb(0xFF00E676.toInt()))
+                                    .build()
+                            )
                             .build()
                     )
+                    .addContent(Spacer.Builder().setWidth(dp(6f)).build())
+                    .addContent(refreshPill)
                     .build()
             )
             columnBuilder.addContent(Spacer.Builder().setHeight(dp(4f)).build())
@@ -204,16 +253,23 @@ class WearDepartureTileService : TileService() {
         } else if (board != null) {
             val headerPrefix = if (board.isAtConcourse) "📍 " else "🚆 "
             columnBuilder.addContent(
-                Text.Builder()
-                    .setText("$headerPrefix${board.compactStationName} (${board.stationCrs})")
-                    .setMaxLines(1)
-                    .setFontStyle(
-                        LayoutElementBuilders.FontStyle.Builder()
-                            .setSize(sp(12f))
-                            .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
-                            .setColor(argb(0xFF4FC3F7.toInt()))
+                Row.Builder()
+                    .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+                    .addContent(
+                        Text.Builder()
+                            .setText("$headerPrefix${board.compactStationName} (${board.stationCrs})")
+                            .setMaxLines(1)
+                            .setFontStyle(
+                                LayoutElementBuilders.FontStyle.Builder()
+                                    .setSize(sp(12f))
+                                    .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
+                                    .setColor(argb(0xFF4FC3F7.toInt()))
+                                    .build()
+                            )
                             .build()
                     )
+                    .addContent(Spacer.Builder().setWidth(dp(6f)).build())
+                    .addContent(refreshPill)
                     .build()
             )
             columnBuilder.addContent(Spacer.Builder().setHeight(dp(4f)).build())

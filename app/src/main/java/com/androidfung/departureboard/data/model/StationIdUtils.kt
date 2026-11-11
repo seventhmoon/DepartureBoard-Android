@@ -15,6 +15,8 @@ object StationIdPrefixes {
     // Hong Kong prefixes
     const val HK = "HK_"
     const val HK_MTR = "HK_MTR_"
+    const val HK_LRT = "HK_LRT_"
+    const val HK_GMB = "HK_GMB_"
     const val HK_BUS = "HK_BUS_"
     const val HK_BUS_KMB = "HK_BUS_KMB_"
     const val HK_BUS_CTB = "HK_BUS_CTB_"
@@ -77,19 +79,32 @@ val String.isJpTransitId: Boolean
             startsWith(StationIdPrefixes.TYO, ignoreCase = true)
 
 /**
- * Returns true if this station ID represents an MTR station.
+ * Returns true if this station ID represents an MTR heavy-rail station.
  */
 val String.isHkMtrStationId: Boolean
     get() = startsWith(StationIdPrefixes.HK_MTR, ignoreCase = true) ||
-            (startsWith(StationIdPrefixes.HK, ignoreCase = true) && !isHkBusStationId)
+            (startsWith(StationIdPrefixes.HK, ignoreCase = true) && !isHkBusStationId && !isHkLightRailStationId)
 
 /**
- * Returns true if this station ID represents a Hong Kong bus stop.
+ * Returns true if this station ID represents a Hong Kong MTR Light Rail stop (`HK_LRT_{station_id}`).
+ */
+val String.isHkLightRailStationId: Boolean
+    get() = startsWith(StationIdPrefixes.HK_LRT, ignoreCase = true)
+
+/**
+ * Returns true if this station ID represents a Hong Kong Green Minibus (GMB) stop (`HK_GMB_{stop_id}`).
+ */
+val String.isHkGmbStopId: Boolean
+    get() = startsWith(StationIdPrefixes.HK_GMB, ignoreCase = true)
+
+/**
+ * Returns true if this station ID represents a Hong Kong bus or Green Minibus stop.
  */
 val String.isHkBusStationId: Boolean
     get() = startsWith(StationIdPrefixes.HK_BUS, ignoreCase = true) ||
             startsWith(StationIdPrefixes.HK_KMB, ignoreCase = true) ||
-            startsWith(StationIdPrefixes.HK_CTB, ignoreCase = true)
+            startsWith(StationIdPrefixes.HK_CTB, ignoreCase = true) ||
+            startsWith(StationIdPrefixes.HK_GMB, ignoreCase = true)
 
 /**
  * Returns true if this route or line identifier represents a Hong Kong bus route.

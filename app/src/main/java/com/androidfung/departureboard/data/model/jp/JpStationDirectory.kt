@@ -44,9 +44,40 @@ object JpStationDirectory : BaseStationDirectory<JpStationDirectory.JpStationEnt
                 "ja-Hrkt" to hiragana
             ),
             modes = modes,
+            lat = STATION_COORDS[englishName]?.first,
+            lon = STATION_COORDS[englishName]?.second,
             lines = lines.map { StationLineInfo(it.first, it.second) }
         )
     }
+
+    internal val STATION_COORDS: Map<String, Pair<Double, Double>> = mapOf(
+        "Tokyo" to (35.6812 to 139.7671),
+        "Shinjuku" to (35.6896 to 139.7006),
+        "Shibuya" to (35.6580 to 139.7016),
+        "Ginza" to (35.6712 to 139.7650),
+        "Akihabara" to (35.6984 to 139.7731),
+        "Ueno" to (35.7141 to 139.7774),
+        "Ikebukuro" to (35.7295 to 139.7109),
+        "Ebisu" to (35.6467 to 139.7101),
+        "Asakusa" to (35.7110 to 139.7984),
+        "Roppongi" to (35.6628 to 139.7314),
+        "Omote-sando" to (35.6652 to 139.7123),
+        "Aoyama-itchome" to (35.6728 to 139.7240),
+        "Nihombashi" to (35.6824 to 139.7736),
+        "Kayabacho" to (35.6798 to 139.7797),
+        "Kasumigaseki" to (35.6739 to 139.7511),
+        "Kudanshita" to (35.6955 to 139.7513),
+        "Nakano" to (35.7058 to 139.6658),
+        "Shinagawa" to (35.6284 to 139.7387),
+        "Kawasaki" to (35.5314 to 139.6969),
+        "Yokohama" to (35.4658 to 139.6223),
+        "Shin-Yokohama" to (35.5074 to 139.6176),
+        "Musashi-Kosugi" to (35.5766 to 139.6596),
+        "Kamata" to (35.5625 to 139.7161),
+        "Omiya" to (35.9063 to 139.6240),
+        "Chiba" to (35.6131 to 140.1134),
+        "Haneda Airport" to (35.5494 to 139.7798)
+    )
 
     val ALL_STATIONS: List<JpStationEntry> = listOf(
         JpStationEntry("M17_JY01", "Tokyo", "東京", "とうきょう", listOf("M" to "Marunouchi Line", "JY" to "Yamanote Line", "JC" to "Chuo Line", "JK" to "Keihin-Tohoku Line", "JT" to "Tokaido Line", "JO" to "Yokosuka Line"), listOf("national-rail", "tube")),

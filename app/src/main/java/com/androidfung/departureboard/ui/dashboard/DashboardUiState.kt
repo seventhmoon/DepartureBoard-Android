@@ -1,5 +1,6 @@
 package com.androidfung.departureboard.ui.dashboard
 
+import com.androidfung.departureboard.data.model.DataFreshness
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.Station
@@ -20,6 +21,13 @@ data class StationCardUiModel(
     val concourseBadgeLabel: String? = null,
     val serviceHoursInfo: com.androidfung.departureboard.data.model.StationServiceHoursInfo? = null
 ) {
+    val dataFreshness: DataFreshness
+        get() = when {
+            departures.isEmpty() -> DataFreshness.LIVE
+            departures.any { it.dataFreshness == DataFreshness.OFFLINE_SCHEDULED } -> DataFreshness.OFFLINE_SCHEDULED
+            departures.any { it.dataFreshness == DataFreshness.CACHED_LIVE } -> DataFreshness.CACHED_LIVE
+            else -> DataFreshness.LIVE
+        }
     /**
      * Identifies available directions for a specific transit line serving this station.
      */
@@ -59,6 +67,7 @@ data class DashboardUiState(
     val selectedDetailStation: Station? = null,
     val detailStationsContext: List<Station> = emptyList(),
     val detailDepartures: List<Departure> = emptyList(),
+    val detailAccessibilityAlerts: List<com.androidfung.departureboard.data.model.TransitAlert> = emptyList(),
     val isDetailLoading: Boolean = false,
     val selectedJourneyDeparture: Departure? = null,
     val journeyDeparturesContext: List<Departure> = emptyList(),

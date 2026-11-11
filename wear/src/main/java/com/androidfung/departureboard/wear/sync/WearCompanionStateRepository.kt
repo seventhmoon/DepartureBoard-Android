@@ -655,7 +655,9 @@ object WearCompanionStateRepository {
                                     isLastTrain = d.optBoolean("isLastTrain", false),
                                     coachCount = d.optInt("coachCount", 0),
                                     callingPointsSummary = d.optString("callingPointsSummary").takeIf { it.isNotBlank() },
-                                    syncedAtEpochMs = d.optLong("syncedAtEpochMs", boardSyncedAt)
+                                    syncedAtEpochMs = d.optLong("syncedAtEpochMs", boardSyncedAt),
+                                    expectedPlatformCode = d.optString("expectedPlatformCode").takeIf { it.isNotBlank() },
+                                    expectedPlatformConfidence = d.optInt("expectedPlatformConfidence", 0).takeIf { it > 0 }
                                 )
                             )
                         }
@@ -699,7 +701,9 @@ object WearCompanionStateRepository {
                     targetAlightStopName = obj.optString("targetAlightStopName").takeIf { it.isNotBlank() },
                     isCancelled = obj.optBoolean("isCancelled", false),
                     lineColorArgb = obj.optLong("lineColorArgb", 0xFF1976D2L),
-                    syncedAtEpochMs = obj.optLong("syncedAtEpochMs", 0L)
+                    syncedAtEpochMs = obj.optLong("syncedAtEpochMs", 0L),
+                    expectedPlatformCode = obj.optString("expectedPlatformCode").takeIf { it.isNotBlank() },
+                    expectedPlatformConfidence = obj.optInt("expectedPlatformConfidence", 0).takeIf { it > 0 }
                 )
             }
         } catch (_: Throwable) {
@@ -731,7 +735,9 @@ object WearCompanionStateRepository {
             targetAlightStopName = extractString("targetAlightStopName")?.takeIf { it.isNotBlank() },
             isCancelled = extractBool("isCancelled"),
             lineColorArgb = extractLong("lineColorArgb", 0xFF1976D2L),
-            syncedAtEpochMs = extractLong("syncedAtEpochMs", 0L)
+            syncedAtEpochMs = extractLong("syncedAtEpochMs", 0L),
+            expectedPlatformCode = extractString("expectedPlatformCode")?.takeIf { it.isNotBlank() },
+            expectedPlatformConfidence = extractInt("expectedPlatformConfidence", 0).takeIf { it > 0 }
         )
     }
 }

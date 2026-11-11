@@ -145,6 +145,28 @@ fun A2UiRenderer(
                     )
                 }
 
+                is A2UiBlock.AlternativeRouteCard -> {
+                    AlternativeRouteActionCard(
+                        block = block,
+                        trackedDepartureId = trackedDepartureId,
+                        onTrackDeparture = { dep ->
+                            if (trackedDepartureId == dep.id) {
+                                TrainTrackingService.stopTracking(context)
+                            } else {
+                                com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, dep) { pendingDep ->
+                                    pendingTrackDeparture = pendingDep
+                                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            }
+                            onActionClick(A2UiAction.TrackTrain(dep))
+                        }
+                    )
+                }
+
+                is A2UiBlock.DelayRepayClaimBlock -> {
+                    DelayRepayClaimCard(block = block, context = context)
+                }
+
                 is A2UiBlock.ActionButtons -> {
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -401,5 +423,174 @@ private fun ActionButtonChip(
         }
 
         is A2UiAction.TrackTrain -> {}
+    }
+}
+
+@Composable
+private fun AlternativeRouteActionCard(
+    block: A2UiBlock.AlternativeRouteCard,
+    trackedDepartureId: String?,
+    onTrackDeparture: (Departure) -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.DirectionsTransit,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = stringResource(R.string.a2ui_alt_route_title, block.disruptedLineName),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = block.guidanceSummary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f)
+            )
+
+            if (block.alternativeDepartures.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                block.alternativeDepartures.forEach { dep ->
+                    val isTracked = trackedDepartureId == dep.id
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${dep.lineName} → ${dep.destinationName}",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            val platStr = dep.platformName.takeIf { it.isNotBlank() } ?: ""
+                            if (platStr.isNotEmpty()) {
+                                Text(
+                                    text = platStr,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
+                                )
+                            }
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = dep.formattedTimeToArrival,
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            AssistChip(
+                                onClick = { onTrackDeparture(dep) },
+                                label = {
+                                    Text(
+                                        if (isTracked) stringResource(R.string.tracking_action_untrack)
+                                        else stringResource(R.string.tracking_action_track),
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DelayRepayClaimCard(
+    block: A2UiBlock.DelayRepayClaimBlock,
+    context: Context
+) {
+    val receiptSavedToast = stringResource(R.string.a2ui_delay_repay_saved_toast)
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.75f)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "💷 ${block.badgeLabel}",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Text(
+                    text = "${block.stationName} → ${block.destinationName}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = block.compensationSummary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                AssistChip(
+                    onClick = {
+                        com.androidfung.departureboard.util.DelayRepayReceiptLog.recordReceipt(
+                            context = context,
+                            departureId = block.departureId,
+                            stationName = block.stationName,
+                            destinationName = block.destinationName,
+                            lineName = block.lineName,
+                            trainCode = block.trainCode,
+                            delayMinutes = block.delayMinutes,
+                            isCancelled = block.isCancelled,
+                            badgeLabel = block.badgeLabel,
+                            compensationSummary = block.compensationSummary
+                        )
+                        com.androidfung.departureboard.util.DelayRepayReceiptLog.loadReceipts(context)
+                            .firstOrNull()
+                            ?.let { com.androidfung.departureboard.util.DelayRepayReceiptLog.copyReceiptToClipboard(context, it) }
+                        android.widget.Toast.makeText(context, receiptSavedToast, android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    label = { Text(stringResource(R.string.a2ui_delay_repay_save_copy), fontSize = 11.sp) }
+                )
+                AssistChip(
+                    onClick = {
+                        runCatching {
+                            val intent = Intent(Intent.ACTION_VIEW, block.claimUrl.toUri()).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                        }
+                    },
+                    label = { Text(stringResource(R.string.a2ui_delay_repay_open_portal), fontSize = 11.sp) }
+                )
+            }
+        }
     }
 }

@@ -122,6 +122,28 @@ class WidgetConfigurationActivity : AppCompatActivity() {
             return
         }
 
+        // Check if an AppFunction or assistant action pre-staged a 1-tap widget station pin (< 2 min old)
+        val widgetSp = getSharedPreferences("widget_config", MODE_PRIVATE)
+        val pendingPinStationId = widgetSp.getString(DepartureBoardWidget.PREF_PENDING_PIN_STATION_ID, null)
+        val pendingPinStationName = widgetSp.getString(DepartureBoardWidget.PREF_PENDING_PIN_STATION_NAME, null)
+        val pendingPinTs = widgetSp.getLong(DepartureBoardWidget.PREF_PENDING_PIN_TIMESTAMP_MS, 0L)
+        val hasExistingConfig = widgetSp.getString("station_id_$appWidgetId", null) != null
+        if (!hasExistingConfig &&
+            !pendingPinStationId.isNullOrBlank() &&
+            (System.currentTimeMillis() - pendingPinTs) in 0..DepartureBoardWidget.PENDING_PIN_MAX_AGE_MS
+        ) {
+            widgetSp.edit {
+                remove(DepartureBoardWidget.PREF_PENDING_PIN_STATION_ID)
+                remove(DepartureBoardWidget.PREF_PENDING_PIN_STATION_NAME)
+                remove(DepartureBoardWidget.PREF_PENDING_PIN_TIMESTAMP_MS)
+            }
+            val autoStation = Station(
+                id = pendingPinStationId,
+                name = pendingPinStationName ?: getString(R.string.widget_station_name_fallback)
+            )
+            selectStationAndFinish(autoStation, null, null)
+        }
+
         val billingRepo = BillingRepository.getInstance(applicationContext)
         val prefsDataSource = applicationContext.appContainer.stationPreferencesDataSource
 
@@ -509,6 +531,65 @@ fun WidgetStationPickerScreen(
                 contentPadding = PaddingValues(bottom = navBarBottomPadding + 20.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                if (searchQuery.isBlank()) {
+                    item(key = "__smart_commute_auto__", contentType = "smart_commute_item") {
+                        val smartTitle = stringResource(R.string.widget_smart_commute_title)
+                        val smartDesc = stringResource(R.string.widget_smart_commute_desc)
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onStationAndLineSelected(
+                                        Station(
+                                            id = DepartureBoardWidget.SMART_COMMUTE_WIDGET_STATION_ID,
+                                            name = smartTitle
+                                        ),
+                                        null,
+                                        null
+                                    )
+                                },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "⇄",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Column {
+                                    Text(
+                                        text = smartTitle,
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Text(
+                                        text = smartDesc,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 items(
                     items = stations,
                     key = { it.id + it.name },

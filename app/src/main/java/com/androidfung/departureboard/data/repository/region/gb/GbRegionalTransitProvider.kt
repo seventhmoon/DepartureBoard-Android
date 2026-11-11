@@ -69,12 +69,22 @@ class GbRegionalTransitProvider(
     override suspend fun searchStations(query: String): Result<List<Station>> =
         stationSearchEngine.searchStations(query)
 
-    override suspend fun getStationById(stationId: String): Station? {
-        GbDefaultStations.POPULAR_STATIONS.firstOrNull {
-            it.id.equals(stationId, ignoreCase = true)
-        }?.let { return it }
+    private val bikePointCache = com.androidfung.departureboard.util.CoalescingTimedCache<String, List<com.androidfung.departureboard.data.model.MicromobilityHub>>(
+        ttlMillis = 3 * 60 * 1000L
+    )
+    private val stopDisruptionCache = com.androidfung.departureboard.util.CoalescingTimedCache<String, List<TransitAlert>>(
+        ttlMillis = 3 * 60 * 1000L
+    )
 
-        return try {
+    override suspend fun getStationById(stationId: String): Station? {
+        val defaultStation = GbDefaultStations.POPULAR_STATIONS.firstOrNull {
+            it.id.equals(stationId, ignoreCase = true)
+        }
+        if (defaultStation != null) {
+            return enrichWithBikePoints(defaultStation)
+        }
+
+        val fetched = try {
             val detail = apiService.getStopPointDetail(stationId)
             val lines = TflStationMapper.extractLines(detail)
             val cleaned = StationNameFormatter.clean(detail.commonName ?: stationId)
@@ -94,6 +104,101 @@ class GbRegionalTransitProvider(
             )
         } catch (_: Exception) {
             null
+        } ?: return null
+
+        return enrichWithBikePoints(fetched)
+    }
+
+    private suspend fun enrichWithBikePoints(station: Station): Station {
+        val lat = station.lat ?: return station
+        val lon = station.lon ?: return station
+        if (station.micromobilityHubs.isNotEmpty()) return station
+        // Santander Cycles operate across Greater London bounding box
+        if (lat !in 51.38..51.62 || lon !in -0.35..0.10) return station
+
+        val key = "${"%.3f".format(java.util.Locale.US, lat)}_${"%.3f".format(java.util.Locale.US, lon)}"
+        val hubs = bikePointCache.getOrPutCoalesced(
+            key = key,
+            scope = providerScope,
+            shouldCache = { it.isNotEmpty() }
+        ) {
+            try {
+                val res = apiService.getNearbyBikePoints(lat = lat, lon = lon, radius = 450)
+                res.places
+                    .sortedBy { it.distance ?: Double.MAX_VALUE }
+                    .take(4)
+                    .map { bp ->
+                        val nbBikes = bp.intProperty("NbBikes")
+                        val nbEbikes = bp.intProperty("NbEBikes")
+                        val nbEmptyDocks = bp.intProperty("NbEmptyDocks")
+                        val cleanDockName = (bp.commonName ?: "Santander Cycles").substringBefore(",").trim()
+                        com.androidfung.departureboard.data.model.MicromobilityHub(
+                            id = bp.id,
+                            name = cleanDockName,
+                            totalBikesAvailable = nbBikes,
+                            totalEbikesAvailable = nbEbikes,
+                            totalDocksAvailable = nbEmptyDocks,
+                            operatorName = "Santander Cycles • $cleanDockName",
+                            distanceMeters = bp.distance?.toInt()
+                        )
+                    }
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+        return if (hubs.isNotEmpty()) station.copy(micromobilityHubs = hubs) else station
+    }
+
+    suspend fun getStationDisruptionAlerts(stationId: String): List<TransitAlert> {
+        val normalizedId = stationId.trim()
+        if (normalizedId.isBlank()) return emptyList()
+        return stopDisruptionCache.getOrPutCoalesced(
+            key = normalizedId.lowercase(),
+            scope = providerScope
+        ) {
+            try {
+                apiService.getStopPointDisruptions(normalizedId).mapNotNull { item ->
+                    val desc = item.description?.trim().orEmpty()
+                    if (desc.isBlank()) return@mapNotNull null
+                    val lower = "${item.type.orEmpty()} ${item.appearance.orEmpty()} $desc".lowercase()
+                    val isAccessibility = lower.contains("step-free") ||
+                        lower.contains("step free") ||
+                        lower.contains("lift") ||
+                        lower.contains("elevator") ||
+                        lower.contains("escalator") ||
+                        lower.contains("wheelchair") ||
+                        lower.contains("access")
+                    val effect = if (isAccessibility) {
+                        com.androidfung.departureboard.data.model.AlertEffect.ACCESSIBILITY_ISSUE
+                    } else {
+                        com.androidfung.departureboard.data.model.AlertEffect.OTHER_EFFECT
+                    }
+                    TransitAlert(
+                        id = "tfl_stop_disruption_${normalizedId}_${desc.hashCode()}",
+                        headerText = if (isAccessibility) {
+                            item.commonName?.let { "$it — Step-Free / Lift Alert" } ?: "Step-Free / Lift Outage"
+                        } else {
+                            item.commonName ?: "Station Alert"
+                        },
+                        descriptionText = desc.replace(Regex("\\s+"), " "),
+                        cause = com.androidfung.departureboard.data.model.AlertCause.TECHNICAL_PROBLEM,
+                        effect = effect,
+                        severity = if (isAccessibility) {
+                            com.androidfung.departureboard.data.model.AlertSeverity.WARNING
+                        } else {
+                            com.androidfung.departureboard.data.model.AlertSeverity.INFO
+                        },
+                        informedEntities = listOf(
+                            com.androidfung.departureboard.data.model.InformedEntity(
+                                agencyId = "TfL",
+                                stationId = normalizedId
+                            )
+                        )
+                    )
+                }
+            } catch (_: Exception) {
+                emptyList()
+            }
         }
     }
 

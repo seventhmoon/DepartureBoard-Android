@@ -24,7 +24,15 @@ object HkMtrNetworkClient {
         ).build()
     }
 
+    private val retrofit: Retrofit by lazy {
+        SharedNetworkConfig.newRetrofit(MTR_BASE_URL, okHttpClient)
+    }
+
     val apiService: HkMtrApiService by lazy {
-        SharedNetworkConfig.newRetrofit(MTR_BASE_URL, okHttpClient).create()
+        retrofit.create()
+    }
+
+    val lightRailApiService: HkLightRailApiService by lazy {
+        retrofit.create()
     }
 }

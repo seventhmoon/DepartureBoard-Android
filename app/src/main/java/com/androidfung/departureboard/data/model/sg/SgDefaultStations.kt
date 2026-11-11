@@ -18,6 +18,8 @@ object SgDefaultStations {
             id = "SG_MRT_NS22_TE14",
             name = "Orchard",
             modes = listOf("tube"),
+            lat = 1.3040,
+            lon = 103.8318,
             lines = listOf(
                 StationLineInfo("NSL", "North-South Line"),
                 StationLineInfo("TEL", "Thomson-East Coast Line")
@@ -27,6 +29,8 @@ object SgDefaultStations {
             id = "SG_BUS_09048",
             name = "Orchard Stn/Lucky Plaza",
             modes = listOf("bus"),
+            lat = 1.3039,
+            lon = 103.8339,
             lines = listOf(
                 StationLineInfo("SG_BUS_65", "65", "bus"),
                 StationLineInfo("SG_BUS_143", "143", "bus"),
@@ -40,6 +44,8 @@ object SgDefaultStations {
             id = "SG_MRT_NS22_TE14",
             name = "Orchard",
             modes = listOf("tube"),
+            lat = 1.3040,
+            lon = 103.8318,
             lines = listOf(
                 StationLineInfo("NSL", "North-South Line"),
                 StationLineInfo("TEL", "Thomson-East Coast Line")
@@ -49,6 +55,8 @@ object SgDefaultStations {
             id = "SG_MRT_NS26_EW14",
             name = "Raffles Place",
             modes = listOf("tube"),
+            lat = 1.2839,
+            lon = 103.8515,
             lines = listOf(
                 StationLineInfo("NSL", "North-South Line"),
                 StationLineInfo("EWL", "East-West Line")
@@ -58,6 +66,8 @@ object SgDefaultStations {
             id = "SG_MRT_NS27_CE2_TE20",
             name = "Marina Bay",
             modes = listOf("tube"),
+            lat = 1.2764,
+            lon = 103.8546,
             lines = listOf(
                 StationLineInfo("NSL", "North-South Line"),
                 StationLineInfo("CCL", "Circle Line"),
@@ -68,6 +78,8 @@ object SgDefaultStations {
             id = "SG_MRT_NS25_EW13",
             name = "City Hall",
             modes = listOf("tube"),
+            lat = 1.2931,
+            lon = 103.8520,
             lines = listOf(
                 StationLineInfo("NSL", "North-South Line"),
                 StationLineInfo("EWL", "East-West Line")
@@ -77,6 +89,8 @@ object SgDefaultStations {
             id = "SG_MRT_NS1_EW24",
             name = "Jurong East",
             modes = listOf("tube"),
+            lat = 1.3331,
+            lon = 103.7423,
             lines = listOf(
                 StationLineInfo("NSL", "North-South Line"),
                 StationLineInfo("EWL", "East-West Line")
@@ -86,6 +100,8 @@ object SgDefaultStations {
             id = "SG_MRT_CG2",
             name = "Changi Airport",
             modes = listOf("tube"),
+            lat = 1.3574,
+            lon = 103.9888,
             lines = listOf(
                 StationLineInfo("EWL", "East-West Line")
             )
@@ -94,6 +110,8 @@ object SgDefaultStations {
             id = "SG_MRT_NE4_DT19",
             name = "Chinatown",
             modes = listOf("tube"),
+            lat = 1.2848,
+            lon = 103.8440,
             lines = listOf(
                 StationLineInfo("NEL", "North East Line"),
                 StationLineInfo("DTL", "Downtown Line")
@@ -103,9 +121,23 @@ object SgDefaultStations {
             id = "SG_MRT_NE1_CC29",
             name = "HarbourFront",
             modes = listOf("tube"),
+            lat = 1.2654,
+            lon = 103.8223,
             lines = listOf(
                 StationLineInfo("NEL", "North East Line"),
                 StationLineInfo("CCL", "Circle Line")
+            )
+        ),
+        Station(
+            id = "SG_BUS_09048",
+            name = "Orchard Stn/Lucky Plaza",
+            modes = listOf("bus"),
+            lat = 1.3039,
+            lon = 103.8339,
+            lines = listOf(
+                StationLineInfo("SG_BUS_65", "65", "bus"),
+                StationLineInfo("SG_BUS_143", "143", "bus"),
+                StationLineInfo("SG_BUS_190", "190", "bus")
             )
         )
     )
@@ -163,6 +195,44 @@ object SgDefaultStations {
     )
 
     fun getFallbackDepartures(stationId: String, stationName: String): List<Departure> {
+        val now = Instant.now()
+        if (stationId.startsWith("SG_BUS_", ignoreCase = true)) {
+            val busBg = androidx.compose.ui.graphics.Color(0xFF4CAF50)
+            val busFg = androidx.compose.ui.graphics.Color.White
+            return listOf(
+                Triple("65", "Tampines Int", 120 to "MANY_SEATS_AVAILABLE"),
+                Triple("190", "Choa Chu Kang Int", 240 to "STANDING_ROOM_ONLY"),
+                Triple("143", "Toa Payoh Int", 420 to "MANY_SEATS_AVAILABLE")
+            ).mapIndexed { idx, (svc, dest, waitAndLoad) ->
+                val (waitSec, occ) = waitAndLoad
+                val arrivalInstant = now.plusSeconds(waitSec.toLong())
+                Departure(
+                    id = "${stationId}_${svc}_$idx",
+                    stationId = stationId,
+                    stationName = stationName,
+                    lineId = "SG_BUS_$svc",
+                    lineName = svc,
+                    platformName = "Double-Decker",
+                    destinationName = dest,
+                    towards = dest,
+                    timeToStationSeconds = waitSec,
+                    expectedArrivalIso = DateTimeFormatter.ISO_INSTANT.format(arrivalInstant),
+                    currentLocation = if (waitSec <= 60) "Arriving" else "In Transit",
+                    modeName = "bus",
+                    lineBadge = com.androidfung.departureboard.data.model.LineBadgeInfo(
+                        lineId = "SG_BUS_$svc",
+                        displayName = svc,
+                        backgroundColor = busBg,
+                        textColor = busFg,
+                        mode = com.androidfung.departureboard.data.model.TransitMode.BUS,
+                        lineCode = svc
+                    ),
+                    status = if (waitSec <= 60) DepartureStatus.DUE else DepartureStatus.ON_TIME,
+                    isWheelchairAccessible = true,
+                    occupancyStatus = occ
+                )
+            }
+        }
         val cleanName = stationName.replace(Regex("\\s*\\(.*\\)"), "").trim()
         val templates = STATION_DEPARTURE_TEMPLATES[cleanName]
             ?: listOf(
@@ -170,7 +240,6 @@ object SgDefaultStations {
                 DepartureTemplate("NSL", "Marina South Pier", "2", listOf(240, 540))
             )
 
-        val now = Instant.now()
         val departures = mutableListOf<Departure>()
 
         templates.forEach { template ->

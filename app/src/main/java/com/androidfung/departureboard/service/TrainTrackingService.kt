@@ -48,6 +48,35 @@ class TrainTrackingService : Service() {
     private var trackingJob: Job? = null
     @Volatile
     private var retainNotificationOnDestroy = false
+    @Volatile
+    private var latestCallingPoints: List<CallingPoint> = emptyList()
+    @Volatile
+    private var latestSnapshot: LiveNotificationSnapshot? = null
+
+    private data class LiveNotificationSnapshot(
+        val departureId: String,
+        val stationId: String,
+        val stationName: String,
+        val destination: String,
+        val lineId: String,
+        val lineName: String,
+        val platform: String,
+        val timeToStationSeconds: Int,
+        val currentLocation: String?,
+        val isBus: Boolean,
+        val modeName: String,
+        val lineColorArgb: Int,
+        val coachCount: Int,
+        val trainCode: String?,
+        val delayReason: String?,
+        val isDelayed: Boolean,
+        val currentStopsAway: Int?,
+        val baselineStops: Int?,
+        val baselineSeconds: Int,
+        val isLiveUnverified: Boolean,
+        val expectedPlatformCode: String?,
+        val expectedPlatformConfidence: Int?
+    )
 
     companion object {
         private const val TAG = "TrainTrackingService"
@@ -80,6 +109,7 @@ class TrainTrackingService : Service() {
 
         const val ACTION_START_TRACKING = "com.androidfung.departureboard.action.START_TRACKING"
         const val ACTION_STOP_TRACKING = "com.androidfung.departureboard.action.STOP_TRACKING"
+        const val ACTION_CYCLE_ALIGHT_STOP = "com.androidfung.departureboard.action.CYCLE_ALIGHT_STOP"
 
         const val EXTRA_DEPARTURE_ID = "extra_departure_id"
         const val EXTRA_STATION_ID = "extra_station_id"
@@ -100,6 +130,8 @@ class TrainTrackingService : Service() {
         const val EXTRA_DELAY_REASON = "extra_delay_reason"
         const val EXTRA_IS_DELAYED = "extra_is_delayed"
         const val EXTRA_TARGET_ALIGHT_STOP_NAME = "extra_target_alight_stop_name"
+        const val EXTRA_EXPECTED_PLATFORM_CODE = "extra_expected_platform_code"
+        const val EXTRA_EXPECTED_PLATFORM_CONFIDENCE = "extra_expected_platform_confidence"
 
         private val _currentlyTrackedDepartureIdFlow = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
         val currentlyTrackedDepartureIdFlow: kotlinx.coroutines.flow.StateFlow<String?> = _currentlyTrackedDepartureIdFlow
@@ -117,6 +149,33 @@ class TrainTrackingService : Service() {
             _targetAlightStopFlow.value = stopName?.takeIf { it.isNotBlank() }
         }
 
+        internal fun computeNextAlightStop(
+            callingPoints: List<CallingPoint>,
+            currentTargetStop: String?
+        ): String? {
+            if (callingPoints.isEmpty()) return null
+            val currentStationIdx = callingPoints.indexOfFirst { it.isCurrentStation }
+            val downstream = (if (currentStationIdx >= 0) {
+                callingPoints.drop(currentStationIdx + 1)
+            } else {
+                callingPoints
+            }).filterNot { it.isCancelled }
+
+            if (downstream.isEmpty()) return null
+            if (currentTargetStop.isNullOrBlank()) {
+                return downstream.first().resolveDisplayName()
+            }
+            val activeIdx = downstream.indexOfFirst {
+                it.stationName.equals(currentTargetStop, ignoreCase = true) ||
+                    it.resolveDisplayName().equals(currentTargetStop, ignoreCase = true)
+            }
+            return when {
+                activeIdx == -1 -> downstream.first().resolveDisplayName()
+                activeIdx + 1 < downstream.size -> downstream[activeIdx + 1].resolveDisplayName()
+                else -> null
+            }
+        }
+
         fun startTracking(
             context: Context,
             departure: Departure,
@@ -126,6 +185,7 @@ class TrainTrackingService : Service() {
                 _targetAlightStopFlow.value = targetAlightStopName.takeIf { it.isNotBlank() }
             }
             val isBus = departure.modeName.equals("bus", ignoreCase = true)
+            val resolvedPlatform = departure.resolvedPlatform
             val intent = Intent(context, TrainTrackingService::class.java).apply {
                 action = ACTION_START_TRACKING
                 putExtra(EXTRA_DEPARTURE_ID, departure.id)
@@ -147,6 +207,12 @@ class TrainTrackingService : Service() {
                 putExtra(EXTRA_DELAY_REASON, departure.delayReason)
                 putExtra(EXTRA_IS_DELAYED, departure.status == DepartureStatus.DELAYED)
                 putExtra(EXTRA_TARGET_ALIGHT_STOP_NAME, _targetAlightStopFlow.value)
+                if (resolvedPlatform.isHistoricalExpected && resolvedPlatform.code.isNotBlank()) {
+                    putExtra(EXTRA_EXPECTED_PLATFORM_CODE, resolvedPlatform.code)
+                    resolvedPlatform.expectedConfidencePercent?.let {
+                        putExtra(EXTRA_EXPECTED_PLATFORM_CONFIDENCE, it)
+                    }
+                }
             }
             context.startForegroundService(intent)
         }
@@ -288,7 +354,7 @@ class TrainTrackingService : Service() {
         }
 
         /**
-         * Formats the secondary notification text with platform, coach count/headcode, and delay reason.
+         * Formats the secondary notification text with platform, coach count/headcode, alighting stop, and delay reason.
          */
         internal fun formatContentText(
             shortPlatform: String,
@@ -296,7 +362,8 @@ class TrainTrackingService : Service() {
             trainCode: String? = null,
             delayReason: String? = null,
             isCancelled: Boolean = false,
-            cancelledDesc: String = ""
+            cancelledDesc: String = "",
+            targetAlightStopName: String? = null
         ): String {
             if (isCancelled) return cancelledDesc
             return buildList {
@@ -305,6 +372,9 @@ class TrainTrackingService : Service() {
                     add("$coachCount coaches")
                 } else if (!trainCode.isNullOrBlank()) {
                     add("#$trainCode")
+                }
+                if (!targetAlightStopName.isNullOrBlank()) {
+                    add("🎯 ${targetAlightStopName.trim()}")
                 }
                 if (!delayReason.isNullOrBlank()) {
                     add(delayReason.trim())
@@ -333,6 +403,85 @@ class TrainTrackingService : Service() {
                 retainNotificationOnDestroy = false
                 stopTrackingInternal()
                 stopSelf()
+            }
+            ACTION_CYCLE_ALIGHT_STOP -> {
+                val snap = latestSnapshot
+                if (currentlyTrackedDepartureId == null || snap == null) {
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
+                serviceScope.launch {
+                    var points = latestCallingPoints
+                    if (points.isEmpty() && snap.lineId.isNotBlank()) {
+                        points = runCatching {
+                            applicationContext.appContainer.transitRepository.getCallingPoints(
+                                Departure(
+                                    id = snap.departureId,
+                                    stationId = snap.stationId,
+                                    stationName = snap.stationName,
+                                    lineId = snap.lineId,
+                                    lineName = snap.lineName,
+                                    platformName = snap.platform,
+                                    destinationName = snap.destination,
+                                    towards = null,
+                                    timeToStationSeconds = snap.timeToStationSeconds,
+                                    expectedArrivalIso = null,
+                                    currentLocation = snap.currentLocation,
+                                    modeName = snap.modeName,
+                                    lineBadge = LineBadgeInfo(
+                                        lineId = snap.lineId,
+                                        displayName = snap.lineName,
+                                        backgroundColor = androidx.compose.ui.graphics.Color.Transparent
+                                    )
+                                )
+                            )
+                        }.getOrDefault(emptyList())
+                        latestCallingPoints = points
+                    }
+                    val nextTarget = computeNextAlightStop(points, _targetAlightStopFlow.value)
+                    _targetAlightStopFlow.value = nextTarget
+                    val refreshed = buildLiveNotification(
+                        departureId = snap.departureId,
+                        stationId = snap.stationId,
+                        stationName = snap.stationName,
+                        destination = snap.destination,
+                        lineName = snap.lineName,
+                        platform = snap.platform,
+                        timeToStationSeconds = snap.timeToStationSeconds,
+                        currentLocation = snap.currentLocation,
+                        isBus = snap.isBus,
+                        modeName = snap.modeName,
+                        lineColorArgb = snap.lineColorArgb,
+                        coachCount = snap.coachCount,
+                        trainCode = snap.trainCode,
+                        delayReason = snap.delayReason,
+                        isDelayed = snap.isDelayed,
+                        currentStopsAway = snap.currentStopsAway,
+                        baselineStops = snap.baselineStops,
+                        baselineSeconds = snap.baselineSeconds,
+                        isLiveUnverified = snap.isLiveUnverified
+                    )
+                    runCatching {
+                        getSystemService<NotificationManager>()?.notify(NOTIFICATION_ID, refreshed)
+                    }
+                    com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishTrackedDeparture(
+                        context = applicationContext,
+                        departureId = snap.departureId,
+                        stationId = snap.stationId,
+                        stationName = snap.stationName,
+                        destinationName = snap.destination,
+                        lineName = snap.lineName,
+                        platform = snap.platform,
+                        remainingSeconds = snap.timeToStationSeconds,
+                        currentLocation = snap.currentLocation,
+                        stopsAway = snap.currentStopsAway,
+                        targetAlightStopName = nextTarget,
+                        isCancelled = false,
+                        lineColorArgb = snap.lineColorArgb,
+                        expectedPlatformCode = snap.expectedPlatformCode,
+                        expectedPlatformConfidence = snap.expectedPlatformConfidence
+                    )
+                }
             }
             ACTION_START_TRACKING -> {
                 retainNotificationOnDestroy = false
@@ -379,15 +528,44 @@ class TrainTrackingService : Service() {
                 val delayReason = intent.getStringExtra(EXTRA_DELAY_REASON)
                 val isDelayed = intent.getBooleanExtra(EXTRA_IS_DELAYED, false)
                 val targetAlightStop = intent.getStringExtra(EXTRA_TARGET_ALIGHT_STOP_NAME)
+                val initialExpectedPlatCode = intent.getStringExtra(EXTRA_EXPECTED_PLATFORM_CODE)
+                val initialExpectedPlatConf = intent.getIntExtra(EXTRA_EXPECTED_PLATFORM_CONFIDENCE, -1)
+                    .takeIf { it >= 0 }
 
                 if (!targetAlightStop.isNullOrBlank()) {
                     _targetAlightStopFlow.value = targetAlightStop
                 }
 
                 currentlyTrackedDepartureId = departureId
+                latestCallingPoints = emptyList()
 
                 // Base baseline (B to S): Initial total seconds captured at moment user clicked Track
                 val baselineSeconds = initialSeconds.coerceAtLeast(30)
+
+                latestSnapshot = LiveNotificationSnapshot(
+                    departureId = departureId,
+                    stationId = stationId,
+                    stationName = stationName,
+                    destination = destination,
+                    lineId = lineId,
+                    lineName = lineName,
+                    platform = platform,
+                    timeToStationSeconds = initialSeconds,
+                    currentLocation = initialLocation,
+                    isBus = isBus,
+                    modeName = modeName,
+                    lineColorArgb = lineColorArgb,
+                    coachCount = coachCount,
+                    trainCode = trainCode,
+                    delayReason = delayReason,
+                    isDelayed = isDelayed,
+                    currentStopsAway = null,
+                    baselineStops = null,
+                    baselineSeconds = baselineSeconds,
+                    isLiveUnverified = false,
+                    expectedPlatformCode = initialExpectedPlatCode,
+                    expectedPlatformConfidence = initialExpectedPlatConf
+                )
 
                 val notification = buildLiveNotification(
                     departureId = departureId,
@@ -462,7 +640,9 @@ class TrainTrackingService : Service() {
                     stopsAway = null,
                     targetAlightStopName = _targetAlightStopFlow.value,
                     isCancelled = false,
-                    lineColorArgb = lineColorArgb
+                    lineColorArgb = lineColorArgb,
+                    expectedPlatformCode = initialExpectedPlatCode,
+                    expectedPlatformConfidence = initialExpectedPlatConf
                 )
 
                 startTrackingLoop(
@@ -483,7 +663,9 @@ class TrainTrackingService : Service() {
                     initialCoachCount = coachCount,
                     initialDelayReason = delayReason,
                     initialIsDelayed = isDelayed,
-                    baselineSeconds = baselineSeconds
+                    baselineSeconds = baselineSeconds,
+                    initialExpectedPlatCode = initialExpectedPlatCode,
+                    initialExpectedPlatConf = initialExpectedPlatConf
                 )
             }
         }
@@ -508,7 +690,9 @@ class TrainTrackingService : Service() {
         initialCoachCount: Int,
         initialDelayReason: String?,
         initialIsDelayed: Boolean,
-        baselineSeconds: Int
+        baselineSeconds: Int,
+        initialExpectedPlatCode: String? = null,
+        initialExpectedPlatConf: Int? = null
     ) {
         val previousJob = trackingJob
         trackingJob = serviceScope.launch {
@@ -527,6 +711,8 @@ class TrainTrackingService : Service() {
             var currentCoachCount = initialCoachCount
             var currentDelayReason = initialDelayReason
             var currentIsDelayed = initialIsDelayed
+            var currentExpectedPlatCode = initialExpectedPlatCode
+            var currentExpectedPlatConf = initialExpectedPlatConf
             var hasPostedDelayAlert = initialIsDelayed
             var hasPostedAlightAlert = false
             var lastAlertedTargetStop: String? = null
@@ -573,6 +759,13 @@ class TrainTrackingService : Service() {
                             currentCoachCount = target.formation?.coachCount ?: currentCoachCount
                             currentDelayReason = target.delayReason ?: currentDelayReason
                             currentIsDelayed = target.status == DepartureStatus.DELAYED
+                            if (target.resolvedPlatform.isHistoricalExpected && target.resolvedPlatform.code.isNotBlank()) {
+                                currentExpectedPlatCode = target.resolvedPlatform.code
+                                currentExpectedPlatConf = target.resolvedPlatform.expectedConfidencePercent
+                            } else if (!target.platformName.contains("TBD", ignoreCase = true) && target.platformName.isNotBlank()) {
+                                currentExpectedPlatCode = null
+                                currentExpectedPlatConf = null
+                            }
 
                             // 1. Check for explicit cancellation
                             if (target.status == DepartureStatus.CANCELLED ||
@@ -766,33 +959,40 @@ class TrainTrackingService : Service() {
                     break
                 }
 
+                // Eagerly fetch calling points once so +1 Stop cycling & Share ETA have downstream stops ready
+                if (cachedCallingPoints == null && lineId.isNotBlank()) {
+                    runCatching {
+                        val sampleDeparture = Departure(
+                            id = activeDepartureId,
+                            stationId = stationId,
+                            stationName = stationName,
+                            lineId = lineId,
+                            lineName = lineName,
+                            platformName = currentPlatform,
+                            destinationName = currentDestination,
+                            towards = null,
+                            timeToStationSeconds = remainingSeconds,
+                            expectedArrivalIso = null,
+                            currentLocation = liveLocation,
+                            modeName = modeName,
+                            lineBadge = LineBadgeInfo(
+                                lineId = lineId,
+                                displayName = lineName,
+                                backgroundColor = androidx.compose.ui.graphics.Color.Transparent
+                            )
+                        )
+                        val loaded = repository.getCallingPoints(sampleDeparture)
+                        if (loaded.isNotEmpty()) {
+                            cachedCallingPoints = loaded
+                            latestCallingPoints = loaded
+                        }
+                    }
+                }
+
                 // Calculate stops away using cached calling points to prevent repeated API calls
                 val stopsAway = try {
                     if (liveLocation != null && lineId.isNotBlank()) {
-                        if (cachedCallingPoints == null) {
-                            val sampleDeparture = Departure(
-                                id = activeDepartureId,
-                                stationId = stationId,
-                                stationName = stationName,
-                                lineId = lineId,
-                                lineName = lineName,
-                                platformName = currentPlatform,
-                                destinationName = currentDestination,
-                                towards = null,
-                                timeToStationSeconds = remainingSeconds,
-                                expectedArrivalIso = null,
-                                currentLocation = liveLocation,
-                                modeName = modeName,
-                                lineBadge = LineBadgeInfo(
-                                    lineId = lineId,
-                                    displayName = lineName,
-                                    backgroundColor = androidx.compose.ui.graphics.Color.Transparent
-                                )
-                            )
-                            cachedCallingPoints = repository.getCallingPoints(sampleDeparture)
-                        }
-
-                        val points = cachedCallingPoints
+                        val points = cachedCallingPoints ?: emptyList()
                         val curIdx = points.indexOfFirst { cp ->
                             liveLocation.contains(cp.stationName, ignoreCase = true) ||
                             cp.stationName.contains(liveLocation, ignoreCase = true)
@@ -883,6 +1083,31 @@ class TrainTrackingService : Service() {
                 }
 
                 val hasReachedStation = remainingSeconds <= 0
+                val resolvedStopsAway = if (hasReachedStation) 0 else stopsAway
+                latestSnapshot = LiveNotificationSnapshot(
+                    departureId = activeDepartureId,
+                    stationId = stationId,
+                    stationName = stationName,
+                    destination = currentDestination,
+                    lineId = lineId,
+                    lineName = lineName,
+                    platform = currentPlatform,
+                    timeToStationSeconds = remainingSeconds,
+                    currentLocation = liveLocation,
+                    isBus = isBus,
+                    modeName = modeName,
+                    lineColorArgb = lineColorArgb,
+                    coachCount = currentCoachCount,
+                    trainCode = currentTrainCode,
+                    delayReason = currentDelayReason,
+                    isDelayed = currentIsDelayed,
+                    currentStopsAway = resolvedStopsAway,
+                    baselineStops = baselineStops,
+                    baselineSeconds = baselineSeconds,
+                    isLiveUnverified = missingCount >= 2,
+                    expectedPlatformCode = currentExpectedPlatCode,
+                    expectedPlatformConfidence = currentExpectedPlatConf
+                )
                 val updatedNotification = buildLiveNotification(
                     departureId = activeDepartureId,
                     stationId = stationId,
@@ -899,7 +1124,7 @@ class TrainTrackingService : Service() {
                     trainCode = currentTrainCode,
                     delayReason = currentDelayReason,
                     isDelayed = currentIsDelayed,
-                    currentStopsAway = if (hasReachedStation) 0 else stopsAway,
+                    currentStopsAway = resolvedStopsAway,
                     baselineStops = baselineStops,
                     baselineSeconds = baselineSeconds,
                     isLiveUnverified = missingCount >= 2,
@@ -924,10 +1149,12 @@ class TrainTrackingService : Service() {
                     platform = currentPlatform,
                     remainingSeconds = remainingSeconds,
                     currentLocation = liveLocation,
-                    stopsAway = if (hasReachedStation) 0 else stopsAway,
+                    stopsAway = resolvedStopsAway,
                     targetAlightStopName = _targetAlightStopFlow.value,
                     isCancelled = false,
-                    lineColorArgb = lineColorArgb
+                    lineColorArgb = lineColorArgb,
+                    expectedPlatformCode = currentExpectedPlatCode,
+                    expectedPlatformConfidence = currentExpectedPlatConf
                 )
 
                 if (hasReachedStation) {
@@ -1019,6 +1246,8 @@ class TrainTrackingService : Service() {
             trackingJob = null
             currentlyTrackedDepartureId = null
             _targetAlightStopFlow.value = null
+            latestCallingPoints = emptyList()
+            latestSnapshot = null
             com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishTrackingStopped(applicationContext)
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
             val nm = getSystemService<NotificationManager>()
@@ -1154,13 +1383,15 @@ class TrainTrackingService : Service() {
             else -> getString(R.string.status_in_transit)
         }
 
+        val activeTargetAlight = _targetAlightStopFlow.value
         val contentText = formatContentText(
             shortPlatform = shortPlatform,
             coachCount = coachCount,
             trainCode = trainCode,
             delayReason = delayReason,
             isCancelled = isCancelled,
-            cancelledDesc = getString(R.string.tracking_service_cancelled_desc)
+            cancelledDesc = getString(R.string.tracking_service_cancelled_desc),
+            targetAlightStopName = activeTargetAlight
         )
 
         val resolvedMode = if (isBus && modeName.isBlank()) {
@@ -1207,6 +1438,65 @@ class TrainTrackingService : Service() {
             .setAutoCancel(!isOngoing || isCancelled)
             .setOnlyAlertOnce(true)
             .setContentIntent(openAppPendingIntent)
+
+        if (isOngoing && !isCancelled) {
+            val cycleIntent = Intent(this, TrainTrackingService::class.java).apply {
+                action = ACTION_CYCLE_ALIGHT_STOP
+            }
+            val cyclePendingIntent = PendingIntent.getService(
+                this,
+                2,
+                cycleIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val cycleLabel = if (!activeTargetAlight.isNullOrBlank()) {
+                "🎯 ${activeTargetAlight.take(12)}"
+            } else {
+                getString(R.string.tracking_action_next_stop)
+            }
+            builder.addAction(R.drawable.ic_train, cycleLabel, cyclePendingIntent)
+
+            val shareEtaText = com.androidfung.departureboard.util.DelayRepayCalculator.formatShareLiveEtaText(
+                departure = Departure(
+                    id = departureId.ifBlank { "live_tracked" },
+                    stationId = stationId,
+                    stationName = stationName,
+                    lineId = lineName.lowercase(),
+                    lineName = lineName,
+                    platformName = shortPlatform,
+                    destinationName = destination,
+                    towards = null,
+                    timeToStationSeconds = timeToStationSeconds,
+                    expectedArrivalIso = null,
+                    currentLocation = currentLocation,
+                    modeName = modeName,
+                    lineBadge = LineBadgeInfo(
+                        lineId = lineName.lowercase(),
+                        displayName = lineName,
+                        backgroundColor = androidx.compose.ui.graphics.Color(resolvedAccentColor)
+                    )
+                ),
+                callingPoints = latestCallingPoints,
+                targetAlightStop = activeTargetAlight
+            )
+            val shareActionTitle = getString(R.string.tracking_action_share_eta)
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, shareEtaText)
+            }
+            val chooserIntent = Intent.createChooser(sendIntent, shareActionTitle).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            val sharePendingIntent = PendingIntent.getActivity(
+                this,
+                3,
+                chooserIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(android.R.drawable.ic_menu_share, shareActionTitle, sharePendingIntent)
+        }
+
+        builder
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, actionButtonTitle, stopPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_STATUS)

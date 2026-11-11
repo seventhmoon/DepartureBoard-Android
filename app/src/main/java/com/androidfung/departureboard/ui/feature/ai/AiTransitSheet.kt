@@ -115,6 +115,9 @@ fun AiTransitSheet(
     var isInstallingModule by remember { mutableStateOf(false) }
     var installProgress by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
     var isFeatureInstalled by remember { mutableStateOf(dynamicAiProvider.isFeatureInstalled) }
+    val isSystemAiCoreReady = remember(localContext) {
+        com.androidfung.departureboard.ai.SystemAiCoreHelper.isSystemAiCoreAvailable(localContext)
+    }
 
     var tts: TextToSpeech? by remember { mutableStateOf(null) }
     var isSpeaking by remember { mutableStateOf(false) }
@@ -432,8 +435,33 @@ fun AiTransitSheet(
                 }
             }
 
-            // Dynamic On-Demand AI Module Banner (when Local AI is selected but module is not installed)
-            if (aiModelType == com.androidfung.departureboard.ai.AiModelType.LOCAL && !isFeatureInstalled) {
+            // Dynamic On-Demand AI Module Banner (skipped when System AICore is already available on-device)
+            if (aiModelType == com.androidfung.departureboard.ai.AiModelType.LOCAL && isSystemAiCoreReady && !isFeatureInstalled) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.AutoAwesome,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.ai_system_aicore_ready_badge),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            } else if (aiModelType == com.androidfung.departureboard.ai.AiModelType.LOCAL && !isFeatureInstalled) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -527,9 +555,22 @@ fun AiTransitSheet(
                             modifier = Modifier.fillMaxWidth(),
                             onSpeak = { speakAnswer(it) },
                             onActionClick = { action ->
-                                if (action is com.androidfung.departureboard.ai.A2UiAction.QueryPrompt) {
-                                    queryText = action.text
-                                    submitQuery(action.text)
+                                when (action) {
+                                    is com.androidfung.departureboard.ai.A2UiAction.QueryPrompt -> {
+                                        queryText = action.text
+                                        submitQuery(action.text)
+                                    }
+                                    is com.androidfung.departureboard.ai.A2UiAction.PinStation -> {
+                                        coroutineScope.launch {
+                                            repository.saveStation(action.station)
+                                            Toast.makeText(
+                                                localContext,
+                                                resources.getString(R.string.station_saved_toast, action.station.displayName),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                    else -> {}
                                 }
                             }
                         )

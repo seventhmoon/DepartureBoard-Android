@@ -229,7 +229,8 @@ class GtfsScheduleResolver(
                         terminusName = terminusName,
                         tripHeadsign = headsign,
                         terminusStationId = tripStopTimes.lastOrNull()?.stopId
-                    )
+                    ),
+                    dataFreshness = com.androidfung.departureboard.data.model.DataFreshness.OFFLINE_SCHEDULED
                 )
             )
         }

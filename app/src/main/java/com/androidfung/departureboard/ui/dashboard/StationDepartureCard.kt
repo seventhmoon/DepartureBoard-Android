@@ -32,6 +32,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -282,7 +283,10 @@ fun StationDepartureCard(
                         }
                     }
 
-                    val hasAnyAlerts = disruptedBadgesToShow.isNotEmpty() || firstBacklog != null || showServiceHours
+                    val hasAnyAlerts = disruptedBadgesToShow.isNotEmpty() ||
+                        firstBacklog != null ||
+                        showServiceHours ||
+                        cardModel.dataFreshness != com.androidfung.departureboard.data.model.DataFreshness.LIVE
 
                     if (hasAnyAlerts) {
                         Spacer(modifier = Modifier.height(10.dp))
@@ -290,6 +294,23 @@ fun StationDepartureCard(
                             modifier = Modifier.padding(horizontal = 22.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            if (cardModel.dataFreshness != com.androidfung.departureboard.data.model.DataFreshness.LIVE) {
+                                val isTunnelScheduled = cardModel.dataFreshness == com.androidfung.departureboard.data.model.DataFreshness.OFFLINE_SCHEDULED
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+                                ) {
+                                    Text(
+                                        text = stringResource(
+                                            if (isTunnelScheduled) R.string.badge_tunnel_mode_scheduled else R.string.badge_cached_predictions
+                                        ),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                    )
+                                }
+                            }
+
                             if (disruptedBadgesToShow.isNotEmpty()) {
                                 if (disruptedBadgesToShow.size == 1) {
                                     LineDisruptionBanner(

@@ -486,6 +486,7 @@ class MainActivity : AppCompatActivity() {
                                                 isSaved = isSaved,
                                                 savedStationIds = savedIds,
                                                 serviceHoursInfo = uiState.serviceHoursInfo,
+                                                accessibilityAlerts = uiState.detailAccessibilityAlerts,
                                                 stations = uiState.detailStationsContext.ifEmpty { listOf(station) },
                                                 onStationChange = { nextStation ->
                                                     viewModel.openStationDetail(
@@ -867,6 +868,9 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     if (showTwinConcourseSheet) {
+                        LaunchedEffect(Unit) {
+                            viewModel.updateNearestStation(fetchApiNearby = false)
+                        }
                         com.androidfung.departureboard.ui.feature.twinconcourse.TwinConcourseBottomSheet(
                             onDismissRequest = { showTwinConcourseSheet = false },
                             stationCards = uiState.stationCards,

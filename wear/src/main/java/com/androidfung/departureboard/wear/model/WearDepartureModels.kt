@@ -21,7 +21,9 @@ data class WearDepartureItem(
     val isLastTrain: Boolean = false,
     val coachCount: Int = 0,
     val callingPointsSummary: String? = null,
-    val syncedAtEpochMs: Long = 0L
+    val syncedAtEpochMs: Long = 0L,
+    val expectedPlatformCode: String? = null,
+    val expectedPlatformConfidence: Int? = null
 ) {
     fun isStale(nowEpochMs: Long = System.currentTimeMillis(), maxStaleMs: Long = 15 * 60_000L): Boolean =
         syncedAtEpochMs > 0L && (nowEpochMs - syncedAtEpochMs) > maxStaleMs
@@ -52,7 +54,10 @@ data class WearDepartureItem(
 
     val formattedPlatformShort: String
         get() {
-            if (isPlatformTbd) return "TBD"
+            if (isPlatformTbd) {
+                val expected = expectedPlatformCode?.takeIf { it.isNotBlank() && !it.equals("TBD", ignoreCase = true) }
+                return if (expected != null) "TBD ~$expected" else "TBD"
+            }
             val code = cleanPlatformCode
             return if (code.firstOrNull()?.isDigit() == true) "Plat $code" else code
         }
@@ -99,7 +104,9 @@ data class WearTrackedJourneyState(
     val isCancelled: Boolean,
     val lineColorArgb: Long = 0xFF1976D2,
     val callingPoints: List<String> = emptyList(),
-    val syncedAtEpochMs: Long = 0L
+    val syncedAtEpochMs: Long = 0L,
+    val expectedPlatformCode: String? = null,
+    val expectedPlatformConfidence: Int? = null
 ) {
     fun isStale(nowEpochMs: Long = System.currentTimeMillis(), maxStaleMs: Long = 10 * 60_000L): Boolean =
         syncedAtEpochMs > 0L && (nowEpochMs - syncedAtEpochMs) > maxStaleMs

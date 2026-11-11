@@ -42,7 +42,8 @@ import com.androidfung.departureboard.data.model.TrainFormation
 fun CarriageFormationBar(
     formation: TrainFormation,
     modifier: Modifier = Modifier,
-    isCompact: Boolean = false
+    isCompact: Boolean = false,
+    recommendedCoachLabels: Set<String> = emptySet()
 ) {
     if (formation.coaches.isEmpty() && formation.coachCount <= 0) return
 
@@ -63,11 +64,13 @@ fun CarriageFormationBar(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             coaches.forEachIndexed { index, coach ->
+                val label = coach.coachNumber ?: "${index + 1}"
                 CarriageSegment(
                     coach = coach,
                     coachIndex = index,
                     totalCoaches = coaches.size,
-                    isCompact = isCompact
+                    isCompact = isCompact,
+                    isRecommended = label in recommendedCoachLabels
                 )
 
                 // Inter-carriage coupler graphic
@@ -92,7 +95,8 @@ private fun CarriageSegment(
     coach: CoachInfo,
     coachIndex: Int,
     totalCoaches: Int,
-    isCompact: Boolean
+    isCompact: Boolean,
+    isRecommended: Boolean = false
 ) {
     val occupancy = coach.parsedOccupancyStatus
     val occupancyColor = when (occupancy) {
@@ -118,15 +122,26 @@ private fun CarriageSegment(
 
     val width = if (isCompact) 28.dp else 38.dp
     val height = if (isCompact) 20.dp else 30.dp
+    val containerColor = if (isRecommended) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHighest
+    }
+    val borderColor = if (isRecommended) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+    }
 
     Box(
         modifier = Modifier
             .size(width = width, height = height)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), shape)
+            .background(containerColor)
+            .border(if (isRecommended) 1.5.dp else 1.dp, borderColor, shape)
             .semantics {
-                contentDescription = "Coach $coachLabel, ${occupancy?.name ?: "occupancy normal"}"
+                val recSuffix = if (isRecommended) ", recommended for exit" else ""
+                contentDescription = "Coach $coachLabel, ${occupancy?.name ?: "occupancy normal"}$recSuffix"
             },
         contentAlignment = Alignment.Center
     ) {

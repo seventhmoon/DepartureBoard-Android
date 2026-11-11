@@ -48,6 +48,15 @@ android {
 
         val bodsApiKey = props.getProperty("BODS_API_KEY") ?: System.getenv("BODS_API_KEY") ?: ""
         buildConfigField("String", "BODS_API_KEY", "\"$bodsApiKey\"")
+
+        val ltaApiKey = props.getProperty("LTA_DATAMALL_API_KEY") ?: System.getenv("LTA_DATAMALL_API_KEY") ?: ""
+        buildConfigField("String", "LTA_DATAMALL_API_KEY", "\"$ltaApiKey\"")
+
+        val tfnswApiKey = props.getProperty("TFNSW_API_KEY") ?: System.getenv("TFNSW_API_KEY") ?: ""
+        buildConfigField("String", "TFNSW_API_KEY", "\"$tfnswApiKey\"")
+
+        val odptApiKey = props.getProperty("ODPT_API_KEY") ?: System.getenv("ODPT_API_KEY") ?: ""
+        buildConfigField("String", "ODPT_API_KEY", "\"$odptApiKey\"")
     }
 
     buildTypes {

@@ -85,6 +85,25 @@ class DashboardViewModel @JvmOverloads constructor(
                 _uiState.update { it.copy(isBilingualEnabled = enabled) }
             }
         }
+        observeConcourseHardwareMotion()
+    }
+
+    private fun observeConcourseHardwareMotion() {
+        com.androidfung.departureboard.service.ConcourseMotionTracker.ensureRegistered(getApplication())
+        viewModelScope.launch {
+            com.androidfung.departureboard.service.ConcourseMotionTracker.motionUpdatesFlow.collectLatest { activityType ->
+                val wasIntervalMs = _uiState.value.concoursePollIntervalMs
+                refreshNearestStationInternal(fetchApiNearby = false)
+                val newIntervalMs = _uiState.value.concoursePollIntervalMs
+                if (newIntervalMs < wasIntervalMs && isCurrentlyOnline &&
+                    (activityType == com.androidfung.departureboard.util.ConcourseActivityGate.ACTIVITY_WALKING ||
+                        activityType == com.androidfung.departureboard.util.ConcourseActivityGate.ACTIVITY_RUNNING ||
+                        activityType == com.androidfung.departureboard.util.ConcourseActivityGate.ACTIVITY_ON_FOOT)
+                ) {
+                    startAutoRefreshPolling()
+                }
+            }
+        }
     }
 
     fun setSelectedRegion(region: com.androidfung.departureboard.data.model.TransitRegion) {
@@ -196,8 +215,15 @@ class DashboardViewModel @JvmOverloads constructor(
                         }
                     }
                 } else {
-                    // Paused when offline to preserve battery while in tube tunnels
+                    // Paused when offline to preserve battery while in tube tunnels,
+                    // while populating any empty station cards from Underground Tunnel Mode GTFS schedules
                     stopAutoRefreshPolling()
+                    val emptyStations = _uiState.value.stationCards
+                        .filter { it.departures.isEmpty() }
+                        .map { it.station }
+                    if (emptyStations.isNotEmpty()) {
+                        refreshDeparturesForStations(emptyStations)
+                    }
                 }
             }
         }
@@ -675,6 +701,11 @@ class DashboardViewModel @JvmOverloads constructor(
                 selectedDetailStation = station,
                 detailStationsContext = resolvedStationsContext,
                 detailDepartures = cachedDepartures,
+                detailAccessibilityAlerts = if (current.selectedDetailStation?.id == station.id) {
+                    current.detailAccessibilityAlerts
+                } else {
+                    emptyList()
+                },
                 isDetailLoading = cachedDepartures.isEmpty(),
                 selectedJourneyDeparture = keptJourney,
                 journeyDeparturesContext = keptJourneyContext
@@ -684,9 +715,13 @@ class DashboardViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             val lineStatusesDeferred = async { repository.getLineStatuses() }
             val departuresDeferred = async { repository.getDepartures(station.id, station.name) }
+            val enrichedStationDeferred = async { runCatching { repository.getStationById(station.id) }.getOrNull() }
+            val a11yAlertsDeferred = async { runCatching { repository.getStationAccessibilityAlerts(station.id) }.getOrDefault(emptyList()) }
 
             val lineStatuses = lineStatusesDeferred.await()
             val result = departuresDeferred.await()
+            val enrichedStation = enrichedStationDeferred.await()
+            val a11yAlerts = a11yAlertsDeferred.await()
             val rawDepartures = result.getOrDefault(cachedDepartures)
 
             // Enrich departures with live line statuses so badges carry disruption info
@@ -719,8 +754,24 @@ class DashboardViewModel @JvmOverloads constructor(
                     val resolvedTargetJourney = targetDepartureId?.takeIf { it.isNotBlank() }?.let { depId ->
                         enrichedDepartures.firstOrNull { it.id == depId }
                     } ?: state.selectedJourneyDeparture
+                    val mergedStation = if (enrichedStation != null) {
+                        station.copy(
+                            micromobilityHubs = enrichedStation.micromobilityHubs.ifEmpty { station.micromobilityHubs },
+                            lat = station.lat ?: enrichedStation.lat,
+                            lon = station.lon ?: enrichedStation.lon,
+                            wheelchairStatus = if (station.wheelchairStatus != com.androidfung.departureboard.data.model.WheelchairBoardingStatus.UNKNOWN) {
+                                station.wheelchairStatus
+                            } else {
+                                enrichedStation.wheelchairStatus
+                            }
+                        )
+                    } else {
+                        state.selectedDetailStation
+                    }
                     state.copy(
+                        selectedDetailStation = mergedStation,
                         detailDepartures = enrichedDepartures,
+                        detailAccessibilityAlerts = a11yAlerts,
                         isDetailLoading = false,
                         serviceHoursInfo = serviceHours,
                         selectedJourneyDeparture = resolvedTargetJourney,

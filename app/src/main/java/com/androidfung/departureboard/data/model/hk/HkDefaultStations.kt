@@ -313,6 +313,53 @@ object HkDefaultStations {
                 StationLineInfo("CTB_260", "260", "bus"),
                 StationLineInfo("CTB_962X", "962X", "bus")
             )
+        ),
+        // 16. Yuen Long MTR Light Rail Terminus (元朗輕鐵總站)
+        Station(
+            id = "HK_LRT_600",
+            name = "Yuen Long Light Rail (元朗輕鐵站)",
+            modes = listOf("tram"),
+            zone = null,
+            lat = 22.4461,
+            lon = 114.0353,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("LRT_610", "610", "tram"),
+                StationLineInfo("LRT_614", "614", "tram"),
+                StationLineInfo("LRT_615", "615", "tram"),
+                StationLineInfo("LRT_761P", "761P", "tram")
+            )
+        ),
+        // 17. Tuen Mun Ferry Pier Light Rail (屯門碼頭輕鐵總站)
+        Station(
+            id = "HK_LRT_001",
+            name = "Tuen Mun Ferry Pier LRT (屯門碼頭輕鐵站)",
+            modes = listOf("tram"),
+            zone = null,
+            lat = 22.3731,
+            lon = 113.9664,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("LRT_507", "507", "tram"),
+                StationLineInfo("LRT_610", "610", "tram"),
+                StationLineInfo("LRT_614", "614", "tram"),
+                StationLineInfo("LRT_615", "615", "tram")
+            )
+        ),
+        // 18. Causeway Bay Jardine's Bazaar Green Minibus Terminus (銅鑼灣渣甸街專線小巴總站)
+        Station(
+            id = "HK_GMB_20000105",
+            name = "Causeway Bay GMB (銅鑼灣專線小巴總站)",
+            modes = listOf("bus"),
+            zone = null,
+            lat = 22.2796,
+            lon = 114.1855,
+            isFavorite = false,
+            lines = listOf(
+                StationLineInfo("GMB_40", "GMB 40", "bus"),
+                StationLineInfo("GMB_10", "GMB 10", "bus"),
+                StationLineInfo("GMB_28", "GMB 28", "bus")
+            )
         )
     )
 

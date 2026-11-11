@@ -178,8 +178,14 @@ internal fun WearSprintHudScreen(
                         color = platBg,
                         border = BorderStroke(1.dp, platBorder)
                     ) {
+                        val expectedPlat = journey.expectedPlatformCode?.takeIf { it.isNotBlank() && !it.equals("TBD", ignoreCase = true) }
+                        val heroPlatLabel = when {
+                            !journey.isPlatformTbd -> "PLAT ${journey.cleanPlatformCode}"
+                            expectedPlat != null -> "TBD (~P$expectedPlat)"
+                            else -> "PLAT TBD"
+                        }
                         Text(
-                            text = if (journey.isPlatformTbd) "PLAT TBD" else "PLAT ${journey.cleanPlatformCode}",
+                            text = heroPlatLabel,
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 13.sp

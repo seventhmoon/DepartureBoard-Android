@@ -1,7 +1,7 @@
 package com.androidfung.departureboard.ui.feature.twinconcourse
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -18,8 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.CompareArrows
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.CompareArrows
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -50,10 +51,13 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.ui.dashboard.StationCardUiModel
 import com.androidfung.departureboard.ui.designsystem.DepartureRowItem
+import com.androidfung.departureboard.ui.theme.LocalIsDarkTheme
 import com.androidfung.departureboard.ui.theme.dimensions
+import com.androidfung.departureboard.util.TwinConcourseEvaluator
 
 /**
- * Dual-Hub Concourse / "Which Station?" Race sheet comparing live departures from two nearby competing hubs.
+ * Dual-Hub Concourse / "Which Station?" Race sheet comparing live departures from two nearby competing hubs,
+ * adjusted for walking + concourse gate buffer time.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +84,6 @@ fun TwinConcourseBottomSheet(
     }
 }
 
-@Suppress("DEPRECATION")
 @Composable
 fun TwinConcourseContent(
     onDismissRequest: () -> Unit,
@@ -95,17 +98,18 @@ fun TwinConcourseContent(
         Column(
             modifier = modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Twin Concourse Race",
+                text = stringResource(R.string.twin_concourse_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Add at least 2 stations to your saved board to compare live departures head-to-head.",
+                text = stringResource(R.string.twin_concourse_empty_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -113,11 +117,18 @@ fun TwinConcourseContent(
         return
     }
 
-    var stationAIndex by remember { mutableIntStateOf(0) }
-    var stationBIndex by remember { mutableIntStateOf(1.coerceAtMost(stationCards.lastIndex)) }
+    val defaultPair = remember(stationCards.size) {
+        TwinConcourseEvaluator.selectBestDefaultPair(stationCards)
+    }
+    var stationAIndex by remember(stationCards.size) { mutableIntStateOf(defaultPair.first) }
+    var stationBIndex by remember(stationCards.size) { mutableIntStateOf(defaultPair.second.coerceAtMost(stationCards.lastIndex)) }
 
     val cardA = stationCards.getOrNull(stationAIndex) ?: stationCards[0]
     val cardB = stationCards.getOrNull(stationBIndex) ?: stationCards[1]
+
+    val comparison = remember(cardA, cardB) {
+        TwinConcourseEvaluator.compareHubs(cardA, cardB, maxRows = 3)
+    }
 
     val scrollState = rememberScrollState()
 
@@ -125,6 +136,7 @@ fun TwinConcourseContent(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(scrollState)
+            .navigationBarsPadding()
             .padding(horizontal = dimensions.paddingScreenEdge, vertical = dimensions.paddingMedium)
     ) {
         // Header
@@ -145,7 +157,7 @@ fun TwinConcourseContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.CompareArrows,
+                        imageVector = Icons.AutoMirrored.Rounded.CompareArrows,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(dimensions.iconMedium)
@@ -154,12 +166,12 @@ fun TwinConcourseContent(
                 Spacer(modifier = Modifier.width(dimensions.paddingLarge))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Twin Concourse Race",
+                        text = stringResource(R.string.twin_concourse_title),
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Head-to-head live station comparison",
+                        text = stringResource(R.string.twin_concourse_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -187,6 +199,7 @@ fun TwinConcourseContent(
             StationPickerBox(
                 label = "Hub A",
                 currentStation = cardA.station,
+                walkMinutes = comparison.walkMinutesA,
                 allStations = allStations,
                 currentIndex = stationAIndex,
                 onSelectIndex = { stationAIndex = it },
@@ -196,6 +209,7 @@ fun TwinConcourseContent(
             StationPickerBox(
                 label = "Hub B",
                 currentStation = cardB.station,
+                walkMinutes = comparison.walkMinutesB,
                 allStations = allStations,
                 currentIndex = stationBIndex,
                 onSelectIndex = { stationBIndex = it },
@@ -205,28 +219,17 @@ fun TwinConcourseContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Who leaves next? Winner banner (exclude cancelled services!)
-        val firstA = cardA.departures.firstOrNull { it.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED }
-        val firstB = cardB.departures.firstOrNull { it.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED }
-
-        val winnerCard = when {
-            firstA != null && firstB != null -> {
-                if (firstA.timeToStationSeconds <= firstB.timeToStationSeconds) cardA else cardB
-            }
-            firstA != null -> cardA
-            firstB != null -> cardB
-            else -> null
-        }
-
-        val winningDeparture = if (winnerCard === cardA) firstA else firstB
-
-        if (winnerCard != null && winningDeparture != null) {
-            val isDark = com.androidfung.departureboard.ui.theme.LocalIsDarkTheme.current
+        // Walk-adjusted catchable winner banner
+        val winnerCard = comparison.winnerCard
+        val winningEval = comparison.winningDeparture
+        if (winnerCard != null && winningEval != null) {
+            val winningDeparture = winningEval.departure
+            val isDark = LocalIsDarkTheme.current
             val winnerAccentColor = if (isDark) Color(0xFFFFB300) else Color(0xFF8C5000)
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = Color(0xFFFFD54F).copy(alpha = 0.16f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB300).copy(alpha = 0.5f)),
+                border = BorderStroke(1.dp, Color(0xFFFFB300).copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -242,14 +245,14 @@ fun TwinConcourseContent(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Next Immediate Departure: ${winnerCard.station.displayName}",
+                            text = stringResource(R.string.twin_concourse_best_catchable, winnerCard.station.displayName),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = winnerAccentColor
                         )
                         val mins = winningDeparture.timeToStationSeconds / 60
-                        val minLabel = if (mins == 0) "Due now" else "in $mins mins"
+                        val minLabel = if (mins == 0) stringResource(R.string.due_now) else stringResource(R.string.in_minutes_short, mins)
                         Text(
-                            text = "${winningDeparture.lineName} to ${winningDeparture.destinationName} • $minLabel",
+                            text = "${winningDeparture.lineName} → ${winningDeparture.destinationName} • $minLabel",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -263,6 +266,8 @@ fun TwinConcourseContent(
         // Departures comparison
         HubDeparturesSection(
             card = cardA,
+            evaluated = comparison.evaluatedA,
+            walkMinutes = comparison.walkMinutesA,
             hubTag = "Hub A",
             onSelectStation = onSelectStation,
             onDepartureClick = onDepartureClick
@@ -272,6 +277,8 @@ fun TwinConcourseContent(
 
         HubDeparturesSection(
             card = cardB,
+            evaluated = comparison.evaluatedB,
+            walkMinutes = comparison.walkMinutesB,
             hubTag = "Hub B",
             onSelectStation = onSelectStation,
             onDepartureClick = onDepartureClick
@@ -283,6 +290,7 @@ fun TwinConcourseContent(
 private fun StationPickerBox(
     label: String,
     currentStation: Station,
+    walkMinutes: Int?,
     allStations: List<Station>,
     currentIndex: Int,
     onSelectIndex: (Int) -> Unit,
@@ -291,18 +299,31 @@ private fun StationPickerBox(
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier.clickable {
             val next = (currentIndex + 1) % allStations.size
             onSelectIndex(next)
         }
     ) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Text(
-                text = "$label (Tap to switch)",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (walkMinutes != null) {
+                    Text(
+                        text = stringResource(R.string.twin_walk_minutes_badge, walkMinutes),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             Text(
                 text = currentStation.displayName,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
@@ -317,10 +338,13 @@ private fun StationPickerBox(
 @Composable
 private fun HubDeparturesSection(
     card: StationCardUiModel,
+    evaluated: List<TwinConcourseEvaluator.EvaluatedTwinDeparture>,
+    walkMinutes: Int?,
     hubTag: String,
     onSelectStation: ((Station) -> Unit)?,
     onDepartureClick: ((Departure) -> Unit)?
 ) {
+    val isDark = LocalIsDarkTheme.current
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -332,14 +356,29 @@ private fun HubDeparturesSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "$hubTag • ${card.station.displayName}",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "$hubTag • ${card.station.displayName}",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (walkMinutes != null) {
+                        Text(
+                            text = stringResource(R.string.twin_walk_minutes_badge, walkMinutes),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 if (onSelectStation != null) {
                     Text(
-                        text = "View Station",
+                        text = stringResource(R.string.twin_view_station),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { onSelectStation(card.station) }
@@ -349,22 +388,58 @@ private fun HubDeparturesSection(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (card.departures.isEmpty()) {
+            if (evaluated.isEmpty()) {
                 Text(
-                    text = "No active departures",
+                    text = stringResource(R.string.twin_no_active_departures),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                val displayList = card.departures.take(3)
-                displayList.forEachIndexed { idx, dep ->
-                    DepartureRowItem(
-                        departure = dep,
-                        isFirst = idx == 0,
-                        showLineBadge = true,
-                        onClick = { onDepartureClick?.invoke(dep) }
-                    )
-                    if (idx < displayList.lastIndex) {
+                evaluated.forEachIndexed { idx, item ->
+                    Column {
+                        DepartureRowItem(
+                            departure = item.departure,
+                            isFirst = idx == 0,
+                            showLineBadge = true,
+                            onClick = { onDepartureClick?.invoke(item.departure) }
+                        )
+                        if (walkMinutes != null) {
+                            val (pillBg, pillFg, labelRes) = when (item.catchability) {
+                                TwinConcourseEvaluator.CatchabilityStatus.MAKEABLE -> Triple(
+                                    Color(0xFF2E7D32).copy(alpha = 0.14f),
+                                    if (isDark) Color(0xFF81C784) else Color(0xFF1B5E20),
+                                    R.string.twin_catchability_makeable
+                                )
+                                TwinConcourseEvaluator.CatchabilityStatus.TIGHT_SPRINT -> Triple(
+                                    Color(0xFFFFB300).copy(alpha = 0.16f),
+                                    if (isDark) Color(0xFFFFD54F) else Color(0xFF8C5000),
+                                    R.string.twin_catchability_tight
+                                )
+                                TwinConcourseEvaluator.CatchabilityStatus.TOO_CLOSE -> Triple(
+                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                                    MaterialTheme.colorScheme.onErrorContainer,
+                                    R.string.twin_catchability_too_close
+                                )
+                            }
+                            Box(modifier = Modifier.padding(start = 38.dp, bottom = 6.dp)) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = pillBg
+                                ) {
+                                    Text(
+                                        text = stringResource(labelRes),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = pillFg,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (idx < evaluated.lastIndex) {
                         HorizontalDivider(
                             modifier = Modifier.padding(start = 38.dp),
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)

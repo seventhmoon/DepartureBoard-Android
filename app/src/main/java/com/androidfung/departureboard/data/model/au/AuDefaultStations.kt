@@ -18,6 +18,8 @@ object AuDefaultStations {
             id = "AU_TRAIN_CENTRAL",
             name = "Central",
             modes = listOf("national-rail", "tube"),
+            lat = -33.8832,
+            lon = 151.2070,
             lines = listOf(
                 StationLineInfo("M1", "Metro M1"),
                 StationLineInfo("T1", "T1 North Shore & Western"),
@@ -30,6 +32,8 @@ object AuDefaultStations {
             id = "AU_BUS_200060",
             name = "Central Station, Eddy Ave",
             modes = listOf("bus"),
+            lat = -33.8822,
+            lon = 151.2067,
             lines = listOf(
                 StationLineInfo("374", "374", "bus"),
                 StationLineInfo("396", "396", "bus"),
@@ -43,6 +47,8 @@ object AuDefaultStations {
             id = "AU_TRAIN_CENTRAL",
             name = "Central",
             modes = listOf("national-rail", "tube"),
+            lat = -33.8832,
+            lon = 151.2070,
             lines = listOf(
                 StationLineInfo("M1", "Metro M1"),
                 StationLineInfo("T1", "T1 North Shore & Western"),
@@ -55,6 +61,8 @@ object AuDefaultStations {
             id = "AU_TRAIN_TOWNHALL",
             name = "Town Hall",
             modes = listOf("national-rail"),
+            lat = -33.8736,
+            lon = 151.2069,
             lines = listOf(
                 StationLineInfo("T1", "T1 North Shore & Western"),
                 StationLineInfo("T2", "T2 Inner West"),
@@ -66,6 +74,8 @@ object AuDefaultStations {
             id = "AU_TRAIN_WYNYARD",
             name = "Wynyard",
             modes = listOf("national-rail"),
+            lat = -33.8657,
+            lon = 151.2064,
             lines = listOf(
                 StationLineInfo("T1", "T1 North Shore & Western"),
                 StationLineInfo("T2", "T2 Inner West"),
@@ -77,6 +87,8 @@ object AuDefaultStations {
             id = "AU_TRAIN_CIRCULARQUAY",
             name = "Circular Quay",
             modes = listOf("national-rail"),
+            lat = -33.8613,
+            lon = 151.2108,
             lines = listOf(
                 StationLineInfo("T2", "T2 Inner West"),
                 StationLineInfo("T3", "T3 Liverpool"),
@@ -87,6 +99,8 @@ object AuDefaultStations {
             id = "AU_TRAIN_CHATSWOOD",
             name = "Chatswood",
             modes = listOf("national-rail", "tube"),
+            lat = -33.7973,
+            lon = 151.1809,
             lines = listOf(
                 StationLineInfo("M1", "Metro M1"),
                 StationLineInfo("T1", "T1 North Shore"),
@@ -97,6 +111,8 @@ object AuDefaultStations {
             id = "AU_TRAIN_PARRAMATTA",
             name = "Parramatta",
             modes = listOf("national-rail"),
+            lat = -33.8175,
+            lon = 151.0053,
             lines = listOf(
                 StationLineInfo("T1", "T1 Western Line"),
                 StationLineInfo("T2", "T2 Leppington"),
@@ -107,6 +123,8 @@ object AuDefaultStations {
             id = "AU_TRAIN_SYDNEYDOMESTIC",
             name = "Domestic Airport",
             modes = listOf("national-rail"),
+            lat = -33.9336,
+            lon = 151.1812,
             lines = listOf(
                 StationLineInfo("T8", "T8 Airport & South Line")
             )
@@ -115,8 +133,22 @@ object AuDefaultStations {
             id = "AU_TRAIN_BONDIJUNCTION",
             name = "Bondi Junction",
             modes = listOf("national-rail"),
+            lat = -33.8914,
+            lon = 151.2484,
             lines = listOf(
                 StationLineInfo("T4", "T4 Eastern Suburbs Line")
+            )
+        ),
+        Station(
+            id = "AU_BUS_200060",
+            name = "Central Station, Eddy Ave",
+            modes = listOf("bus"),
+            lat = -33.8822,
+            lon = 151.2067,
+            lines = listOf(
+                StationLineInfo("374", "374", "bus"),
+                StationLineInfo("396", "396", "bus"),
+                StationLineInfo("440", "440", "bus")
             )
         )
     )
@@ -169,7 +201,61 @@ object AuDefaultStations {
         val headwaysSeconds: List<Int>
     )
 
+    fun buildWaratahFormation(isMetro: Boolean): com.androidfung.departureboard.data.model.TrainFormation {
+        val count = if (isMetro) 6 else 8
+        val coaches = (1..count).map { car ->
+            val isEndCar = car == 1 || car == count
+            val occ = when {
+                isEndCar -> "MANY_SEATS_AVAILABLE"
+                car in 3..(count - 2) -> "STANDING_ROOM_ONLY"
+                else -> "FEW_SEATS_AVAILABLE"
+            }
+            com.androidfung.departureboard.data.model.CoachInfo(
+                coachNumber = car.toString(),
+                occupancyStatus = occ,
+                isWheelchairAccessible = isEndCar,
+                isQuietCoach = !isMetro && (car == 1 || car == 4 || car == 5 || car == 8)
+            )
+        }
+        return com.androidfung.departureboard.data.model.TrainFormation(coachCount = count, coaches = coaches)
+    }
+
     fun getFallbackDepartures(stationId: String, stationName: String): List<Departure> {
+        val now = Instant.now()
+        if (stationId.startsWith("AU_BUS_", ignoreCase = true)) {
+            val busBg = androidx.compose.ui.graphics.Color(0xFF00B5EF)
+            return listOf(
+                Triple("374", "Coogee Beach", 150),
+                Triple("396", "Maroubra Beach", 300),
+                Triple("440", "Rozelle", 480)
+            ).mapIndexed { idx, (route, dest, waitSec) ->
+                val arr = now.plusSeconds(waitSec.toLong())
+                Departure(
+                    id = "${stationId}_${route}_$idx",
+                    stationId = stationId,
+                    stationName = stationName,
+                    lineId = route,
+                    lineName = route,
+                    platformName = "Stand C",
+                    destinationName = dest,
+                    towards = dest,
+                    timeToStationSeconds = waitSec,
+                    expectedArrivalIso = DateTimeFormatter.ISO_INSTANT.format(arr),
+                    currentLocation = if (waitSec <= 60) "Approaching" else "In Transit",
+                    modeName = "bus",
+                    lineBadge = com.androidfung.departureboard.data.model.LineBadgeInfo(
+                        lineId = route,
+                        displayName = route,
+                        backgroundColor = busBg,
+                        textColor = androidx.compose.ui.graphics.Color.White,
+                        mode = com.androidfung.departureboard.data.model.TransitMode.BUS,
+                        lineCode = route
+                    ),
+                    status = if (waitSec <= 60) DepartureStatus.DUE else DepartureStatus.ON_TIME,
+                    occupancyStatus = "MANY_SEATS_AVAILABLE"
+                )
+            }
+        }
         val cleanName = stationName.replace(Regex("\\s*\\(.*\\)"), "").trim()
         val templates = STATION_DEPARTURE_TEMPLATES[cleanName]
             ?: listOf(
@@ -177,7 +263,6 @@ object AuDefaultStations {
                 DepartureTemplate("T1", "Hornsby", "2", listOf(240, 540))
             )
 
-        val now = Instant.now()
         val departures = mutableListOf<Departure>()
 
         templates.forEach { template ->
@@ -205,7 +290,15 @@ object AuDefaultStations {
                         callingPoints = listOf(
                             CallingPoint(cleanName, "Dep"),
                             CallingPoint(template.destination, "${waitSec / 60 + 12} min")
-                        )
+                        ),
+                        train = com.androidfung.departureboard.data.model.TrainInfo(
+                            operator = com.androidfung.departureboard.data.model.TransitOperator(
+                                id = if (sydneyLine == AuSydneyLine.M1) "SM" else "ST",
+                                name = if (sydneyLine == AuSydneyLine.M1) "Sydney Metro" else "Sydney Trains"
+                            ),
+                            formation = buildWaratahFormation(isMetro = sydneyLine == AuSydneyLine.M1)
+                        ),
+                        isWheelchairAccessible = true
                     )
                 )
             }

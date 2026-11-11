@@ -25,6 +25,8 @@ open class FakeTflApiService(
     var stopPointDetailResult: TflStopPointDetail? = null,
     var lineStopPointsResult: List<TflStopPointChild> = emptyList(),
     var nearbyStopPointsResult: TflStopPointsResponse = TflStopPointsResponse(),
+    var bikePointsResult: com.androidfung.departureboard.data.model.gb.TflBikePointPlacesResponse = com.androidfung.departureboard.data.model.gb.TflBikePointPlacesResponse(),
+    var stopPointDisruptionsResult: List<com.androidfung.departureboard.data.model.gb.TflStopPointDisruption> = emptyList(),
     var shouldThrow: Boolean = false,
     var throwException: Exception = IOException("Network error")
 ) : TflApiService {
@@ -83,5 +85,21 @@ open class FakeTflApiService(
     override suspend fun getLineTimetable(lineId: String, fromStopPointId: String): TflTimetableResponse {
         if (shouldThrow) throw throwException
         return timetableResponse
+    }
+
+    override suspend fun getNearbyBikePoints(
+        lat: Double,
+        lon: Double,
+        radius: Int
+    ): com.androidfung.departureboard.data.model.gb.TflBikePointPlacesResponse {
+        if (shouldThrow) throw throwException
+        return bikePointsResult
+    }
+
+    override suspend fun getStopPointDisruptions(
+        stopPointId: String
+    ): List<com.androidfung.departureboard.data.model.gb.TflStopPointDisruption> {
+        if (shouldThrow) throw throwException
+        return stopPointDisruptionsResult
     }
 }

@@ -514,6 +514,16 @@ data class TrainInfo(
 )
 
 /**
+ * Freshness source of a departure prediction, distinguishing live network telemetry from
+ * recently cached live snapshots and offline static GTFS / timetable schedules ("Tunnel Mode").
+ */
+enum class DataFreshness {
+    LIVE,
+    CACHED_LIVE,
+    OFFLINE_SCHEDULED
+}
+
+/**
  * Clean domain representation of a live departure prediction.
  */
 @Immutable
@@ -548,7 +558,8 @@ data class Departure(
     val journeyDestination: JourneyDestination? = null,
     val fare: FareEstimate? = null,
     val isLastTrain: Boolean = false,
-    val isNightService: Boolean = false
+    val isNightService: Boolean = false,
+    val dataFreshness: DataFreshness = DataFreshness.LIVE
 ) {
     val resolvedPlatform: PlatformInfo
         get() = platform ?: PlatformInfo(

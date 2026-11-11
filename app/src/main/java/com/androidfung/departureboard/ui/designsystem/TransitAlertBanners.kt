@@ -429,3 +429,37 @@ fun LastTrainServiceBanner(
         }
     )
 }
+
+/**
+ * High-visibility Step-Free Access / Lift Outage Guard banner powered by live StopPoint disruption feeds.
+ */
+@Composable
+fun StepFreeOutageBanner(
+    alerts: List<com.androidfung.departureboard.data.model.TransitAlert>,
+    modifier: Modifier = Modifier
+) {
+    if (alerts.isEmpty()) return
+    val isDark = LocalIsDarkTheme.current
+    val accentColor = if (isDark) Color(0xFFFFB4A9) else Color(0xFFBA1A1A)
+    val bgColor = if (isDark) Color(0xFF930006).copy(alpha = 0.22f) else Color(0xFFFFDAD6).copy(alpha = 0.55f)
+    val borderColor = accentColor.copy(alpha = if (isDark) 0.50f else 0.40f)
+    val primaryAlert = alerts.first()
+
+    TransitAlertCard(
+        iconText = "♿",
+        title = stringResource(R.string.step_free_lift_outage_title),
+        accentColor = accentColor,
+        backgroundColor = bgColor,
+        borderColor = borderColor,
+        modifier = modifier,
+        bodyContent = {
+            Text(
+                text = primaryAlert.descriptionText?.takeIf { it.isNotBlank() } ?: primaryAlert.headerText,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.90f),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    )
+}

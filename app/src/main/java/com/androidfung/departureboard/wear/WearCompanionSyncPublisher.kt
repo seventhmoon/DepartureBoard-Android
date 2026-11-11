@@ -94,7 +94,9 @@ object WearCompanionSyncPublisher {
         stopsAway: Int?,
         targetAlightStopName: String?,
         isCancelled: Boolean,
-        lineColorArgb: Int
+        lineColorArgb: Int,
+        expectedPlatformCode: String? = null,
+        expectedPlatformConfidence: Int? = null
     ) {
         try {
             val trackedJson = buildTrackedDepartureJson(
@@ -109,7 +111,9 @@ object WearCompanionSyncPublisher {
                 stopsAway = stopsAway,
                 targetAlightStopName = targetAlightStopName,
                 isCancelled = isCancelled,
-                lineColorArgb = lineColorArgb
+                lineColorArgb = lineColorArgb,
+                expectedPlatformCode = expectedPlatformCode,
+                expectedPlatformConfidence = expectedPlatformConfidence
             )
             lastPublishedTrackedJson = trackedJson
 
@@ -263,7 +267,9 @@ object WearCompanionSyncPublisher {
                 val depsArray = JSONArray()
                 card.departures.take(6).forEach { dep ->
                     val resolvedPlat = dep.resolvedPlatform
-                    val platCode = compactPlatformForWatch(resolvedPlat.code)
+                    val isExpectedOnly = resolvedPlat.isHistoricalExpected && !resolvedPlat.isConfirmed
+                    val platCode = if (isExpectedOnly) "TBD" else compactPlatformForWatch(resolvedPlat.code)
+                    val expectedPlatCode = if (isExpectedOnly) compactPlatformForWatch(resolvedPlat.code) else ""
                     val delayRepay = DelayRepayCalculator.evaluate(dep)
                     val depObj = JSONObject().apply {
                         put("id", dep.id)
@@ -272,6 +278,8 @@ object WearCompanionSyncPublisher {
                         put("destinationCrs", deriveThreeLetterCode(dep.destinationStationId ?: "", dep.destinationName))
                         put("platformCode", platCode)
                         put("isPlatformConfirmed", resolvedPlat.isConfirmed && !platCode.equals("TBD", ignoreCase = true))
+                        put("expectedPlatformCode", expectedPlatCode)
+                        put("expectedPlatformConfidence", resolvedPlat.expectedConfidencePercent ?: 0)
                         put("isPlatformChanged", resolvedPlat.isChanged)
                         put("previousPlatformCode", resolvedPlat.previousPlatform ?: "")
                         put("countdownMinutes", (dep.timeToStationSeconds / 60).coerceAtLeast(0))
@@ -324,9 +332,12 @@ object WearCompanionSyncPublisher {
         targetAlightStopName: String?,
         isCancelled: Boolean,
         lineColorArgb: Int,
-        syncedAtEpochMs: Long = System.currentTimeMillis()
+        syncedAtEpochMs: Long = System.currentTimeMillis(),
+        expectedPlatformCode: String? = null,
+        expectedPlatformConfidence: Int? = null
     ): String {
         val cleanPlat = compactPlatformForWatch(platform)
+        val cleanExpected = expectedPlatformCode?.takeIf { it.isNotBlank() }?.let { compactPlatformForWatch(it) }.orEmpty()
         return JSONObject().apply {
             put("departureId", departureId)
             put("stationId", stationId)
@@ -335,6 +346,8 @@ object WearCompanionSyncPublisher {
             put("lineName", lineName)
             put("platformCode", cleanPlat)
             put("isPlatformConfirmed", !cleanPlat.equals("TBD", ignoreCase = true))
+            put("expectedPlatformCode", cleanExpected)
+            put("expectedPlatformConfidence", expectedPlatformConfidence ?: 0)
             put("remainingSeconds", remainingSeconds)
             put("currentLocation", currentLocation ?: "")
             put("stopsAway", stopsAway ?: -1)

@@ -770,6 +770,14 @@ private fun TrainJourneyContent(
             val formation = departure.formation
             if (formation != null && formation.coaches.isNotEmpty()) {
                 item(key = "train_formation_diagram", contentType = "train_formation_diagram") {
+                    val carriageRecommendation = remember(formation, targetAlightStop, departure.destinationName) {
+                        com.androidfung.departureboard.util.CarriageExitAdvisor.recommend(
+                            formation = formation,
+                            targetStopOrDestination = targetAlightStop ?: departure.destinationName
+                        )
+                    }
+                    val recommendedSet = carriageRecommendation?.recommendedCoachLabels.orEmpty()
+
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -780,6 +788,41 @@ private fun TrainJourneyContent(
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        if (carriageRecommendation != null) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(text = "🎯", style = MaterialTheme.typography.labelMedium)
+                                    Column {
+                                        Text(
+                                            text = stringResource(
+                                                R.string.best_carriage_to_board_title,
+                                                carriageRecommendation.recommendedCoachLabels.joinToString(", ")
+                                            ),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        Text(
+                                            text = carriageRecommendation.reason,
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         Spacer(modifier = Modifier.height(6.dp))
                         Row(
                             modifier = Modifier
@@ -789,12 +832,21 @@ private fun TrainJourneyContent(
                         ) {
                             formation.coaches.forEachIndexed { coachIdx, coach ->
                                 val coachTitle = coach.coachNumber ?: "${coachIdx + 1}"
+                                val isRecommendedCoach = coachTitle in recommendedSet
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    color = if (isRecommendedCoach) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHighest
+                                    },
                                     border = androidx.compose.foundation.BorderStroke(
-                                        width = 1.dp,
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                        width = if (isRecommendedCoach) 1.5.dp else 1.dp,
+                                        color = if (isRecommendedCoach) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                        }
                                     )
                                 ) {
                                     Column(
