@@ -20,62 +20,101 @@ import com.androidfung.departureboard.data.repository.region.gb.direction.Thames
 object TflDepartureMapper {
 
     /**
-     * Deduplicates raw arrivals based on vehicleId, or line + destination + 30-sec time bucket.
+     * Deduplicates raw arrivals based on vehicleId when present, and headway-aware clustering
+     * (line + destination + platform/corridor within the line's minimum headway separation).
      * When a stationId/stationName is provided and TfL returns both an inbound terminating prediction
-     * and an outbound departure prediction for the same vehicleId, prefers the outbound prediction.
+     * and an outbound departure prediction for the same vehicle, prefers the outbound prediction.
      */
     fun deduplicate(
         rawArrivals: List<TflArrivalPrediction>,
         stationId: String = "",
         stationName: String = ""
     ): List<TflArrivalPrediction> {
-        if (stationId.isBlank() && stationName.isBlank()) {
-            return rawArrivals.distinctBy { item ->
-                if (!item.vehicleId.isNullOrBlank()) {
-                    item.vehicleId
-                } else {
-                    "${item.lineId}_${item.destinationName}_${item.timeToStation / 30}"
-                }
-            }
-        }
+        if (rawArrivals.isEmpty()) return emptyList()
 
-        val orderedKeys = mutableListOf<String>()
-        val bestByKey = LinkedHashMap<String, TflArrivalPrediction>()
+        // Phase 1: Deduplicate explicit vehicleId entries first
+        val vehicleBuckets = LinkedHashMap<String, TflArrivalPrediction>()
+        val withoutVehicle = mutableListOf<TflArrivalPrediction>()
 
         for (item in rawArrivals) {
-            val key = if (!item.vehicleId.isNullOrBlank()) {
-                "veh_${item.vehicleId}"
-            } else {
-                "${item.lineId}_${item.destinationName}_${item.timeToStation / 30}"
-            }
-            val existing = bestByKey[key]
-            if (existing == null) {
-                orderedKeys.add(key)
-                bestByKey[key] = item
-            } else if (!item.vehicleId.isNullOrBlank()) {
-                val existingTerminating = DestinationResolver.isTerminatingAtStation(
-                    stationId = stationId,
-                    stationName = stationName,
-                    itemDestination = existing.destinationName,
-                    itemTowards = existing.towards,
-                    destinationNaptanId = existing.destinationNaptanId,
-                    itemNaptanId = existing.naptanId
-                )
-                val candidateTerminating = DestinationResolver.isTerminatingAtStation(
-                    stationId = stationId,
-                    stationName = stationName,
-                    itemDestination = item.destinationName,
-                    itemTowards = item.towards,
-                    destinationNaptanId = item.destinationNaptanId,
-                    itemNaptanId = item.naptanId
-                )
-                if (existingTerminating && !candidateTerminating) {
-                    bestByKey[key] = item
+            val veh = item.vehicleId?.trim()
+            if (!veh.isNullOrBlank()) {
+                val existing = vehicleBuckets[veh]
+                if (existing == null) {
+                    vehicleBuckets[veh] = item
+                } else if (stationId.isNotBlank() || stationName.isNotBlank()) {
+                    val existingTerminating = DestinationResolver.isTerminatingAtStation(
+                        stationId = stationId,
+                        stationName = stationName,
+                        itemDestination = existing.destinationName,
+                        itemTowards = existing.towards,
+                        destinationNaptanId = existing.destinationNaptanId,
+                        itemNaptanId = existing.naptanId
+                    )
+                    val candidateTerminating = DestinationResolver.isTerminatingAtStation(
+                        stationId = stationId,
+                        stationName = stationName,
+                        itemDestination = item.destinationName,
+                        itemTowards = item.towards,
+                        destinationNaptanId = item.destinationNaptanId,
+                        itemNaptanId = item.naptanId
+                    )
+                    if (existingTerminating && !candidateTerminating) {
+                        vehicleBuckets[veh] = item
+                    }
                 }
+            } else {
+                withoutVehicle.add(item)
             }
         }
 
-        return orderedKeys.mapNotNull { bestByKey[it] }
+        val intermediate = vehicleBuckets.values.toList() + withoutVehicle
+
+        // Phase 2: Headway-aware clustering.
+        // On any single platform/corridor for the same line and destination, trains cannot depart
+        // closer together than the line's physical minimum headway.
+        // Group by corridor (lineId + normalized destination + normalized platform group)
+        val sortedByTime = intermediate.sortedBy { it.timeToStation }
+        val finalResult = mutableListOf<TflArrivalPrediction>()
+
+        for (candidate in sortedByTime) {
+            val candidateLine = candidate.lineId?.lowercase()?.trim().orEmpty()
+            val candidateDest = StationNameFormatter.clean(candidate.destinationName.orEmpty()).lowercase()
+            val candidatePlat = normalizePlatformGroup(candidate.platformName)
+            val gbLine = com.androidfung.departureboard.data.model.gb.GbTransitLine.fromCode(candidateLine)
+            val minHeadwaySec = gbLine?.minHeadwaySeconds
+                ?: if (candidate.modeName.equals("bus", ignoreCase = true)) 45 else 90
+
+            val isDuplicate = finalResult.any { existing ->
+                val existingLine = existing.lineId?.lowercase()?.trim().orEmpty()
+                val existingDest = StationNameFormatter.clean(existing.destinationName.orEmpty()).lowercase()
+                val existingPlat = normalizePlatformGroup(existing.platformName)
+
+                val sameLine = (candidateLine == existingLine) ||
+                    com.androidfung.departureboard.data.model.TransitLineMatcher.isSameLine(candidateLine, existingLine)
+                val sameDest = candidateDest == existingDest ||
+                    candidateDest.contains(existingDest) ||
+                    existingDest.contains(candidateDest)
+                val samePlatform = candidatePlat.isEmpty() || existingPlat.isEmpty() || candidatePlat == existingPlat
+
+                sameLine && sameDest && samePlatform &&
+                    kotlin.math.abs(candidate.timeToStation - existing.timeToStation) < minHeadwaySec
+            }
+
+            if (!isDuplicate) {
+                finalResult.add(candidate)
+            }
+        }
+
+        return finalResult
+    }
+
+    private fun normalizePlatformGroup(platformName: String?): String {
+        if (platformName.isNullOrBlank()) return ""
+        val trimmed = platformName.trim().lowercase()
+        // Extract leading platform letter or digit if present (e.g. "Platform A" -> "a", "Platform 1" -> "1")
+        val match = Regex("""(?:platform|plat|stand|stop)\s*([a-z0-9]+)""").find(trimmed)
+        return match?.groupValues?.getOrNull(1) ?: trimmed
     }
 
     /**

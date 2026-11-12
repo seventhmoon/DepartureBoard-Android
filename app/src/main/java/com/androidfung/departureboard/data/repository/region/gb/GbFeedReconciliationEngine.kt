@@ -11,11 +11,11 @@ import kotlin.math.abs
  */
 object GbFeedReconciliationEngine {
 
-    private const val TIMESTAMP_TOLERANCE_SECONDS = 180
 
     /**
      * Merges TfL predictions and National Rail departures, avoiding duplicate entries for lines
-     * reported by both sources (such as Elizabeth line and Overground/Lioness).
+     * reported by both sources (such as Elizabeth line and Overground/Lioness), using line-specific
+     * minimum headway thresholds.
      */
     fun mergeAndDeduplicate(
         tflDepartures: List<Departure>,
@@ -28,8 +28,10 @@ object GbFeedReconciliationEngine {
 
         for (nr in nrDepartures) {
             val cleanNrDest = StationNameFormatter.clean(nr.destinationName)
+            val gbLine = com.androidfung.departureboard.data.model.gb.GbTransitLine.fromCode(nr.lineId)
+            val toleranceSeconds = gbLine?.minHeadwaySeconds ?: nr.transitMode.defaultMinHeadwaySeconds
 
-            // Check if TfL already has an equivalent prediction for the same line and destination within a 180s window
+            // Check if TfL already has an equivalent prediction for the same line and destination within the line headway window
             val isDuplicate = result.any { tfl ->
                 val linesMatch = TransitLineMatcher.isSameLine(tfl.lineId, nr.lineId) ||
                         tfl.lineName.equals(nr.lineName, ignoreCase = true)
@@ -39,7 +41,7 @@ object GbFeedReconciliationEngine {
                         cleanTflDest.contains(cleanNrDest, ignoreCase = true) ||
                         cleanNrDest.contains(cleanTflDest, ignoreCase = true)
 
-                linesMatch && destsMatch && abs(tfl.timeToStationSeconds - nr.timeToStationSeconds) < TIMESTAMP_TOLERANCE_SECONDS
+                linesMatch && destsMatch && abs(tfl.timeToStationSeconds - nr.timeToStationSeconds) < toleranceSeconds
             }
 
             if (!isDuplicate) {

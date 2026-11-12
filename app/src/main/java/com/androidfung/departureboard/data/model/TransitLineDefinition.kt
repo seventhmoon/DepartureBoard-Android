@@ -33,6 +33,17 @@ interface TransitLineDefinition : LocalizedNameProvider {
     val mode: TransitMode get() = TransitMode.METRO
     val operatorId: String? get() = null
 
+    /**
+     * Minimum physical signaling separation (headway) in seconds between consecutive
+     * departures in the same direction on the same platform/track.
+     */
+    val minHeadwaySeconds: Int get() = mode.defaultMinHeadwaySeconds
+
+    /**
+     * Typical peak service frequency in minutes (e.g. 2 mins on Victoria, 5 mins on Elizabeth Shenfield branch).
+     */
+    val typicalFrequencyMinutes: Int get() = 5
+
     fun toLineBadge(): LineBadgeInfo = LineBadgeInfo(
         lineId = code,
         displayName = nameEn ?: code,

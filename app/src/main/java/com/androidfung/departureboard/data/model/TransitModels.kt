@@ -736,17 +736,18 @@ data class LineBadgeInfo(
 enum class TransitMode(
     val id: String,
     val displayName: String,
-    val gtfsRouteType: Int = -1
+    val gtfsRouteType: Int = -1,
+    val defaultMinHeadwaySeconds: Int = 90
 ) {
-    METRO("metro", "Metro", 1),              // GTFS 1: Subway, Metro, Underground, MRT, MTR
-    RAIL("rail", "Rail", 2),                 // GTFS 2: Rail, National Rail, Commuter Rail, JR, Sydney Trains
-    BUS("bus", "Bus", 3),                    // GTFS 3: Bus
-    TRAM("tram", "Tram", 0),                 // GTFS 0: Tram, Streetcar, Light rail, DLR, LRT
-    FERRY("ferry", "Ferry", 4),              // GTFS 4: Ferry, River Bus
-    CABLE_CAR("cable-car", "Cable Car", 6),  // GTFS 6: Aerial lift, suspended cable car
-    FUNICULAR("funicular", "Funicular", 7),  // GTFS 7: Funicular railway (e.g. Peak Tram, cliff railways)
-    MONORAIL("monorail", "Monorail", 12),    // GTFS 12: Monorail (e.g. Tokyo Monorail, Sentosa Express)
-    OTHER("other", "Transit", -1);
+    METRO("metro", "Metro", 1, defaultMinHeadwaySeconds = 90),              // GTFS 1: Subway, Metro, Underground, MRT, MTR (~1.5m min separation)
+    RAIL("rail", "Rail", 2, defaultMinHeadwaySeconds = 150),                // GTFS 2: Rail, National Rail, Commuter Rail (~2.5m min separation)
+    BUS("bus", "Bus", 3, defaultMinHeadwaySeconds = 45),                    // GTFS 3: Bus (can queue / bunch closely)
+    TRAM("tram", "Tram", 0, defaultMinHeadwaySeconds = 90),                 // GTFS 0: Tram, Streetcar, Light rail, DLR, LRT
+    FERRY("ferry", "Ferry", 4, defaultMinHeadwaySeconds = 300),             // GTFS 4: Ferry, River Bus
+    CABLE_CAR("cable-car", "Cable Car", 6, defaultMinHeadwaySeconds = 30),  // GTFS 6: Aerial lift, continuous cabin interval
+    FUNICULAR("funicular", "Funicular", 7, defaultMinHeadwaySeconds = 180), // GTFS 7: Funicular railway
+    MONORAIL("monorail", "Monorail", 12, defaultMinHeadwaySeconds = 120),   // GTFS 12: Monorail
+    OTHER("other", "Transit", -1, defaultMinHeadwaySeconds = 90);
 
     /**
      * Resolves localized or regional name for this mode, falling back to [displayName].

@@ -57,4 +57,42 @@ class GbRegionalTransitProviderDeparturesTest {
         assertEquals(1, merged.size)
         assertEquals("1", merged[0].id)
     }
+
+    @Test
+    fun testTflDepartureMapperDeduplicatesByHeadwayOnSamePlatform() {
+        val arrival1 = com.androidfung.departureboard.data.model.gb.TflArrivalPrediction(
+            id = "tfl_pred_1",
+            lineId = "elizabeth",
+            lineName = "Elizabeth line",
+            destinationName = "Shenfield",
+            platformName = "Platform A",
+            timeToStation = 15 // DUE
+        )
+        val arrival2 = com.androidfung.departureboard.data.model.gb.TflArrivalPrediction(
+            id = "tfl_pred_2",
+            lineId = "elizabeth",
+            lineName = "Elizabeth line",
+            destinationName = "Shenfield",
+            platformName = "Platform A",
+            timeToStation = 35 // Also DUE / approaching on same platform within 120s headway
+        )
+        val arrivalDifferentTime = com.androidfung.departureboard.data.model.gb.TflArrivalPrediction(
+            id = "tfl_pred_3",
+            lineId = "elizabeth",
+            lineName = "Elizabeth line",
+            destinationName = "Shenfield",
+            platformName = "Platform A",
+            timeToStation = 600 // 10 minutes later (next actual scheduled train)
+        )
+
+        val deduplicated = com.androidfung.departureboard.data.repository.region.gb.mapper.TflDepartureMapper.deduplicate(
+            rawArrivals = listOf(arrival1, arrival2, arrivalDifferentTime),
+            stationId = "HUBPAD",
+            stationName = "Paddington"
+        )
+
+        assertEquals(2, deduplicated.size)
+        assertEquals("tfl_pred_1", deduplicated[0].id)
+        assertEquals("tfl_pred_3", deduplicated[1].id)
+    }
 }

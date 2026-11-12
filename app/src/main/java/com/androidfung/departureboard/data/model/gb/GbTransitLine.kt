@@ -19,24 +19,28 @@ enum class GbTransitLine(
     override val color: Color,
     override val textColor: Color = TflLineColors.LightText,
     override val mode: TransitMode = TransitMode.METRO,
+    override val minHeadwaySeconds: Int = mode.defaultMinHeadwaySeconds,
+    override val typicalFrequencyMinutes: Int = 5,
     val aliases: Set<String> = emptySet()
 ) : TransitLineDefinition {
 
     // London Underground (11 lines)
-    BAKERLOO("bakerloo", "Bakerloo", "BAK", TflLineColors.Bakerloo),
-    CENTRAL("central", "Central", "CEN", TflLineColors.Central),
-    CIRCLE("circle", "Circle", "CIR", TflLineColors.Circle, TflLineColors.DarkText),
-    DISTRICT("district", "District", "DIS", TflLineColors.District),
+    BAKERLOO("bakerloo", "Bakerloo", "BAK", TflLineColors.Bakerloo, minHeadwaySeconds = 90, typicalFrequencyMinutes = 3),
+    CENTRAL("central", "Central", "CEN", TflLineColors.Central, minHeadwaySeconds = 90, typicalFrequencyMinutes = 2),
+    CIRCLE("circle", "Circle", "CIR", TflLineColors.Circle, TflLineColors.DarkText, minHeadwaySeconds = 120, typicalFrequencyMinutes = 10),
+    DISTRICT("district", "District", "DIS", TflLineColors.District, minHeadwaySeconds = 100, typicalFrequencyMinutes = 3),
     HAMMERSMITH_CITY(
         "hammersmith-city",
         "Hammersmith & City",
         "H&C",
         TflLineColors.HammersmithAndCity,
         TflLineColors.DarkText,
+        minHeadwaySeconds = 120,
+        typicalFrequencyMinutes = 10,
         aliases = setOf("hammersmith & city", "hammersmith and city", "h&c")
     ),
-    JUBILEE("jubilee", "Jubilee", "JUB", TflLineColors.Jubilee),
-    METROPOLITAN("metropolitan", "Metropolitan", "MET", TflLineColors.Metropolitan),
+    JUBILEE("jubilee", "Jubilee", "JUB", TflLineColors.Jubilee, minHeadwaySeconds = 90, typicalFrequencyMinutes = 2),
+    METROPOLITAN("metropolitan", "Metropolitan", "MET", TflLineColors.Metropolitan, minHeadwaySeconds = 120, typicalFrequencyMinutes = 4),
     // Note: GREAT_NORTHERN is placed before NORTHERN so "northern city" / "great northern" matches before "northern"
     GREAT_NORTHERN(
         "great-northern",
@@ -45,21 +49,25 @@ enum class GbTransitLine(
         Color(0xFF003882),
         TflLineColors.LightText,
         TransitMode.RAIL,
+        minHeadwaySeconds = 180,
+        typicalFrequencyMinutes = 10,
         aliases = setOf("great northern", "northern city", "northern city line", "northern-city-line", "nr-gn")
     ),
-    NORTHERN("northern", "Northern", "NOR", TflLineColors.Northern),
-    PICCADILLY("piccadilly", "Piccadilly", "PIC", TflLineColors.Piccadilly),
-    VICTORIA("victoria", "Victoria", "VIC", TflLineColors.Victoria),
+    NORTHERN("northern", "Northern", "NOR", TflLineColors.Northern, minHeadwaySeconds = 90, typicalFrequencyMinutes = 2),
+    PICCADILLY("piccadilly", "Piccadilly", "PIC", TflLineColors.Piccadilly, minHeadwaySeconds = 90, typicalFrequencyMinutes = 3),
+    VICTORIA("victoria", "Victoria", "VIC", TflLineColors.Victoria, minHeadwaySeconds = 80, typicalFrequencyMinutes = 2),
     WATERLOO_CITY(
         "waterloo-city",
         "Waterloo & City",
         "W&C",
         TflLineColors.WaterlooAndCity,
         TflLineColors.DarkText,
+        minHeadwaySeconds = 150,
+        typicalFrequencyMinutes = 5,
         aliases = setOf("waterloo & city", "waterloo and city", "w&c")
     ),
 
-    // Elizabeth line
+    // Elizabeth line (central tunnel ATO signalling minimum separation is ~120s)
     ELIZABETH(
         "elizabeth-line",
         "Elizabeth line",
@@ -67,6 +75,8 @@ enum class GbTransitLine(
         TflLineColors.ElizabethLine,
         TflLineColors.LightText,
         TransitMode.RAIL,
+        minHeadwaySeconds = 120,
+        typicalFrequencyMinutes = 5,
         aliases = setOf("elizabeth", "elizabeth line", "xr")
     ),
 
