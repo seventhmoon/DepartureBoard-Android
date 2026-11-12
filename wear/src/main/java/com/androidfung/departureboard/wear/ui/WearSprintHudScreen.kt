@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -95,7 +94,7 @@ internal fun WearSprintHudScreen(
                 }
                 .focusRequester(focusReq)
                 .focusable(),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 20.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 26.dp, bottom = 46.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -130,13 +129,13 @@ internal fun WearSprintHudScreen(
                                 .clickable(onClick = onBackToBoard)
                         ) {
                             Text(
-                                text = "← All Departures",
+                                text = "← Board",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 9.sp
                                 ),
                                 color = Color(0xFF81D4FA),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
                             )
                         }
                         Surface(
@@ -246,22 +245,102 @@ internal fun WearSprintHudScreen(
                 }
             }
 
-            // Visual Journey Progress Bar
-            item(key = "hud_progress_bar", contentType = "progress_bar") {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.82f)
-                        .height(5.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFF263238))
-                ) {
-                    Box(
+            // Bottom HUD Actions: Full-width comfortable scrolling action chips (hidden in Ambient Mode)
+            if (!isAmbientMode) {
+                item(key = "hud_actions") {
+                    val context = LocalContext.current
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth((journey.progressPercent / 100f).coerceIn(0f, 1f))
-                            .height(5.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(ringColor)
-                    )
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp)
+                            .padding(top = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Share ETA
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF003D33),
+                            border = BorderStroke(1.dp, Color(0xFF26A69A)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable {
+                                    WearCompanionStateRepository.shareLiveEtaFromWatch(context, journey)
+                                    Toast.makeText(context, "Sharing ETA on Phone…", Toast.LENGTH_SHORT).show()
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "📤 Share Live ETA",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    ),
+                                    color = Color(0xFF80CBC4),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        // Open on Phone
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF0D2538),
+                            border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable(onClick = onOpenOnPhone)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "📱 Open on Phone",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    ),
+                                    color = Color(0xFF81D4FA),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        // Stop Tracking
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF3E1A1A),
+                            border = BorderStroke(1.dp, Color(0xFFEF5350)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable(onClick = onStopTracking)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "⏹ Stop Tracking",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    ),
+                                    color = Color(0xFFFFCDD2),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -275,7 +354,7 @@ internal fun WearSprintHudScreen(
                             fontSize = 9.sp
                         ),
                         color = Color(0xFFB0BEC5),
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
 
@@ -321,78 +400,6 @@ internal fun WearSprintHudScreen(
                                     color = Color(0xFFA7FFEB)
                                 )
                             }
-                        }
-                    }
-                }
-            }
-
-            // Bottom HUD Actions: [📤 Share], [📱 Phone] & [⏹ Stop] (hidden in Ambient Mode)
-            if (!isAmbientMode) {
-                item(key = "hud_actions") {
-                    val context = LocalContext.current
-                    Row(
-                        modifier = Modifier.padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = Color(0xFF003D33),
-                            border = BorderStroke(1.dp, Color(0xFF26A69A)),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .clickable {
-                                    WearCompanionStateRepository.shareLiveEtaFromWatch(context, journey)
-                                    Toast.makeText(context, "Sharing ETA on Phone…", Toast.LENGTH_SHORT).show()
-                                }
-                        ) {
-                            Text(
-                                text = "📤 Share",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 9.sp
-                                ),
-                                color = Color(0xFF80CBC4),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = Color(0xFF0D2538),
-                            border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .clickable(onClick = onOpenOnPhone)
-                        ) {
-                            Text(
-                                text = "📱 Phone",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 9.sp
-                                ),
-                                color = Color(0xFF81D4FA),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = Color(0xFF3E1A1A),
-                            border = BorderStroke(1.dp, Color(0xFFEF5350)),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .clickable(onClick = onStopTracking)
-                        ) {
-                            Text(
-                                text = "⏹ Stop",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 9.sp
-                                ),
-                                color = Color(0xFFFFCDD2),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
-                            )
                         }
                     }
                 }

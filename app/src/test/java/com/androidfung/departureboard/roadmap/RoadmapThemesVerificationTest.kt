@@ -566,4 +566,14 @@ class RoadmapThemesVerificationTest {
         assertEquals(28, claimBlock!!.delayMinutes)
         assertTrue(claimBlock.claimUrl.contains("gwr.com"))
     }
+
+    @Test
+    fun deskClockPlatformShortExtraction_handlesTubeAndRailFormats() {
+        assertEquals("4", com.androidfung.departureboard.ui.feature.deskclock.extractShortPlatformCode("Plat 4 • Northbound"))
+        assertEquals("1", com.androidfung.departureboard.ui.feature.deskclock.extractShortPlatformCode("Westbound - Platform 1"))
+        assertEquals("9B", com.androidfung.departureboard.ui.feature.deskclock.extractShortPlatformCode("Platform 9b"))
+        assertEquals("B", com.androidfung.departureboard.ui.feature.deskclock.extractShortPlatformCode("Platform B"))
+        assertEquals("C", com.androidfung.departureboard.ui.feature.deskclock.extractShortPlatformCode("Stop C"))
+        assertEquals("-", com.androidfung.departureboard.ui.feature.deskclock.extractShortPlatformCode(""))
+    }
 }

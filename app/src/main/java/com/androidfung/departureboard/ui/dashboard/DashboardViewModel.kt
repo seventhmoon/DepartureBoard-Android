@@ -318,9 +318,29 @@ class DashboardViewModel @JvmOverloads constructor(
                         }
                     }
                     
-                    _uiState.update {
-                        it.copy(
+                    _uiState.update { state ->
+                        val updatedDetailContext = if (state.selectedDetailStation != null) {
+                            val savedList = newCards.map { it.station }
+                            val currentContext = state.detailStationsContext
+                            // Preserve any unsaved station (e.g. opened from a widget or search) at the front
+                            // of the detail pager context while syncing the rest with saved stations.
+                            val unsavedInContext = currentContext.filter { ctxSt ->
+                                savedList.none { it.id == ctxSt.id }
+                            }
+                            val base = if (unsavedInContext.isNotEmpty()) {
+                                unsavedInContext + savedList
+                            } else if (savedList.none { it.id == state.selectedDetailStation.id }) {
+                                listOf(state.selectedDetailStation) + savedList
+                            } else {
+                                savedList
+                            }
+                            base.distinctBy { it.id }
+                        } else {
+                            state.detailStationsContext
+                        }
+                        state.copy(
                             stationCards = newCards,
+                            detailStationsContext = updatedDetailContext,
                             isInitialLoading = false
                         )
                     }
@@ -512,6 +532,16 @@ class DashboardViewModel @JvmOverloads constructor(
                     if (stations.isNotEmpty()) {
                         refreshDeparturesForStations(stations)
                     }
+                    // If the user is viewing an unsaved station in StationDetailScreen (e.g. launched from widget),
+                    // keep its departures refreshed during auto-polling as well.
+                    val detailSt = _uiState.value.selectedDetailStation
+                    if (detailSt != null && stations.none { it.id == detailSt.id }) {
+                        openStationDetail(
+                            station = detailSt,
+                            stationsContext = _uiState.value.detailStationsContext,
+                            preserveActiveJourney = true
+                        )
+                    }
                     if (_uiState.value.isAutoSortByLocation || _uiState.value.isConcourseSprintActive) {
                         refreshNearestStationInternal(fetchApiNearby = false)
                     }
@@ -681,9 +711,18 @@ class DashboardViewModel @JvmOverloads constructor(
         val existingCard = _uiState.value.stationCards.firstOrNull { it.station.id == station.id }
         val cachedDepartures = existingCard?.departures ?: emptyList()
 
-        val resolvedStationsContext = stationsContext
-            ?: _uiState.value.stationCards.map { it.station }.takeIf { it.isNotEmpty() }
+        val savedStations = _uiState.value.stationCards.map { it.station }
+        val baseContext = stationsContext
+            ?.takeIf { it.isNotEmpty() }
+            ?: savedStations.takeIf { it.isNotEmpty() }
             ?: listOf(station)
+        // Always include the target station in detailStationsContext (even if it is an unsaved widget/search station)
+        // so swiping to a saved station in HorizontalPager never drops the unsaved station from the pager list.
+        val resolvedStationsContext = if (baseContext.none { it.id == station.id }) {
+            (listOf(station) + baseContext).distinctBy { it.id }
+        } else {
+            baseContext.distinctBy { it.id }
+        }
 
         val initialMatchedJourney = targetDepartureId?.takeIf { it.isNotBlank() }?.let { depId ->
             cachedDepartures.firstOrNull { it.id == depId }
@@ -754,22 +793,42 @@ class DashboardViewModel @JvmOverloads constructor(
                     val resolvedTargetJourney = targetDepartureId?.takeIf { it.isNotBlank() }?.let { depId ->
                         enrichedDepartures.firstOrNull { it.id == depId }
                     } ?: state.selectedJourneyDeparture
-                    val mergedStation = if (enrichedStation != null) {
+                    val derivedLines = enrichedStation?.lines?.takeIf { it.isNotEmpty() }
+                        ?: station.lines.takeIf { it.isNotEmpty() }
+                        ?: enrichedDepartures
+                            .filter { !it.isBus }
+                            .map { dep ->
+                                com.androidfung.departureboard.data.model.StationLineInfo(
+                                    id = dep.lineBadge.lineId,
+                                    name = dep.lineBadge.displayName,
+                                    mode = dep.modeName
+                                )
+                            }
+                            .distinctBy { it.id }
+                    val mergedStation = if (enrichedStation != null || derivedLines.isNotEmpty()) {
                         station.copy(
-                            micromobilityHubs = enrichedStation.micromobilityHubs.ifEmpty { station.micromobilityHubs },
-                            lat = station.lat ?: enrichedStation.lat,
-                            lon = station.lon ?: enrichedStation.lon,
+                            name = enrichedStation?.name?.takeIf { it.isNotBlank() } ?: station.name,
+                            modes = enrichedStation?.modes?.takeIf { it.isNotEmpty() } ?: station.modes,
+                            zone = station.zone ?: enrichedStation?.zone,
+                            lines = derivedLines.ifEmpty { station.lines },
+                            micromobilityHubs = enrichedStation?.micromobilityHubs?.ifEmpty { station.micromobilityHubs } ?: station.micromobilityHubs,
+                            lat = station.lat ?: enrichedStation?.lat,
+                            lon = station.lon ?: enrichedStation?.lon,
                             wheelchairStatus = if (station.wheelchairStatus != com.androidfung.departureboard.data.model.WheelchairBoardingStatus.UNKNOWN) {
                                 station.wheelchairStatus
                             } else {
-                                enrichedStation.wheelchairStatus
+                                enrichedStation?.wheelchairStatus ?: station.wheelchairStatus
                             }
                         )
                     } else {
-                        state.selectedDetailStation
+                        state.selectedDetailStation ?: station
+                    }
+                    val updatedDetailContext = state.detailStationsContext.map { ctxSt ->
+                        if (ctxSt.id == mergedStation.id) mergedStation else ctxSt
                     }
                     state.copy(
                         selectedDetailStation = mergedStation,
+                        detailStationsContext = updatedDetailContext,
                         detailDepartures = enrichedDepartures,
                         detailAccessibilityAlerts = a11yAlerts,
                         isDetailLoading = false,
@@ -799,6 +858,15 @@ class DashboardViewModel @JvmOverloads constructor(
                     stationCards = updatedCards,
                     lineStatuses = if (lineStatuses.isNotEmpty()) lineStatuses else updatedState.lineStatuses
                 )
+            }
+
+            // If this station is in Recent Searches with missing line metadata, persist the hydrated lines
+            val hydratedDetail = _uiState.value.selectedDetailStation
+            if (hydratedDetail != null && hydratedDetail.id == station.id && hydratedDetail.lines.isNotEmpty()) {
+                val existingRecent = _uiState.value.recentSearchedStations.firstOrNull { it.id == station.id }
+                if (existingRecent != null && existingRecent.lines.isEmpty()) {
+                    repository.addRecentSearchedStation(hydratedDetail)
+                }
             }
         }
     }

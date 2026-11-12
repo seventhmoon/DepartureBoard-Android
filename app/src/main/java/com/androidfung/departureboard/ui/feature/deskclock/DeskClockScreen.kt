@@ -703,11 +703,7 @@ private fun SplitFlapDepartureRow(
     }
 
     val platformShort = remember(departure.platformName) {
-        departure.platformName
-            .replace("Platform ", "", ignoreCase = true)
-            .replace("Stop ", "", ignoreCase = true)
-            .take(5)
-            .ifBlank { "-" }
+        extractShortPlatformCode(departure.platformName)
     }
 
     val isDue = departure.status == DepartureStatus.DUE || departure.timeToStationSeconds < 45
@@ -1157,83 +1153,81 @@ private fun FullScreenControlStrip(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Top strip: Saved stations switcher + Mode toggles
+            // Row 1: Saved stations switcher
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    availableStations.forEach { st ->
-                        val isSelected = st.id == currentStation.id
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (isSelected) Color(0xFF38BDF8).copy(alpha = 0.25f)
-                                    else Color(0xFF252A38)
-                                )
-                                .border(
-                                    width = if (isSelected) 1.dp else 0.dp,
-                                    color = if (isSelected) Color(0xFF38BDF8) else Color.Transparent,
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .clickable { onSelectStation(st) }
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = st.displayName,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                ),
-                                color = Color.White
+                availableStations.forEach { st ->
+                    val isSelected = st.id == currentStation.id
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (isSelected) Color(0xFF38BDF8).copy(alpha = 0.25f)
+                                else Color(0xFF252A38)
                             )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    DeckControlChip(
-                        label = stringResource(R.string.desk_clock_tabletop_toggle),
-                        icon = Icons.Rounded.DevicesFold,
-                        isSelected = isTabletopActive,
-                        onClick = onToggleTabletop
-                    )
-                    DeckControlChip(
-                        label = stringResource(R.string.desk_clock_auto_cycle),
-                        icon = Icons.Rounded.Sync,
-                        isSelected = isAutoCycleEnabled,
-                        onClick = onToggleAutoCycle
-                    )
-                    DeckControlChip(
-                        label = stringResource(R.string.desk_clock_dim_mode),
-                        icon = Icons.Rounded.BrightnessLow,
-                        isSelected = isDimmed,
-                        onClick = onToggleDim
-                    )
-                    DeskClockBoardStyle.entries.forEach { style ->
-                        val label = when (style) {
-                            DeskClockBoardStyle.SPLIT_FLAP -> stringResource(R.string.desk_clock_style_split_flap)
-                            DeskClockBoardStyle.AMBER_LED -> stringResource(R.string.desk_clock_style_amber_led)
-                            DeskClockBoardStyle.OLED_MATRIX -> stringResource(R.string.desk_clock_style_oled_dark)
-                        }
-                        DeckControlChip(
-                            label = label,
-                            icon = Icons.Rounded.Tune,
-                            isSelected = boardStyle == style,
-                            onClick = { onSelectStyle(style) }
+                            .border(
+                                width = if (isSelected) 1.dp else 0.dp,
+                                color = if (isSelected) Color(0xFF38BDF8) else Color.Transparent,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .clickable { onSelectStation(st) }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = st.displayName,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            ),
+                            color = Color.White,
+                            maxLines = 1
                         )
                     }
+                }
+            }
+
+            // Row 2: Mode toggles & Board style switcher
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                DeckControlChip(
+                    label = stringResource(R.string.desk_clock_tabletop_toggle),
+                    icon = Icons.Rounded.DevicesFold,
+                    isSelected = isTabletopActive,
+                    onClick = onToggleTabletop
+                )
+                DeckControlChip(
+                    label = stringResource(R.string.desk_clock_auto_cycle),
+                    icon = Icons.Rounded.Sync,
+                    isSelected = isAutoCycleEnabled,
+                    onClick = onToggleAutoCycle
+                )
+                DeckControlChip(
+                    label = stringResource(R.string.desk_clock_dim_mode),
+                    icon = Icons.Rounded.BrightnessLow,
+                    isSelected = isDimmed,
+                    onClick = onToggleDim
+                )
+                DeskClockBoardStyle.entries.forEach { style ->
+                    val label = when (style) {
+                        DeskClockBoardStyle.SPLIT_FLAP -> stringResource(R.string.desk_clock_style_split_flap)
+                        DeskClockBoardStyle.AMBER_LED -> stringResource(R.string.desk_clock_style_amber_led)
+                        DeskClockBoardStyle.OLED_MATRIX -> stringResource(R.string.desk_clock_style_oled_dark)
+                    }
+                    DeckControlChip(
+                        label = label,
+                        icon = Icons.Rounded.Tune,
+                        isSelected = boardStyle == style,
+                        onClick = { onSelectStyle(style) }
+                    )
                 }
             }
         }
@@ -1278,6 +1272,25 @@ private fun DeckControlChip(
             )
         }
     }
+}
+
+private val PLATFORM_CODE_REGEX = Regex(
+    pattern = "(?:platform|plat\\.?|stop|bay|track|番線|月台)\\s*([A-Z0-9]+[A-Z]?)",
+    option = RegexOption.IGNORE_CASE
+)
+
+internal fun extractShortPlatformCode(rawPlatformName: String): String {
+    val trimmed = rawPlatformName.trim()
+    if (trimmed.isBlank()) return "-"
+    PLATFORM_CODE_REGEX.find(trimmed)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() }?.let {
+        return it.uppercase().take(5)
+    }
+    val cleaned = trimmed
+        .replace(Regex("(?i)\\b(northbound|southbound|eastbound|westbound|inner\\s*rail|outer\\s*rail|platform|plat\\.?|stop|bay)\\b"), "")
+        .replace(Regex("[•\\-–—:|]"), " ")
+        .trim()
+    val firstToken = cleaned.split(Regex("\\s+")).firstOrNull { it.isNotBlank() }.orEmpty()
+    return firstToken.uppercase().take(5).ifBlank { "-" }
 }
 
 private tailrec fun Context.findDeskClockActivity(): Activity? = when (this) {

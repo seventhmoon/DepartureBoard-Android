@@ -327,4 +327,15 @@ class PlatformBacklogDetectorTest {
         assertEquals(20, PlatformBacklogDetector.resolveTypicalHeadwayMinutes(rodingDep, listOf(rodingDep), offPeak, weekday))
         assertTrue(PlatformBacklogDetector.detectBacklogs(listOf(rodingDep), offPeak, weekday).isEmpty())
     }
+
+    @Test
+    fun `late evening wind down does not trigger false positive backlog on tube lines`() {
+        val lateEvening = LocalTime.of(23, 30)
+        val weekday = DayOfWeek.WEDNESDAY
+        // A 16-minute interval late at night on the Northern line is normal wind-down service
+        val dep1 = createMetroDeparture("n1", lineId = "northern", lineName = "Northern", timeToStationSeconds = 16 * 60)
+        val dep2 = createMetroDeparture("n2", lineId = "northern", lineName = "Northern", timeToStationSeconds = 20 * 60)
+        val alerts = PlatformBacklogDetector.detectBacklogs(listOf(dep1, dep2), time = lateEvening, dayOfWeek = weekday)
+        assertTrue("Expected no late-evening false backlog alert, but got: $alerts", alerts.isEmpty())
+    }
 }

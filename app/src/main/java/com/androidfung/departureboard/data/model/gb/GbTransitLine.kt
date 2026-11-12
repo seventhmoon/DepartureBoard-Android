@@ -40,12 +40,12 @@ enum class GbTransitLine(
     // Note: GREAT_NORTHERN is placed before NORTHERN so "northern city" / "great northern" matches before "northern"
     GREAT_NORTHERN(
         "great-northern",
-        "Northern City Line",
-        "NCL",
+        "Great Northern",
+        "GN",
         Color(0xFF003882),
         TflLineColors.LightText,
         TransitMode.RAIL,
-        aliases = setOf("great northern", "northern city", "northern city line")
+        aliases = setOf("great northern", "northern city", "northern city line", "northern-city-line", "nr-gn")
     ),
     NORTHERN("northern", "Northern", "NOR", TflLineColors.Northern),
     PICCADILLY("piccadilly", "Piccadilly", "PIC", TflLineColors.Piccadilly),
@@ -145,11 +145,19 @@ enum class GbTransitLine(
         val normName = lineName?.lowercase()?.trim().orEmpty()
         if (normId.isEmpty() && normName.isEmpty()) return false
 
-        if (normId == code || normName == code) return true
-        if (aliases.any { normId.contains(it) || normName.contains(it) }) return true
+        if (normId == code || normName == code || normName == this.lineName.lowercase()) return true
+        if (aliases.any { alias ->
+                if (alias.length <= 3) {
+                    normId == alias || normName == alias
+                } else {
+                    normId == alias || normName == alias || normId.contains(alias) || normName.contains(alias)
+                }
+            }
+        ) return true
 
         return when (this) {
-            NORTHERN -> normId == "northern" || (normName.contains("northern") && !normName.contains("city"))
+            CENTRAL -> normId == "central" || normName == "central" || normName == "central line"
+            NORTHERN -> normId == "northern" || (normName.contains("northern") && !normName.contains("city") && !normName.contains("great") && !normName.contains("rail"))
             OVERGROUND -> normId.contains("overground") || normName.contains("overground")
             TRAM -> normId.contains("tram") || normName.contains("tram")
             else -> normId == code || normName.contains(code)

@@ -507,7 +507,7 @@ private fun TrainJourneyContent(
                 }
             }
 
-            // 2. Where the train is NOW banner (only show if it is a meaningful physical location and not a redundant status like 'Exp 16:52' or 'On time')
+            // 2. Fallback live location banner ONLY when calling points are unavailable (otherwise shown under Calling Points)
             val rawLocation = departure.currentLocation?.trim().orEmpty()
             val isTimeOrGenericStatus = rawLocation.startsWith("Exp ", ignoreCase = true) ||
                 rawLocation.equals("On time", ignoreCase = true) ||
@@ -516,7 +516,7 @@ private fun TrainJourneyContent(
                 rawLocation.matches(HH_MM_REGEX)
             val hasMeaningfulLocation = rawLocation.isNotBlank() && !isTimeOrGenericStatus
 
-            if (hasMeaningfulLocation) {
+            if (hasMeaningfulLocation && callingPoints.isEmpty() && !isLoading) {
                 item(key = "current_location", contentType = "current_location") {
                     val stopStatus = departure.vehicleStopStatus
                     Surface(
@@ -1071,6 +1071,7 @@ private fun TrainJourneyContent(
                                 lineColor = departure.lineBadge.backgroundColor,
                                 isPassed = isPassed,
                                 isTrainLocation = isTrainLocation,
+                                trainLocationLabel = rawLocation.takeIf { hasMeaningfulLocation },
                                 hasIncomingTrainAbove = isTrainApproachingBeforeBoarding,
                                 isTargetAlightStop = isTargetAlightStop,
                                 onToggleTargetAlightStop = if (isDownstreamStop && departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
@@ -1308,6 +1309,7 @@ private fun CallingPointTimelineItem(
     modifier: Modifier = Modifier,
     isPassed: Boolean = false,
     isTrainLocation: Boolean = false,
+    trainLocationLabel: String? = null,
     hasIncomingTrainAbove: Boolean = false,
     isTargetAlightStop: Boolean = false,
     onToggleTargetAlightStop: (() -> Unit)? = null,
@@ -1627,7 +1629,8 @@ private fun CallingPointTimelineItem(
                                     modifier = Modifier.size(11.dp)
                                 )
                                 Text(
-                                    text = stringResource(R.string.train_journey_current_location),
+                                    text = trainLocationLabel?.takeIf { it.isNotBlank() }
+                                        ?: stringResource(R.string.train_journey_current_location),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.SemiBold,

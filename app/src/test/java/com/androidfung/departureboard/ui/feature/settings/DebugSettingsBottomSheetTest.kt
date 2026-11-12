@@ -199,4 +199,33 @@ class DebugSettingsBottomSheetTest {
         composeTestRule.onNodeWithText("Desk Clock / Split-Flap Board").performScrollTo().performClick()
         assertTrue(deskClockClicked)
     }
+
+    @Test
+    fun testBilingualToggleInvokesCallback() {
+        var toggledValue: Boolean? = null
+
+        composeTestRule.setContent {
+            DebugSettingsBody(
+                onDismissRequest = {},
+                userPlan = UserPlan.FREE,
+                onSelectPlan = {},
+                selectedAiModel = com.androidfung.departureboard.ai.AiModelType.DEFAULT,
+                onSelectAiModel = {},
+                selectedRegion = TransitRegion.GB,
+                onSelectRegion = {},
+                isHkRegionEnabled = false,
+                onToggleHkRegionEnabled = {},
+                isBilingualEnabled = true,
+                onToggleBilingualEnabled = { toggledValue = it },
+                remainingAiQueries = 3,
+                onResetStations = {},
+                onTriggerInAppReview = {},
+                onResetInAppReviewData = {}
+            )
+        }
+
+        composeTestRule.onNodeWithText("Bilingual Station Names").performScrollTo().performClick()
+        assertEquals(false, toggledValue)
+    }
 }
+

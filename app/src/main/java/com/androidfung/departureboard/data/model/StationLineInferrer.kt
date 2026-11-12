@@ -74,6 +74,73 @@ object StationLineInferrer {
         "kentish town" to listOf(
             "northern" to "Northern"
         ),
+        "finchley central" to listOf(
+            "northern" to "Northern"
+        ),
+        com.androidfung.departureboard.data.model.gb.TflStationIds.FINCHLEY_CENTRAL to listOf(
+            "northern" to "Northern"
+        ),
+        "mill hill east" to listOf(
+            "northern" to "Northern"
+        ),
+        com.androidfung.departureboard.data.model.gb.TflStationIds.MILL_HILL_EAST to listOf(
+            "northern" to "Northern"
+        ),
+        "east finchley" to listOf(
+            "northern" to "Northern"
+        ),
+        "high barnet" to listOf(
+            "northern" to "Northern"
+        ),
+        "edgware" to listOf(
+            "northern" to "Northern"
+        ),
+        "morden" to listOf(
+            "northern" to "Northern"
+        ),
+        "mornington crescent" to listOf(
+            "northern" to "Northern"
+        ),
+        "camden town" to listOf(
+            "northern" to "Northern"
+        ),
+        "kennington" to listOf(
+            "northern" to "Northern"
+        ),
+        "battersea power station" to listOf(
+            "northern" to "Northern"
+        ),
+        "highgate" to listOf(
+            "northern" to "Northern"
+        ),
+        "archway" to listOf(
+            "northern" to "Northern"
+        ),
+        "tufnell park" to listOf(
+            "northern" to "Northern"
+        ),
+        "euston" to listOf(
+            "northern" to "Northern",
+            "victoria" to "Victoria",
+            "lioness" to "Lioness"
+        ),
+        "bank" to listOf(
+            "central" to "Central",
+            "northern" to "Northern",
+            "waterloo-city" to "Waterloo & City",
+            "dlr" to "DLR"
+        ),
+        "charing cross" to listOf(
+            "bakerloo" to "Bakerloo",
+            "northern" to "Northern"
+        ),
+        "brixton" to listOf(
+            "victoria" to "Victoria"
+        ),
+        "walthamstow central" to listOf(
+            "victoria" to "Victoria",
+            "weaver" to "Weaver"
+        ),
         "old street" to listOf(
             "northern" to "Northern"
         ),

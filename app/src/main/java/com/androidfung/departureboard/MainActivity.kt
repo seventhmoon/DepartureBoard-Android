@@ -198,13 +198,16 @@ class MainActivity : AppCompatActivity() {
 
                     LaunchedEffect(initialStation, initialDepartureId) {
                         initialStation?.let { station ->
+                            val targetDepId = initialDepartureId
+                            initialStation = null
+                            initialDepartureId = null
                             com.androidfung.departureboard.util.DynamicShortcutHelper.reportStationUsed(
                                 context = applicationContext,
                                 stationId = station.id
                             )
                             viewModel.openStationDetail(
                                 station = station,
-                                targetDepartureId = initialDepartureId
+                                targetDepartureId = targetDepId
                             )
                         }
                     }
@@ -708,6 +711,8 @@ class MainActivity : AppCompatActivity() {
                             },
                             isHkRegionEnabled = uiState.isHkRegionEnabled,
                             onToggleHkRegionEnabled = { enabled -> viewModel.setHkRegionEnabled(enabled) },
+                            isBilingualEnabled = uiState.isBilingualEnabled,
+                            onToggleBilingualEnabled = { enabled -> viewModel.setBilingualEnabled(enabled) },
                             onTriggerInAppReview = {
                                 lifecycleScope.launch {
                                     com.androidfung.departureboard.review.InAppReviewManager.getInstance(applicationContext)
@@ -982,14 +987,13 @@ class MainActivity : AppCompatActivity() {
 
             if (known != null) {
                 // Canonical catalog station name ALWAYS takes precedence over Intent extras/query hints to prevent UI spoofing.
-                initialStation = known.copy(
-                    isFavorite = true
-                )
+                initialStation = known
             } else {
                 val placeholderName = parsed.trustedStationName
                     ?: parsed.untrustedStationNameHint
                     ?: getString(R.string.widget_station_name_fallback)
-                // Initial placeholder with region-appropriate defaults
+                // Initial placeholder with region-appropriate defaults (DashboardViewModel.openStationDetail
+                // asynchronously hydrates canonical name, modes, zone, and lines via repository.getStationById)
                 initialStation = Station(
                     id = stationId,
                     name = placeholderName,
@@ -998,20 +1002,8 @@ class MainActivity : AppCompatActivity() {
                     lat = null,
                     lon = null,
                     lines = emptyList(),
-                    isFavorite = true
+                    isFavorite = false
                 )
-
-                // Asynchronously resolve and hydrate station metadata from repository
-                lifecycleScope.launch {
-                    val app = application as? DepartureBoardApp
-                    val repo = app?.repository
-                    val resolved = repo?.getStationById(stationId)
-                    if (resolved != null) {
-                        initialStation = resolved.copy(
-                            isFavorite = true
-                        )
-                    }
-                }
             }
         } else {
             initialStation = null

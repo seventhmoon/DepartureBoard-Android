@@ -62,6 +62,7 @@ object PlatformBacklogDetector {
      * Resolves the transit service period based on time-of-day and day-of-week.
      * Weekdays feature morning (06:30-09:30) and evening (16:00-19:30) peak periods.
      * Weekends operate with off-peak daytime cadences.
+     * Late evening / overnight wind-down begins at 21:30 on weekdays and 22:00 on weekends.
      */
     fun resolveServicePeriod(
         time: LocalTime = LocalTime.now(),
@@ -69,11 +70,11 @@ object PlatformBacklogDetector {
     ): TransitServicePeriod {
         // Weekends do not have commuter peak hours
         if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
-            val isLateNight = time.isBefore(LocalTime.of(7, 0)) || !time.isBefore(LocalTime.of(23, 0))
+            val isLateNight = time.isBefore(LocalTime.of(7, 0)) || !time.isBefore(LocalTime.of(22, 0))
             return if (isLateNight) TransitServicePeriod.LATE_NIGHT else TransitServicePeriod.OFF_PEAK
         }
 
-        val isLateNight = time.isBefore(LocalTime.of(6, 0)) || !time.isBefore(LocalTime.of(22, 30))
+        val isLateNight = time.isBefore(LocalTime.of(6, 0)) || !time.isBefore(LocalTime.of(21, 30))
         if (isLateNight) return TransitServicePeriod.LATE_NIGHT
 
         val morningPeakStart = LocalTime.of(6, 30)
@@ -187,20 +188,20 @@ object PlatformBacklogDetector {
         "xr" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 10),
 
         // London Underground, DLR & Trams (preprocessed from TfL /Line/{id}/Timetable/{stopId})
-        "victoria" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 2, lateNightMinutes = 4),       // 562 daily trips/dir
-        "jubilee" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 3, lateNightMinutes = 5),        // 460 daily trips/dir
-        "central" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 3, lateNightMinutes = 4),        // 462 daily trips/dir
-        "northern" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 3, lateNightMinutes = 5),       // 410 daily trips/dir
-        "piccadilly" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 3, lateNightMinutes = 5),     // 400 daily trips/dir
-        "bakerloo" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 4, lateNightMinutes = 4),       // 305 daily trips/dir
-        "district" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 3, lateNightMinutes = 5),       // 360 daily trips/dir
-        "metropolitan" to HeadwayProfile(peakMinutes = 4, offPeakMinutes = 5, lateNightMinutes = 6),   // 235 daily trips/dir
-        "circle" to HeadwayProfile(peakMinutes = 10, offPeakMinutes = 10, lateNightMinutes = 10),      // 113 daily trips/dir (6 tph)
-        "hammersmith-city" to HeadwayProfile(peakMinutes = 10, offPeakMinutes = 10, lateNightMinutes = 10), // 117 daily trips/dir (6 tph)
-        "hammersmith & city" to HeadwayProfile(peakMinutes = 10, offPeakMinutes = 10, lateNightMinutes = 10),
-        "waterloo-city" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 7),  // 265 daily trips/dir
-        "dlr" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 3, lateNightMinutes = 5),            // 352 daily trips/dir
-        "tram" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 3, lateNightMinutes = 6),           // 349 daily trips/dir
+        "victoria" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 2, lateNightMinutes = 6),       // 562 daily trips/dir
+        "jubilee" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 3, lateNightMinutes = 7),        // 460 daily trips/dir
+        "central" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 3, lateNightMinutes = 8),        // 462 daily trips/dir
+        "northern" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 3, lateNightMinutes = 8),       // 410 daily trips/dir
+        "piccadilly" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 3, lateNightMinutes = 8),     // 400 daily trips/dir
+        "bakerloo" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 4, lateNightMinutes = 8),       // 305 daily trips/dir
+        "district" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 3, lateNightMinutes = 10),      // 360 daily trips/dir
+        "metropolitan" to HeadwayProfile(peakMinutes = 4, offPeakMinutes = 5, lateNightMinutes = 12),  // 235 daily trips/dir
+        "circle" to HeadwayProfile(peakMinutes = 10, offPeakMinutes = 10, lateNightMinutes = 12),      // 113 daily trips/dir (6 tph)
+        "hammersmith-city" to HeadwayProfile(peakMinutes = 10, offPeakMinutes = 10, lateNightMinutes = 12), // 117 daily trips/dir (6 tph)
+        "hammersmith & city" to HeadwayProfile(peakMinutes = 10, offPeakMinutes = 10, lateNightMinutes = 12),
+        "waterloo-city" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 8),  // 265 daily trips/dir
+        "dlr" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 3, lateNightMinutes = 8),            // 352 daily trips/dir
+        "tram" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 3, lateNightMinutes = 10),          // 349 daily trips/dir
 
         // Hong Kong MTR lines
         "island" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 4, lateNightMinutes = 6),
@@ -296,17 +297,6 @@ object PlatformBacklogDetector {
             }
         }
 
-        // 3. Observed timetable cadence from consecutive departure spacing
-        val sortedGroup = group.sortedBy { it.timeToStationSeconds }
-        if (sortedGroup.size >= 2) {
-            val predictionGaps = sortedGroup.zipWithNext { a, b ->
-                (b.timeToStationSeconds - a.timeToStationSeconds) / 60
-            }.filter { it in 1..90 }
-            if (predictionGaps.isNotEmpty()) {
-                return predictionGaps.sorted()[predictionGaps.size / 2]
-            }
-        }
-
         val regionZone = com.androidfung.departureboard.data.model.TransitRegion
             .fromStationId(firstDep.stationId).timeZone
         val zonedNow = java.time.ZonedDateTime.now(regionZone)
@@ -314,6 +304,33 @@ object PlatformBacklogDetector {
         val effectiveDay = dayOfWeek ?: zonedNow.dayOfWeek
         val period = resolveServicePeriod(effectiveTime, effectiveDay)
 
+        val configuredBaseline = resolveConfiguredBaselineHeadway(firstDep, period)
+
+        // 3. Observed timetable cadence from consecutive departure spacing
+        // In late-night periods, floor by the configured late-night baseline so two bunched trains
+        // behind a late-evening wind-down gap do not make normal headway appear artificially tiny.
+        val sortedGroup = group.sortedBy { it.timeToStationSeconds }
+        if (sortedGroup.size >= 2) {
+            val predictionGaps = sortedGroup.zipWithNext { a, b ->
+                (b.timeToStationSeconds - a.timeToStationSeconds) / 60
+            }.filter { it in 1..90 }
+            if (predictionGaps.isNotEmpty()) {
+                val medianGap = predictionGaps.sorted()[predictionGaps.size / 2]
+                return if (period == TransitServicePeriod.LATE_NIGHT) {
+                    medianGap.coerceAtLeast(configuredBaseline)
+                } else {
+                    medianGap
+                }
+            }
+        }
+
+        return configuredBaseline
+    }
+
+    private fun resolveConfiguredBaselineHeadway(
+        firstDep: Departure,
+        period: TransitServicePeriod
+    ): Int {
         // 4. Known branch station timetable headways (for branch endpoints/spurs when only 1 train is listed)
         val stationKey = firstDep.stationId.uppercase()
         val stationNameLower = firstDep.stationName.lowercase()
@@ -336,6 +353,10 @@ object PlatformBacklogDetector {
     /**
      * Checks a station's departures for platform backlog conditions.
      * Returns a list of active [PlatformBacklogAlert]s.
+     *
+     * Late-night wind-down / early-morning startup (23:00-05:59 or when Last Train / Night Service
+     * is active) intentionally runs at reduced frequency as trains return to depots, so backlog alerts
+     * are suppressed to prevent false-positive warnings late at night.
      */
     fun detectBacklogs(
         departures: List<Departure>,
@@ -346,6 +367,15 @@ object PlatformBacklogDetector {
             !it.isBus && it.status != DepartureStatus.CANCELLED
         }
         if (nonBusDepartures.isEmpty()) return emptyList()
+        if (nonBusDepartures.any { it.isLastTrain || it.isNightService }) return emptyList()
+
+        val firstSample = nonBusDepartures.first()
+        val regionZone = com.androidfung.departureboard.data.model.TransitRegion
+            .fromStationId(firstSample.stationId).timeZone
+        val zonedNow = java.time.ZonedDateTime.now(regionZone)
+        val effectiveTime = time ?: zonedNow.toLocalTime()
+        val effectiveDay = dayOfWeek ?: zonedNow.dayOfWeek
+        val period = resolveServicePeriod(effectiveTime, effectiveDay)
 
         val alerts = mutableListOf<PlatformBacklogAlert>()
 
@@ -359,13 +389,17 @@ object PlatformBacklogDetector {
             val firstDep = group.minByOrNull { it.timeToStationSeconds } ?: continue
             val minutesUntilNext = firstDep.timeToStationSeconds / 60
 
-            val typicalHeadway = resolveTypicalHeadwayMinutes(firstDep, group, time, dayOfWeek)
+            val typicalHeadway = resolveTypicalHeadwayMinutes(firstDep, group, effectiveTime, effectiveDay)
 
             // Adaptive backlog threshold scaling:
+            // - During LATE_NIGHT (late evening wind-down & early morning startup), frequencies naturally widen
+            //   across branches and trunk lines (often 12-20m on Tube), so require at least 25m (or 2.2x typical)
+            //   to avoid false-positive backlog alerts late at night.
             // - Rapid trunk lines (<= 5 min headway): threshold 2.8x with a 9-minute floor
             // - Medium-frequency lines (6..9 min headway): threshold 2.2x with a 12-minute floor
             // - Lower-frequency branches & commuter rail (>= 10 min headway): threshold 1.8x with a 1.5x headway floor
             val (thresholdMultiplier, minMinutesFloor) = when {
+                period == TransitServicePeriod.LATE_NIGHT && typicalHeadway < 15 -> 2.5 to 25
                 typicalHeadway <= 5 -> 2.8 to 9
                 typicalHeadway <= 9 -> 2.2 to 12
                 else -> 1.8 to (typicalHeadway * 1.5).toInt()

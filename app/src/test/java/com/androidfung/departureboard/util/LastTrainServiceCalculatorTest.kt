@@ -335,5 +335,73 @@ class LastTrainServiceCalculatorTest {
         assertNotNull(hkClosed)
         assertTrue(hkClosed!!.isClosedForNight)
     }
+
+    @Test
+    fun `reconciles Mill Hill East banner and row when live last train is earlier than timetable`() {
+        val now = ZonedDateTime.of(2026, 11, 5, 0, 46, 0, 0, ZoneId.of("Europe/London"))
+        val station = Station(id = "940GZZLUMHL", name = "Mill Hill East", modes = listOf("tube"))
+        val timetableServiceHours = com.androidfung.departureboard.data.model.StationServiceHoursInfo(
+            isClosedForNight = false,
+            lastTrainTime = "01:13",
+            firstTrainTime = "05:25",
+            lineName = "Northern",
+            minutesUntilLastTrain = 28,
+            isApproachingLastTrain = true,
+            isNightServiceActive = false
+        )
+        val finalShuttle = sampleDeparture(
+            id = "mhe_last",
+            stationId = station.id,
+            lineId = "northern",
+            lineName = "Northern",
+            seconds = 4 * 60
+        ).copy(expectedDepartureInstant = now.plusMinutes(3).toInstant())
+
+        val (enriched, reconciled) = LastTrainServiceCalculator.enrichDeparturesAndServiceHours(
+            station = station,
+            departures = listOf(finalShuttle),
+            existingServiceHours = timetableServiceHours,
+            nowOverride = now,
+            timetableChecked = true
+        )
+
+        assertNotNull(reconciled)
+        assertTrue(enriched.first().isLastTrain)
+        assertEquals("00:49", reconciled!!.lastTrainTime)
+        assertEquals(4, reconciled.minutesUntilLastTrain)
+    }
+
+    @Test
+    fun `infers accurate lines for Kings Cross National Rail and Finchley Central`() {
+        val kingsCross = Station(
+            id = "910GKNGX",
+            name = "King's Cross",
+            modes = listOf("national-rail"),
+            lines = listOf(
+                com.androidfung.departureboard.data.model.StationLineInfo("grand-central", "Grand Central", "national-rail"),
+                com.androidfung.departureboard.data.model.StationLineInfo("great-northern", "Great Northern", "national-rail"),
+                com.androidfung.departureboard.data.model.StationLineInfo("hull-trains", "Hull Trains", "national-rail"),
+                com.androidfung.departureboard.data.model.StationLineInfo("london-north-eastern-railway", "London North Eastern Railway", "national-rail"),
+                com.androidfung.departureboard.data.model.StationLineInfo("lumo", "Lumo", "national-rail")
+            )
+        )
+        val kxBadges = com.androidfung.departureboard.data.model.StationLineInferrer.infer(kingsCross)
+        val kxNames = kxBadges.map { it.displayName }
+        assertFalse("King's Cross NR must not match Central tube line: $kxNames", kxNames.contains("Central"))
+        assertFalse("King's Cross NR must not match London Overground: $kxNames", kxNames.contains("London Overground"))
+        assertFalse("King's Cross NR must show Great Northern instead of Northern City Line: $kxNames", kxNames.contains("Northern City Line"))
+        assertTrue(kxNames.contains("Grand Central"))
+        assertTrue(kxNames.contains("Great Northern"))
+        assertTrue(kxNames.contains("LNER") || kxNames.contains("London North Eastern Railway"))
+
+        val finchleyCentral = Station(
+            id = "940GZZLUFYC",
+            name = "Finchley Central",
+            modes = listOf("tube"),
+            lines = emptyList()
+        )
+        val fycBadges = com.androidfung.departureboard.data.model.StationLineInferrer.infer(finchleyCentral)
+        assertEquals(listOf("Northern"), fycBadges.map { it.displayName })
+    }
 }
 

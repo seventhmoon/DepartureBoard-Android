@@ -301,7 +301,17 @@ private fun DeparturesActionCard(
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        val platText = if (dep.platformName.isNotBlank()) " • Plat ${dep.platformName}" else ""
+                        val rawPlat = dep.platformName.trim()
+                        val platText = when {
+                            rawPlat.isEmpty() -> ""
+                            rawPlat.startsWith("Plat", ignoreCase = true) ||
+                                rawPlat.startsWith("Stop", ignoreCase = true) ||
+                                rawPlat.startsWith("Bay", ignoreCase = true) ||
+                                rawPlat.startsWith("Track", ignoreCase = true) ||
+                                rawPlat.contains("番線") ||
+                                rawPlat.contains("月台") -> " • $rawPlat"
+                            else -> " • Plat $rawPlat"
+                        }
                         Text(
                             text = "${dep.lineName}$platText",
                             style = MaterialTheme.typography.bodySmall,

@@ -52,7 +52,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -416,7 +415,7 @@ fun WearConcourseBoardScreen(
                 }
                 .focusRequester(rotaryFocusRequester)
                 .focusable(),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 22.dp),
+            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 24.dp, bottom = 46.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -503,115 +502,7 @@ fun WearConcourseBoardScreen(
                 }
             }
 
-            // 2b. Top Quick Actions Bar: [✨ Ask AI], [+ Stations], & [🌙 AOD] (1-tap without scrolling)
-            if (!isAmbientMode) {
-                item(key = "top_quick_actions") {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = Color(0xFF231934),
-                            border = BorderStroke(1.dp, Color(0xFFB388FF).copy(alpha = 0.7f)),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .clickable {
-                                    if (latestAiResponse?.stationId != currentBoard.stationId) {
-                                        WearCompanionStateRepository.askAiConcourseTriage(
-                                            context = context,
-                                            station = currentBoard,
-                                            promptType = WearAiPromptType.FASTEST_TRAIN
-                                        )
-                                    }
-                                    showAskAiScreen = true
-                                }
-                        ) {
-                            Text(
-                                text = "✨ Ask AI",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp
-                                ),
-                                color = Color(0xFFD1C4E9),
-                                maxLines = 1,
-                                softWrap = false,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = Color(0xFF1E2229),
-                            border = BorderStroke(1.dp, Color(0xFF37474F)),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .clickable { showStationManager = true }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Add,
-                                    contentDescription = null,
-                                    tint = Color(0xFF81D4FA),
-                                    modifier = Modifier.size(11.dp)
-                                )
-                                Text(
-                                    text = "Stations",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp
-                                    ),
-                                    color = Color(0xFF81D4FA),
-                                    maxLines = 1,
-                                    softWrap = false
-                                )
-                            }
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = Color(0xFF14171C),
-                            border = BorderStroke(1.dp, Color(0xFF37474F)),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .semantics {
-                                    role = Role.Button
-                                    contentDescription = "Notification settings"
-                                }
-                                .clickable { showNotificationSettings = true }
-                        ) {
-                            Text(
-                                text = "🔔",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = Color(0xFF14171C),
-                            border = BorderStroke(1.dp, Color(0xFF37474F)),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .semantics {
-                                    role = Role.Button
-                                    contentDescription = "Ambient mode"
-                                }
-                                .clickable { manualAmbientMode = true }
-                        ) {
-                            Text(
-                                text = "🌙",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
-            } else {
+            if (isAmbientMode) {
                 item(key = "ambient_exit_pill") {
                     Surface(
                         shape = RoundedCornerShape(50),
@@ -765,73 +656,127 @@ fun WearConcourseBoardScreen(
                 )
             }
 
-            // 6. Bottom Concourse Actions: [✨ Ask AI] and [+ Stations]
+            // 6. Bottom Concourse Actions: [✨ Ask AI], [+ Stations], [🔔 Alerts], [🌙 AOD]
             item(key = "manage_stations_button") {
-                Row(
-                    modifier = Modifier.padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = Color(0xFF231934),
-                        border = BorderStroke(1.dp, Color(0xFFB388FF).copy(alpha = 0.7f)),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .clickable {
-                                if (latestAiResponse?.stationId != currentBoard.stationId) {
-                                    WearCompanionStateRepository.askAiConcourseTriage(
-                                        context = context,
-                                        station = currentBoard,
-                                        promptType = WearAiPromptType.FASTEST_TRAIN
-                                    )
-                                }
-                                showAskAiScreen = true
-                            }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF231934),
+                            border = BorderStroke(1.dp, Color(0xFFB388FF).copy(alpha = 0.7f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable {
+                                    if (latestAiResponse?.stationId != currentBoard.stationId) {
+                                        WearCompanionStateRepository.askAiConcourseTriage(
+                                            context = context,
+                                            station = currentBoard,
+                                            promptType = WearAiPromptType.FASTEST_TRAIN
+                                        )
+                                    }
+                                    showAskAiScreen = true
+                                }
                         ) {
-                            Text(
-                                text = "✨ Ask AI",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp
-                                ),
-                                color = Color(0xFFD1C4E9)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "✨ Ask AI",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    ),
+                                    color = Color(0xFFD1C4E9)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF1E2229),
+                            border = BorderStroke(1.dp, Color(0xFF37474F)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable { showStationManager = true }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Add,
+                                    contentDescription = null,
+                                    tint = Color(0xFF81D4FA),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = "Stations",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    ),
+                                    color = Color(0xFF81D4FA)
+                                )
+                            }
                         }
                     }
 
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = Color(0xFF1E2229),
-                        border = BorderStroke(1.dp, Color(0xFF37474F)),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .clickable { showStationManager = true }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF14171C),
+                            border = BorderStroke(1.dp, Color(0xFF37474F)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable { showNotificationSettings = true }
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Add,
-                                contentDescription = null,
-                                tint = Color(0xFF81D4FA),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Text(
-                                text = "Stations",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp
-                                ),
-                                color = Color(0xFF81D4FA)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "🔔 Alerts",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = Color(0xFF80CBC4)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFF14171C),
+                            border = BorderStroke(1.dp, Color(0xFF37474F)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .clickable { manualAmbientMode = true }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "🌙 Ambient",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = Color(0xFF90A4AE)
+                                )
+                            }
                         }
                     }
                 }

@@ -291,8 +291,9 @@ object LastTrainServiceCalculator {
 
         val isWeekendNight = isWeekendServiceNight(now)
         val isLateNightServiceWindow = now.hour in 0..4
+        val scheduledMinsUntilLast = serviceHours?.minutesUntilLastTrain
         val isApproachingLastTrain = serviceHours?.isApproachingLastTrain == true &&
-            (serviceHours.minutesUntilLastTrain ?: 999) <= 45
+            (scheduledMinsUntilLast ?: 999) <= 45
 
         // Group non-cancelled departures by line + direction/platform to identify the final train in each direction
         val lastDepartureIds = if (isApproachingLastTrain) {
@@ -336,9 +337,9 @@ object LastTrainServiceCalculator {
             }
         }
 
-        // Reconcile serviceHours with live departures when approaching last train
-        // If scheduled countdown is very close (e.g. <= 15m), but live tracked trains extend further (e.g. due to delays),
-        // or a tracked departure is past the scheduled last train, align the banner's time & countdown with the live train.
+        // Reconcile serviceHours with live departures when within the 35-minute live prediction horizon
+        // (matching evaluateServiceHours) or when live tracked trains extend past the scheduled last train,
+        // ensuring the Last Train Home banner and the [LAST TRAIN] row badge show the same time & countdown.
         val reconciledServiceHours = if (serviceHours?.isApproachingLastTrain == true && enriched.isNotEmpty()) {
             val latestTrainDep = enriched
                 .filter { it.status != DepartureStatus.CANCELLED && !isNightBusRoute(it.lineId) && !it.isNightService }
@@ -348,11 +349,13 @@ object LastTrainServiceCalculator {
                 val liveMinutes = (latestTrainDep.timeToStationSeconds / 60).coerceAtLeast(1)
                 val scheduledMins = serviceHours.minutesUntilLastTrain ?: 0
 
-                // When live departure is later than scheduled last train countdown (e.g. Marylebone delayed to 00:56 vs 00:45)
-                // or scheduled countdown is nearly expired (<= 15 mins) while live trains remain
-                val shouldAlignWithLive = liveMinutes > scheduledMins || scheduledMins <= 15
+                val shouldAlignWithLive = liveMinutes > scheduledMins || scheduledMins <= 35
                 if (shouldAlignWithLive) {
-                    val liveClock = latestTrainDep.formattedActualClockTime ?: serviceHours.lastTrainTime
+                    val liveClock = latestTrainDep.formattedActualClockTime
+                        ?: run {
+                            val liveArrivalZdt = now.plusSeconds(latestTrainDep.timeToStationSeconds.toLong())
+                            String.format(java.util.Locale.US, "%02d:%02d", liveArrivalZdt.hour, liveArrivalZdt.minute)
+                        }
                     serviceHours.copy(
                         lastTrainTime = liveClock,
                         minutesUntilLastTrain = liveMinutes
