@@ -415,7 +415,8 @@ object LastTrainServiceCalculator {
             }
             TransitRegion.GB -> {
                 val last = if (isWeekend) "00:45" else "00:35"
-                val first = if (now.dayOfWeek == DayOfWeek.SUNDAY) "06:30" else "05:20"
+                val upcomingMorningDay = if (now.hour >= 20) now.dayOfWeek.plus(1) else now.dayOfWeek
+                val first = if (upcomingMorningDay == DayOfWeek.SUNDAY) "06:30" else "05:20"
                 Triple(last, first, lineId)
             }
         }

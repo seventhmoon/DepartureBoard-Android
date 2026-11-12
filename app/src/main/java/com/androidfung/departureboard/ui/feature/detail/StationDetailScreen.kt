@@ -311,9 +311,9 @@ private fun StationDetailContent(
 ) {
     val modeIconRes = TransitIconHelper.getTransitModeIconRes(station.primaryTransitMode)
 
-    var selectedLineId by remember(initialSelectedLineId) { mutableStateOf(initialSelectedLineId) }
-    var selectedDirection by remember { mutableStateOf<String?>(null) }
-    var selectedStopId by remember { mutableStateOf<String?>(null) }
+    var selectedLineId by remember(station.id, initialSelectedLineId) { mutableStateOf(initialSelectedLineId) }
+    var selectedDirection by remember(station.id) { mutableStateOf<String?>(null) }
+    var selectedStopId by remember(station.id) { mutableStateOf<String?>(null) }
 
     // Distinct sub-stops (bays/platforms) present in departures (e.g. Stop A, Stop P, Stop Z4, Platform 1, etc.)
     val distinctStops = remember(departures) {

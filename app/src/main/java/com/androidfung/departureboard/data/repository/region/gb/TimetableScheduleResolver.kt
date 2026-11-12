@@ -89,6 +89,43 @@ class TimetableScheduleResolver(
     }
 
     /**
+     * Extracts outbound [TflKnownJourney] entries for [dayOfWeek], filtering out terminating arrival
+     * intervals (where the route interval ends at [stationId] itself or has no subsequent stops)
+     * whenever outbound intervals are available.
+     */
+    private fun selectOutboundJourneysForDay(
+        routes: List<TflTimetableRoute>,
+        dayOfWeek: DayOfWeek,
+        stationId: String
+    ): List<TflKnownJourney> {
+        val outbound = mutableListOf<TflKnownJourney>()
+        val all = mutableListOf<TflKnownJourney>()
+        for (route in routes) {
+            val matchedSchedules = selectSchedulesForDay(listOf(route), dayOfWeek)
+            val validIntervalIds = if (route.stationIntervals.isNotEmpty()) {
+                route.stationIntervals
+                    .filter { interval ->
+                        interval.intervals.isNotEmpty() &&
+                            !interval.intervals.last().stopId.equals(stationId, ignoreCase = true)
+                    }
+                    .mapNotNull { it.id }
+                    .toSet()
+            } else {
+                null
+            }
+            for (sched in matchedSchedules) {
+                for (kj in sched.knownJourneys) {
+                    all.add(kj)
+                    if (validIntervalIds == null || kj.intervalId.toString() in validIntervalIds) {
+                        outbound.add(kj)
+                    }
+                }
+            }
+        }
+        return outbound.ifEmpty { all }
+    }
+
+    /**
      * Checks scheduled timetables for a station as an authoritative safety-net to detect:
      * 1. Whether 24-hour Night Tube / Night Overground actually operates at this station tonight
      *    (verified by checking for scheduled departures in the 02:00-04:29 AM window),
@@ -129,14 +166,14 @@ class TimetableScheduleResolver(
             }
 
             // Between 00:00 and 04:29 AM, overnight service belongs to the previous service day
-            val effectiveServiceDay = if (nowLondon.hour < 4 || (nowLondon.hour == 4 && nowLondon.minute < 30)) {
+            val isAfterMidnightOvernight = nowLondon.hour < 4 || (nowLondon.hour == 4 && nowLondon.minute < 30)
+            val effectiveServiceDay = if (isAfterMidnightOvernight) {
                 nowLondon.dayOfWeek.minus(1)
             } else {
                 nowLondon.dayOfWeek
             }
 
-            val activeSchedules = selectSchedulesForDay(routes, effectiveServiceDay)
-            val journeys = activeSchedules.flatMap { it.knownJourneys }
+            val journeys = selectOutboundJourneysForDay(routes, effectiveServiceDay, stationId)
             if (journeys.isEmpty()) {
                 return com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
                     stationId = stationId,
@@ -149,8 +186,8 @@ class TimetableScheduleResolver(
             // A station only operates Night Tube / 24hr overnight service if its schedule for tonight
             // (or early tomorrow morning on the calendar day) contains journeys in the deep overnight
             // 02:00 - 04:29 AM window (hours 2, 3, or 26, 27, or 04:00-04:29 / 28:00-28:29).
-            val nextMorningSchedules = selectSchedulesForDay(routes, effectiveServiceDay.plus(1))
-            val combinedOvernightCheckJourneys = journeys + nextMorningSchedules.flatMap { it.knownJourneys }
+            val nextMorningJourneys = selectOutboundJourneysForDay(routes, effectiveServiceDay.plus(1), stationId)
+            val combinedOvernightCheckJourneys = journeys + nextMorningJourneys
             val hasOvernightTimetableTrips = combinedOvernightCheckJourneys.any { kj ->
                 val rawHour = kj.hour.toIntOrNull() ?: return@any false
                 val minute = kj.minute.toIntOrNull() ?: 0
@@ -176,14 +213,24 @@ class TimetableScheduleResolver(
 
             // Sort journeys chronologically by service day (starts ~04:30 AM through ~01:59 AM next day)
             // Normalize journeys: 00:00 - 04:29 are treated as late-night (add 24*60)
-            val normalizedTimes = journeys.mapNotNull { kj ->
-                val h = kj.hour.toIntOrNull() ?: return@mapNotNull null
-                val m = kj.minute.toIntOrNull() ?: return@mapNotNull null
-                val normMin = if (h < 4 || (h == 4 && m < 30)) (h + 24) * 60 + m else h * 60 + m
-                normMin to kj.formattedTime
-            }.sortedBy { it.first }
+            fun normalizeJourneyList(list: List<TflKnownJourney>): List<Pair<Int, String>> =
+                list.mapNotNull { kj ->
+                    val h = kj.hour.toIntOrNull() ?: return@mapNotNull null
+                    val m = kj.minute.toIntOrNull() ?: return@mapNotNull null
+                    val normMin = if (h < 4 || (h == 4 && m < 30)) (h + 24) * 60 + m else h * 60 + m
+                    normMin to kj.formattedTime
+                }.sortedBy { it.first }
 
-            val earliestMorning = normalizedTimes.firstOrNull { it.first in (4 * 60 + 30)..(8 * 60) }?.second
+            val normalizedTimes = normalizeJourneyList(journeys)
+            val isEveningOrOvernight = nowLondon.hour >= 20 || isAfterMidnightOvernight
+            val morningSourceTimes = if (isEveningOrOvernight && nextMorningJourneys.isNotEmpty()) {
+                normalizeJourneyList(nextMorningJourneys)
+            } else {
+                normalizedTimes
+            }
+
+            val earliestMorning = morningSourceTimes.firstOrNull { it.first in (4 * 60 + 30)..(8 * 60) }?.second
+                ?: normalizedTimes.firstOrNull { it.first in (4 * 60 + 30)..(8 * 60) }?.second
             val latestNightPair = normalizedTimes.lastOrNull()
             val latestNight = latestNightPair?.second
             val lastNorm = latestNightPair?.first
@@ -266,7 +313,11 @@ class TimetableScheduleResolver(
 
             val londonZone = ZoneId.of("Europe/London")
             val targetZdt = java.time.Instant.ofEpochSecond(departureEpochSeconds).atZone(londonZone)
-            val targetDayOfWeek = targetZdt.dayOfWeek
+            val targetDayOfWeek = if (targetZdt.hour < 4 || (targetZdt.hour == 4 && targetZdt.minute < 30)) {
+                targetZdt.dayOfWeek.minus(1)
+            } else {
+                targetZdt.dayOfWeek
+            }
             val targetMinutes = normalizeServiceDayMinutes(targetZdt.hour, targetZdt.minute)
 
             val earliestMinutes = earliestDepartureEpochSeconds?.let { earliestEpoch ->
@@ -359,7 +410,7 @@ class TimetableScheduleResolver(
     }
 
     private fun normalizeServiceDayMinutes(hour: Int, minute: Int): Int {
-        return if (hour < 4) (hour + 24) * 60 + minute else hour * 60 + minute
+        return if (hour < 4 || (hour == 4 && minute < 30)) (hour + 24) * 60 + minute else hour * 60 + minute
     }
 
     private fun computeJourneyEpochSeconds(
@@ -368,13 +419,16 @@ class TimetableScheduleResolver(
     ): Long? {
         val h = journey.hour.toIntOrNull() ?: return null
         val m = journey.minute.toIntOrNull() ?: return null
-        val baseDate = if (referenceZdt.hour < 4 && h >= 4) {
+        val clockHour = h % 24
+        val refIsLateNight = referenceZdt.hour < 4 || (referenceZdt.hour == 4 && referenceZdt.minute < 30)
+        val journeyIsLateNight = clockHour < 4 || (clockHour == 4 && m < 30)
+        val baseDate = if (refIsLateNight && !journeyIsLateNight) {
             referenceZdt.toLocalDate().minusDays(1)
-        } else if (referenceZdt.hour >= 4 && h < 4) {
+        } else if (!refIsLateNight && journeyIsLateNight) {
             referenceZdt.toLocalDate().plusDays(1)
         } else {
             referenceZdt.toLocalDate()
         }
-        return baseDate.atTime(h % 24, m).atZone(referenceZdt.zone).toEpochSecond()
+        return baseDate.atTime(clockHour, m).atZone(referenceZdt.zone).toEpochSecond()
     }
 }

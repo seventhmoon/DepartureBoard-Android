@@ -208,6 +208,34 @@ object StationLineInferrer {
         )
     )
 
+    /**
+     * Lazy reverse index derived automatically from [com.androidfung.departureboard.data.model.gb.topology.GbTransitRoutes]
+     * mapping normalized London station names to the exact set of [GbTransitLine]s serving that station.
+     * Ensures all ~400 London Tube, DLR, Overground, Elizabeth line, and Thameslink stations resolve their
+     * exact line badges even when `/StopPoint/Search` returns `lines = emptyList()`.
+     */
+    private val TOPOLOGY_LINES_BY_STATION_NAME: Map<String, List<GbTransitLine>> by lazy {
+        val routes = com.androidfung.departureboard.data.model.gb.topology.GbTransitRoutes
+        val map = mutableMapOf<String, MutableSet<GbTransitLine>>()
+        for ((seqKey, stationCodes) in routes.lineSequences) {
+            if (seqKey.startsWith("METRO-")) continue // Exclude Tyne & Wear Metro from London name index
+            val baseLineCode = seqKey.substringBefore("_")
+            val gbLine = GbTransitLine.fromCode(baseLineCode) ?: continue
+            for (stationCode in stationCodes) {
+                val rawName = routes.STATION_NAMES_BY_CODE[stationCode]
+                    ?: routes.resolveStationName(stationCode)
+                val cleanName = com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter
+                    .clean(rawName)
+                    .lowercase()
+                    .trim()
+                if (cleanName.isNotEmpty()) {
+                    map.getOrPut(cleanName) { linkedSetOf() }.add(gbLine)
+                }
+            }
+        }
+        map.mapValues { (_, lines) -> lines.toList() }
+    }
+
     fun infer(station: Station): List<LineBadgeInfo> {
         return inferFromDynamicLines(station)
             ?: inferFromKnownHubs(station)
@@ -221,6 +249,7 @@ object StationLineInferrer {
         if (station.lines.isEmpty()) return null
 
         val isKingsCrossOrStPancrasNR = station.isKingsCrossOrStPancrasNationalRail()
+        val region = TransitRegion.fromStationId(station.id)
 
         return station.lines
             .filter { line ->
@@ -231,7 +260,6 @@ object StationLineInferrer {
             }
             .map { line ->
                 val mode = line.mode ?: resolveDefaultMode(line.id)
-                val region = TransitRegion.fromStationId(station.id)
                 if (station.isHkBus || line.id.isHkBusRouteId) {
                     val cleanRoute = line.name.ifBlank { line.id.removePrefix("KMB_").removePrefix("CTB_") }
                     LineBadgeInfo(
@@ -242,11 +270,14 @@ object StationLineInferrer {
                         mode = TransitMode.BUS
                     )
                 } else {
-                    region.lineRegistry.fromCode(line.id)?.toLineBadge()
-                        ?: TransitRegion.entries.asSequence()
-                            .mapNotNull { it.lineRegistry.fromCode(line.id) }
-                            .firstOrNull()?.toLineBadge()
-                        ?: TflLineColors.getLineBadge(line.id, line.name, mode)
+                    // Only query the station's own regional line registry so UK TOC/bus codes (e.g. "cc", "G", "M")
+                    // never collide with foreign region line codes (e.g. Singapore Circle Line "CC" or Tokyo Ginza "G").
+                    val regionalBadge = if (region == TransitRegion.GB) {
+                        GbTransitLine.resolveBadge(line.id, line.name, mode)
+                    } else {
+                        region.lineRegistry.fromCode(line.id)?.toLineBadge()
+                    }
+                    regionalBadge ?: TflLineColors.getLineBadge(line.id, line.name, mode)
                 }
             }
             .distinctBy { it.displayName }
@@ -254,7 +285,7 @@ object StationLineInferrer {
     }
 
     /**
-     * 2. Fallback inference matching against known multi-line transit hubs.
+     * 2. Fallback inference matching against known multi-line transit hubs and route topology.
      * Bus stops/stands must never inherit rail/tube/metro interchange lines.
      * Furthermore, station names are matched strictly (by exact ID or exact normalized name)
      * rather than loose substring containment to prevent bus stops like "Stratford Park"
@@ -292,13 +323,58 @@ object StationLineInferrer {
             }
         }
 
-        // 3. Exact normalized station name match (strictly equal, never loose substring)
+        // 3. Exact normalized station name match in STATION_SPECIFIC_LINES
         val linesByName = STATION_SPECIFIC_LINES[cleanName]
         if (linesByName != null) {
             return linesByName.map { (id, name) ->
                 val mode = resolveDefaultMode(id)
                 TflLineColors.getLineBadge(id, name, mode)
             }.sortedBy { it.displayName }
+        }
+
+        // 4. Topology-driven station line lookup across all UK Tube, DLR, Overground, Elizabeth line, and Thameslink stations
+        if (TransitRegion.fromStationId(station.id) == TransitRegion.GB) {
+            val topologyLines = TOPOLOGY_LINES_BY_STATION_NAME[cleanName]
+            if (!topologyLines.isNullOrEmpty()) {
+                val lowerModes = station.modes.map { it.lowercase().trim() }
+                val filteredTopologyLines = if (lowerModes.isEmpty()) {
+                    topologyLines
+                } else {
+                    topologyLines.filter { gbLine ->
+                        when {
+                            gbLine.mode == TransitMode.METRO ->
+                                lowerModes.any { it == "tube" || it == "metro" || it == "underground" } ||
+                                    stationIdUpper.startsWith("940GZZLU") || stationIdUpper.startsWith("HUB")
+                            gbLine == GbTransitLine.DLR ->
+                                lowerModes.any { it == "dlr" } ||
+                                    stationIdUpper.startsWith("940GZZDL") || stationIdUpper.startsWith("HUB")
+                            gbLine.isOverground ->
+                                lowerModes.any { it.contains("overground") || it.contains("rail") } ||
+                                    stationIdUpper.startsWith("910G") || stationIdUpper.startsWith("HUB")
+                            gbLine == GbTransitLine.ELIZABETH ->
+                                lowerModes.any { it.contains("elizabeth") || it.contains("rail") || it == "tube" } ||
+                                    stationIdUpper.startsWith("910G") || stationIdUpper.startsWith("940GZZLU") || stationIdUpper.startsWith("HUB")
+                            gbLine == GbTransitLine.THAMESLINK ->
+                                lowerModes.any { it.contains("rail") || it.contains("thameslink") } ||
+                                    stationIdUpper.startsWith("910G") || stationIdUpper.startsWith("HUB")
+                            else -> true
+                        }
+                    }.ifEmpty {
+                        // If the station ID explicitly belongs to London Underground / DLR, fall back to topologyLines
+                        if (stationIdUpper.startsWith("940GZZLU") || stationIdUpper.startsWith("940GZZDL")) {
+                            topologyLines
+                        } else {
+                            emptyList()
+                        }
+                    }
+                }
+                if (filteredTopologyLines.isNotEmpty()) {
+                    return filteredTopologyLines
+                        .map { it.toLineBadge() }
+                        .distinctBy { it.displayName }
+                        .sortedBy { it.displayName }
+                }
+            }
         }
 
         return null

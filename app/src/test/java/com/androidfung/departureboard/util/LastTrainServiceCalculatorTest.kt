@@ -403,5 +403,111 @@ class LastTrainServiceCalculatorTest {
         val fycBadges = com.androidfung.departureboard.data.model.StationLineInferrer.infer(finchleyCentral)
         assertEquals(listOf("Northern"), fycBadges.map { it.displayName })
     }
+
+    @Test
+    fun `prevents cross-region line code collisions and topology-infers all London stations`() {
+        // 1. UK c2c ("cc") and single-letter UK codes ("G") must NOT match Singapore Circle Line or Tokyo Ginza Line
+        val fenchurchStreet = Station(
+            id = "910GFENCHRS",
+            name = "Fenchurch Street",
+            modes = listOf("national-rail"),
+            lines = listOf(
+                com.androidfung.departureboard.data.model.StationLineInfo("cc", "c2c", "national-rail")
+            )
+        )
+        val fstBadges = com.androidfung.departureboard.data.model.StationLineInferrer.infer(fenchurchStreet)
+        assertFalse(
+            "UK station with line code 'cc' must not match Singapore Circle Line: ${fstBadges.map { it.displayName }}",
+            fstBadges.any { it.displayName.contains("Circle", ignoreCase = true) }
+        )
+
+        // 2. National Rail "Northern" TOC (in Manchester/Leeds) must NOT resolve to London Underground's Northern Tube line
+        val manchesterPiccadilly = Station(
+            id = "910GMNCRPIC",
+            name = "Manchester Piccadilly",
+            modes = listOf("national-rail"),
+            lines = listOf(
+                com.androidfung.departureboard.data.model.StationLineInfo("nt", "Northern", "national-rail")
+            )
+        )
+        val manBadges = com.androidfung.departureboard.data.model.StationLineInferrer.infer(manchesterPiccadilly)
+        assertEquals(1, manBadges.size)
+        assertEquals(TransitMode.RAIL, manBadges.first().mode)
+
+        // 3. Topology-driven station line inference resolves any London Tube/Overground/Elizabeth station even when lines is empty
+        val belsizePark = Station(id = "940GZZLUBZP", name = "Belsize Park", modes = listOf("tube"), lines = emptyList())
+        assertEquals(listOf("Northern"), com.androidfung.departureboard.data.model.StationLineInferrer.infer(belsizePark).map { it.displayName })
+
+        val bakerStreet = Station(id = "940GZZLUBST", name = "Baker Street", modes = listOf("tube"), lines = emptyList())
+        assertEquals(
+            listOf("Bakerloo", "Circle", "Hammersmith & City", "Jubilee", "Metropolitan"),
+            com.androidfung.departureboard.data.model.StationLineInferrer.infer(bakerStreet).map { it.displayName }
+        )
+
+        val southKensington = Station(id = "940GZZLUSKS", name = "South Kensington", modes = listOf("tube"), lines = emptyList())
+        assertEquals(
+            listOf("Circle", "District", "Piccadilly"),
+            com.androidfung.departureboard.data.model.StationLineInferrer.infer(southKensington).map { it.displayName }
+        )
+    }
+
+    @Test
+    fun `TimetableScheduleResolver filters out terminating arrival intervals and uses Sunday morning on Saturday late night`() = kotlinx.coroutines.test.runTest {
+        val mheTimetableWithTerminatingArrival = com.androidfung.departureboard.data.model.gb.TflTimetableResponse(
+            lineId = "northern",
+            lineName = "Northern",
+            timetable = com.androidfung.departureboard.data.model.gb.TflTimetable(
+                routes = listOf(
+                    com.androidfung.departureboard.data.model.gb.TflTimetableRoute(
+                        stationIntervals = listOf(
+                            // Interval 0: outbound to Finchley Central
+                            com.androidfung.departureboard.data.model.gb.TflStationInterval(
+                                id = "0",
+                                intervals = listOf(
+                                    com.androidfung.departureboard.data.model.gb.TflInterval(stopId = "940GZZLUFYC", timeToArrival = 3.0)
+                                )
+                            ),
+                            // Interval 1: terminating arrival at Mill Hill East itself
+                            com.androidfung.departureboard.data.model.gb.TflStationInterval(
+                                id = "1",
+                                intervals = listOf(
+                                    com.androidfung.departureboard.data.model.gb.TflInterval(stopId = "940GZZLUMHL", timeToArrival = 0.0)
+                                )
+                            )
+                        ),
+                        schedules = listOf(
+                            com.androidfung.departureboard.data.model.gb.TflSchedule(
+                                name = "Saturday",
+                                knownJourneys = listOf(
+                                    com.androidfung.departureboard.data.model.gb.TflKnownJourney("5", "25", 0),
+                                    com.androidfung.departureboard.data.model.gb.TflKnownJourney("24", "49", 0), // 00:49 outbound
+                                    com.androidfung.departureboard.data.model.gb.TflKnownJourney("25", "13", 1)  // 01:13 terminating arrival!
+                                )
+                            ),
+                            com.androidfung.departureboard.data.model.gb.TflSchedule(
+                                name = "Sunday",
+                                knownJourneys = listOf(
+                                    com.androidfung.departureboard.data.model.gb.TflKnownJourney("6", "52", 0), // 06:52 Sunday morning first train
+                                    com.androidfung.departureboard.data.model.gb.TflKnownJourney("24", "18", 0)
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        val fakeTfl = com.androidfung.departureboard.test.FakeTflApiService(timetableResponse = mheTimetableWithTerminatingArrival)
+        val resolver = com.androidfung.departureboard.data.repository.region.gb.TimetableScheduleResolver(fakeTfl)
+
+        // At 00:46 Sunday (Saturday night service), outbound last train is 00:49 (NOT 01:13 terminating arrival),
+        // and first morning service is Sunday's 06:52 (NOT Saturday's 05:25)!
+        val sun0046 = ZonedDateTime.of(2026, 11, 8, 0, 46, 0, 0, ZoneId.of("Europe/London"))
+        val info = resolver.checkStationServiceHours("940GZZLUMHL", "northern", nowOverride = sun0046)
+        assertNotNull(info)
+        assertEquals("00:49", info!!.lastTrainTime)
+        assertEquals("06:52", info.firstTrainTime)
+        assertEquals(3, info.minutesUntilLastTrain)
+    }
 }
 

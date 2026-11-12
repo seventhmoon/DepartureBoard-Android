@@ -48,13 +48,22 @@ object DelayRepayCalculator {
 
     /**
      * Operators whose Delay Repay / Service Delay Refund threshold is 30 minutes
-     * (most UK rail operators and TfL Tube/DLR/Overground now use 15 minutes).
+     * (most UK rail operators and TfL Tube/DLR now use 15 minutes; Elizabeth line and London Overground use 30 minutes).
      */
     private val THIRTY_MINUTE_THRESHOLD_IDS = setOf(
         "elizabeth",
         "elizabeth-line",
         "elizabeth line",
         "xr",
+        "overground",
+        "london-overground",
+        "london overground",
+        "liberty",
+        "lioness",
+        "mildmay",
+        "suffragette",
+        "weaver",
+        "windrush",
         "crosscountry",
         "cross-country"
     )

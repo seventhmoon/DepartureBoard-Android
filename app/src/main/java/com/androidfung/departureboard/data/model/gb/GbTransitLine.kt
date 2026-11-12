@@ -33,7 +33,7 @@ enum class GbTransitLine(
         "H&C",
         TflLineColors.HammersmithAndCity,
         TflLineColors.DarkText,
-        aliases = setOf("hammersmith", "hammersmith & city", "hammersmith and city", "h&c")
+        aliases = setOf("hammersmith & city", "hammersmith and city", "h&c")
     ),
     JUBILEE("jubilee", "Jubilee", "JUB", TflLineColors.Jubilee),
     METROPOLITAN("metropolitan", "Metropolitan", "MET", TflLineColors.Metropolitan),
@@ -56,7 +56,7 @@ enum class GbTransitLine(
         "W&C",
         TflLineColors.WaterlooAndCity,
         TflLineColors.DarkText,
-        aliases = setOf("waterloo", "waterloo & city", "waterloo and city", "w&c")
+        aliases = setOf("waterloo & city", "waterloo and city", "w&c")
     ),
 
     // Elizabeth line
@@ -122,7 +122,7 @@ enum class GbTransitLine(
     METRO_YELLOW(
         "metro-yellow",
         "Yellow Line",
-        "MET",
+        "YEL",
         Color(0xFFF7B11E),
         Color.Black,
         TransitMode.METRO
@@ -130,7 +130,7 @@ enum class GbTransitLine(
     METRO_GREEN(
         "metro-green",
         "Green Line",
-        "MET",
+        "GRN",
         Color(0xFF009640),
         Color.White,
         TransitMode.METRO
@@ -145,7 +145,10 @@ enum class GbTransitLine(
         val normName = lineName?.lowercase()?.trim().orEmpty()
         if (normId.isEmpty() && normName.isEmpty()) return false
 
-        if (normId == code || normName == code || normName == this.lineName.lowercase()) return true
+        val lowerLineName = this.lineName.lowercase()
+        if (normId == code || normName == code || normName == lowerLineName ||
+            normName == "$code line" || normName == "$lowerLineName line"
+        ) return true
         if (aliases.any { alias ->
                 if (alias.length <= 3) {
                     normId == alias || normName == alias
@@ -157,10 +160,13 @@ enum class GbTransitLine(
 
         return when (this) {
             CENTRAL -> normId == "central" || normName == "central" || normName == "central line"
-            NORTHERN -> normId == "northern" || (normName.contains("northern") && !normName.contains("city") && !normName.contains("great") && !normName.contains("rail"))
+            NORTHERN -> normId == "northern" || (
+                (normName == "northern" || normName == "northern line") &&
+                    !normName.contains("city") && !normName.contains("great") && !normName.contains("rail") && !normName.contains("train")
+                )
             OVERGROUND -> normId.contains("overground") || normName.contains("overground")
-            TRAM -> normId.contains("tram") || normName.contains("tram")
-            else -> normId == code || normName.contains(code)
+            TRAM -> normId == "tram" || normId == "london-tram" || normName == "tram" || normName == "london trams" || normName == "tramlink"
+            else -> false
         }
     }
 
@@ -186,6 +192,16 @@ enum class GbTransitLine(
 
         fun resolveBadge(lineId: String?, lineName: String?, modeName: String?): LineBadgeInfo? {
             val matched = matchLine(lineId, lineName) ?: return null
+            val normMode = modeName?.lowercase()?.trim().orEmpty()
+            val normId = lineId?.lowercase()?.trim().orEmpty()
+            // Prevent National Rail TOCs (e.g. Northern Trains in Northern England, or Southeastern Victoria)
+            // from resolving to a London Underground METRO line unless the lineId explicitly matches the Tube code.
+            if (matched.mode == TransitMode.METRO &&
+                (normMode == "national-rail" || normMode == "rail" || normId.startsWith("nr-")) &&
+                normId != matched.code
+            ) {
+                return null
+            }
             if (matched == OVERGROUND && !lineName.isNullOrBlank()) {
                 return matched.toLineBadge().copy(displayName = lineName)
             }

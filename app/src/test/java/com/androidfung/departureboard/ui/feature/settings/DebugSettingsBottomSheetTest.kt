@@ -224,7 +224,10 @@ class DebugSettingsBottomSheetTest {
             )
         }
 
-        composeTestRule.onNodeWithText("Bilingual Station Names").performScrollTo().performClick()
+        // Clicking the text label or the switch toggles the setting
+        composeTestRule.onNodeWithText("Bilingual Station Names")
+            .performScrollTo()
+            .performClick()
         assertEquals(false, toggledValue)
     }
 }

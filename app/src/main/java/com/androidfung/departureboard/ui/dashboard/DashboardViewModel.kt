@@ -322,19 +322,22 @@ class DashboardViewModel @JvmOverloads constructor(
                         val updatedDetailContext = if (state.selectedDetailStation != null) {
                             val savedList = newCards.map { it.station }
                             val currentContext = state.detailStationsContext
-                            // Preserve any unsaved station (e.g. opened from a widget or search) at the front
-                            // of the detail pager context while syncing the rest with saved stations.
-                            val unsavedInContext = currentContext.filter { ctxSt ->
-                                savedList.none { it.id == ctxSt.id }
-                            }
-                            val base = if (unsavedInContext.isNotEmpty()) {
-                                unsavedInContext + savedList
+                            if (currentContext.isNotEmpty()) {
+                                // Preserve the existing station order in the active detail pager so saving or
+                                // unsaving a widget/search station inside StationDetailScreen never shifts the
+                                // active pager index while swiping.
+                                val refreshedExisting = currentContext.map { ctxSt ->
+                                    savedList.firstOrNull { it.id == ctxSt.id } ?: ctxSt
+                                }
+                                val newlySaved = savedList.filter { saved ->
+                                    refreshedExisting.none { it.id == saved.id }
+                                }
+                                (refreshedExisting + newlySaved).distinctBy { it.id }
                             } else if (savedList.none { it.id == state.selectedDetailStation.id }) {
-                                listOf(state.selectedDetailStation) + savedList
+                                (listOf(state.selectedDetailStation) + savedList).distinctBy { it.id }
                             } else {
-                                savedList
+                                savedList.distinctBy { it.id }
                             }
-                            base.distinctBy { it.id }
                         } else {
                             state.detailStationsContext
                         }
@@ -821,7 +824,7 @@ class DashboardViewModel @JvmOverloads constructor(
                             }
                         )
                     } else {
-                        state.selectedDetailStation ?: station
+                        state.selectedDetailStation
                     }
                     val updatedDetailContext = state.detailStationsContext.map { ctxSt ->
                         if (ctxSt.id == mergedStation.id) mergedStation else ctxSt
