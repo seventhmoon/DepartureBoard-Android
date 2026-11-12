@@ -14,6 +14,7 @@ class DestinationResolverTest {
         assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationName = "London Paddington", currentStationId = "SRA")?.displayName)
         assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationName = "Reading", currentStationName = "Paddington")?.displayName)
         assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationName = "Heathrow Terminal 4", currentStationName = "Paddington")?.displayName)
+        assertEquals("Westbound", ElizabethLineDirectionResolver.resolve(destinationName = com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter.clean("Heathrow Airport T4"), currentStationName = "Paddington")?.displayName)
 
         // O(1) CRS-based (National Rail)
         assertEquals("Eastbound", ElizabethLineDirectionResolver.resolve(destinationCrs = "ABW", currentStationId = "PAD")?.displayName)

@@ -541,8 +541,8 @@
     <string name="best_carriage_to_board_title">最佳上車車廂：第 %1$s 卡</string>
     <string name="step_free_lift_outage_title">無障礙升降機暫停服務</string>
     <string name="a2ui_alt_route_title">%1$s 替代路線</string>
-    <string name="a2ui_delay_repay_saved_toast">已儲存並複製延誤賠償收據</string>
-    <string name="a2ui_delay_repay_save_copy">儲存並複製收據</string>
+    <string name="a2ui_delay_repay_saved_toast">已儲存並複製延誤詳情</string>
+    <string name="a2ui_delay_repay_save_copy">儲存並複製詳情</string>
     <string name="a2ui_delay_repay_open_portal">賠償申請網站</string>
     <string name="ai_system_aicore_ready_badge">Android System AICore 已啟用 • 免下載裝置端 AI</string>
     <string name="station_saved_toast">已將 %1$s 釘選至主畫面</string>

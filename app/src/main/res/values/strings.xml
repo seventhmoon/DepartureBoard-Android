@@ -548,8 +548,8 @@
     <string name="best_carriage_to_board_title">Best Carriage to Board: Coach %1$s</string>
     <string name="step_free_lift_outage_title">Step-Free / Lift Outage</string>
     <string name="a2ui_alt_route_title">Alternative to %1$s</string>
-    <string name="a2ui_delay_repay_saved_toast">Delay Repay receipt saved &amp; copied</string>
-    <string name="a2ui_delay_repay_save_copy">Save &amp; Copy Receipt</string>
+    <string name="a2ui_delay_repay_saved_toast">Delay details saved &amp; copied</string>
+    <string name="a2ui_delay_repay_save_copy">Save &amp; Copy Details</string>
     <string name="a2ui_delay_repay_open_portal">Claim Portal</string>
     <string name="ai_system_aicore_ready_badge">Android System AICore Active • Zero-Download Local AI</string>
     <string name="station_saved_toast">Pinned %1$s to dashboard</string>

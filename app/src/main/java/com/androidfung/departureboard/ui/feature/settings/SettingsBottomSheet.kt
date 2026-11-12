@@ -631,7 +631,7 @@ fun SettingsBottomSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "DELAY REPAY RECEIPT LOG (${savedDelayRepayReceipts.size})",
+                        text = "DELAY REPAY LOG (${savedDelayRepayReceipts.size})",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -702,9 +702,9 @@ fun SettingsBottomSheet(
                                         selected = false,
                                         onClick = {
                                             com.androidfung.departureboard.util.DelayRepayReceiptLog.copyReceiptToClipboard(context, receipt)
-                                            android.widget.Toast.makeText(context, "Receipt copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
+                                            android.widget.Toast.makeText(context, "Delay details copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
                                         },
-                                        label = { Text("Copy Receipt") }
+                                        label = { Text("Copy Details") }
                                     )
                                 }
                             }

@@ -542,8 +542,8 @@
     <string name="best_carriage_to_board_title">おすすめの乗車位置：%1$s号車</string>
     <string name="step_free_lift_outage_title">バリアフリー・エレベーター停止情報</string>
     <string name="a2ui_alt_route_title">%1$s の迂回ルート</string>
-    <string name="a2ui_delay_repay_saved_toast">遅延払戻し控えを保存・コピーしました</string>
-    <string name="a2ui_delay_repay_save_copy">控えを保存＆コピー</string>
+    <string name="a2ui_delay_repay_saved_toast">遅延詳細を保存・コピーしました</string>
+    <string name="a2ui_delay_repay_save_copy">詳細を保存＆コピー</string>
     <string name="a2ui_delay_repay_open_portal">申請ポータル</string>
     <string name="ai_system_aicore_ready_badge">Android System AICore 有効 • 追加ダウンロード不要のローカルAI</string>
     <string name="station_saved_toast">%1$s をダッシュボードにピン留めしました</string>

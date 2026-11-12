@@ -706,7 +706,7 @@ private fun TrainJourneyContent(
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "${delayRepay.badgeLabel} • Receipt Saved",
+                                        text = "${delayRepay.badgeLabel} • Delay Logged",
                                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                         color = tealAccent
                                     )
@@ -749,12 +749,12 @@ private fun TrainJourneyContent(
                                             ?: cachedReceipts.firstOrNull()
                                         if (matchedReceipt != null) {
                                             com.androidfung.departureboard.util.DelayRepayReceiptLog.copyReceiptToClipboard(context, matchedReceipt)
-                                            android.widget.Toast.makeText(context, "Delay Repay receipt copied", android.widget.Toast.LENGTH_SHORT).show()
+                                            android.widget.Toast.makeText(context, "Delay details copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 ) {
                                     Text(
-                                        text = "Copy Receipt",
+                                        text = "Copy Details",
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)

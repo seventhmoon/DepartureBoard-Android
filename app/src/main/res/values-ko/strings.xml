@@ -542,8 +542,8 @@
     <string name="best_carriage_to_board_title">추천 탑승 칸: %1$s호차</string>
     <string name="step_free_lift_outage_title">무장애 엘리베이터 운행 중단</string>
     <string name="a2ui_alt_route_title">%1$s 대체 경로</string>
-    <string name="a2ui_delay_repay_saved_toast">지연 보상 영수증이 저장 및 복사되었습니다</string>
-    <string name="a2ui_delay_repay_save_copy">영수증 저장 및 복사</string>
+    <string name="a2ui_delay_repay_saved_toast">지연 내역이 저장 및 복사되었습니다</string>
+    <string name="a2ui_delay_repay_save_copy">내역 저장 및 복사</string>
     <string name="a2ui_delay_repay_open_portal">보상 신청 포털</string>
     <string name="ai_system_aicore_ready_badge">Android System AICore 활성 • 다운로드 없는 온디바이스 AI</string>
     <string name="station_saved_toast">%1$s 역을 대시보드에 고정했습니다</string>

@@ -35,8 +35,29 @@ internal object StationNameFormatter {
             .replace(STATION_SUFFIX_REGEX, "")
             .trim()
 
+        val normalizedBase = normalizePassengerFacingStationName(cleanedBase)
+
         val trimmedSuffix = suffix.trim()
-        return if (trimmedSuffix.isNotEmpty()) "$cleanedBase $trimmedSuffix" else cleanedBase
+        return if (trimmedSuffix.isNotEmpty()) "$normalizedBase $trimmedSuffix" else normalizedBase
+    }
+
+    /**
+     * Standardizes operator-specific shorthand (e.g. Darwin NRE "Heathrow Airport T4")
+     * into passenger-facing passenger wayfinding signage used across the network.
+     */
+    private fun normalizePassengerFacingStationName(name: String): String {
+        val lower = name.lowercase().trim()
+        return when {
+            lower == "heathrow airport t4" || lower == "heathrow airport terminal 4" || lower == "heathrow t4" ->
+                "Heathrow Terminal 4"
+            lower == "heathrow airport t5" || lower == "heathrow airport terminal 5" || lower == "heathrow t5" ->
+                "Heathrow Terminal 5"
+            lower == "heathrow airport t2&3" || lower == "heathrow airport t2 and 3" ||
+                lower == "heathrow airport terminals 2 and 3" || lower == "heathrow terminals 2 and 3" ||
+                lower == "heathrow t2&3" || lower == "heathrow airport t123" || lower == "heathrow terminals 1, 2, 3" ->
+                "Heathrow Terminals 2 & 3"
+            else -> name
+        }
     }
 
     private val SUBSTRING_COLLISION_PAIRS = listOf(
