@@ -220,9 +220,12 @@ class TransitRepositoryImpl(
         provider.searchStations(query)
     }
 
+    private val gbfsV3FeedClient = com.androidfung.departureboard.data.gbfs.GbfsV3FeedClient()
+
     override suspend fun getStationById(stationId: String): Station? = withContext(Dispatchers.IO) {
         val provider = regionalProviders.firstOrNull { it.ownsStationId(stationId) } ?: gbRegionalProvider
-        provider.getStationById(stationId)
+        val station = provider.getStationById(stationId) ?: return@withContext null
+        gbfsV3FeedClient.enrichStationIfNeeded(station)
     }
 
     private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())

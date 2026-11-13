@@ -17,6 +17,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,8 +52,11 @@ class DashboardViewModel @JvmOverloads constructor(
 
     private var autoRefreshJob: Job? = null
     private var countdownTickerJob: Job? = null
+    private var detailLoadJob: Job? = null
+    private var callingPointEnrichJob: Job? = null
     private var recentlyDeletedStation: Station? = null
     private var isCurrentlyOnline = true
+    private var hasManuallySelectedRegion = false
 
     init {
         observeSavedStations()
@@ -112,6 +116,7 @@ class DashboardViewModel @JvmOverloads constructor(
     }
 
     fun setSelectedRegion(region: com.androidfung.departureboard.data.model.TransitRegion) {
+        hasManuallySelectedRegion = true
         viewModelScope.launch {
             repository.setSelectedRegion(region)
             refreshDepartures()
@@ -120,6 +125,9 @@ class DashboardViewModel @JvmOverloads constructor(
     }
 
     fun setHkRegionEnabled(enabled: Boolean) {
+        if (!enabled) {
+            hasManuallySelectedRegion = false
+        }
         viewModelScope.launch {
             repository.setHkRegionEnabled(enabled)
             if (!enabled) {
@@ -418,7 +426,7 @@ class DashboardViewModel @JvmOverloads constructor(
                         } else {
                             card.copy(
                                 isLoading = false,
-                                errorMessage = if (card.departures.isEmpty()) "Unable to load departures" else null
+                                errorMessage = if (card.departures.isEmpty()) resolveString(R.string.departures_load_error) else null
                             )
                         }
                     } else {
@@ -487,12 +495,16 @@ class DashboardViewModel @JvmOverloads constructor(
             lineStatusesDeferred.await() to batchDeparturesDeferred.await()
         }
         val stationsById = stations.associateBy { it.id }
-        val verifiedByStationId = results.mapNotNull { (stationId, res) ->
-            val st = stationsById[stationId] ?: _uiState.value.stationCards.firstOrNull { it.station.id == stationId }?.station
-            if (res.isSuccess && st != null) {
-                stationId to resolveVerifiedServiceHours(st, res.getOrDefault(emptyList()))
-            } else null
-        }.toMap()
+        val verifiedByStationId = coroutineScope {
+            results.entries.mapNotNull { (stationId, res) ->
+                val st = stationsById[stationId] ?: _uiState.value.stationCards.firstOrNull { it.station.id == stationId }?.station
+                if (res.isSuccess && st != null) {
+                    async {
+                        stationId to resolveVerifiedServiceHours(st, res.getOrDefault(emptyList()))
+                    }
+                } else null
+            }.awaitAll().toMap()
+        }
 
         _uiState.update { state ->
             val updatedCards = state.stationCards.map { card ->
@@ -703,7 +715,7 @@ class DashboardViewModel @JvmOverloads constructor(
         _uiState.update {
             it.copy(
                 aiModelType = model,
-                userMessage = "AI engine set to: ${model.title}"
+                userMessage = resolveString(R.string.ai_engine_set_to, model.title)
             )
         }
     }
@@ -765,11 +777,17 @@ class DashboardViewModel @JvmOverloads constructor(
             )
         }
 
-        viewModelScope.launch {
+        callingPointEnrichJob?.cancel()
+        detailLoadJob?.cancel()
+        detailLoadJob = viewModelScope.launch {
             val lineStatusesDeferred = async { repository.getLineStatuses() }
             val departuresDeferred = async { repository.getDepartures(station.id, station.name) }
-            val enrichedStationDeferred = async { runCatching { repository.getStationById(station.id) }.getOrNull() }
-            val a11yAlertsDeferred = async { runCatching { repository.getStationAccessibilityAlerts(station.id) }.getOrDefault(emptyList()) }
+            val enrichedStationDeferred = async {
+                com.androidfung.departureboard.util.runSuspendCatching { repository.getStationById(station.id) }.getOrNull()
+            }
+            val a11yAlertsDeferred = async {
+                com.androidfung.departureboard.util.runSuspendCatching { repository.getStationAccessibilityAlerts(station.id) }.getOrDefault(emptyList())
+            }
 
             val lineStatuses = lineStatusesDeferred.await()
             val result = departuresDeferred.await()
@@ -968,15 +986,20 @@ class DashboardViewModel @JvmOverloads constructor(
         }
 
         // Enrich the station models asynchronously in the background if repository has more metadata
-        viewModelScope.launch {
+        callingPointEnrichJob?.cancel()
+        callingPointEnrichJob = viewModelScope.launch {
             val enrichedStation = repository.getStationById(targetStationId) ?: fallbackStation
-            val enrichedCallingStations = callingPoints.map { cp ->
-                val id = cp.stationId ?: cp.stationName
-                repository.getStationById(id) ?: Station(
-                    id = id,
-                    name = cp.stationName,
-                    modes = cp.modes
-                )
+            val enrichedCallingStations = coroutineScope {
+                callingPoints.map { cp ->
+                    async {
+                        val id = cp.stationId ?: cp.stationName
+                        repository.getStationById(id) ?: Station(
+                            id = id,
+                            name = cp.stationName,
+                            modes = cp.modes
+                        )
+                    }
+                }.awaitAll()
             }
 
             if (enrichedStation != fallbackStation || enrichedCallingStations != fallbackCallingStations) {
@@ -1214,7 +1237,10 @@ class DashboardViewModel @JvmOverloads constructor(
             // Zero-Tap Default Auto-Switch:
             // If experimental multi-region is enabled and user is physically in a supported region
             // that is different from currently selected region, auto-switch to it.
-            if (_uiState.value.isHkRegionEnabled && detectionResult.matchedRegion != null) {
+            if (_uiState.value.isHkRegionEnabled &&
+                !hasManuallySelectedRegion &&
+                detectionResult.matchedRegion != null
+            ) {
                 val matched = detectionResult.matchedRegion
                 if (matched != _uiState.value.selectedRegion) {
                     try {
@@ -1287,10 +1313,19 @@ class DashboardViewModel @JvmOverloads constructor(
             } else {
                 currentCards
             }
+            val periodMessageRes = when (activePeriod) {
+                com.androidfung.departureboard.util.CommutePeriod.MORNING -> R.string.smart_commute_morning_active
+                com.androidfung.departureboard.util.CommutePeriod.EVENING -> R.string.smart_commute_evening_active
+                com.androidfung.departureboard.util.CommutePeriod.OFF_PEAK -> R.string.smart_commute_offpeak_active
+            }
             state.copy(
                 isSmartCommuteEnabled = newEnabled,
                 stationCards = reordered,
-                userMessage = if (newEnabled) "Smart Commute active: Prioritizing ${activePeriod.name.lowercase()} stations" else "Smart Commute disabled"
+                userMessage = if (newEnabled) {
+                    resolveString(periodMessageRes)
+                } else {
+                    resolveString(R.string.smart_commute_disabled)
+                }
             )
         }
     }
@@ -1325,6 +1360,11 @@ class DashboardViewModel @JvmOverloads constructor(
             R.string.station_restored -> "Restored ${formatArgs.getOrNull(0)}"
             R.string.paywall_prompt_default -> "Unlock EkiBoard Pro"
             R.string.departures_load_error -> "Unable to load departures"
+            R.string.ai_engine_set_to -> "AI engine set to: ${formatArgs.getOrNull(0)}"
+            R.string.smart_commute_morning_active -> "Smart Commute: Morning stations prioritized"
+            R.string.smart_commute_evening_active -> "Smart Commute: Evening return stations prioritized"
+            R.string.smart_commute_offpeak_active -> "Smart Commute active: Auto-prioritizes Home (AM) & Work (PM)"
+            R.string.smart_commute_disabled -> "Smart Commute disabled"
             else -> ""
         }
     }

@@ -1,8 +1,10 @@
 package com.androidfung.departureboard.data.model.gb
 
+import java.io.InputStream
+import java.io.Reader
 import java.io.StringReader
+import kotlin.coroutines.cancellation.CancellationException
 import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserFactory
 
 /**
  * Domain representation of a DfT BODS SIRI-SX Disruption or situation alert.
@@ -30,28 +32,20 @@ object BodsDisruptionXmlParser {
     }
 
     fun parseStream(
-        inputStream: java.io.InputStream,
+        inputStream: InputStream,
         pullParser: XmlPullParser? = null
     ): List<BodsDisruption> {
         return parseReader(inputStream.bufferedReader(Charsets.UTF_8), pullParser)
     }
 
     private fun parseReader(
-        reader: java.io.Reader,
+        reader: Reader,
         pullParser: XmlPullParser? = null
     ): List<BodsDisruption> {
         val disruptions = mutableListOf<BodsDisruption>()
         try {
             reader.use { safeReader ->
-                val parser = pullParser ?: try {
-                    XmlPullParserFactory.newInstance().apply { isNamespaceAware = false }.newPullParser().apply {
-                        setInput(safeReader)
-                    }
-                } catch (_: Throwable) {
-                    val kxml = Class.forName("org.kxml2.io.KXmlParser").getDeclaredConstructor().newInstance() as XmlPullParser
-                    kxml.setInput(safeReader)
-                    kxml
-                }
+                val parser = BodsXmlPullHelper.newHardenedParser(safeReader, pullParser)
 
                 var eventType = parser.eventType
                 while (eventType != XmlPullParser.END_DOCUMENT) {
@@ -64,6 +58,8 @@ object BodsDisruptionXmlParser {
                     eventType = parser.next()
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {}
         return disruptions
     }
@@ -78,14 +74,21 @@ object BodsDisruptionXmlParser {
         var participantRef: String? = null
 
         var currentTag = ""
+        val textBuffer = StringBuilder()
         while (parser.next() != XmlPullParser.END_DOCUMENT) {
             when (parser.eventType) {
                 XmlPullParser.START_TAG -> {
                     currentTag = parser.name ?: ""
+                    textBuffer.setLength(0)
                 }
-                XmlPullParser.TEXT -> {
-                    val text = parser.text?.trim() ?: ""
-                    if (text.isNotEmpty()) {
+                XmlPullParser.TEXT, XmlPullParser.CDSECT -> {
+                    if (currentTag.isNotEmpty()) {
+                        parser.text?.let { textBuffer.append(it) }
+                    }
+                }
+                XmlPullParser.END_TAG -> {
+                    val text = textBuffer.toString().trim()
+                    if (text.isNotEmpty() && currentTag.isNotEmpty()) {
                         when (currentTag) {
                             "SituationNumber" -> situationNumber = text
                             "LineRef" -> lineRef = text
@@ -97,19 +100,20 @@ object BodsDisruptionXmlParser {
                             "ParticipantRef" -> participantRef = text
                         }
                     }
-                }
-                XmlPullParser.END_TAG -> {
+                    textBuffer.setLength(0)
+                    currentTag = ""
                     if (parser.name?.equals("PtSituationElement", ignoreCase = true) == true) {
                         break
                     }
-                    currentTag = ""
                 }
             }
         }
 
         if (situationNumber.isNotBlank() || summary.isNotBlank() || !description.isNullOrBlank()) {
             return BodsDisruption(
-                situationNumber = situationNumber.ifBlank { "bods-disruption-${System.currentTimeMillis()}" },
+                situationNumber = situationNumber.ifBlank {
+                    "bods-disruption-${BodsXmlPullHelper.fnv1a64("$lineRef|$summary|$description|$participantRef").toString(16)}"
+                },
                 lineRef = lineRef,
                 summary = summary.ifBlank { description ?: "Service Disruption" },
                 description = description,

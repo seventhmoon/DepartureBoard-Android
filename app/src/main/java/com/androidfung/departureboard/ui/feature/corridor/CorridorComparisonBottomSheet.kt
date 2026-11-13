@@ -218,7 +218,7 @@ fun CorridorComparisonContent(
             ) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                     Text(
-                        text = "Origin (Tap to switch)",
+                        text = stringResource(R.string.corridor_origin_tap_switch),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -243,7 +243,7 @@ fun CorridorComparisonContent(
             OutlinedTextField(
                 value = targetStationInput,
                 onValueChange = { targetStationInput = it },
-                label = { Text("Destination Stop", fontSize = 11.sp) },
+                label = { Text(stringResource(R.string.corridor_destination_stop), fontSize = 11.sp) },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.weight(1.2f)
@@ -274,7 +274,7 @@ fun CorridorComparisonContent(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "⚡ Faster Express Train Recommendation",
+                            text = stringResource(R.string.corridor_express_recommendation_title),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = overtakeAccentColor
                         )
@@ -298,7 +298,7 @@ fun CorridorComparisonContent(
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "Departures serving $targetStationInput (${corridorItems.size})",
+                    text = stringResource(R.string.corridor_departures_serving, targetStationInput, corridorItems.size),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -307,7 +307,7 @@ fun CorridorComparisonContent(
 
                 if (corridorItems.isEmpty()) {
                     Text(
-                        text = "No direct departures or calling points found towards \"$targetStationInput\" from ${originCard.station.displayName}.",
+                        text = stringResource(R.string.corridor_no_departures_towards, targetStationInput, originCard.station.displayName),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -319,6 +319,16 @@ fun CorridorComparisonContent(
                             CorridorServiceType.SEMI_FAST -> if (isDark) Color(0xFFFF9800) else Color(0xFF8C5000)
                             CorridorServiceType.ALL_STATIONS -> MaterialTheme.colorScheme.onSurfaceVariant
                         }
+                        val serviceTypeLabel = when (item.serviceType) {
+                            CorridorServiceType.EXPRESS -> stringResource(R.string.corridor_service_express)
+                            CorridorServiceType.SEMI_FAST -> stringResource(R.string.corridor_service_semi_fast)
+                            CorridorServiceType.ALL_STATIONS -> stringResource(R.string.corridor_service_all_stations)
+                        }
+                        val stopsCountLabel = androidx.compose.ui.res.pluralStringResource(
+                            R.plurals.corridor_stops_count,
+                            item.stopsCountToDestination,
+                            item.stopsCountToDestination
+                        )
 
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
@@ -334,7 +344,7 @@ fun CorridorComparisonContent(
                                     border = androidx.compose.foundation.BorderStroke(0.8.dp, serviceColor.copy(alpha = 0.4f))
                                 ) {
                                     Text(
-                                        text = "${item.serviceType.name.replace('_', ' ')} (${item.stopsCountToDestination} stops)",
+                                        text = "$serviceTypeLabel ($stopsCountLabel)",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                                         color = serviceColor,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -342,7 +352,11 @@ fun CorridorComparisonContent(
                                 }
 
                                 Text(
-                                    text = item.targetArrivalTime?.let { "Est. arrival: $it" } ?: "~${item.estimatedTravelMinutes}m transit",
+                                    text = item.targetArrivalTime?.let {
+                                        stringResource(R.string.corridor_est_arrival, it)
+                                    } ?: item.estimatedTravelMinutes?.let {
+                                        stringResource(R.string.corridor_est_transit_mins, it)
+                                    }.orEmpty(),
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.primary
                                 )

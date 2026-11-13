@@ -37,9 +37,10 @@ object GbFeedReconciliationEngine {
                         tfl.lineName.equals(nr.lineName, ignoreCase = true)
 
                 val cleanTflDest = StationNameFormatter.clean(tfl.destinationName)
-                val destsMatch = cleanTflDest.equals(cleanNrDest, ignoreCase = true) ||
+                val bothDestsNonBlank = cleanTflDest.isNotBlank() && cleanNrDest.isNotBlank()
+                val destsMatch = bothDestsNonBlank && (cleanTflDest.equals(cleanNrDest, ignoreCase = true) ||
                         cleanTflDest.contains(cleanNrDest, ignoreCase = true) ||
-                        cleanNrDest.contains(cleanTflDest, ignoreCase = true)
+                        cleanNrDest.contains(cleanTflDest, ignoreCase = true))
 
                 linesMatch && destsMatch && abs(tfl.timeToStationSeconds - nr.timeToStationSeconds) < toleranceSeconds
             }

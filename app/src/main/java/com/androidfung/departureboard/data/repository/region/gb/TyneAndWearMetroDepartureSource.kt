@@ -132,8 +132,24 @@ class TyneAndWearMetroDepartureSource(
             }
 
             // Query platforms 1 and 2 concurrently
-            val p1Deferred = async { try { apiService.getPlatformTimes(code, 1) } catch (_: Exception) { emptyList() } }
-            val p2Deferred = async { try { apiService.getPlatformTimes(code, 2) } catch (_: Exception) { emptyList() } }
+            val p1Deferred = async {
+                try {
+                    apiService.getPlatformTimes(code, 1)
+                } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
+            val p2Deferred = async {
+                try {
+                    apiService.getPlatformTimes(code, 2)
+                } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
 
             val p1 = p1Deferred.await()
             val p2 = p2Deferred.await()
@@ -174,7 +190,7 @@ class TyneAndWearMetroDepartureSource(
 
                     departures.add(
                         Departure(
-                            id = "nexus_${code}_${platformNum}_${item.trn ?: mins}_$seconds",
+                            id = "nexus_${code}_${platformNum}_${item.trn ?: "m$mins"}_${dest.lowercase().replace(' ', '_')}",
                             stationId = stationId,
                             stationName = stationName,
                             lineId = badge.lineId,
@@ -199,6 +215,8 @@ class TyneAndWearMetroDepartureSource(
             mapItems(p2, 2)
 
             Result.success(departures.sortedBy { it.timeToStationSeconds })
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }

@@ -386,7 +386,9 @@ fun DashboardContent(
                         modifier = Modifier.size(24.dp)
                     )
                 },
-                expanded = !staggeredGridState.isScrollInProgress,
+                expanded = androidx.compose.runtime.remember {
+                    androidx.compose.runtime.derivedStateOf { !staggeredGridState.isScrollInProgress }
+                }.value,
                 onClick = onAiAssistantClick,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,

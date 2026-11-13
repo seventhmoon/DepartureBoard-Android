@@ -23,4 +23,23 @@
     <string name="wear_channel_alighting_desc">於選定落車站前 1 站發出準備落車提示</string>
     <string name="wear_channel_disruption_name">延誤與取消警示</string>
     <string name="wear_channel_disruption_desc">當追蹤列車嚴重延誤或取消時發出通知</string>
+    <string name="wear_tile_refresh_cd">重新整理離站時間</string>
+    <string name="wear_tile_no_pinned">請於手機版 EkiBoard 釘選車站</string>
+    <string name="wear_opening_on_phone">正在手機開啟…</string>
+    <string name="wear_switch_station">切換車站</string>
+    <string name="wear_ambient_tap_wake">🌙 微光省電 • 輕觸喚醒</string>
+    <string name="wear_no_stations_synced">尚未同步車站</string>
+    <string name="wear_add_station">+ 新增車站</string>
+    <string name="wear_opening_ai_on_phone">正在手機開啟 AI…</string>
+    <string name="wear_btn_ask_ai">✨ 詢問 AI</string>
+    <string name="wear_btn_stations">車站</string>
+    <string name="wear_btn_alerts">🔔 通知</string>
+    <string name="wear_btn_ambient">🌙 微光</string>
+    <string name="wear_status_live">即時</string>
+    <string name="wear_status_synced">📱 已同步</string>
+    <string name="wear_status_sync_needed">⚠️ 需重新同步</string>
+    <string name="wear_status_boarding_now">正在登車</string>
+    <string name="wear_pace_makeable">%1$s • 可趕上</string>
+    <string name="wear_pace_sprint">%1$s • 快步！</string>
+    <string name="wear_pace_unlikely">%1$s • 緊迫</string>
 </resources>

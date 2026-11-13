@@ -549,4 +549,31 @@
     <string name="a2ui_delay_repay_open_portal">申請ポータル</string>
     <string name="ai_system_aicore_ready_badge">Android System AICore 有効 • 追加ダウンロード不要のローカルAI</string>
     <string name="station_saved_toast">%1$s をダッシュボードにピン留めしました</string>
+
+    <!-- Localization & Corridor / Widget Accessibility Extensions -->
+    <string name="search_stations_placeholder_sg">MRT駅・バス路線を検索（例：Raffles Place, 14）…</string>
+    <string name="search_stations_placeholder_jp">駅名・路線名を検索（例：Shibuya, Yamanote）…</string>
+    <string name="search_stations_placeholder_au">駅・フェリー・バスを検索（例：Central, T1, M52）…</string>
+    <string name="typically_platform_code">通常 %1$s番線%2$s</string>
+    <string name="share_live_train_eta_chooser">リアルタイム到着予定を共有</string>
+    <string name="cd_share_live_eta">リアルタイムETAを共有</string>
+    <string name="ai_engine_set_to">AIエンジンを設定：%1$s</string>
+    <string name="corridor_origin_tap_switch">出発駅（タップで切替）</string>
+    <string name="corridor_destination_stop">降車駅</string>
+    <string name="corridor_express_recommendation_title">⚡ 追い抜き優等列車のおすすめ</string>
+    <string name="corridor_departures_serving">%1$s 方面の列車（%2$d）</string>
+    <string name="corridor_no_departures_towards">%2$s から「%1$s」へ直通・停車する列車が見つかりません。</string>
+    <string name="corridor_service_express">急行・特急</string>
+    <string name="corridor_service_semi_fast">準急・快速</string>
+    <string name="corridor_service_all_stations">各駅停車</string>
+    <plurals name="corridor_stops_count">
+        <item quantity="other">%1$d駅</item>
+    </plurals>
+    <string name="corridor_est_arrival">到着予想：%1$s</string>
+    <string name="corridor_est_transit_mins">所要 約%1$d分</string>
+    <string name="smart_commute_morning_active">スマート通勤：朝の出発駅を優先表示</string>
+    <string name="smart_commute_evening_active">スマート通勤：夕方の帰宅駅を優先表示</string>
+    <string name="smart_commute_offpeak_active">スマート通勤を有効化（朝夕の通勤時間帯に自宅・職場駅を自動優先）</string>
+    <string name="smart_commute_disabled">スマート通勤を無効にしました</string>
+    <string name="shortcut_station_departures">%1$s 発車案内</string>
 </resources>

@@ -92,9 +92,10 @@ object TflDepartureMapper {
 
                 val sameLine = (candidateLine == existingLine) ||
                     com.androidfung.departureboard.data.model.TransitLineMatcher.isSameLine(candidateLine, existingLine)
-                val sameDest = candidateDest == existingDest ||
+                val bothDestsNonBlank = candidateDest.isNotBlank() && existingDest.isNotBlank()
+                val sameDest = bothDestsNonBlank && (candidateDest == existingDest ||
                     candidateDest.contains(existingDest) ||
-                    existingDest.contains(candidateDest)
+                    existingDest.contains(candidateDest))
                 val samePlatform = candidatePlat.isEmpty() || existingPlat.isEmpty() || candidatePlat == existingPlat
 
                 sameLine && sameDest && samePlatform &&

@@ -53,6 +53,8 @@ class BodsCallingPointsResolver(
                     modes = listOf(departure.modeName)
                 )
             )
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             listOf(
                 CallingPoint(

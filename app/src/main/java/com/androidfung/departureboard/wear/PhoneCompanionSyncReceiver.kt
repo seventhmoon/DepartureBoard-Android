@@ -1,13 +1,20 @@
 package com.androidfung.departureboard.wear
 
+import android.app.ActivityManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.MainActivity
+import com.androidfung.departureboard.R
 import com.androidfung.departureboard.appContainer
 import com.androidfung.departureboard.core.wearcontract.WearSyncContract
 import com.androidfung.departureboard.data.model.Departure
@@ -39,7 +46,63 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "PhoneCompanionReceiver"
         private const val ASYNC_BROADCAST_TIMEOUT_MS = 8_000L
+        private const val CHANNEL_WEAR_HANDOFF = "wear_phone_handoff"
+        private const val NOTIF_ID_OPEN_STATION = 9101
+        private const val NOTIF_ID_SHARE_ETA = 9102
+        private const val NOTIF_ID_OPEN_AI = 9103
         private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+        private fun isAppInForeground(context: Context): Boolean {
+            val am = context.getSystemService<ActivityManager>() ?: return false
+            val pkg = context.packageName
+            return am.runningAppProcesses?.any {
+                it.processName == pkg &&
+                    it.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+            } == true
+        }
+
+        /**
+         * Launches an activity when the phone app is foregrounded, or posts a heads-up notification
+         * fallback when backgrounded so Android 14+ BAL restrictions never drop watch handoff requests.
+         */
+        private fun launchFromWatchOrNotify(
+            context: Context,
+            launchIntent: Intent,
+            title: String,
+            body: String,
+            notificationId: Int
+        ) {
+            if (isAppInForeground(context)) {
+                if (runCatching { context.startActivity(launchIntent) }.isSuccess) return
+            }
+            if (com.androidfung.departureboard.util.NotificationHelper.areNotificationsEnabled(context)) {
+                context.getSystemService<NotificationManager>()?.let { nm ->
+                    val channel = NotificationChannel(
+                        CHANNEL_WEAR_HANDOFF,
+                        context.getString(R.string.app_name),
+                        NotificationManager.IMPORTANCE_HIGH
+                    )
+                    nm.createNotificationChannel(channel)
+                    val pendingIntent = PendingIntent.getActivity(
+                        context,
+                        notificationId,
+                        launchIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    val notification = NotificationCompat.Builder(context, CHANNEL_WEAR_HANDOFF)
+                        .setSmallIcon(R.drawable.ic_railway_alert)
+                        .setContentTitle(title)
+                        .setContentText(body)
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setAutoCancel(true)
+                        .setContentIntent(pendingIntent)
+                        .build()
+                    nm.notify(notificationId, notification)
+                }
+            }
+            runCatching { context.startActivity(launchIntent) }
+                .onFailure { Log.d(TAG, "Background watch handoff deferred to notification", it) }
+        }
 
         const val ACTION_OPEN_ON_PHONE = WearSyncContract.ACTION_OPEN_ON_PHONE
         const val ACTION_START_TRACKING_FROM_WATCH = WearSyncContract.ACTION_START_TRACKING_FROM_WATCH
@@ -106,8 +169,13 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                             }
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                         }
-                        runCatching { context.startActivity(openIntent) }
-                            .onFailure { Log.w(TAG, "Failed to open station on phone from watch handoff", it) }
+                        launchFromWatchOrNotify(
+                            context = context,
+                            launchIntent = openIntent,
+                            title = stationName.ifBlank { context.getString(R.string.app_name) },
+                            body = context.getString(R.string.cd_view_departures),
+                            notificationId = NOTIF_ID_OPEN_STATION
+                        )
                     }
                     pendingResult?.finish()
                 }
@@ -168,16 +236,20 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                 ACTION_SHARE_ETA_FROM_WATCH -> {
                     val shareText = intent.getStringExtra(EXTRA_SHARE_ETA_TEXT)?.takeIf { it.isNotBlank() }
                     if (shareText != null) {
-                        runCatching {
-                            val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                            }
-                            val chooser = Intent.createChooser(sendIntent, null).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            context.startActivity(chooser)
-                        }.onFailure { Log.w(TAG, "Failed to launch share sheet from watch request", it) }
+                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                        }
+                        val chooser = Intent.createChooser(sendIntent, null).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        launchFromWatchOrNotify(
+                            context = context,
+                            launchIntent = chooser,
+                            title = context.getString(R.string.share_live_train_eta_chooser),
+                            body = shareText,
+                            notificationId = NOTIF_ID_SHARE_ETA
+                        )
                     }
                     pendingResult?.finish()
                 }
@@ -275,8 +347,13 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                         )
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     }
-                    runCatching { context.startActivity(openIntent) }
-                        .onFailure { Log.w(TAG, "Failed to open AI sheet on phone from watch", it) }
+                    launchFromWatchOrNotify(
+                        context = context,
+                        launchIntent = openIntent,
+                        title = stationName.ifBlank { context.getString(R.string.app_name) },
+                        body = queryText.ifBlank { context.getString(R.string.ai_input_placeholder) },
+                        notificationId = NOTIF_ID_OPEN_AI
+                    )
                     pendingResult?.finish()
                 }
 

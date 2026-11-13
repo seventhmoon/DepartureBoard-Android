@@ -83,7 +83,9 @@ import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.ui.ads.NativeAdStyle
+import com.androidfung.departureboard.ui.ads.NativeAdUnits
 import com.androidfung.departureboard.ui.ads.NativeAdViewContainer
+import com.androidfung.departureboard.ui.ads.rememberNativeAds
 import com.androidfung.departureboard.ui.designsystem.DepartureRowItem
 import com.androidfung.departureboard.ui.designsystem.DepartureRowVariant
 import com.androidfung.departureboard.ui.designsystem.LastTrainServiceBanner
@@ -93,7 +95,7 @@ import com.androidfung.departureboard.ui.designsystem.TransitIconHelper
 
 private sealed interface StationDetailListItem {
     data class DepartureItem(val departure: Departure, val index: Int, val stableKey: String) : StationDetailListItem
-    data class AdItem(val key: String, val style: NativeAdStyle = NativeAdStyle.ROW) : StationDetailListItem
+    data class AdItem(val key: String, val nativeAd: com.google.android.gms.ads.nativead.NativeAd, val style: NativeAdStyle = NativeAdStyle.ROW) : StationDetailListItem
 }
 
 @Composable
@@ -161,10 +163,13 @@ fun StationDetailScreen(
             }
         }
 
-        LaunchedEffect(pagerState.settledPage) {
-            val currentStation = stationList[pagerState.settledPage]
-            if (currentStation.id != station.id) {
-                onStationChange?.invoke(currentStation)
+        LaunchedEffect(pagerState.settledPage, stationList) {
+            val settledIdx = pagerState.settledPage
+            if (settledIdx in stationList.indices) {
+                val currentStation = stationList[settledIdx]
+                if (currentStation.id != station.id) {
+                    onStationChange?.invoke(currentStation)
+                }
             }
         }
 
@@ -344,9 +349,40 @@ private fun StationDetailContent(
         with(density) { windowInfo.containerSize.height.toDp().value.toInt() }
     }
 
+    val departureItemHeightDp = 72 // DepartureDetailItemRow height + 8dp spacing
+    val headerHeightEstimateDp = 220 // Top bar, station header, line chips, section title
+    val cardAdHeightDp = 240 // Height needed for a comfortable rich media card ad
+    val estimatedContentHeight = headerHeightEstimateDp + (filteredDepartures.size * departureItemHeightDp)
+    val hasRoomForBottomCardAd = (screenHeightDp - estimatedContentHeight) >= cardAdHeightDp
+
+    val maxAdsNeeded = remember(filteredDepartures.size, isPro, hasRoomForBottomCardAd) {
+        if (isPro || filteredDepartures.isEmpty()) {
+            0
+        } else if (hasRoomForBottomCardAd) {
+            1
+        } else {
+            // Ads at index 2, 8, 14, ...
+            if (filteredDepartures.size <= 2) 0 else (1 + (filteredDepartures.size - 3) / 6).coerceAtMost(3)
+        }
+    }
+
+    val adUnitId = remember(hasRoomForBottomCardAd) {
+        if (com.androidfung.departureboard.BuildConfig.DEBUG) {
+            com.androidfung.departureboard.ui.ads.TEST_NATIVE_AD_UNIT_ID
+        } else {
+            if (hasRoomForBottomCardAd) NativeAdUnits.DASHBOARD else NativeAdUnits.STATION_DETAIL
+        }
+    }
+
+    val loadedAds = rememberNativeAds(
+        adUnitId = adUnitId,
+        count = maxAdsNeeded,
+        enabled = maxAdsNeeded > 0
+    )
+
     // Dynamically calculate whether the departures fit with ample space for a rich media Card ad,
     // or whether they fill/overflow the viewport, requiring in-stream compact ROW ads.
-    val displayItems = remember(filteredDepartures, isPro, screenHeightDp) {
+    val displayItems = remember(filteredDepartures, loadedAds, hasRoomForBottomCardAd) {
         val seenIds = HashMap<String, Int>()
         fun uniqueKeyFor(dep: Departure): String {
             val base = dep.id.ifBlank { "${dep.stationId}_${dep.lineId}_${dep.destinationName}_${dep.expectedArrivalIso.orEmpty()}" }
@@ -356,24 +392,25 @@ private fun StationDetailContent(
         }
 
         buildList<StationDetailListItem> {
-            val departureItemHeightDp = 72 // DepartureDetailItemRow height + 8dp spacing
-            val headerHeightEstimateDp = 220 // Top bar, station header, line chips, section title
-            val cardAdHeightDp = 240 // Height needed for a comfortable rich media card ad
-            val estimatedContentHeight = headerHeightEstimateDp + (filteredDepartures.size * departureItemHeightDp)
-            val hasRoomForBottomCardAd = (screenHeightDp - estimatedContentHeight) >= cardAdHeightDp
-
-            if (!isPro && filteredDepartures.isNotEmpty() && hasRoomForBottomCardAd) {
-                // Viewport has room below all departures: show uninterrupted departures + bottom rich card ad
+            if (hasRoomForBottomCardAd) {
+                // Viewport has room below all departures: show uninterrupted departures + bottom rich card ad if loaded
                 filteredDepartures.forEachIndexed { index, departure ->
                     add(StationDetailListItem.DepartureItem(departure, index, uniqueKeyFor(departure)))
                 }
-                add(StationDetailListItem.AdItem("ad_bottom_card", style = NativeAdStyle.CARD))
+                loadedAds.firstOrNull()?.let { ad ->
+                    add(StationDetailListItem.AdItem("ad_bottom_card", nativeAd = ad, style = NativeAdStyle.CARD))
+                }
             } else {
-                // List fills or overflows screen: interleave compact ROW ads so they don't dominate the content
+                // List fills or overflows screen: interleave loaded compact ROW ads so they don't dominate the content
+                var adIndex = 0
                 filteredDepartures.forEachIndexed { index, departure ->
                     add(StationDetailListItem.DepartureItem(departure, index, uniqueKeyFor(departure)))
-                    if (!isPro && (index == 2 || (index > 2 && (index - 2) % 6 == 0))) {
-                        add(StationDetailListItem.AdItem("ad_$index", style = NativeAdStyle.ROW))
+                    if (index == 2 || (index > 2 && (index - 2) % 6 == 0)) {
+                        if (adIndex < loadedAds.size) {
+                            val ad = loadedAds[adIndex]
+                            add(StationDetailListItem.AdItem("ad_$index", nativeAd = ad, style = NativeAdStyle.ROW))
+                            adIndex++
+                        }
                     }
                 }
             }
@@ -564,107 +601,75 @@ private fun StationDetailContent(
             val context = androidx.compose.ui.platform.LocalContext.current
 
             // Open in Maps Button
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                    .clickable {
-                        val queryText = TransitIconHelper.buildStationMapsQuery(station)
-                        val encodedQuery = java.net.URLEncoder.encode(queryText, "UTF-8")
+            DetailHeaderIconButton(
+                onClick = {
+                    val queryText = TransitIconHelper.buildStationMapsQuery(station)
+                    val encodedQuery = java.net.URLEncoder.encode(queryText, "UTF-8")
 
-                        val geoUri = if (station.lat != null && station.lon != null) {
-                            "geo:${station.lat},${station.lon}?q=$encodedQuery".toUri()
-                        } else {
-                            "geo:0,0?q=$encodedQuery".toUri()
-                        }
-                        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri).apply {
-                            setPackage("com.google.android.apps.maps")
-                        }
+                    val geoUri = if (station.lat != null && station.lon != null) {
+                        "geo:${station.lat},${station.lon}?q=$encodedQuery".toUri()
+                    } else {
+                        "geo:0,0?q=$encodedQuery".toUri()
+                    }
+                    val mapIntent = Intent(Intent.ACTION_VIEW, geoUri).apply {
+                        setPackage("com.google.android.apps.maps")
+                    }
+                    try {
+                        context.startActivity(mapIntent)
+                    } catch (_: android.content.ActivityNotFoundException) {
+                        val fallbackIntent = Intent(Intent.ACTION_VIEW, geoUri)
                         try {
-                            context.startActivity(mapIntent)
+                            context.startActivity(fallbackIntent)
                         } catch (_: android.content.ActivityNotFoundException) {
-                            val fallbackIntent = Intent(Intent.ACTION_VIEW, geoUri)
-                            try {
-                                context.startActivity(fallbackIntent)
-                            } catch (_: android.content.ActivityNotFoundException) {
-                                val browserUri = "https://www.google.com/maps/search/?api=1&query=$encodedQuery".toUri()
-                                context.startActivity(Intent(Intent.ACTION_VIEW, browserUri))
-                            }
+                            val browserUri = "https://www.google.com/maps/search/?api=1&query=$encodedQuery".toUri()
+                            context.startActivity(Intent(Intent.ACTION_VIEW, browserUri))
                         }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Map,
-                    contentDescription = stringResource(R.string.cd_open_in_maps),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(19.dp)
-                )
-            }
+                    }
+                },
+                imageVector = Icons.Rounded.Map,
+                contentDescription = stringResource(R.string.cd_open_in_maps)
+            )
 
             // Split-Flap Desk Clock Button
             if (onOpenDeskClock != null) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                        .clickable { onOpenDeskClock(station) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.DesktopWindows,
-                        contentDescription = stringResource(R.string.cd_open_desk_clock),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+                DetailHeaderIconButton(
+                    onClick = { onOpenDeskClock(station) },
+                    imageVector = Icons.Rounded.DesktopWindows,
+                    contentDescription = stringResource(R.string.cd_open_desk_clock),
+                    iconSize = 18.dp
+                )
             }
 
             // Refresh Departures Button
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                    .clickable(onClick = onRefresh),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Refresh,
-                    contentDescription = stringResource(R.string.cd_refresh_departures),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(19.dp)
-                )
-            }
+            DetailHeaderIconButton(
+                onClick = onRefresh,
+                imageVector = Icons.Rounded.Refresh,
+                contentDescription = stringResource(R.string.cd_refresh_departures)
+            )
 
             // Bookmark / Pin to Home icon button
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isSaved) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerHighest
-                    )
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onToggleSaveStation(station)
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (isSaved) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
-                    contentDescription = if (isSaved) {
-                        stringResource(R.string.cd_remove_from_home)
-                    } else {
-                        stringResource(R.string.cd_pin_to_home)
-                    },
-                    tint = if (isSaved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(19.dp)
-                )
-            }
+            DetailHeaderIconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onToggleSaveStation(station)
+                },
+                imageVector = if (isSaved) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                contentDescription = if (isSaved) {
+                    stringResource(R.string.cd_remove_from_home)
+                } else {
+                    stringResource(R.string.cd_pin_to_home)
+                },
+                containerColor = if (isSaved) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHighest
+                },
+                contentColor = if (isSaved) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
         }
     ) { scaffoldPadding ->
 
@@ -1095,35 +1100,46 @@ private fun StationDetailContent(
                                 val isSelected = selectedStopId.equals(subStop.platformName, ignoreCase = true)
                                 Box(
                                     modifier = Modifier
+                                        .defaultMinSize(minHeight = 48.dp)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                            else MaterialTheme.colorScheme.surfaceVariant
-                                        )
-                                        .border(
-                                            width = if (isSelected) 1.5.dp else 0.dp,
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
                                         .clickable(role = Role.Checkbox) {
-                                            selectedStopId = if (selectedStopId == subStop.platformName) null else subStop.platformName
+                                            selectedStopId = if (selectedStopId.equals(subStop.platformName, ignoreCase = true)) {
+                                                null
+                                            } else {
+                                                subStop.platformName
+                                            }
                                         }
                                         .semantics {
                                             this.selected = isSelected
                                             this.role = Role.Checkbox
                                             this.stateDescription = if (isSelected) stopSelectedDesc else stopNotSelectedDesc
-                                        }
-                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                        },
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = subStop.platformName,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                        ),
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                                else MaterialTheme.colorScheme.surfaceVariant
+                                            )
+                                            .border(
+                                                width = if (isSelected) 1.5.dp else 0.dp,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = subStop.platformName,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 11.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                            ),
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }

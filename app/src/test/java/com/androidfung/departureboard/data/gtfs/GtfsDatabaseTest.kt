@@ -20,6 +20,8 @@ class GtfsDatabaseTest {
         val stopTimesList = mutableListOf<GtfsStopTimeEntity>()
         val calendarsList = mutableListOf<GtfsCalendarEntity>()
         val calendarDatesList = mutableListOf<GtfsCalendarDateEntity>()
+        val levelsList = mutableListOf<GtfsLevelEntity>()
+        val pathwaysList = mutableListOf<GtfsPathwayEntity>()
 
         fakeDao = object : GtfsDao {
             override suspend fun getStopById(stopId: String): GtfsStopEntity? =
@@ -75,6 +77,15 @@ class GtfsDatabaseTest {
             override suspend fun getCalendarDatesForDate(date: String): List<GtfsCalendarDateEntity> =
                 calendarDatesList.filter { it.date == date }
 
+            override suspend fun getLevelsByIds(levelIds: List<String>): List<GtfsLevelEntity> =
+                levelsList.filter { it.levelId in levelIds }
+
+            override suspend fun getPathwaysForStop(stopId: String): List<GtfsPathwayEntity> =
+                pathwaysList.filter { it.fromStopId == stopId || (it.isBidirectional == 1 && it.toStopId == stopId) }
+
+            override suspend fun getPathwaysForStops(stopIds: List<String>): List<GtfsPathwayEntity> =
+                pathwaysList.filter { it.fromStopId in stopIds || it.toStopId in stopIds }
+
             override suspend fun insertStops(stops: List<GtfsStopEntity>) {
                 stopsList.addAll(stops)
             }
@@ -99,12 +110,22 @@ class GtfsDatabaseTest {
                 calendarDatesList.addAll(calendarDates)
             }
 
+            override suspend fun insertLevels(levels: List<GtfsLevelEntity>) {
+                levelsList.addAll(levels)
+            }
+
+            override suspend fun insertPathways(pathways: List<GtfsPathwayEntity>) {
+                pathwaysList.addAll(pathways)
+            }
+
             override suspend fun clearStops() { stopsList.clear() }
             override suspend fun clearRoutes() { routesList.clear() }
             override suspend fun clearTrips() { tripsList.clear() }
             override suspend fun clearStopTimes() { stopTimesList.clear() }
             override suspend fun clearCalendars() { calendarsList.clear() }
             override suspend fun clearCalendarDates() { calendarDatesList.clear() }
+            override suspend fun clearLevels() { levelsList.clear() }
+            override suspend fun clearPathways() { pathwaysList.clear() }
         }
 
         importer = GtfsStaticScheduleImporter(fakeDao)

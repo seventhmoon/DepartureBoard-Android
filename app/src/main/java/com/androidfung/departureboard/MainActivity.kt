@@ -354,45 +354,19 @@ class MainActivity : AppCompatActivity() {
                     val selectedStationId = uiState.selectedDetailStation?.id
                     val selectedDepartureId = uiState.selectedJourneyDeparture?.id
 
-                    LaunchedEffect(selectedStationId) {
-                        if (selectedStationId != null) {
-                            val newStationRoute = StationDetailRoute(selectedStationId)
-                            val currentTrainRoute = backStack.firstOrNull { it is TrainJourneyRoute }
-                            val newStack = mutableListOf<NavKey>(DashboardListRoute)
-                            if (currentTrainRoute != null) {
-                                newStack.add(currentTrainRoute)
+                    LaunchedEffect(selectedStationId, selectedDepartureId) {
+                        val newStack = buildList<NavKey> {
+                            add(DashboardListRoute)
+                            if (selectedStationId != null) {
+                                add(StationDetailRoute(selectedStationId))
                             }
-                            newStack.add(newStationRoute)
-                            if (backStack.toList() != newStack) {
-                                backStack.clear()
-                                backStack.addAll(newStack)
-                            }
-                        } else {
-                            val toRemove = backStack.filter { it is StationDetailRoute }
-                            if (toRemove.isNotEmpty()) {
-                                backStack.removeAll(toRemove)
+                            if (selectedDepartureId != null) {
+                                add(TrainJourneyRoute(selectedDepartureId))
                             }
                         }
-                    }
-
-                    LaunchedEffect(selectedDepartureId) {
-                        if (selectedDepartureId != null) {
-                            val newJourneyRoute = TrainJourneyRoute(selectedDepartureId)
-                            val currentStationRoute = backStack.firstOrNull { it is StationDetailRoute }
-                            val newStack = mutableListOf<NavKey>(DashboardListRoute)
-                            if (currentStationRoute != null) {
-                                newStack.add(currentStationRoute)
-                            }
-                            newStack.add(newJourneyRoute)
-                            if (backStack.toList() != newStack) {
-                                backStack.clear()
-                                backStack.addAll(newStack)
-                            }
-                        } else {
-                            val toRemove = backStack.filter { it is TrainJourneyRoute }
-                            if (toRemove.isNotEmpty()) {
-                                backStack.removeAll(toRemove)
-                            }
+                        if (backStack.toList() != newStack) {
+                            backStack.clear()
+                            backStack.addAll(newStack)
                         }
                     }
 
@@ -641,7 +615,7 @@ class MainActivity : AppCompatActivity() {
                         val nearest = uiState.nearestStation
                             ?: uiState.nearbyStations.firstOrNull()?.first
                             ?: uiState.stationCards.firstOrNull { it.station.id == uiState.nearestStationId }?.station
-                        val rememberedSavedStations = remember(uiState.stationCards.size, uiState.stationCards.firstOrNull()?.station?.id) {
+                        val rememberedSavedStations = remember(uiState.stationCards) {
                             uiState.stationCards.map { it.station }
                         }
                         com.androidfung.departureboard.ui.feature.ai.AiTransitSheet(

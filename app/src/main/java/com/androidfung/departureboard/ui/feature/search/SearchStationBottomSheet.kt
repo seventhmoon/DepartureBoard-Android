@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -208,10 +209,16 @@ fun SearchStationBottomSheet(
                 }),
                 placeholder = {
                     Text(
-                        text = if (selectedRegion == com.androidfung.departureboard.data.model.TransitRegion.HK) {
-                            stringResource(R.string.search_stations_placeholder_hk)
-                        } else {
-                            stringResource(R.string.search_stations_placeholder_general)
+                        text = when (selectedRegion) {
+                            com.androidfung.departureboard.data.model.TransitRegion.HK ->
+                                stringResource(R.string.search_stations_placeholder_hk)
+                            com.androidfung.departureboard.data.model.TransitRegion.SG ->
+                                stringResource(R.string.search_stations_placeholder_sg)
+                            com.androidfung.departureboard.data.model.TransitRegion.JP ->
+                                stringResource(R.string.search_stations_placeholder_jp)
+                            com.androidfung.departureboard.data.model.TransitRegion.AU ->
+                                stringResource(R.string.search_stations_placeholder_au)
+                            else -> stringResource(R.string.search_stations_placeholder_general)
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
@@ -437,11 +444,11 @@ fun SearchStationBottomSheet(
                                 }
                             }
 
-                            items(
+                            itemsIndexed(
                                 items = filteredNearby,
-                                key = { "nearby_" + it.first.id + it.first.name },
-                                contentType = { "station_row" }
-                            ) { (station, distMeters) ->
+                                key = { index, item -> "nearby_${item.first.id}\u0000${item.first.name}\u0000$index" },
+                                contentType = { _, _ -> "station_row" }
+                            ) { _, (station, distMeters) ->
                                 val isAlreadySaved = savedStationIds.contains(station.id)
                                 val distFormatted = if (distMeters < 1000) {
                                     stringResource(R.string.search_stations_distance_meters, distMeters.toInt())
@@ -517,11 +524,11 @@ fun SearchStationBottomSheet(
                         }
                     }
 
-                    items(
+                    itemsIndexed(
                         items = filteredResults,
-                        key = { it.id + it.name }, // Combined id and name for uniqueness
-                        contentType = { "station_row" }
-                    ) { station ->
+                        key = { index, item -> "result_${item.id}\u0000${item.name}\u0000$index" },
+                        contentType = { _, _ -> "station_row" }
+                    ) { _, station ->
                         val isAlreadySaved = savedStationIds.contains(station.id)
                         StationSearchResultRow(
                             station = station,

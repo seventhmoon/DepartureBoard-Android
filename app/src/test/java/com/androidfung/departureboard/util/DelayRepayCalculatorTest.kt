@@ -177,4 +177,14 @@ class DelayRepayCalculatorTest {
         assertNotNull(risk)
         assertEquals(4, risk!!.delayMinutes)
     }
+
+    @Test
+    fun `early arrival right before midnight is not misclassified as 23 hour delay`() {
+        val earlyBeforeMidnight = buildDeparture(
+            scheduledTime = "00:05",
+            estimatedTime = "23:55",
+            status = DepartureStatus.ON_TIME
+        )
+        assertNull(DelayRepayCalculator.evaluate(earlyBeforeMidnight))
+    }
 }

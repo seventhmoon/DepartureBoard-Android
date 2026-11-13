@@ -75,6 +75,8 @@ class HkBusDepartureSource(
                 } else {
                     try {
                         kmbApiService.getKmbStopEta(rawStopId).data.orEmpty()
+                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                        throw e
                     } catch (_: Exception) {
                         emptyList()
                     }
@@ -101,6 +103,8 @@ class HkBusDepartureSource(
                                 dataTimestamp = ctb.dataTimestamp
                             )
                         }
+                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                        throw e
                     } catch (_: Exception) {
                         emptyList()
                     }

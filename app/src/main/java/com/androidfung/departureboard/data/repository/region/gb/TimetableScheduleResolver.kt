@@ -57,6 +57,8 @@ class TimetableScheduleResolver(
                             response = disambiguated
                             break
                         }
+                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                        throw e
                     } catch (_: Exception) {
                         // Try next disambiguation option
                     }
@@ -271,6 +273,8 @@ class TimetableScheduleResolver(
                 // and last train is > 90 minutes away (and Night Tube is NOT active at this station).
                 null
             }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             return com.androidfung.departureboard.util.LastTrainServiceCalculator.evaluateServiceHours(
                 stationId = stationId,
@@ -404,6 +408,8 @@ class TimetableScheduleResolver(
                 destinationNaptanId = resolvedNaptanId,
                 scheduledDepartureEpochSeconds = scheduledEpochSeconds
             )
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             null
         }

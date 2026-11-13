@@ -549,4 +549,31 @@
     <string name="a2ui_delay_repay_open_portal">보상 신청 포털</string>
     <string name="ai_system_aicore_ready_badge">Android System AICore 활성 • 다운로드 없는 온디바이스 AI</string>
     <string name="station_saved_toast">%1$s 역을 대시보드에 고정했습니다</string>
+
+    <!-- Localization & Corridor / Widget Accessibility Extensions -->
+    <string name="search_stations_placeholder_sg">MRT 역 또는 버스 노선 검색 (예: Raffles Place, 14)…</string>
+    <string name="search_stations_placeholder_jp">역 또는 노선 검색 (예: Shibuya, Yamanote)…</string>
+    <string name="search_stations_placeholder_au">역, 페리 또는 버스 검색 (예: Central, T1, M52)…</string>
+    <string name="typically_platform_code">보통 %1$s번 승강장%2$s</string>
+    <string name="share_live_train_eta_chooser">실시간 열차 도착 예정 공유</string>
+    <string name="cd_share_live_eta">실시간 도착 예정 공유</string>
+    <string name="ai_engine_set_to">AI 엔진 설정됨: %1$s</string>
+    <string name="corridor_origin_tap_switch">출발역 (탭하여 전환)</string>
+    <string name="corridor_destination_stop">도착역</string>
+    <string name="corridor_express_recommendation_title">⚡ 더 빠른 급행 열차 추천</string>
+    <string name="corridor_departures_serving">%1$s 방면 출발 열차 (%2$d)</string>
+    <string name="corridor_no_departures_towards">%2$s에서 \"%1$s\" 방면 직통 또는 정차 열차를 찾지 못했습니다.</string>
+    <string name="corridor_service_express">급행</string>
+    <string name="corridor_service_semi_fast">준급</string>
+    <string name="corridor_service_all_stations">완행</string>
+    <plurals name="corridor_stops_count">
+        <item quantity="other">%1$d개 역</item>
+    </plurals>
+    <string name="corridor_est_arrival">도착 예정: %1$s</string>
+    <string name="corridor_est_transit_mins">약 %1$d분 소요</string>
+    <string name="smart_commute_morning_active">스마트 통근: 오전 출발역 우선 정렬됨</string>
+    <string name="smart_commute_evening_active">스마트 통근: 저녁 귀가역 우선 정렬됨</string>
+    <string name="smart_commute_offpeak_active">스마트 통근 활성화됨 (출퇴근 시간대에 맞춰 집/직장 역 자동 우선 정렬)</string>
+    <string name="smart_commute_disabled">스마트 통근이 비활성화되었습니다</string>
+    <string name="shortcut_station_departures">%1$s 출발 정보</string>
 </resources>

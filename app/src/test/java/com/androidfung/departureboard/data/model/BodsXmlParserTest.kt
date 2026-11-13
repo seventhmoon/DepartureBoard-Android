@@ -59,5 +59,45 @@ class BodsXmlParserTest {
         assertEquals("Waltham Cross", departure.destinationName)
         assertTrue(departure.isWheelchairAccessible == true)
         assertEquals("seatsAvailable", departure.occupancyStatus)
+        assertEquals("", departure.platformName)
+
+        // Repeated calls across time preserve deterministic departure identity
+        val secondDeparture = activity.toDeparture(
+            stationId = "210001",
+            stationName = "Waltham Cross",
+            stationLat = 51.72,
+            stationLon = -0.07
+        )
+        assertEquals(departure.id, secondDeparture.id)
+    }
+
+    @Test
+    fun `parse accumulates entity text cleanly and rejects DOCTYPE XXE declarations`() {
+        val entityXml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Siri xmlns="http://www.siri.org.uk/siri" version="2.0">
+                <ServiceDelivery><VehicleMonitoringDelivery><VehicleActivity>
+                    <MonitoredVehicleJourney>
+                        <LineRef>310</LineRef>
+                        <PublishedLineName>310 &amp; Express</PublishedLineName>
+                        <DestinationName>King&apos;s_Cross &amp; St Pancras</DestinationName>
+                    </MonitoredVehicleJourney>
+                </VehicleActivity></VehicleMonitoringDelivery></ServiceDelivery>
+            </Siri>
+        """.trimIndent()
+
+        val parsed = BodsXmlParser.parse(entityXml)
+        assertEquals(1, parsed.size)
+        assertEquals("310 & Express", parsed[0].publishedLineName)
+        assertEquals("King's_Cross & St Pancras", parsed[0].destinationName)
+
+        val xxeXml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE Siri [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+            <Siri><ServiceDelivery><VehicleMonitoringDelivery><VehicleActivity>
+                <MonitoredVehicleJourney><LineRef>&xxe;</LineRef></MonitoredVehicleJourney>
+            </VehicleActivity></VehicleMonitoringDelivery></ServiceDelivery></Siri>
+        """.trimIndent()
+        assertTrue(BodsXmlParser.parse(xxeXml).isEmpty())
     }
 }

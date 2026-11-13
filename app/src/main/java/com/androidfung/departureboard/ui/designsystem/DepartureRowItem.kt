@@ -110,7 +110,18 @@ fun DepartureRowItem(
                 overflow = TextOverflow.Ellipsis
             )
 
-            val delayRepay = androidx.compose.runtime.remember(departure) {
+            val delayRepay = androidx.compose.runtime.remember(
+                departure.id,
+                departure.stationId,
+                departure.status,
+                departure.lineId,
+                departure.lineName,
+                departure.modeName,
+                departure.operator?.name,
+                departure.scheduledDepartureInstant,
+                departure.expectedDepartureInstant,
+                departure.callingPoints
+            ) {
                 com.androidfung.departureboard.util.DelayRepayCalculator.evaluate(departure)
             }
 
@@ -296,7 +307,11 @@ fun DepartureRowItem(
                         ) {
                             val confidenceStr = departure.platform.expectedConfidencePercent?.let { " ($it%)" } ?: ""
                             Text(
-                                text = "Typically Plt ${departure.platform.code}$confidenceStr",
+                                text = androidx.compose.ui.res.stringResource(
+                                    com.androidfung.departureboard.R.string.typically_platform_code,
+                                    departure.platform.code,
+                                    confidenceStr
+                                ),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Medium),
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)

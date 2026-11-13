@@ -173,14 +173,9 @@ object DelayRepayCalculator {
         if (sh !in 0..23 || sm !in 0..59 || eh !in 0..23 || em !in 0..59) return null
 
         val schedMins = LocalTime.of(sh, sm).toSecondOfDay() / 60
-        var estMins = LocalTime.of(eh, em).toSecondOfDay() / 60
+        val estMins = LocalTime.of(eh, em).toSecondOfDay() / 60
 
-        // Handle midnight rollover (e.g. scheduled 23:50, estimated 00:15)
-        if (estMins < schedMins - 180) {
-            estMins += 24 * 60
-        }
-
-        val diff = estMins - schedMins
+        val diff = normalizeMidnightMinuteDelta(estMins - schedMins)
         return if (diff > 0) diff else null
     }
 
@@ -249,4 +244,10 @@ object DelayRepayCalculator {
 
         return "🚆 ${departure.lineName}$headcodePart to ${departure.destinationName} ($platText$stationPart) — $etaPart$arrivalTimePart"
     }
+}
+
+internal fun normalizeMidnightMinuteDelta(deltaMinutes: Int): Int = when {
+    deltaMinutes < -180 -> deltaMinutes + 24 * 60
+    deltaMinutes > 720 -> deltaMinutes - 24 * 60
+    else -> deltaMinutes
 }

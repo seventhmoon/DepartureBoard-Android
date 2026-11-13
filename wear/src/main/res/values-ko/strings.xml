@@ -23,4 +23,23 @@
     <string name="wear_channel_alighting_desc">선택한 하차역 1정거장 전에 알림을 보냅니다</string>
     <string name="wear_channel_disruption_name">지연 및 운행 취소 알림</string>
     <string name="wear_channel_disruption_desc">추적 중인 열차가 지연되거나 취소될 때 알림을 보냅니다</string>
+    <string name="wear_tile_refresh_cd">출발 정보 새로고침</string>
+    <string name="wear_tile_no_pinned">휴대폰 EkiBoard 앱에서 역을 고정해 주세요</string>
+    <string name="wear_opening_on_phone">휴대폰에서 여는 중…</string>
+    <string name="wear_switch_station">역 전환</string>
+    <string name="wear_ambient_tap_wake">🌙 절전 모드 • 탭하여 화면 켜기</string>
+    <string name="wear_no_stations_synced">동기화된 역 없음</string>
+    <string name="wear_add_station">+ 역 추가</string>
+    <string name="wear_opening_ai_on_phone">휴대폰에서 AI 여는 중…</string>
+    <string name="wear_btn_ask_ai">✨ AI 질문</string>
+    <string name="wear_btn_stations">역 목록</string>
+    <string name="wear_btn_alerts">🔔 알림</string>
+    <string name="wear_btn_ambient">🌙 절전</string>
+    <string name="wear_status_live">실시간</string>
+    <string name="wear_status_synced">📱 동기화됨</string>
+    <string name="wear_status_sync_needed">⚠️ 동기화 필요</string>
+    <string name="wear_status_boarding_now">탑승 중</string>
+    <string name="wear_pace_makeable">%1$s • 탑승 가능</string>
+    <string name="wear_pace_sprint">%1$s • 뛰세요!</string>
+    <string name="wear_pace_unlikely">%1$s • 빠듯함</string>
 </resources>

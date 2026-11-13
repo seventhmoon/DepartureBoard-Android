@@ -16,9 +16,11 @@ import androidx.room.RoomDatabase
         GtfsTripEntity::class,
         GtfsStopTimeEntity::class,
         GtfsCalendarEntity::class,
-        GtfsCalendarDateEntity::class
+        GtfsCalendarDateEntity::class,
+        GtfsLevelEntity::class,
+        GtfsPathwayEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class GtfsDatabase : RoomDatabase() {

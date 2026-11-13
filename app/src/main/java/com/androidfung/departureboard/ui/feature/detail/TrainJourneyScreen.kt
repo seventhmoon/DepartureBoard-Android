@@ -128,10 +128,13 @@ fun TrainJourneyScreen(
             }
         }
 
-        LaunchedEffect(pagerState.settledPage) {
-            val currentDep = departureList[pagerState.settledPage]
-            if (currentDep.id != departure.id) {
-                onDepartureChange?.invoke(currentDep)
+        LaunchedEffect(pagerState.settledPage, departureList) {
+            val settledIdx = pagerState.settledPage
+            if (settledIdx in departureList.indices) {
+                val currentDep = departureList[settledIdx]
+                if (currentDep.id != departure.id) {
+                    onDepartureChange?.invoke(currentDep)
+                }
             }
         }
 
@@ -355,75 +358,67 @@ private fun TrainJourneyContent(
             }
         },
         headerActions = {
+            val shareChooserTitle = stringResource(R.string.share_live_train_eta_chooser)
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 1-Tap Share Live ETA button
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                        .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            val shareText = com.androidfung.departureboard.util.DelayRepayCalculator.formatShareLiveEtaText(
-                                departure = departure,
-                                callingPoints = callingPoints,
-                                targetAlightStop = if (isTracked) targetAlightStop else null
+                DetailHeaderIconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        val shareText = com.androidfung.departureboard.util.DelayRepayCalculator.formatShareLiveEtaText(
+                            departure = departure,
+                            callingPoints = callingPoints,
+                            targetAlightStop = if (isTracked) targetAlightStop else null
+                        )
+                        val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(android.content.Intent.EXTRA_TEXT, shareText)
+                        }
+                        context.startActivity(
+                            android.content.Intent.createChooser(
+                                sendIntent,
+                                shareChooserTitle
                             )
-                            val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(android.content.Intent.EXTRA_TEXT, shareText)
-                            }
-                            context.startActivity(
-                                android.content.Intent.createChooser(sendIntent, "Share Live Train ETA")
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Share,
-                        contentDescription = "Share Live ETA",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+                        )
+                    },
+                    imageVector = Icons.Rounded.Share,
+                    contentDescription = stringResource(R.string.cd_share_live_eta),
+                    iconSize = 18.dp
+                )
 
                 // Top-right corner live notification tracking toggle (hidden for cancelled services)
                 if (departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isTracked) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceContainerHighest
-                            )
-                            .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                if (isTracked) {
-                                    com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
-                                } else {
-                                    com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, departure) { pendingDeparture ->
-                                        pendingTrackDeparture = pendingDeparture
-                                        notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                                    }
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isTracked) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
-                            contentDescription = if (isTracked) {
-                                stringResource(R.string.cd_stop_live_notification)
+                    DetailHeaderIconButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            if (isTracked) {
+                                com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
                             } else {
-                                stringResource(R.string.cd_start_live_notification)
-                            },
-                            tint = if (isTracked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(19.dp)
-                        )
-                    }
+                                com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, departure) { pendingDeparture ->
+                                    pendingTrackDeparture = pendingDeparture
+                                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            }
+                        },
+                        imageVector = if (isTracked) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
+                        contentDescription = if (isTracked) {
+                            stringResource(R.string.cd_stop_live_notification)
+                        } else {
+                            stringResource(R.string.cd_start_live_notification)
+                        },
+                        containerColor = if (isTracked) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        },
+                        contentColor = if (isTracked) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
                 }
             }
         }
@@ -1511,21 +1506,28 @@ private fun CallingPointTimelineItem(
                     if (onToggleTargetAlightStop != null) {
                         Box(
                             modifier = Modifier
-                                .size(24.dp)
+                                .size(48.dp)
                                 .clip(CircleShape)
-                                .background(
-                                    if (isTargetAlightStop) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-                                )
-                                .clickable(onClick = onToggleTargetAlightStop),
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onToggleTargetAlightStop),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = if (isTargetAlightStop) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
-                                contentDescription = if (isTargetAlightStop) "Cancel alight alert for ${callingPoint.stationName}" else "Set alight alert for ${callingPoint.stationName}",
-                                tint = if (isTargetAlightStop) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                modifier = Modifier.size(13.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (isTargetAlightStop) MaterialTheme.colorScheme.primaryContainer
+                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isTargetAlightStop) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
+                                    contentDescription = if (isTargetAlightStop) "Cancel alight alert for ${callingPoint.stationName}" else "Set alight alert for ${callingPoint.stationName}",
+                                    tint = if (isTargetAlightStop) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                            }
                         }
                     }
                 }

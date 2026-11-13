@@ -66,6 +66,8 @@ class TflDepartureSource(
                         lineIds.flatMap { lineId ->
                             apiService.getLineArrivals(lineId)
                         }.groupBy { it.vehicleId }
+                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                        throw e
                     } catch (_: Exception) {
                         emptyMap()
                     }
@@ -165,6 +167,8 @@ class TflDepartureSource(
             }
 
             Result.success(effectiveTflDepartures)
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -198,6 +202,8 @@ class TflDepartureSource(
                         async {
                             try {
                                 apiService.getArrivals(childId)
+                            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                                throw e
                             } catch (_: Exception) {
                                 emptyList()
                             }
@@ -216,6 +222,8 @@ class TflDepartureSource(
                         async {
                             try {
                                 apiService.getArrivals(siblingId)
+                            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                                throw e
                             } catch (_: Exception) {
                                 emptyList()
                             }
@@ -228,6 +236,8 @@ class TflDepartureSource(
             if (childArrivals.isNotEmpty()) {
                 arrivals = (arrivals + childArrivals).distinctBy { it.id }
             }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {}
 
         return arrivals

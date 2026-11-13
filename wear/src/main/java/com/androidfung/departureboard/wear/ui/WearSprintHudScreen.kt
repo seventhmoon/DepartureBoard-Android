@@ -23,9 +23,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.res.stringResource
+import com.androidfung.departureboard.wear.pace.CommuterPaceMode
+import com.androidfung.departureboard.wear.pace.PaceSprintEvaluator
+import com.androidfung.departureboard.wear.pace.SprintCatchability
+import com.androidfung.departureboard.wear.pace.WearHealthPaceClient
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,8 +65,23 @@ internal fun WearSprintHudScreen(
     val hudListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val focusReq = remember { FocusRequester() }
+    val hudContext = LocalContext.current
+    val paceClient = remember(hudContext) { WearHealthPaceClient(hudContext.applicationContext) }
+    val observedSpeed by paceClient.observedSpeedMps.collectAsState()
 
     BackHandler(onBack = onBackToBoard)
+
+    DisposableEffect(paceClient, isAmbientMode) {
+        onDispose { paceClient.stop() }
+    }
+
+    LaunchedEffect(paceClient, isAmbientMode) {
+        if (!isAmbientMode) {
+            paceClient.start()
+        } else {
+            paceClient.stop()
+        }
+    }
 
     LaunchedEffect(Unit) {
         runCatching { focusReq.requestFocus() }
@@ -198,7 +221,11 @@ internal fun WearSprintHudScreen(
 
                     val timerText = if (isAmbientMode) {
                         val mins = (journey.remainingSeconds / 60).coerceAtLeast(0)
-                        if (mins <= 0) "Due" else "${mins}m"
+                        if (mins <= 0) {
+                            androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_status_due)
+                        } else {
+                            androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_minutes_short, mins)
+                        }
                     } else {
                         journey.formattedMmSsCountdown
                     }
@@ -242,6 +269,46 @@ internal fun WearSprintHudScreen(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (!isAmbientMode && !journey.isCancelled && journey.remainingSeconds > 0) {
+                        val paceEval = remember(journey.remainingSeconds, observedSpeed) {
+                            PaceSprintEvaluator.evaluate(journey.remainingSeconds, observedSpeed)
+                        }
+                        val paceIcon = when (paceEval.paceMode) {
+                            CommuterPaceMode.SPRINTING -> "🏃"
+                            CommuterPaceMode.BRISK -> "🚶‍➡️"
+                            CommuterPaceMode.STATIONARY -> "🧍"
+                            CommuterPaceMode.WALKING -> "🚶"
+                        }
+                        val speedStr = "$paceIcon ${paceEval.formattedSpeed()}"
+                        val paceText = when (paceEval.catchability) {
+                            SprintCatchability.MAKEABLE -> stringResource(com.androidfung.departureboard.wear.R.string.wear_pace_makeable, speedStr)
+                            SprintCatchability.SPRINT_NEEDED -> stringResource(com.androidfung.departureboard.wear.R.string.wear_pace_sprint, speedStr)
+                            SprintCatchability.UNLIKELY -> stringResource(com.androidfung.departureboard.wear.R.string.wear_pace_unlikely, speedStr)
+                        }
+                        val paceColor = when (paceEval.catchability) {
+                            SprintCatchability.MAKEABLE -> Color(0xFF00E676)
+                            SprintCatchability.SPRINT_NEEDED -> Color(0xFFFFB74D)
+                            SprintCatchability.UNLIKELY -> Color(0xFFFF5252)
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = paceColor.copy(alpha = 0.14f),
+                            border = BorderStroke(0.8.dp, paceColor.copy(alpha = 0.55f)),
+                            modifier = Modifier.padding(top = 3.dp)
+                        ) {
+                            Text(
+                                text = paceText,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = paceColor,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                 }
             }
 

@@ -2,9 +2,11 @@ package com.androidfung.departureboard.data.model.gb
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
+import java.io.Reader
 import java.io.StringReader
 import java.time.Instant
 import java.time.format.DateTimeFormatter
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -60,12 +62,12 @@ data class BodsVehicleActivity(
         )
 
         return Departure(
-            id = "bods-${vehicleRef ?: lineRef}_${destinationRef ?: dest}_$seconds",
+            id = "bods-${vehicleRef ?: lineRef}_${destinationRef ?: dest}_${destinationAimedArrivalTime ?: originRef ?: stationId}",
             stationId = stationId,
             stationName = stationName,
             lineId = "bods-$lineRef",
             lineName = cleanLine,
-            platformName = destinationRef?.takeIf { it.startsWith("210") || it.length <= 4 } ?: "Bus Stand",
+            platformName = originRef?.takeIf { it.isNotBlank() && it.length <= 4 } ?: "",
             destinationName = dest,
             towards = dest,
             timeToStationSeconds = seconds,
@@ -112,6 +114,81 @@ data class BodsVehicleActivity(
 }
 
 /**
+ * Shared hardened XML pull parser factory and deterministic hash helper for BODS SIRI feeds.
+ */
+internal object BodsXmlPullHelper {
+    private const val FEATURE_PROCESS_DOCDECL =
+        "http://xmlpull.org/v1/doc/features.html#process-docdecl"
+
+    fun newHardenedParser(
+        reader: Reader,
+        pullParser: XmlPullParser? = null
+    ): XmlPullParser {
+        val safeReader = rejectDoctypeDeclarations(reader)
+        if (pullParser != null) {
+            configureSecurityFeatures(pullParser)
+            return pullParser
+        }
+        return try {
+            XmlPullParserFactory.newInstance().apply {
+                isNamespaceAware = false
+            }.newPullParser().apply {
+                configureSecurityFeatures(this)
+                setInput(safeReader)
+            }
+        } catch (_: Throwable) {
+            val kxml = Class.forName("org.kxml2.io.KXmlParser")
+                .getDeclaredConstructor()
+                .newInstance() as XmlPullParser
+            configureSecurityFeatures(kxml)
+            kxml.setInput(safeReader)
+            kxml
+        }
+    }
+
+    private fun configureSecurityFeatures(parser: XmlPullParser) {
+        try {
+            parser.setFeature(FEATURE_PROCESS_DOCDECL, false)
+        } catch (_: Exception) {
+        }
+        try {
+            parser.setFeature(XmlPullParser.FEATURE_VALIDATION, false)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun rejectDoctypeDeclarations(reader: Reader): Reader {
+        val peekSize = 4096
+        val buffer = CharArray(peekSize)
+        var totalRead = 0
+        while (totalRead < peekSize) {
+            val n = reader.read(buffer, totalRead, peekSize - totalRead)
+            if (n <= 0) break
+            totalRead += n
+        }
+        if (totalRead > 0) {
+            val prefix = String(buffer, 0, totalRead)
+            if (prefix.contains("<!DOCTYPE", ignoreCase = true) ||
+                prefix.contains("<!ENTITY", ignoreCase = true)
+            ) {
+                throw SecurityException("DOCTYPE and ENTITY declarations are disallowed in BODS XML feeds")
+            }
+        }
+        return java.io.PushbackReader(reader, peekSize).apply {
+            if (totalRead > 0) unread(buffer, 0, totalRead)
+        }
+    }
+
+    fun fnv1a64(input: String): ULong {
+        var hash = 0xcbf29ce484222325UL
+        for (ch in input) {
+            hash = (hash xor ch.code.toULong()) * 0x100000001b3UL
+        }
+        return hash
+    }
+}
+
+/**
  * Fast streaming XmlPullParser for BODS SIRI-VM responses.
  */
 object BodsXmlParser {
@@ -122,29 +199,23 @@ object BodsXmlParser {
     ): List<BodsVehicleActivity> {
         val activities = mutableListOf<BodsVehicleActivity>()
         try {
-            val parser = pullParser ?: try {
-                XmlPullParserFactory.newInstance().apply { isNamespaceAware = false }.newPullParser().apply {
-                    setInput(StringReader(xmlString))
-                }
-            } catch (_: Throwable) {
-                // In standard JVM unit tests without android.jar XML implementation
-                val kxml = Class.forName("org.kxml2.io.KXmlParser").getDeclaredConstructor().newInstance() as XmlPullParser
-                kxml.setInput(StringReader(xmlString))
-                kxml
-            }
+            StringReader(xmlString).use { reader ->
+                val parser = BodsXmlPullHelper.newHardenedParser(reader, pullParser)
 
-            var eventType = parser.eventType
-            while (eventType != XmlPullParser.END_DOCUMENT) {
-                if (eventType == XmlPullParser.START_TAG && (parser.name?.equals("VehicleActivity", ignoreCase = true) == true)) {
-                    val activity = parseVehicleActivity(parser)
-                    if (activity != null) {
-                        activities.add(activity)
+                var eventType = parser.eventType
+                while (eventType != XmlPullParser.END_DOCUMENT) {
+                    if (eventType == XmlPullParser.START_TAG && (parser.name?.equals("VehicleActivity", ignoreCase = true) == true)) {
+                        val activity = parseVehicleActivity(parser)
+                        if (activity != null) {
+                            activities.add(activity)
+                        }
                     }
+                    eventType = parser.next()
                 }
-                eventType = parser.next()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
         }
         return activities
     }
@@ -167,14 +238,21 @@ object BodsXmlParser {
         var vehicleFeature: String? = null
 
         var currentTag = ""
+        val textBuffer = StringBuilder()
         while (parser.next() != XmlPullParser.END_DOCUMENT) {
             when (parser.eventType) {
                 XmlPullParser.START_TAG -> {
                     currentTag = parser.name ?: ""
+                    textBuffer.setLength(0)
                 }
-                XmlPullParser.TEXT -> {
-                    val text = parser.text?.trim() ?: ""
-                    if (text.isNotEmpty()) {
+                XmlPullParser.TEXT, XmlPullParser.CDSECT -> {
+                    if (currentTag.isNotEmpty()) {
+                        parser.text?.let { textBuffer.append(it) }
+                    }
+                }
+                XmlPullParser.END_TAG -> {
+                    val text = textBuffer.toString().trim()
+                    if (text.isNotEmpty() && currentTag.isNotEmpty()) {
                         when (currentTag) {
                             "LineRef" -> lineRef = text
                             "PublishedLineName" -> publishedLineName = text
@@ -196,12 +274,11 @@ object BodsXmlParser {
                             "VehicleFeatureRef" -> vehicleFeature = text
                         }
                     }
-                }
-                XmlPullParser.END_TAG -> {
+                    textBuffer.setLength(0)
+                    currentTag = ""
                     if (parser.name.equals("VehicleActivity", ignoreCase = true)) {
                         break
                     }
-                    currentTag = ""
                 }
             }
         }

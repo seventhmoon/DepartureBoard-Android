@@ -30,7 +30,7 @@ object DynamicShortcutHelper {
 
                 ShortcutInfoCompat.Builder(context, "station_${station.id}")
                     .setShortLabel(cleanName.take(15))
-                    .setLongLabel("$cleanName departures")
+                    .setLongLabel(context.getString(R.string.shortcut_station_departures, cleanName))
                     .setIcon(IconCompat.createWithResource(context, R.drawable.ic_train))
                     .setIntent(intent)
                     .setRank(index)

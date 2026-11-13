@@ -23,4 +23,23 @@
     <string name="wear_channel_alighting_desc">選択した降車駅の1駅手前でお知らせ</string>
     <string name="wear_channel_disruption_name">遅延・運休アラート</string>
     <string name="wear_channel_disruption_desc">追跡中の列車が大幅遅延または運休になった際に通知</string>
+    <string name="wear_tile_refresh_cd">発車時刻を更新</string>
+    <string name="wear_tile_no_pinned">スマホの EkiBoard で駅をピン留めしてください</string>
+    <string name="wear_opening_on_phone">スマホで開いています…</string>
+    <string name="wear_switch_station">駅を切り替え</string>
+    <string name="wear_ambient_tap_wake">🌙 常時表示省電力 • タップで復帰</string>
+    <string name="wear_no_stations_synced">同期された駅がありません</string>
+    <string name="wear_add_station">+ 駅を追加</string>
+    <string name="wear_opening_ai_on_phone">スマホでAIを開いています…</string>
+    <string name="wear_btn_ask_ai">✨ AIに聞く</string>
+    <string name="wear_btn_stations">駅一覧</string>
+    <string name="wear_btn_alerts">🔔 通知</string>
+    <string name="wear_btn_ambient">🌙 省電力</string>
+    <string name="wear_status_live">ライブ</string>
+    <string name="wear_status_synced">📱 同期済み</string>
+    <string name="wear_status_sync_needed">⚠️ 要同期</string>
+    <string name="wear_status_boarding_now">乗車中</string>
+    <string name="wear_pace_makeable">%1$s • 間に合う</string>
+    <string name="wear_pace_sprint">%1$s • 急いで！</string>
+    <string name="wear_pace_unlikely">%1$s • 厳しい</string>
 </resources>

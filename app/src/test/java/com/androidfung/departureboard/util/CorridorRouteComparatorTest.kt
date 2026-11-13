@@ -129,4 +129,38 @@ class CorridorRouteComparatorTest {
         assertEquals(55, item.estimatedTravelMinutes)
         assertEquals(CorridorServiceType.EXPRESS, item.serviceType)
     }
+
+    @Test
+    fun `pre-midnight clock time evaluated just after midnight does not wrap to 23 hours`() {
+        val departedBeforeMidnight = Departure(
+            id = "d_midnight",
+            stationId = "KGX",
+            stationName = "London King's Cross",
+            lineId = "rail",
+            lineName = "LNER",
+            platformName = "Platform 4",
+            destinationName = "Peterborough",
+            towards = "Peterborough",
+            timeToStationSeconds = 2 * 60,
+            expectedArrivalIso = null,
+            currentLocation = null,
+            modeName = "national-rail",
+            lineBadge = LineBadgeInfo(lineId = "rail", displayName = "LNER", backgroundColor = Color.Red, textColor = Color.White),
+            callingPoints = listOf(
+                CallingPoint(stationName = "London King's Cross", scheduledTime = "23:45", isCurrentStation = true),
+                CallingPoint(stationName = "Stevenage", scheduledTime = "23:52"),
+                CallingPoint(stationName = "Peterborough", scheduledTime = "23:55")
+            )
+        )
+
+        val items = CorridorRouteComparator.evaluateCorridorDepartures(
+            departures = listOf(departedBeforeMidnight),
+            targetStationName = "Peterborough",
+            nowLocalTime = java.time.LocalTime.of(0, 5)
+        )
+
+        assertEquals(1, items.size)
+        // Must fall back to heuristic estimate (~8 mins: 2m wait + 2*3m stops), NOT ~1430 minutes!
+        assertTrue((items.first().estimatedTravelMinutes ?: 999) < 30)
+    }
 }

@@ -52,6 +52,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -63,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.ambient.AmbientLifecycleObserver
+import com.androidfung.departureboard.wear.R
 import com.androidfung.departureboard.wear.haptic.WearConcourseHapticAnnouncer
 import com.androidfung.departureboard.wear.haptic.WearNotificationPublisher
 import com.androidfung.departureboard.wear.model.WearAiPromptType
@@ -153,6 +155,9 @@ fun WearConcourseBoardScreen(
     isSystemAmbient: Boolean = false
 ) {
     val context = LocalContext.current
+    val openingOnPhoneMsg = stringResource(R.string.wear_opening_on_phone)
+    val openingAiOnPhoneMsg = stringResource(R.string.wear_opening_ai_on_phone)
+    val boardingNowLabel = stringResource(R.string.wear_status_boarding_now)
     val syncedBoards by WearCompanionStateRepository.stationBoardsFlow.collectAsStateWithLifecycle()
     val trackedJourney by WearCompanionStateRepository.trackedJourneyFlow.collectAsStateWithLifecycle()
     val isPhoneSynced by WearCompanionStateRepository.isPhoneSyncedFlow.collectAsStateWithLifecycle()
@@ -246,7 +251,7 @@ fun WearConcourseBoardScreen(
                     stationName = j.stationName,
                     departureId = j.departureId
                 )
-                Toast.makeText(context, "Opening on Phone…", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, openingOnPhoneMsg, Toast.LENGTH_SHORT).show()
             },
             onStopTracking = {
                 showSprintHud = false
@@ -313,7 +318,7 @@ fun WearConcourseBoardScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "No Stations Synced",
+                    text = stringResource(R.string.wear_no_stations_synced),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = Color.White,
                     textAlign = TextAlign.Center
@@ -327,7 +332,7 @@ fun WearConcourseBoardScreen(
                         .clickable { showStationManager = true }
                 ) {
                     Text(
-                        text = "+ Add Station",
+                        text = stringResource(R.string.wear_add_station),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = Color(0xFF81D4FA),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -359,7 +364,7 @@ fun WearConcourseBoardScreen(
                     stationName = currentBoard.stationName,
                     queryText = queryText
                 )
-                Toast.makeText(context, "Opening AI on Phone…", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, openingAiOnPhoneMsg, Toast.LENGTH_SHORT).show()
             },
             onBack = { showAskAiScreen = false }
         )
@@ -472,7 +477,7 @@ fun WearConcourseBoardScreen(
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = Icons.Rounded.SwapHoriz,
-                            contentDescription = "Switch station",
+                            contentDescription = stringResource(R.string.wear_switch_station),
                             tint = Color(0xFF90CAF9),
                             modifier = Modifier.size(14.dp)
                         )
@@ -486,9 +491,9 @@ fun WearConcourseBoardScreen(
                         shortTag?.let { add(it) }
                         add(
                             when {
-                                currentBoard.isStale() -> "⚠️ Sync needed"
-                                isPhoneSynced -> "📱 Synced"
-                                else -> "Live"
+                                currentBoard.isStale() -> stringResource(R.string.wear_status_sync_needed)
+                                isPhoneSynced -> stringResource(R.string.wear_status_synced)
+                                else -> stringResource(R.string.wear_status_live)
                             }
                         )
                     }.joinToString(" • ")
@@ -513,7 +518,7 @@ fun WearConcourseBoardScreen(
                             .clickable { manualAmbientMode = false }
                     ) {
                         Text(
-                            text = "🌙 Ambient OLED • Tap to Wake",
+                            text = stringResource(R.string.wear_ambient_tap_wake),
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                             color = Color(0xFF78909C),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -573,7 +578,7 @@ fun WearConcourseBoardScreen(
                                 stationName = journey.stationName,
                                 departureId = journey.departureId
                             )
-                            Toast.makeText(context, "Opening on Phone…", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, openingOnPhoneMsg, Toast.LENGTH_SHORT).show()
                         },
                         onStopTracking = {
                             WearCompanionStateRepository.stopRemoteTrackingOnPhone(context)
@@ -623,14 +628,14 @@ fun WearConcourseBoardScreen(
                             stationName = currentBoard.stationName,
                             departureId = dep.id
                         )
-                        Toast.makeText(context, "Opening on Phone…", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, openingOnPhoneMsg, Toast.LENGTH_SHORT).show()
                     },
                     onSimulatePlatformAnnouncement = if (dep.isPlatformTbd) {
                         {
                             val announcedDep = dep.copy(
                                 platformCode = "11",
                                 isPlatformConfirmed = true,
-                                statusLabel = "Boarding Now"
+                                statusLabel = boardingNowLabel
                             )
                             val event = WearConcourseHapticAnnouncer.evaluatePlatformTransition(
                                 previous = dep,
@@ -692,7 +697,7 @@ fun WearConcourseBoardScreen(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
-                                    text = "✨ Ask AI",
+                                    text = stringResource(R.string.wear_btn_ask_ai),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 10.sp
@@ -722,7 +727,7 @@ fun WearConcourseBoardScreen(
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Text(
-                                    text = "Stations",
+                                    text = stringResource(R.string.wear_btn_stations),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 10.sp
@@ -751,7 +756,7 @@ fun WearConcourseBoardScreen(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
-                                    text = "🔔 Alerts",
+                                    text = stringResource(R.string.wear_btn_alerts),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                     color = Color(0xFF80CBC4)
                                 )
@@ -772,7 +777,7 @@ fun WearConcourseBoardScreen(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
-                                    text = "🌙 Ambient",
+                                    text = stringResource(R.string.wear_btn_ambient),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                     color = Color(0xFF90A4AE)
                                 )

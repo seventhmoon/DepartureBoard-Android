@@ -39,6 +39,8 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
@@ -358,23 +360,33 @@ class DepartureBoardWidget : GlanceAppWidget() {
                     )
                 }
 
-                // Interactive Refresh Button with generous hit target
+                // Interactive Refresh Button with 48dp accessible hit target
                 Box(
                     modifier = GlanceModifier
-                        .size(38.dp)
-                        .cornerRadius(19.dp)
-                        .background(GlanceTheme.colors.surfaceVariant)
+                        .size(48.dp)
+                        .cornerRadius(24.dp)
+                        .semantics {
+                            contentDescription = context.getString(AppR.string.cd_refresh_departures)
+                        }
                         .clickable(actionRunCallback<RefreshWidgetAction>()),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "↻",
-                        style = TextStyle(
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = GlanceTheme.colors.onSurfaceVariant
+                    Box(
+                        modifier = GlanceModifier
+                            .size(38.dp)
+                            .cornerRadius(19.dp)
+                            .background(GlanceTheme.colors.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "↻",
+                            style = TextStyle(
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = GlanceTheme.colors.onSurfaceVariant
+                            )
                         )
-                    )
+                    }
                 }
             }
 
@@ -404,7 +416,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
                     items(
                         items = departures.take(maxItems),
-                        itemId = { departure -> departure.id.hashCode().toLong() }
+                        itemId = { departure -> stableItemId64(departure.id) }
                     ) { departure ->
                         WidgetDepartureRow(
                             departure = departure,
@@ -414,6 +426,14 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 }
             }
         }
+    }
+
+    private fun stableItemId64(value: String): Long {
+        var hash = -0x340d631b7bdddcdbL
+        for (ch in value) {
+            hash = (hash xor ch.code.toLong()) * 0x100000001b3L
+        }
+        return hash
     }
 
     @Composable

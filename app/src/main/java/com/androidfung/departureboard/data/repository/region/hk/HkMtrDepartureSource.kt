@@ -123,6 +123,8 @@ class HkMtrDepartureSource(
                                 destinationStationId = destCode.ifBlank { null }
                             )
                         }
+                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                        throw e
                     } catch (_: Exception) {
                         emptyList()
                     }

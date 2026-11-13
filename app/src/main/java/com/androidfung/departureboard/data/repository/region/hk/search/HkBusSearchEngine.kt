@@ -84,6 +84,8 @@ class HkBusSearchEngine(
                     )
                 }
             }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             emptyList()
         }
@@ -95,6 +97,8 @@ class HkBusSearchEngine(
             try {
                 kmbApiService.getKmbRouteStops(route, direction).data.orEmpty()
                     .mapNotNull { it.stop }
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                throw e
             } catch (_: Exception) {
                 emptyList()
             }
@@ -109,6 +113,8 @@ class HkBusSearchEngine(
                     jsonNameEn = "Bus Stop",
                     jsonNameTc = "巴士站"
                 )
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                throw e
             } catch (_: Exception) {
                 HkKmbStopDetailItem(
                     stop = stopId,

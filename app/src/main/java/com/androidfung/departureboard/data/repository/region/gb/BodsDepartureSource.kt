@@ -58,6 +58,8 @@ class BodsDepartureSource(
             }.sortedBy { it.timeToStationSeconds }
 
             Result.success(departures)
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }

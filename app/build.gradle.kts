@@ -157,6 +157,9 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.perf)
+    implementation(libs.firebase.ai)
+    implementation(libs.firebase.appcheck.playintegrity)
+    debugImplementation(libs.firebase.appcheck.debug)
 
     // Google Play Services & Billing
     implementation(libs.play.app.update.ktx)
@@ -170,6 +173,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.converter.moshi)
     implementation(libs.okhttp)
+    implementation(libs.okhttp.sse)
     implementation(libs.logging.interceptor)
     "ksp"(libs.moshi.kotlin.codegen)
     

@@ -25,4 +25,23 @@
     <string name="wear_channel_alighting_desc">Get Ready to Alight alerts 1 stop before your selected destination station</string>
     <string name="wear_channel_disruption_name">Delay &amp; Disruption Alerts</string>
     <string name="wear_channel_disruption_desc">Alerts when a tracked train is significantly delayed or cancelled</string>
+    <string name="wear_tile_refresh_cd">Refresh departures</string>
+    <string name="wear_tile_no_pinned">Open phone app to pin a station</string>
+    <string name="wear_opening_on_phone">Opening on Phone…</string>
+    <string name="wear_switch_station">Switch station</string>
+    <string name="wear_ambient_tap_wake">🌙 Ambient OLED • Tap to Wake</string>
+    <string name="wear_no_stations_synced">No Stations Synced</string>
+    <string name="wear_add_station">+ Add Station</string>
+    <string name="wear_opening_ai_on_phone">Opening AI on Phone…</string>
+    <string name="wear_btn_ask_ai">✨ Ask AI</string>
+    <string name="wear_btn_stations">Stations</string>
+    <string name="wear_btn_alerts">🔔 Alerts</string>
+    <string name="wear_btn_ambient">🌙 Ambient</string>
+    <string name="wear_status_live">Live</string>
+    <string name="wear_status_synced">📱 Synced</string>
+    <string name="wear_status_sync_needed">⚠️ Sync needed</string>
+    <string name="wear_status_boarding_now">Boarding Now</string>
+    <string name="wear_pace_makeable">%1$s • Makeable</string>
+    <string name="wear_pace_sprint">%1$s • Sprint!</string>
+    <string name="wear_pace_unlikely">%1$s • Tight</string>
 </resources>

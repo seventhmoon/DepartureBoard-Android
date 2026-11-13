@@ -13,6 +13,8 @@ import com.androidfung.departureboard.data.db.cache.PlatformPredictionDao
 import com.androidfung.departureboard.data.gtfs.GtfsCalendarDateEntity
 import com.androidfung.departureboard.data.gtfs.GtfsCalendarEntity
 import com.androidfung.departureboard.data.gtfs.GtfsDao
+import com.androidfung.departureboard.data.gtfs.GtfsLevelEntity
+import com.androidfung.departureboard.data.gtfs.GtfsPathwayEntity
 import com.androidfung.departureboard.data.gtfs.GtfsRouteEntity
 import com.androidfung.departureboard.data.gtfs.GtfsScheduleResolver
 import com.androidfung.departureboard.data.gtfs.GtfsStopEntity
@@ -236,18 +238,25 @@ class RoadmapThemesVerificationTest {
             }
             override suspend fun getAllCalendars() = calendarsList.toList()
             override suspend fun getCalendarDatesForDate(date: String) = calendarDatesList.filter { it.date == date }
+            override suspend fun getLevelsByIds(levelIds: List<String>) = emptyList<GtfsLevelEntity>()
+            override suspend fun getPathwaysForStop(stopId: String) = emptyList<GtfsPathwayEntity>()
+            override suspend fun getPathwaysForStops(stopIds: List<String>) = emptyList<GtfsPathwayEntity>()
             override suspend fun insertStops(stops: List<GtfsStopEntity>) { stopsList.addAll(stops) }
             override suspend fun insertRoutes(routes: List<GtfsRouteEntity>) { routesList.addAll(routes) }
             override suspend fun insertTrips(trips: List<GtfsTripEntity>) { tripsList.addAll(trips) }
             override suspend fun insertStopTimes(stopTimes: List<GtfsStopTimeEntity>) { stopTimesList.addAll(stopTimes) }
             override suspend fun insertCalendars(calendars: List<GtfsCalendarEntity>) { calendarsList.addAll(calendars) }
             override suspend fun insertCalendarDates(calendarDates: List<GtfsCalendarDateEntity>) { calendarDatesList.addAll(calendarDates) }
+            override suspend fun insertLevels(levels: List<GtfsLevelEntity>) {}
+            override suspend fun insertPathways(pathways: List<GtfsPathwayEntity>) {}
             override suspend fun clearStops() { stopsList.clear() }
             override suspend fun clearRoutes() { routesList.clear() }
             override suspend fun clearTrips() { tripsList.clear() }
             override suspend fun clearStopTimes() { stopTimesList.clear() }
             override suspend fun clearCalendars() { calendarsList.clear() }
             override suspend fun clearCalendarDates() { calendarDatesList.clear() }
+            override suspend fun clearLevels() {}
+            override suspend fun clearPathways() {}
         }
 
         GtfsTunnelSeedHelper.ensureCoreMetroSeeded(fakeGtfsDao)

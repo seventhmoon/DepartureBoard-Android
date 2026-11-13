@@ -112,6 +112,8 @@ class HkBusCallingPointsResolver(
                                     jsonNameEn = "Bus Stop",
                                     jsonNameTc = "巴士站"
                                 )
+                            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                                throw e
                             } catch (_: Exception) {
                                 HkKmbStopDetailItem(
                                     stop = stopId,
@@ -135,6 +137,8 @@ class HkBusCallingPointsResolver(
                     )
                 }
             }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             emptyList()
         }

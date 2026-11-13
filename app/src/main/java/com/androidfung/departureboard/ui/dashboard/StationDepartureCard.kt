@@ -111,9 +111,11 @@ fun StationDepartureCard(
         rememberSwipeToDismissBoxState()
     }
 
+    val latestOnDismissStation by androidx.compose.runtime.rememberUpdatedState(onDismissStation)
+
     androidx.compose.runtime.LaunchedEffect(dismissState.currentValue) {
         if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            onDismissStation(cardModel.station)
+            latestOnDismissStation(cardModel.station)
         }
     }
 
@@ -267,7 +269,16 @@ fun StationDepartureCard(
                     val showLineBadgeOnEntries = selectedLineId == null && cardModel.availableLineBadges.size > 1
 
                     // Alert Banners (Disruptions, Backlogs, Last Train)
-                    val platformBacklogAlerts = remember(filteredDepartures) {
+                    // Bucketed 15s signature avoids re-running backlog analysis on every 1Hz tick
+                    var backlogSignature = filteredDepartures.size.toLong()
+                    for (i in filteredDepartures.indices) {
+                        val dep = filteredDepartures[i]
+                        backlogSignature = backlogSignature * 31L + dep.id.hashCode().toLong()
+                        backlogSignature = backlogSignature * 31L + dep.platformName.hashCode().toLong()
+                        backlogSignature = backlogSignature * 31L + dep.status.ordinal.toLong()
+                        backlogSignature = backlogSignature * 31L + (dep.timeToStationSeconds / 15).toLong()
+                    }
+                    val platformBacklogAlerts = remember(backlogSignature) {
                         com.androidfung.departureboard.util.PlatformBacklogDetector.detectBacklogs(filteredDepartures)
                     }
                     val firstBacklog = platformBacklogAlerts.firstOrNull()

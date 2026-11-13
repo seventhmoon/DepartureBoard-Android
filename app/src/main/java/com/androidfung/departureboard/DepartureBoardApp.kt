@@ -20,6 +20,7 @@ class DepartureBoardApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = DefaultAppContainer(this)
+        com.androidfung.departureboard.ai.FirebaseCloudAiClient.initAppCheck(this, BuildConfig.DEBUG)
         // Initialize notification channels, station code DB warmup, and Mobile Ads off the Main thread
         CoroutineScope(Dispatchers.IO).launch {
             com.androidfung.departureboard.util.NotificationHelper.ensureAllNotificationChannels(this@DepartureBoardApp)

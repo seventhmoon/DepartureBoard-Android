@@ -509,5 +509,40 @@ class LastTrainServiceCalculatorTest {
         assertEquals("06:52", info.firstTrainTime)
         assertEquals(3, info.minutesUntilLastTrain)
     }
+
+    @Test
+    fun `within 35 minute horizon aligns Last Train banner with LAST TRAIN row badge`() {
+        val now = ZonedDateTime.of(2026, 11, 5, 23, 50, 0, 0, ZoneId.of("Europe/London"))
+        val station = Station(id = "940GZZLUMHL", name = "Mill Hill East", modes = listOf("tube"))
+        val scheduledServiceHours = com.androidfung.departureboard.data.model.StationServiceHoursInfo(
+            isClosedForNight = false,
+            lastTrainTime = "00:25",
+            firstTrainTime = "05:25",
+            lineName = "Northern",
+            minutesUntilLastTrain = 35,
+            isApproachingLastTrain = true,
+            isNightServiceActive = false
+        )
+        val liveLastShuttle = sampleDeparture(
+            id = "mhe_35m_live",
+            stationId = station.id,
+            lineId = "northern",
+            lineName = "Northern",
+            seconds = 28 * 60
+        ).copy(expectedDepartureInstant = now.plusMinutes(28).toInstant())
+
+        val (enriched, reconciled) = LastTrainServiceCalculator.enrichDeparturesAndServiceHours(
+            station = station,
+            departures = listOf(liveLastShuttle),
+            existingServiceHours = scheduledServiceHours,
+            nowOverride = now,
+            timetableChecked = true
+        )
+
+        assertNotNull(reconciled)
+        assertTrue(enriched.first().isLastTrain)
+        assertEquals(28, reconciled!!.minutesUntilLastTrain)
+        assertEquals("00:18", reconciled.lastTrainTime)
+    }
 }
 

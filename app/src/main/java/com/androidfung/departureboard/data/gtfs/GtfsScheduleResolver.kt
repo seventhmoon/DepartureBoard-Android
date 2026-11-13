@@ -288,7 +288,80 @@ class GtfsScheduleResolver(
         }
     }
 
+    /**
+     * Indoor station pathway route summary derived from GTFS `pathways.txt` & `levels.txt`.
+     */
+    data class PathwayRouteSummary(
+        val totalSeconds: Int,
+        val isStepFree: Boolean,
+        val modesUsed: List<Int>,
+        val signpostedAs: String?
+    )
+
+    /**
+     * Finds the shortest-time indoor interchange route between [fromStopId] and [toStopId]
+     * using GTFS `pathways.txt` edges. When [requireStepFree] is true, stairs (`pathwayMode == 2`)
+     * are excluded so only walkways, moving sidewalks, escalators/elevators are traversed.
+     */
+    suspend fun resolveInterchangePathway(
+        fromStopId: String,
+        toStopId: String,
+        requireStepFree: Boolean = false
+    ): PathwayRouteSummary? {
+        if (fromStopId == toStopId) {
+            return PathwayRouteSummary(0, true, emptyList(), null)
+        }
+        val visitedStops = mutableSetOf<String>()
+        val bestCost = mutableMapOf(fromStopId to 0)
+        val bestStepFree = mutableMapOf(fromStopId to true)
+        val bestModes = mutableMapOf<String, List<Int>>(fromStopId to emptyList())
+        val bestSignpost = mutableMapOf<String, String?>()
+
+        data class Node(val stopId: String, val costSeconds: Int)
+        val queue = java.util.PriorityQueue<Node>(compareBy { it.costSeconds })
+        queue.add(Node(fromStopId, 0))
+
+        while (queue.isNotEmpty()) {
+            val current = queue.poll() ?: break
+            if (!visitedStops.add(current.stopId)) continue
+            if (current.stopId == toStopId) {
+                return PathwayRouteSummary(
+                    totalSeconds = current.costSeconds,
+                    isStepFree = bestStepFree[toStopId] ?: true,
+                    modesUsed = bestModes[toStopId].orEmpty(),
+                    signpostedAs = bestSignpost[toStopId]
+                )
+            }
+
+            val edges = dao.getPathwaysForStop(current.stopId)
+            for (edge in edges) {
+                if (requireStepFree && edge.pathwayMode == 2) continue
+                val (nextStop, signpost) = when {
+                    edge.fromStopId == current.stopId -> edge.toStopId to edge.signpostedAs
+                    edge.isBidirectional == 1 && edge.toStopId == current.stopId ->
+                        edge.fromStopId to (edge.reversedSignpostedAs ?: edge.signpostedAs)
+                    else -> continue
+                }
+                if (nextStop in visitedStops) continue
+
+                val edgeSec = edge.traversalTime?.takeIf { it > 0 }
+                    ?: edge.length?.let { kotlin.math.ceil(it / 1.2).toInt().coerceAtLeast(10) }
+                    ?: DEFAULT_PATHWAY_TRAVERSAL_SECONDS
+                val newCost = current.costSeconds + edgeSec
+                if (newCost < (bestCost[nextStop] ?: Int.MAX_VALUE)) {
+                    bestCost[nextStop] = newCost
+                    bestStepFree[nextStop] = (bestStepFree[current.stopId] ?: true) && edge.pathwayMode != 2
+                    bestModes[nextStop] = bestModes[current.stopId].orEmpty() + edge.pathwayMode
+                    bestSignpost[nextStop] = signpost ?: bestSignpost[current.stopId]
+                    queue.add(Node(nextStop, newCost))
+                }
+            }
+        }
+        return null
+    }
+
     companion object {
+        private const val DEFAULT_PATHWAY_TRAVERSAL_SECONDS = 30
         fun resolveStopActivity(
             pickupType: Int,
             dropOffType: Int

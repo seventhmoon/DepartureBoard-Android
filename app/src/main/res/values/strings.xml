@@ -555,4 +555,32 @@
     <string name="a2ui_delay_repay_open_portal">Claim Portal</string>
     <string name="ai_system_aicore_ready_badge">Android System AICore Active • Zero-Download Local AI</string>
     <string name="station_saved_toast">Pinned %1$s to dashboard</string>
+
+    <!-- Localization & Corridor / Widget Accessibility Extensions -->
+    <string name="search_stations_placeholder_sg">Search MRT station or bus service (e.g. Raffles Place, 14)…</string>
+    <string name="search_stations_placeholder_jp">Search station or line (e.g. Shibuya, Yamanote)…</string>
+    <string name="search_stations_placeholder_au">Search station, wharf, or bus (e.g. Central, T1, M52)…</string>
+    <string name="typically_platform_code">Typically Plt %1$s%2$s</string>
+    <string name="share_live_train_eta_chooser">Share Live Train ETA</string>
+    <string name="cd_share_live_eta">Share Live ETA</string>
+    <string name="ai_engine_set_to">AI engine set to: %1$s</string>
+    <string name="corridor_origin_tap_switch">Origin (Tap to switch)</string>
+    <string name="corridor_destination_stop">Destination Stop</string>
+    <string name="corridor_express_recommendation_title">⚡ Faster Express Train Recommendation</string>
+    <string name="corridor_departures_serving">Departures serving %1$s (%2$d)</string>
+    <string name="corridor_no_departures_towards">No direct departures or calling points found towards \"%1$s\" from %2$s.</string>
+    <string name="corridor_service_express">EXPRESS</string>
+    <string name="corridor_service_semi_fast">SEMI FAST</string>
+    <string name="corridor_service_all_stations">ALL STATIONS</string>
+    <plurals name="corridor_stops_count">
+        <item quantity="one">%1$d stop</item>
+        <item quantity="other">%1$d stops</item>
+    </plurals>
+    <string name="corridor_est_arrival">Est. arrival: %1$s</string>
+    <string name="corridor_est_transit_mins">~%1$d min transit</string>
+    <string name="smart_commute_morning_active">Smart Commute: Morning stations prioritized</string>
+    <string name="smart_commute_evening_active">Smart Commute: Evening return stations prioritized</string>
+    <string name="smart_commute_offpeak_active">Smart Commute active: Auto-prioritizes Home (AM) &amp; Work (PM)</string>
+    <string name="smart_commute_disabled">Smart Commute disabled</string>
+    <string name="shortcut_station_departures">%1$s departures</string>
 </resources>

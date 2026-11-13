@@ -357,11 +357,13 @@ abstract class BaseTransitAppFunctionService : AppFunctionService() {
             }
         }
 
-        val sp = applicationContext.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
-        sp.edit {
-            putString(DepartureBoardWidget.PREF_PENDING_PIN_STATION_ID, resolvedId)
-            putString(DepartureBoardWidget.PREF_PENDING_PIN_STATION_NAME, resolvedName)
-            putLong(DepartureBoardWidget.PREF_PENDING_PIN_TIMESTAMP_MS, System.currentTimeMillis())
+        withContext(Dispatchers.IO) {
+            val sp = applicationContext.getSharedPreferences("widget_config", Context.MODE_PRIVATE)
+            sp.edit(commit = true) {
+                putString(DepartureBoardWidget.PREF_PENDING_PIN_STATION_ID, resolvedId)
+                putString(DepartureBoardWidget.PREF_PENDING_PIN_STATION_NAME, resolvedName)
+                putLong(DepartureBoardWidget.PREF_PENDING_PIN_TIMESTAMP_MS, System.currentTimeMillis())
+            }
         }
 
         return withContext(Dispatchers.Main) {

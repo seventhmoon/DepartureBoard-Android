@@ -124,3 +124,40 @@ data class GtfsCalendarDateEntity(
     val date: String,      // YYYYMMDD
     val exceptionType: Int // 1 = Service added for date, 2 = Service removed for date
 )
+
+/**
+ * GTFS levels.txt entity defining vertical station levels (mezzanine, concourse, deep-level platforms).
+ */
+@Entity(tableName = "gtfs_levels")
+data class GtfsLevelEntity(
+    @PrimaryKey
+    val levelId: String,
+    val levelIndex: Double,
+    val levelName: String? = null
+)
+
+/**
+ * GTFS pathways.txt entity defining indoor station graph edges (walkways, stairs, escalators, elevators).
+ */
+@Entity(
+    tableName = "gtfs_pathways",
+    indices = [
+        Index(value = ["fromStopId"]),
+        Index(value = ["toStopId"])
+    ]
+)
+data class GtfsPathwayEntity(
+    @PrimaryKey
+    val pathwayId: String,
+    val fromStopId: String,
+    val toStopId: String,
+    val pathwayMode: Int, // 1=walkway, 2=stairs, 3=moving_sidewalk, 4=escalator, 5=elevator, 6=fare_gate, 7=exit_gate
+    val isBidirectional: Int = 1,
+    val length: Double? = null,
+    val traversalTime: Int? = null,
+    val stairCount: Int? = null,
+    val maxSlope: Double? = null,
+    val minWidth: Double? = null,
+    val signpostedAs: String? = null,
+    val reversedSignpostedAs: String? = null
+)

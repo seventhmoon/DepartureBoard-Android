@@ -1226,10 +1226,10 @@ class TrainTrackingService : Service() {
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
                 .setAutoCancel(true)
                 .setContentIntent(openAppPendingIntent)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setSilent(true)
                 .extend(NotificationCompat.WearableExtender())
                 .build()
 
@@ -1348,14 +1348,7 @@ class TrainTrackingService : Service() {
             isCancelled = isCancelled
         )
 
-        val stopsCount = currentStopsAway ?: when {
-            timeToStationSeconds <= 30 -> 0
-            timeToStationSeconds <= 120 -> 1
-            timeToStationSeconds <= 240 -> 2
-            timeToStationSeconds <= 360 -> 3
-            timeToStationSeconds <= 480 -> 4
-            else -> (timeToStationSeconds / 120).coerceAtMost(10)
-        }
+        val stopsCount = currentStopsAway ?: -1
 
         val shortPlatform = when {
             platform.contains("Platform", ignoreCase = true) -> {

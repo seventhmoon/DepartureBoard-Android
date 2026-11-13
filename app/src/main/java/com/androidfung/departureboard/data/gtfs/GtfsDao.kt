@@ -35,6 +35,15 @@ interface GtfsDao {
     @Query("SELECT * FROM gtfs_calendar_dates WHERE date = :date")
     suspend fun getCalendarDatesForDate(date: String): List<GtfsCalendarDateEntity>
 
+    @Query("SELECT * FROM gtfs_levels WHERE levelId IN (:levelIds)")
+    suspend fun getLevelsByIds(levelIds: List<String>): List<GtfsLevelEntity>
+
+    @Query("SELECT * FROM gtfs_pathways WHERE fromStopId = :stopId OR (isBidirectional = 1 AND toStopId = :stopId)")
+    suspend fun getPathwaysForStop(stopId: String): List<GtfsPathwayEntity>
+
+    @Query("SELECT * FROM gtfs_pathways WHERE fromStopId IN (:stopIds) OR toStopId IN (:stopIds)")
+    suspend fun getPathwaysForStops(stopIds: List<String>): List<GtfsPathwayEntity>
+
     @Query(
         """
         SELECT * FROM gtfs_stop_times 
@@ -95,6 +104,12 @@ interface GtfsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCalendarDates(calendarDates: List<GtfsCalendarDateEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLevels(levels: List<GtfsLevelEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPathways(pathways: List<GtfsPathwayEntity>)
+
     @Query("DELETE FROM gtfs_stops")
     suspend fun clearStops()
 
@@ -113,6 +128,12 @@ interface GtfsDao {
     @Query("DELETE FROM gtfs_calendar_dates")
     suspend fun clearCalendarDates()
 
+    @Query("DELETE FROM gtfs_levels")
+    suspend fun clearLevels()
+
+    @Query("DELETE FROM gtfs_pathways")
+    suspend fun clearPathways()
+
     @androidx.room.Transaction
     suspend fun importScheduleBatchTransactional(
         stops: List<GtfsStopEntity>,
@@ -121,9 +142,13 @@ interface GtfsDao {
         stopTimes: List<GtfsStopTimeEntity>,
         calendars: List<GtfsCalendarEntity>,
         calendarDates: List<GtfsCalendarDateEntity>,
+        levels: List<GtfsLevelEntity> = emptyList(),
+        pathways: List<GtfsPathwayEntity> = emptyList(),
         clearExisting: Boolean
     ) {
         if (clearExisting) {
+            clearPathways()
+            clearLevels()
             clearStopTimes()
             clearTrips()
             clearRoutes()
@@ -137,5 +162,7 @@ interface GtfsDao {
         if (stopTimes.isNotEmpty()) insertStopTimes(stopTimes)
         if (calendars.isNotEmpty()) insertCalendars(calendars)
         if (calendarDates.isNotEmpty()) insertCalendarDates(calendarDates)
+        if (levels.isNotEmpty()) insertLevels(levels)
+        if (pathways.isNotEmpty()) insertPathways(pathways)
     }
 }

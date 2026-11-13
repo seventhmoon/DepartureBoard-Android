@@ -19,6 +19,8 @@ class GtfsStaticScheduleImporter(
         stopTimes: List<GtfsStopTimeEntity> = emptyList(),
         calendars: List<GtfsCalendarEntity> = emptyList(),
         calendarDates: List<GtfsCalendarDateEntity> = emptyList(),
+        levels: List<GtfsLevelEntity> = emptyList(),
+        pathways: List<GtfsPathwayEntity> = emptyList(),
         clearExisting: Boolean = false
     ) {
         dao.importScheduleBatchTransactional(
@@ -28,6 +30,8 @@ class GtfsStaticScheduleImporter(
             stopTimes = stopTimes,
             calendars = calendars,
             calendarDates = calendarDates,
+            levels = levels,
+            pathways = pathways,
             clearExisting = clearExisting
         )
     }

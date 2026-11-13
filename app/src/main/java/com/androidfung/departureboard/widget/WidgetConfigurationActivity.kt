@@ -24,7 +24,8 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -34,7 +35,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -122,26 +127,34 @@ class WidgetConfigurationActivity : AppCompatActivity() {
             return
         }
 
-        // Check if an AppFunction or assistant action pre-staged a 1-tap widget station pin (< 2 min old)
-        val widgetSp = getSharedPreferences("widget_config", MODE_PRIVATE)
-        val pendingPinStationId = widgetSp.getString(DepartureBoardWidget.PREF_PENDING_PIN_STATION_ID, null)
-        val pendingPinStationName = widgetSp.getString(DepartureBoardWidget.PREF_PENDING_PIN_STATION_NAME, null)
-        val pendingPinTs = widgetSp.getLong(DepartureBoardWidget.PREF_PENDING_PIN_TIMESTAMP_MS, 0L)
-        val hasExistingConfig = widgetSp.getString("station_id_$appWidgetId", null) != null
-        if (!hasExistingConfig &&
-            !pendingPinStationId.isNullOrBlank() &&
-            (System.currentTimeMillis() - pendingPinTs) in 0..DepartureBoardWidget.PENDING_PIN_MAX_AGE_MS
-        ) {
-            widgetSp.edit {
-                remove(DepartureBoardWidget.PREF_PENDING_PIN_STATION_ID)
-                remove(DepartureBoardWidget.PREF_PENDING_PIN_STATION_NAME)
-                remove(DepartureBoardWidget.PREF_PENDING_PIN_TIMESTAMP_MS)
+        // Check if an AppFunction or assistant action pre-staged a 1-tap widget station pin (< 2 min old) off the main thread
+        lifecycleScope.launch {
+            val autoStation = withContext(Dispatchers.IO) {
+                val widgetSp = getSharedPreferences("widget_config", MODE_PRIVATE)
+                val pendingPinStationId = widgetSp.getString(DepartureBoardWidget.PREF_PENDING_PIN_STATION_ID, null)
+                val pendingPinStationName = widgetSp.getString(DepartureBoardWidget.PREF_PENDING_PIN_STATION_NAME, null)
+                val pendingPinTs = widgetSp.getLong(DepartureBoardWidget.PREF_PENDING_PIN_TIMESTAMP_MS, 0L)
+                val hasExistingConfig = widgetSp.getString("station_id_$appWidgetId", null) != null
+                if (!hasExistingConfig &&
+                    !pendingPinStationId.isNullOrBlank() &&
+                    (System.currentTimeMillis() - pendingPinTs) in 0..DepartureBoardWidget.PENDING_PIN_MAX_AGE_MS
+                ) {
+                    widgetSp.edit(commit = true) {
+                        remove(DepartureBoardWidget.PREF_PENDING_PIN_STATION_ID)
+                        remove(DepartureBoardWidget.PREF_PENDING_PIN_STATION_NAME)
+                        remove(DepartureBoardWidget.PREF_PENDING_PIN_TIMESTAMP_MS)
+                    }
+                    Station(
+                        id = pendingPinStationId,
+                        name = pendingPinStationName ?: getString(R.string.widget_station_name_fallback)
+                    )
+                } else {
+                    null
+                }
             }
-            val autoStation = Station(
-                id = pendingPinStationId,
-                name = pendingPinStationName ?: getString(R.string.widget_station_name_fallback)
-            )
-            selectStationAndFinish(autoStation, null, null)
+            if (autoStation != null && !isFinishing && !isDestroyed) {
+                selectStationAndFinish(autoStation, null, null)
+            }
         }
 
         val billingRepo = BillingRepository.getInstance(applicationContext)
@@ -298,8 +311,10 @@ fun WidgetConfigurationContent(
     var showPaywall by remember { mutableStateOf(false) }
 
     LaunchedEffect(appWidgetId) {
-        val sp = context.getSharedPreferences("widget_config", android.content.Context.MODE_PRIVATE)
-        val isReconfiguringExisting = sp.getString("station_id_$appWidgetId", null) != null
+        val isReconfiguringExisting = withContext(Dispatchers.IO) {
+            val sp = context.getSharedPreferences("widget_config", android.content.Context.MODE_PRIVATE)
+            sp.getString("station_id_$appWidgetId", null) != null
+        }
         if (!isReconfiguringExisting) {
             val glanceManager = GlanceAppWidgetManager(context)
             val existingGlanceIds = glanceManager.getGlanceIds(DepartureBoardWidget::class.java)
@@ -400,27 +415,21 @@ fun WidgetStationPickerScreen(
 
     LaunchedEffect(selectedStationForLines) {
         val st = selectedStationForLines
+        stationDepartures = emptyList()
         if (st != null) {
             isLoadingLines = true
             val deps = try {
                 repository.getDepartures(st.id, st.name).getOrDefault(emptyList())
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (_: Exception) {
                 emptyList()
             }
             stationDepartures = deps
             isLoadingLines = false
+        } else {
+            isLoadingLines = false
         }
-    }
-
-    LaunchedEffect(Unit) {
-        val saved = try {
-            val activeRegion = repository.selectedRegionFlow.first()
-            repository.savedStationsFlow.first().ifEmpty { activeRegion.defaultStations }
-        } catch (_: Exception) {
-            GbDefaultStations.POPULAR_STATIONS
-        }
-        stations = saved
-        isLoading = false
     }
 
     LaunchedEffect(searchQuery) {
@@ -431,9 +440,12 @@ fun WidgetStationPickerScreen(
             stations = result.getOrDefault(emptyList())
             isLoading = false
         } else {
+            isLoading = true
             val saved = try {
                 val activeRegion = repository.selectedRegionFlow.first()
                 repository.savedStationsFlow.first().ifEmpty { activeRegion.defaultStations }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (_: Exception) {
                 GbDefaultStations.POPULAR_STATIONS
             }
@@ -523,12 +535,13 @@ fun WidgetStationPickerScreen(
             }
         } else {
             val navBarBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+            val bottomClearance = maxOf(navBarBottomPadding, imeBottomPadding)
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .imePadding(),
-                contentPadding = PaddingValues(bottom = navBarBottomPadding + 20.dp),
+                    .weight(1f),
+                contentPadding = PaddingValues(bottom = bottomClearance + 20.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 if (searchQuery.isBlank()) {
@@ -590,11 +603,11 @@ fun WidgetStationPickerScreen(
                     }
                 }
 
-                items(
+                itemsIndexed(
                     items = stations,
-                    key = { it.id + it.name },
-                    contentType = { "station_item" }
-                ) { station ->
+                    key = { index, station -> "${station.id}\u0000${station.name}\u0000$index" },
+                    contentType = { _, _ -> "station_item" }
+                ) { _, station ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -715,14 +728,15 @@ fun WidgetStationPickerScreen(
                         val isAllSelected = selectedLineForFilter == null
                         Box(
                             modifier = Modifier
-                                .height(32.dp)
+                                .minimumInteractiveComponentSize()
+                                .heightIn(min = 36.dp)
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(
                                     if (isAllSelected) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.surfaceVariant
                                 )
                                 .clickable { selectedLineForFilter = null }
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -740,12 +754,13 @@ fun WidgetStationPickerScreen(
                             val isSelected = selectedLineForFilter?.lineId == badge.lineId
                             Box(
                                 modifier = Modifier
-                                    .height(32.dp)
+                                    .minimumInteractiveComponentSize()
+                                    .heightIn(min = 36.dp)
                                     .defaultMinSize(minWidth = 56.dp)
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(badge.backgroundColor)
                                     .clickable { selectedLineForFilter = badge }
-                                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(

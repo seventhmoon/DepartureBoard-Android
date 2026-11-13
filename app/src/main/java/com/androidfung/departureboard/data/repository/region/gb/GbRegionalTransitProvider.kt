@@ -102,6 +102,8 @@ class GbRegionalTransitProvider(
                 lines = lines,
                 isFavorite = false
             )
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             null
         } ?: return null
@@ -142,6 +144,8 @@ class GbRegionalTransitProvider(
                             distanceMeters = bp.distance?.toInt()
                         )
                     }
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                throw e
             } catch (_: Exception) {
                 emptyList()
             }
@@ -196,6 +200,8 @@ class GbRegionalTransitProvider(
                         )
                     )
                 }
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                throw e
             } catch (_: Exception) {
                 emptyList()
             }
@@ -274,6 +280,8 @@ class GbRegionalTransitProvider(
                 .filter { it.modes.isNotEmpty() }
                 .map { sp -> com.androidfung.departureboard.data.repository.region.gb.mapper.TflStationMapper.fromStopPointChild(sp) }
                 .distinctBy { it.id }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             emptyList()
         }
@@ -316,10 +324,14 @@ class GbRegionalTransitProvider(
                             )
                         }
                     }
+                } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                    throw e
                 } catch (_: Exception) {
                     // Non-fatal if BODS disruptions call fails
                 }
                 fresh.ifEmpty { lineStatusesCache.getStale("line_statuses").orEmpty() }
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                throw e
             } catch (_: Exception) {
                 lineStatusesCache.getStale("line_statuses").orEmpty()
             }

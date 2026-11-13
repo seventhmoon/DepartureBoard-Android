@@ -21,6 +21,18 @@ object LastTrainServiceCalculator {
      */
     const val APPROACHING_WINDOW_MINUTES = 90
 
+    /**
+     * Window (in minutes) before scheduled last train within which the furthest non-night
+     * train in each direction receives the `[LAST TRAIN]` row badge.
+     */
+    private const val LAST_TRAIN_BADGE_WINDOW_MINUTES = 45
+
+    /**
+     * Horizon (in minutes) matching live countdown coverage (~30-35 min) within which live
+     * predictions refine/align the Last Train Home banner clock and countdown.
+     */
+    private const val LIVE_PREDICTION_HORIZON_MINUTES = 35
+
     private val GB_NIGHT_TUBE_LINES = setOf(
         "central",
         "jubilee",
@@ -233,12 +245,12 @@ object LastTrainServiceCalculator {
                 .filter { it.status != DepartureStatus.CANCELLED && !isNightBusRoute(it.lineId) }
                 .maxByOrNull { it.timeToStationSeconds }
 
-            val effectiveMinutes = if (latestLiveDeparture != null && diffToLastTrain <= 35) {
+            val effectiveMinutes = if (latestLiveDeparture != null && diffToLastTrain <= LIVE_PREDICTION_HORIZON_MINUTES) {
                 (latestLiveDeparture.timeToStationSeconds / 60).coerceAtLeast(1)
             } else {
                 diffToLastTrain
             }
-            val effectiveLastClock = if (latestLiveDeparture != null && diffToLastTrain <= 35) {
+            val effectiveLastClock = if (latestLiveDeparture != null && diffToLastTrain <= LIVE_PREDICTION_HORIZON_MINUTES) {
                 latestLiveDeparture.formattedActualClockTime ?: defaultLastTrain
             } else {
                 defaultLastTrain
@@ -293,7 +305,7 @@ object LastTrainServiceCalculator {
         val isLateNightServiceWindow = now.hour in 0..4
         val scheduledMinsUntilLast = serviceHours?.minutesUntilLastTrain
         val isApproachingLastTrain = serviceHours?.isApproachingLastTrain == true &&
-            (scheduledMinsUntilLast ?: 999) <= 45
+            (scheduledMinsUntilLast ?: 999) <= LAST_TRAIN_BADGE_WINDOW_MINUTES
 
         // Group non-cancelled departures by line + direction/platform to identify the final train in each direction
         val lastDepartureIds = if (isApproachingLastTrain) {
@@ -349,7 +361,7 @@ object LastTrainServiceCalculator {
                 val liveMinutes = (latestTrainDep.timeToStationSeconds / 60).coerceAtLeast(1)
                 val scheduledMins = serviceHours.minutesUntilLastTrain ?: 0
 
-                val shouldAlignWithLive = liveMinutes > scheduledMins || scheduledMins <= 35
+                val shouldAlignWithLive = liveMinutes > scheduledMins || scheduledMins <= LIVE_PREDICTION_HORIZON_MINUTES
                 if (shouldAlignWithLive) {
                     val liveClock = latestTrainDep.formattedActualClockTime
                         ?: run {

@@ -152,6 +152,8 @@ class GbStationSearchEngine(
             // Query TfL for this station name so we get proper coordinates/Naptan if available
             val tflSearch = try {
                 apiService.searchStations(query = crsEntity.stationName)
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                throw e
             } catch (_: Exception) {
                 null
             }
@@ -174,6 +176,8 @@ class GbStationSearchEngine(
                     isFavorite = false
                 )
             }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             null
         }
@@ -195,6 +199,8 @@ class GbStationSearchEngine(
                     isFavorite = false
                 )
             }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             emptyList()
         }
@@ -203,6 +209,8 @@ class GbStationSearchEngine(
     private suspend fun searchTflStations(query: String): List<Station> {
         val response = try {
             apiService.searchStations(query = query)
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             return emptyList()
         }
@@ -220,6 +228,8 @@ class GbStationSearchEngine(
                             val detail = apiService.getStopPointDetail(station.id)
                             val lines = TflStationMapper.extractLines(detail)
                             if (lines.isNotEmpty()) station.copy(lines = lines) else station
+                        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                            throw e
                         } catch (_: Exception) {
                             station
                         }
@@ -241,6 +251,8 @@ class GbStationSearchEngine(
             stopPoints
                 .filter { it.modes.contains(TransitMode.BUS.id) || it.id.startsWith(TflStopPointUtils.PREFIX_BUS_STOP) }
                 .map { sp -> TflStationMapper.fromStopPointChild(sp) }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             emptyList()
         }
@@ -279,6 +291,8 @@ class GbStationSearchEngine(
                     }
                 )
             }.distinctBy { it.id }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             emptyList()
         }

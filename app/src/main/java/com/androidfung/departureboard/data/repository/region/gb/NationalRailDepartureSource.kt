@@ -38,6 +38,8 @@ class NationalRailDepartureSource(
             try {
                 val board = try {
                     nrApiService.getDepBoardWithDetails(crs)
+                } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                    throw e
                 } catch (_: Exception) {
                     nrApiService.getDepartureBoard(crs)
                 }
@@ -46,6 +48,8 @@ class NationalRailDepartureSource(
                     (!service.std.isNullOrBlank() || !service.etd.isNullOrBlank()) &&
                         (destCrs == null || !destCrs.equals(crs, ignoreCase = true))
                 }?.let { collectedServices.addAll(it) }
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 lastError = e
             }

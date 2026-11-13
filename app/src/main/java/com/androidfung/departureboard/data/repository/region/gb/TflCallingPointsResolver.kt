@@ -328,6 +328,8 @@ class TflCallingPointsResolver(
                             if (!naptan.isNullOrBlank()) vehicleArrivalsByStation[naptan] = pred
                             if (!stName.isNullOrBlank()) vehicleArrivalsByStation[stName] = pred
                         }
+                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                        throw e
                     } catch (_: Exception) {}
                 }
 
@@ -399,6 +401,8 @@ class TflCallingPointsResolver(
                     )
                 }
             }
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
         } catch (_: Exception) {
             // Fall through to local GbTransitRoutes fallback
         }

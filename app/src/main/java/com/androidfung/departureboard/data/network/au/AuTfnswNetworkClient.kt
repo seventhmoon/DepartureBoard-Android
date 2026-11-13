@@ -2,6 +2,7 @@ package com.androidfung.departureboard.data.network.au
 
 import com.androidfung.departureboard.BuildConfig
 import com.androidfung.departureboard.data.network.SharedNetworkConfig
+import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import okhttp3.OkHttpClient
 import retrofit2.create
@@ -30,10 +31,18 @@ data class AuTfnswStopLocation(
 )
 
 @JsonClass(generateAdapter = true)
+data class AuTfnswProduct(
+    @param:Json(name = "class")
+    val productClass: Int? = null,
+    val name: String? = null
+)
+
+@JsonClass(generateAdapter = true)
 data class AuTfnswTransportation(
     val id: String? = null,
     val number: String? = null,
     val disassembledName: String? = null,
+    val product: AuTfnswProduct? = null,
     val destination: AuTfnswDestination? = null
 )
 

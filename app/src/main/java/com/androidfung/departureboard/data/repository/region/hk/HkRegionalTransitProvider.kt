@@ -140,6 +140,8 @@ class HkRegionalTransitProvider(
                     lon = detail.long?.toDoubleOrNull(),
                     isFavorite = false
                 )
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                throw e
             } catch (_: Exception) {
                 null
             }
@@ -220,6 +222,8 @@ class HkRegionalTransitProvider(
                                     )
                                 )
                             )
+                        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                            throw e
                         } catch (_: Exception) {
                             // Fallback to Good Service if query fails
                             mtrLine.code.lowercase() to TflLineStatusItem(

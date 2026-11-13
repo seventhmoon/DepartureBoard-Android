@@ -135,10 +135,7 @@ object CorridorRouteComparator {
         val h = match.groupValues[1].toIntOrNull() ?: return null
         val m = match.groupValues[2].toIntOrNull() ?: return null
         val nowMins = now.hour * 60 + now.minute
-        var diff = (h * 60 + m) - nowMins
-        if (diff < -180) {
-            diff += 24 * 60 // Next-day arrival after midnight
-        }
+        val diff = normalizeMidnightMinuteDelta((h * 60 + m) - nowMins)
         return if (diff >= minMinutes) diff else null
     }
 

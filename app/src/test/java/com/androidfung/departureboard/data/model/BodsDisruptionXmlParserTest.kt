@@ -35,4 +35,33 @@ class BodsDisruptionXmlParserTest {
         assertEquals("roadworks", d.reason)
         assertEquals("slight", d.severity)
     }
+
+    @Test
+    fun `parse accumulates split entity text, keeps fallback IDs deterministic, and blocks DOCTYPE`() {
+        val entityXml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Siri xmlns="http://www.siri.org.uk/siri" version="2.0">
+                <ServiceDelivery><SituationExchangeDelivery>
+                    <PtSituationElement>
+                        <LineRef>310</LineRef>
+                        <Summary>Hertford &amp; Ware diversion</Summary>
+                        <Description>Stops near High St &amp; Station Rd closed.</Description>
+                    </PtSituationElement>
+                </SituationExchangeDelivery></ServiceDelivery>
+            </Siri>
+        """.trimIndent()
+
+        val firstPass = BodsDisruptionXmlParser.parse(entityXml)
+        val secondPass = BodsDisruptionXmlParser.parse(entityXml)
+        assertEquals(1, firstPass.size)
+        assertEquals("Hertford & Ware diversion", firstPass[0].summary)
+        assertEquals("Stops near High St & Station Rd closed.", firstPass[0].description)
+        assertEquals(firstPass[0].situationNumber, secondPass[0].situationNumber)
+
+        val xxeXml = """
+            <!DOCTYPE foo [<!ENTITY secret "hacked">]>
+            <Siri><PtSituationElement><Summary>&secret;</Summary></PtSituationElement></Siri>
+        """.trimIndent()
+        assertEquals(0, BodsDisruptionXmlParser.parse(xxeXml).size)
+    }
 }

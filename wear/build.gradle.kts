@@ -19,8 +19,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 5303
-        versionName = "1.3.3-261106-wear"
+        versionCode = 5304
+        versionName = "1.3.3-261112-wear"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.androidx.wear.protolayout)
     implementation(libs.androidx.wear.protolayout.material)
     implementation(libs.androidx.wear.watchface.complications.data.source.ktx)
+    implementation(libs.androidx.health.services.client)
     implementation(libs.guava)
 
     testImplementation(libs.junit)

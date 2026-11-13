@@ -320,6 +320,8 @@ object WidgetDisruptionNotificationManager {
         // Pre-fetch shared line statuses and transit alerts once per background cycle
         val lineStatuses = try {
             repository.getLineStatuses()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch line statuses", e)
             emptyMap()
@@ -327,6 +329,8 @@ object WidgetDisruptionNotificationManager {
 
         val transitAlerts = try {
             repository.getTransitAlerts()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch transit alerts", e)
             emptyList()
@@ -337,6 +341,11 @@ object WidgetDisruptionNotificationManager {
 
         for (target in uniqueTargets) {
             val departuresResult = repository.getDepartures(target.stationId, target.stationName)
+            if (departuresResult.isFailure) {
+                // Keep any active disruption notification when network/feed is temporarily unreachable
+                Log.d(TAG, "Skipping disruption cancel for ${target.stationName}: departures fetch failed")
+                continue
+            }
             val allDepartures = departuresResult.getOrDefault(emptyList())
 
             val evaluation = evaluateTargetDisruption(
@@ -446,6 +455,11 @@ object WidgetDisruptionNotificationManager {
     }
 
     fun getNotificationId(stationId: String, filterLineId: String?): Int {
-        return ("widget_disruption_${stationId}_${filterLineId.orEmpty()}").hashCode()
+        val raw = "widget_disruption\u0000${stationId}\u0000${filterLineId.orEmpty()}"
+        var hash = 0x811c9dc5.toInt()
+        for (ch in raw) {
+            hash = (hash xor ch.code) * 0x01000193
+        }
+        return (hash and 0x7FFF_FFFF) % 900_000 + 100_000
     }
 }

@@ -20,6 +20,7 @@ import androidx.wear.protolayout.ModifiersBuilders.Clickable
 import androidx.wear.protolayout.ModifiersBuilders.Corner
 import androidx.wear.protolayout.ModifiersBuilders.Modifiers
 import androidx.wear.protolayout.ModifiersBuilders.Padding
+import androidx.wear.protolayout.ModifiersBuilders.Semantics
 import androidx.wear.protolayout.ResourceBuilders.Resources
 import androidx.wear.protolayout.TimelineBuilders.Timeline
 import androidx.wear.protolayout.TimelineBuilders.TimelineEntry
@@ -149,15 +150,22 @@ class WearDepartureTileService : TileService() {
                     .setBackground(
                         Background.Builder()
                             .setColor(argb(0xFF1E2630.toInt()))
-                            .setCorner(Corner.Builder().setRadius(dp(10f)).build())
+                            .setCorner(Corner.Builder().setRadius(dp(16f)).build())
                             .build()
                     )
                     .setPadding(
                         Padding.Builder()
-                            .setStart(dp(7f))
-                            .setEnd(dp(7f))
-                            .setTop(dp(2f))
-                            .setBottom(dp(2f))
+                            .setStart(dp(11f))
+                            .setEnd(dp(11f))
+                            .setTop(dp(7f))
+                            .setBottom(dp(7f))
+                            .build()
+                    )
+                    .setSemantics(
+                        Semantics.Builder()
+                            .setContentDescription(
+                                context.getString(com.androidfung.departureboard.wear.R.string.wear_tile_refresh_cd)
+                            )
                             .build()
                     )
                     .setClickable(refreshClickable)
@@ -168,7 +176,7 @@ class WearDepartureTileService : TileService() {
                     .setText("↻")
                     .setFontStyle(
                         LayoutElementBuilders.FontStyle.Builder()
-                            .setSize(sp(11f))
+                            .setSize(sp(13f))
                             .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
                             .setColor(argb(0xFF81D4FA.toInt()))
                             .build()
@@ -291,6 +299,23 @@ class WearDepartureTileService : TileService() {
                     )
                     .build()
             )
+            columnBuilder.addContent(Spacer.Builder().setHeight(dp(4f)).build())
+            columnBuilder.addContent(
+                Text.Builder()
+                    .setText(
+                        applicationContext.getString(
+                            com.androidfung.departureboard.wear.R.string.wear_tile_no_pinned
+                        )
+                    )
+                    .setMaxLines(2)
+                    .setFontStyle(
+                        LayoutElementBuilders.FontStyle.Builder()
+                            .setSize(sp(11f))
+                            .setColor(argb(0xFFB0BEC5.toInt()))
+                            .build()
+                    )
+                    .build()
+            )
         }
 
         return Box.Builder()
@@ -318,12 +343,16 @@ class WearDepartureTileService : TileService() {
         dep: WearDepartureItem,
         nowEpochMs: Long = System.currentTimeMillis()
     ): LayoutElement {
-        val platLabel = if (dep.isPlatformTbd) "TBD" else "P${dep.cleanPlatformCode}"
+        val platLabel = if (dep.isPlatformTbd) {
+            applicationContext.getString(com.androidfung.departureboard.wear.R.string.wear_plat_tbd)
+        } else {
+            "P${dep.cleanPlatformCode}"
+        }
         val effectiveMins = dep.effectiveCountdownMinutes(nowEpochMs)
         val minsLabel = when {
             dep.isStale(nowEpochMs) -> "--"
-            effectiveMins <= 0 -> "Due"
-            else -> "${effectiveMins}m"
+            effectiveMins <= 0 -> applicationContext.getString(com.androidfung.departureboard.wear.R.string.wear_status_due)
+            else -> applicationContext.getString(com.androidfung.departureboard.wear.R.string.wear_minutes_short, effectiveMins)
         }
         val platColor = if (dep.isPlatformTbd) 0xFFFFB74D.toInt() else 0xFF00E676.toInt()
 

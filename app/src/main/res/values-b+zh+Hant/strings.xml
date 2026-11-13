@@ -548,4 +548,31 @@
     <string name="a2ui_delay_repay_open_portal">賠償申請網站</string>
     <string name="ai_system_aicore_ready_badge">Android System AICore 已啟用 • 免下載裝置端 AI</string>
     <string name="station_saved_toast">已將 %1$s 釘選至主畫面</string>
+
+    <!-- Localization & Corridor / Widget Accessibility Extensions -->
+    <string name="search_stations_placeholder_sg">搜尋地鐵站或巴士路線（例：Raffles Place, 14）…</string>
+    <string name="search_stations_placeholder_jp">搜尋車站或路線（例：Shibuya, Yamanote）…</string>
+    <string name="search_stations_placeholder_au">搜尋火車站、渡輪碼頭或巴士（例：Central, T1, M52）…</string>
+    <string name="typically_platform_code">通常 %1$s 號月台%2$s</string>
+    <string name="share_live_train_eta_chooser">分享列車即時預計抵達時間</string>
+    <string name="cd_share_live_eta">分享即時 ETA</string>
+    <string name="ai_engine_set_to">已切換 AI 引擎：%1$s</string>
+    <string name="corridor_origin_tap_switch">起點（點擊切換）</string>
+    <string name="corridor_destination_stop">目的地車站</string>
+    <string name="corridor_express_recommendation_title">⚡ 較快特快列車建議</string>
+    <string name="corridor_departures_serving">前往 %1$s 的班次（%2$d）</string>
+    <string name="corridor_no_departures_towards">找不到從 %2$s 直達或途經「%1$s」的班次。</string>
+    <string name="corridor_service_express">特快</string>
+    <string name="corridor_service_semi_fast">準急</string>
+    <string name="corridor_service_all_stations">各站停靠</string>
+    <plurals name="corridor_stops_count">
+        <item quantity="other">%1$d 站</item>
+    </plurals>
+    <string name="corridor_est_arrival">預計抵達：%1$s</string>
+    <string name="corridor_est_transit_mins">約需 %1$d 分鐘</string>
+    <string name="smart_commute_morning_active">智慧通勤：已優先顯示早上出發車站</string>
+    <string name="smart_commute_evening_active">智慧通勤：已優先顯示黃昏回程車站</string>
+    <string name="smart_commute_offpeak_active">已啟用智慧通勤（將於早晚繁忙時段自動切換住家／公司車站）</string>
+    <string name="smart_commute_disabled">已停用智慧通勤</string>
+    <string name="shortcut_station_departures">%1$s 班次</string>
 </resources>
