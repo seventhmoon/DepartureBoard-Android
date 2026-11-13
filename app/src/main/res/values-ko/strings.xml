@@ -511,6 +511,8 @@
     <string name="labs_desk_clock_desc">폴더블 테이블탑 모드를 지원하는 전체 화면 플랩 및 LED 출발 안내판</string>
     <string name="labs_bilingual_title">이중 언어 역명 표시</string>
     <string name="labs_bilingual_desc">MTR 및 홍콩·도쿄 등 노선에서 영어와 현지어 역명을 함께 표시</string>
+    <string name="labs_bikeshare_title">공유자전거 및 마이크로 모빌리티</string>
+    <string name="labs_bikeshare_desc">역 주변 공유자전거 거치소 및 대여 가능한 자전거·빈 자리 현황 표시</string>
     <string name="labs_smart_commute_title">스마트 통근 루틴</string>
     <string name="labs_smart_commute_desc">출퇴근 시간대에 맞춰 자주 이용하는 역을 자동으로 우선 배치</string>
     <string name="labs_twin_concourse_title">트윈 대합실 비교</string>

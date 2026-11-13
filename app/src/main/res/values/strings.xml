@@ -517,6 +517,8 @@
     <string name="labs_desk_clock_desc">Full-screen split-flap &amp; LED departure board with foldable Tabletop mode</string>
     <string name="labs_bilingual_title">Bilingual Station Names</string>
     <string name="labs_bilingual_desc">Dual English and Traditional Chinese names for MTR &amp; Hong Kong transit</string>
+    <string name="labs_bikeshare_title">Bikeshare &amp; Micromobility</string>
+    <string name="labs_bikeshare_desc">Show nearby bikeshare stations and bike/dock availability at transit hubs</string>
     <string name="labs_smart_commute_title">Smart Commute Routine</string>
     <string name="labs_smart_commute_desc">Auto-prioritizes morning vs evening stations based on commute hours</string>
     <string name="labs_twin_concourse_title">Twin Concourse Race</string>

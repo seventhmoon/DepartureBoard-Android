@@ -45,6 +45,7 @@ open class FakeTransitRepository(
     val selectedRegionStateFlow = MutableStateFlow(com.androidfung.departureboard.data.model.TransitRegion.GB)
     val isHkRegionEnabledStateFlow = MutableStateFlow(false)
     val isBilingualEnabledStateFlow = MutableStateFlow(true)
+    val isBikeshareEnabledStateFlow = MutableStateFlow(false)
     val autoSortByLocationStateFlow = MutableStateFlow(false)
     val widgetDisruptionsStateFlow = MutableStateFlow(true)
     val recentSearchedStationsStateFlow = MutableStateFlow<List<Station>>(emptyList())
@@ -60,6 +61,7 @@ open class FakeTransitRepository(
     override val selectedRegionFlow: Flow<com.androidfung.departureboard.data.model.TransitRegion> = selectedRegionStateFlow.asStateFlow()
     override val isHkRegionEnabledFlow: Flow<Boolean> = isHkRegionEnabledStateFlow.asStateFlow()
     override val isBilingualEnabledFlow: Flow<Boolean> = isBilingualEnabledStateFlow.asStateFlow()
+    override val isBikeshareEnabledFlow: Flow<Boolean> = isBikeshareEnabledStateFlow.asStateFlow()
     override val autoSortByLocationFlow: Flow<Boolean> = autoSortByLocationStateFlow.asStateFlow()
     override val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean> = widgetDisruptionsStateFlow.asStateFlow()
     override val recentSearchedStationsFlow: Flow<List<Station>> = recentSearchedStationsStateFlow.asStateFlow()
@@ -83,6 +85,10 @@ open class FakeTransitRepository(
 
     override suspend fun setBilingualEnabled(enabled: Boolean) {
         isBilingualEnabledStateFlow.value = enabled
+    }
+
+    override suspend fun setBikeshareEnabled(enabled: Boolean) {
+        isBikeshareEnabledStateFlow.value = enabled
     }
 
     override suspend fun setDepartureRowsCount(count: Int) {

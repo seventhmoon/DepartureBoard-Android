@@ -511,6 +511,8 @@
     <string name="labs_desk_clock_desc">折りたたみ端末のテーブルトップにも対応した全画面フラップ＆LED発車標</string>
     <string name="labs_bilingual_title">2言語駅名表示</string>
     <string name="labs_bilingual_desc">MTR や香港・東京などの路線で英語と現地語を併記表示</string>
+    <string name="labs_bikeshare_title">シェアサイクル・マイクロモビリティ</string>
+    <string name="labs_bikeshare_desc">駅周辺のシェアサイクル設置場所や空き自転車・ポート状況を表示</string>
     <string name="labs_smart_commute_title">スマート通勤ルーティン</string>
     <string name="labs_smart_commute_desc">朝夕の通勤時間帯に応じてよく使う駅を自動優先表示</string>
     <string name="labs_twin_concourse_title">ツインコンコース比較</string>

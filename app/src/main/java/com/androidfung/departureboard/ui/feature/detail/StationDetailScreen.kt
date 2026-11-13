@@ -114,7 +114,8 @@ fun StationDetailScreen(
     isPro: Boolean = false,
     stations: List<Station> = listOf(station),
     onStationChange: ((Station) -> Unit)? = null,
-    onOpenDeskClock: ((Station) -> Unit)? = null
+    onOpenDeskClock: ((Station) -> Unit)? = null,
+    isBikeshareEnabled: Boolean = false
 ) {
     val stationList = remember(stations, station) {
         val combined = if (stations.none { it.id == station.id }) {
@@ -144,7 +145,8 @@ fun StationDetailScreen(
             serviceHoursInfo = serviceHoursInfo,
             accessibilityAlerts = accessibilityAlerts,
             isPro = isPro,
-            onOpenDeskClock = onOpenDeskClock
+            onOpenDeskClock = onOpenDeskClock,
+            isBikeshareEnabled = isBikeshareEnabled
         )
     } else {
         val pagerState = androidx.compose.foundation.pager.rememberPagerState(
@@ -199,7 +201,8 @@ fun StationDetailScreen(
                         pagerState.animateScrollToPage(targetPage)
                     }
                 },
-                onOpenDeskClock = onOpenDeskClock
+                onOpenDeskClock = onOpenDeskClock,
+                isBikeshareEnabled = isBikeshareEnabled
             )
         }
     }
@@ -307,7 +310,8 @@ private fun StationDetailContent(
     pageCount: Int = 1,
     currentPage: Int = 0,
     onPageClick: ((Int) -> Unit)? = null,
-    onOpenDeskClock: ((Station) -> Unit)? = null
+    onOpenDeskClock: ((Station) -> Unit)? = null,
+    isBikeshareEnabled: Boolean = false
 ) {
     val modeIconRes = TransitIconHelper.getTransitModeIconRes(station.primaryTransitMode)
 
@@ -800,7 +804,7 @@ private fun StationDetailContent(
             }
 
             // Micromobility & Bikeshare Hubs (GBFS station_status.json)
-            if (station.micromobilityHubs.isNotEmpty()) {
+            if (isBikeshareEnabled && station.micromobilityHubs.isNotEmpty()) {
                 item(key = "station_micromobility", contentType = "station_micromobility") {
                     Row(
                         modifier = Modifier

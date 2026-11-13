@@ -83,6 +83,7 @@ data class DashboardUiState(
     val isLocationUnsupported: Boolean = false,
     val isHkRegionEnabled: Boolean = false,
     val isBilingualEnabled: Boolean = true,
+    val isBikeshareEnabled: Boolean = false,
     val lineStatuses: Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = emptyMap(),
     val isAutoSortByLocation: Boolean = false,
     val isWidgetDisruptionNotificationsEnabled: Boolean = true,

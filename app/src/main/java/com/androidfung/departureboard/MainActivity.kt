@@ -519,7 +519,8 @@ class MainActivity : AppCompatActivity() {
                                                     viewModel.closeStationDetail()
                                                 },
                                                 isPro = uiState.isPro,
-                                                onOpenDeskClock = { st -> viewModel.openDeskClock(st) }
+                                                onOpenDeskClock = { st -> viewModel.openDeskClock(st) },
+                                                isBikeshareEnabled = uiState.isBikeshareEnabled
                                             )
                                         }
                                     }
@@ -851,6 +852,8 @@ class MainActivity : AppCompatActivity() {
                             onDismissRequest = { showLabsSheet = false },
                             isBilingualEnabled = uiState.isBilingualEnabled,
                             onToggleBilingualEnabled = { enabled -> viewModel.setBilingualEnabled(enabled) },
+                            isBikeshareEnabled = uiState.isBikeshareEnabled,
+                            onToggleBikeshareEnabled = { enabled -> viewModel.setBikeshareEnabled(enabled) },
                             isSmartCommuteEnabled = uiState.isSmartCommuteEnabled,
                             onToggleSmartCommute = { viewModel.toggleSmartCommute() },
                             onOpenDeskClock = {

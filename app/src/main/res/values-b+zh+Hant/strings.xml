@@ -510,6 +510,8 @@
     <string name="labs_desk_clock_desc">支援摺疊機桌面模式的全螢幕翻頁及 LED 班次顯示板</string>
     <string name="labs_bilingual_title">雙語車站名稱</string>
     <string name="labs_bilingual_desc">同時顯示英文與繁體中文車站名稱（如港鐵及香港巴士）</string>
+    <string name="labs_bikeshare_title">共享單車與微型出行</string>
+    <string name="labs_bikeshare_desc">在車站顯示附近的共享單車租借站、可租單車及空位狀況</string>
     <string name="labs_smart_commute_title">智慧通勤時段排序</string>
     <string name="labs_smart_commute_desc">根據早晚上下班時段自動優先排列常用車站</string>
     <string name="labs_twin_concourse_title">雙大堂即時比拼</string>

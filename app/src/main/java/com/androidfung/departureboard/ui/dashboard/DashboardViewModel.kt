@@ -85,6 +85,11 @@ class DashboardViewModel @JvmOverloads constructor(
                 _uiState.update { it.copy(isBilingualEnabled = enabled) }
             }
         }
+        viewModelScope.launch {
+            repository.isBikeshareEnabledFlow.collectLatest { enabled ->
+                _uiState.update { it.copy(isBikeshareEnabled = enabled) }
+            }
+        }
         observeConcourseHardwareMotion()
     }
 
@@ -129,6 +134,12 @@ class DashboardViewModel @JvmOverloads constructor(
     fun setBilingualEnabled(enabled: Boolean) {
         viewModelScope.launch {
             repository.setBilingualEnabled(enabled)
+        }
+    }
+
+    fun setBikeshareEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setBikeshareEnabled(enabled)
         }
     }
 

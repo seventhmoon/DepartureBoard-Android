@@ -27,6 +27,7 @@ open class FakeStationPreferencesDataSource(
     private val _selectedRegion = MutableStateFlow(com.androidfung.departureboard.data.model.TransitRegion.GB)
     private val _isHkRegionEnabled = MutableStateFlow(false)
     private val _isBilingualEnabled = MutableStateFlow(true)
+    private val _isBikeshareEnabled = MutableStateFlow(false)
     private val _autoSortByLocation = MutableStateFlow(false)
     private val _widgetDisruptions = MutableStateFlow(true)
 
@@ -38,6 +39,7 @@ open class FakeStationPreferencesDataSource(
     override val selectedRegionFlow: Flow<com.androidfung.departureboard.data.model.TransitRegion> = _selectedRegion.asStateFlow()
     override val isHkRegionEnabledFlow: Flow<Boolean> = _isHkRegionEnabled.asStateFlow()
     override val isBilingualEnabledFlow: Flow<Boolean> = _isBilingualEnabled.asStateFlow()
+    override val isBikeshareEnabledFlow: Flow<Boolean> = _isBikeshareEnabled.asStateFlow()
     override val autoSortByLocationFlow: Flow<Boolean> = _autoSortByLocation.asStateFlow()
     override val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean> = _widgetDisruptions.asStateFlow()
 
@@ -59,6 +61,10 @@ open class FakeStationPreferencesDataSource(
 
     override suspend fun setBilingualEnabled(enabled: Boolean) {
         _isBilingualEnabled.value = enabled
+    }
+
+    override suspend fun setBikeshareEnabled(enabled: Boolean) {
+        _isBikeshareEnabled.value = enabled
     }
 
     override suspend fun setThemeMode(mode: AppThemeMode) {

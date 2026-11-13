@@ -32,6 +32,7 @@ interface StationPreferencesDataSource {
     val selectedRegionFlow: Flow<TransitRegion>
     val isHkRegionEnabledFlow: Flow<Boolean>
     val isBilingualEnabledFlow: Flow<Boolean>
+    val isBikeshareEnabledFlow: Flow<Boolean>
     val autoSortByLocationFlow: Flow<Boolean>
     val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean>
     val recentSearchedStationsFlow: Flow<List<Station>>
@@ -49,6 +50,7 @@ interface StationPreferencesDataSource {
     suspend fun setSelectedRegion(region: TransitRegion)
     suspend fun setHkRegionEnabled(enabled: Boolean)
     suspend fun setBilingualEnabled(enabled: Boolean)
+    suspend fun setBikeshareEnabled(enabled: Boolean)
     suspend fun setAutoSortByLocation(enabled: Boolean)
     suspend fun setWidgetDisruptionNotificationsEnabled(enabled: Boolean)
 }
@@ -84,6 +86,7 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         private val KEY_SELECTED_REGION = stringPreferencesKey("selected_region")
         private val KEY_HK_REGION_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("hk_region_enabled")
         private val KEY_BILINGUAL_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("bilingual_enabled")
+        private val KEY_BIKESHARE_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("bikeshare_enabled")
         private val KEY_AUTO_SORT_BY_LOCATION = androidx.datastore.preferences.core.booleanPreferencesKey("auto_sort_by_location")
         private val KEY_WIDGET_DISRUPTIONS_NOTIFICATIONS_ENABLED = androidx.datastore.preferences.core.booleanPreferencesKey("widget_disruptions_notifications_enabled")
         const val DEFAULT_DEPARTURE_ROWS = 5
@@ -191,6 +194,24 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
     override suspend fun setBilingualEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_BILINGUAL_ENABLED] = enabled
+        }
+    }
+
+    override val isBikeshareEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_BIKESHARE_ENABLED] ?: false
+        }
+
+    override suspend fun setBikeshareEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_BIKESHARE_ENABLED] = enabled
         }
     }
 

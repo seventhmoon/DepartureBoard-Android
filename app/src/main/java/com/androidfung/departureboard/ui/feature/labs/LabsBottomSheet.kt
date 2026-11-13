@@ -61,6 +61,8 @@ fun LabsBottomSheet(
     onDismissRequest: () -> Unit,
     isBilingualEnabled: Boolean,
     onToggleBilingualEnabled: (Boolean) -> Unit,
+    isBikeshareEnabled: Boolean = false,
+    onToggleBikeshareEnabled: (Boolean) -> Unit = {},
     isSmartCommuteEnabled: Boolean,
     onToggleSmartCommute: () -> Unit,
     onOpenDeskClock: () -> Unit,
@@ -210,13 +212,25 @@ fun LabsBottomSheet(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                LabsToggleItem(
-                    icon = Icons.Rounded.Schedule,
-                    title = stringResource(R.string.labs_smart_commute_title),
-                    subtitle = stringResource(R.string.labs_smart_commute_desc),
-                    checked = isSmartCommuteEnabled,
-                    onCheckedChange = { onToggleSmartCommute() }
-                )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    LabsToggleItem(
+                        icon = Icons.Rounded.Schedule,
+                        title = stringResource(R.string.labs_smart_commute_title),
+                        subtitle = stringResource(R.string.labs_smart_commute_desc),
+                        checked = isSmartCommuteEnabled,
+                        onCheckedChange = { onToggleSmartCommute() }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+                    LabsToggleItem(
+                        icon = com.androidfung.departureboard.ui.designsystem.PedalBikeIcon,
+                        title = stringResource(R.string.labs_bikeshare_title),
+                        subtitle = stringResource(R.string.labs_bikeshare_desc),
+                        checked = isBikeshareEnabled,
+                        onCheckedChange = onToggleBikeshareEnabled
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
