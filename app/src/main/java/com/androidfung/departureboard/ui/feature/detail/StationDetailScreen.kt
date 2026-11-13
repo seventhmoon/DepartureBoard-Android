@@ -1302,6 +1302,7 @@ private fun StationDetailContent(
                         }
                         is StationDetailListItem.AdItem -> {
                             NativeAdViewContainer(
+                                nativeAd = item.nativeAd,
                                 style = item.style,
                                 modifier = Modifier.fillMaxWidth()
                             )
