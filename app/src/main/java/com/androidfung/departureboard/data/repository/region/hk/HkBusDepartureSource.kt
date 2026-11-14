@@ -134,14 +134,13 @@ class HkBusDepartureSource(
 
                 val timeToStationSeconds = max(0, diffSeconds)
                 val routeName = item.route.orEmpty().ifBlank { "Bus" }
-                val destTc = item.destTc.orEmpty()
-                val destEn = item.destEn.orEmpty()
+                val destTc = item.destTc.orEmpty().trim()
+                val destEn = item.destEn.orEmpty().trim()
                 val useChinese = com.androidfung.departureboard.data.i18n.TransitLocaleFormatter.isChinese()
-                val destination = when {
-                    useChinese && destTc.isNotBlank() && destEn.isNotBlank() -> "$destTc ($destEn)"
-                    destTc.isNotBlank() && destEn.isNotBlank() -> "$destEn ($destTc)"
-                    destTc.isNotBlank() -> destTc
-                    else -> destEn.ifBlank { "Destination" }
+                val destination = destEn.ifBlank { destTc }.ifBlank { "Destination" }
+                val localizedDest = buildMap {
+                    if (destEn.isNotBlank()) put("en", destEn)
+                    if (destTc.isNotBlank()) put("zh-Hant", destTc)
                 }
 
                 val operator = item.co?.uppercase() ?: "KMB"
@@ -178,6 +177,7 @@ class HkBusDepartureSource(
                     lineName = routeName,
                     platformName = "",
                     destinationName = destination,
+                    localizedDestinationNames = localizedDest,
                     towards = destEn.ifBlank { destTc },
                     direction = boundDir,
                     timeToStationSeconds = timeToStationSeconds,

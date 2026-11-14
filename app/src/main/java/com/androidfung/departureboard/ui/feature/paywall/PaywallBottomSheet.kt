@@ -493,7 +493,11 @@ private fun calculateSubscriptionPricing(
         val symbol = try {
             java.util.Currency.getInstance(annualPhase.priceCurrencyCode).symbol
         } catch (_: Exception) {
-            "£"
+            try {
+                java.util.Currency.getInstance(java.util.Locale.getDefault()).symbol
+            } catch (_: Exception) {
+                "$"
+            }
         }
         context.getString(R.string.paywall_plan_annual_subtitle, symbol, monthlyEquiv)
     } else {

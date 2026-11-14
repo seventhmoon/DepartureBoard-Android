@@ -244,8 +244,9 @@ fun TwinConcourseContent(
                         modifier = Modifier.size(24.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
+                        val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
                         Text(
-                            text = stringResource(R.string.twin_concourse_best_catchable, winnerCard.station.displayName),
+                            text = stringResource(R.string.twin_concourse_best_catchable, winnerCard.station.resolveDisplayName(isBilingual)),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = winnerAccentColor
                         )
@@ -361,8 +362,9 @@ private fun HubDeparturesSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
+                    val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
                     Text(
-                        text = "$hubTag • ${card.station.displayName}",
+                        text = "$hubTag • ${card.station.resolveDisplayName(isBilingual)}",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,

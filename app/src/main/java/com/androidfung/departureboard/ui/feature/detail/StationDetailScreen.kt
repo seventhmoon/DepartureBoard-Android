@@ -472,8 +472,9 @@ private fun StationDetailContent(
             }
         },
         headerTitle = {
+            val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
             Text(
-                text = station.displayName,
+                text = station.resolveDisplayName(isBilingual),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
@@ -592,10 +593,13 @@ private fun StationDetailContent(
                     }
                 }
 
+                val stationRegion = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(station.id)
+                val modeLabels = station.modes.map { mode ->
+                    val resId = stationRegion.getModeDisplayNameRes(mode)
+                    if (resId != null) stringResource(resId) else mode.replaceFirstChar { it.uppercase() }
+                }
                 Text(
-                    text = station.modes.joinToString(", ") { mode ->
-                        mode.replaceFirstChar { it.uppercase() }
-                    },
+                    text = modeLabels.joinToString(", "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

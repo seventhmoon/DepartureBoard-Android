@@ -222,8 +222,9 @@ fun CorridorComparisonContent(
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                         color = MaterialTheme.colorScheme.primary
                     )
+                    val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
                     Text(
-                        text = originCard.station.displayName,
+                        text = originCard.station.resolveDisplayName(isBilingual),
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -306,8 +307,9 @@ fun CorridorComparisonContent(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 if (corridorItems.isEmpty()) {
+                    val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
                     Text(
-                        text = stringResource(R.string.corridor_no_departures_towards, targetStationInput, originCard.station.displayName),
+                        text = stringResource(R.string.corridor_no_departures_towards, targetStationInput, originCard.station.resolveDisplayName(isBilingual)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

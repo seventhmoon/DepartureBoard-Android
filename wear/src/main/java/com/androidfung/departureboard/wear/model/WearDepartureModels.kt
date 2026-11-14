@@ -242,7 +242,10 @@ object WearSnapshotFormatter {
 
         val lowerQuery = queryText.lowercase()
         return when {
-            promptType == WearAiPromptType.DELAYS_AND_BACKLOG || lowerQuery.contains("delay") || lowerQuery.contains("repay") -> {
+            promptType == WearAiPromptType.DELAYS_AND_BACKLOG ||
+                lowerQuery.contains("delay") || lowerQuery.contains("repay") ||
+                lowerQuery.contains("延誤") || lowerQuery.contains("誤點") ||
+                lowerQuery.contains("遅延") || lowerQuery.contains("지연") -> {
                 val delayRepayDep = deps.firstOrNull { !it.delayRepayBadge.isNullOrBlank() }
                 val platChangedDep = deps.firstOrNull { it.isPlatformChanged }
                 when {
@@ -267,7 +270,10 @@ object WearSnapshotFormatter {
                 }
             }
 
-            promptType == WearAiPromptType.LAST_TRAIN || lowerQuery.contains("last") || lowerQuery.contains("night") -> {
+            promptType == WearAiPromptType.LAST_TRAIN ||
+                lowerQuery.contains("last") || lowerQuery.contains("night") ||
+                lowerQuery.contains("尾班") || lowerQuery.contains("末班") ||
+                lowerQuery.contains("終電") || lowerQuery.contains("막차") -> {
                 val lastTrain = deps.firstOrNull { it.isLastTrain }
                 if (lastTrain != null) {
                     WearAiConcourseResponse(

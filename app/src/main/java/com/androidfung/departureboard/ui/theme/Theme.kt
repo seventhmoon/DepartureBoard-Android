@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 val LocalIsDarkTheme = compositionLocalOf { false }
+val LocalIsBilingualEnabled = compositionLocalOf { true }
 
 private val TflDarkColorScheme = darkColorScheme(
     primary = TflDarkPrimary,

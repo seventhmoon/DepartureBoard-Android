@@ -261,9 +261,10 @@ object SgDefaultStations {
                         timeToStationSeconds = waitSec,
                         expectedArrivalIso = formattedArrival,
                         currentLocation = if (waitSec <= 60) "Approaching" else "In Transit",
-                        modeName = "tube",
+                        modeName = "metro",
                         lineBadge = mrtLine.toLineBadge(),
                         status = if (waitSec <= 60) DepartureStatus.DUE else DepartureStatus.ON_TIME,
+                        dataFreshness = com.androidfung.departureboard.data.model.DataFreshness.OFFLINE_SCHEDULED,
                         callingPoints = listOf(
                             CallingPoint(cleanName, "Dep"),
                             CallingPoint(template.destination, "${waitSec / 60 + 8} min")

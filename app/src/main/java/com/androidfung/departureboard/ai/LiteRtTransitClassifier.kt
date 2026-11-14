@@ -139,15 +139,19 @@ class LiteRtTransitClassifier(
             }
         }
 
-        // Fast zero-latency heuristic matcher
+        // Fast zero-latency heuristic matcher (multi-language)
         val intent = when {
-            clean.contains("status") || clean.contains("good service") || clean.contains("running") ->
+            clean.contains("status") || clean.contains("good service") || clean.contains("running") ||
+                clean.contains("狀態") || clean.contains("運行状況") || clean.contains("운행 현황") ->
                 TransitQueryIntent.SERVICE_STATUS
-            clean.contains("delay") || clean.contains("disruption") || clean.contains("problem") || clean.contains("strike") ->
+            clean.contains("delay") || clean.contains("disruption") || clean.contains("problem") || clean.contains("strike") ||
+                clean.contains("延誤") || clean.contains("受阻") || clean.contains("遅延") || clean.contains("見合わせ") || clean.contains("지연") ->
                 TransitQueryIntent.DISRUPTION_CHECK
-            clean.contains("timetable") || clean.contains("schedule") || clean.contains("first train") || clean.contains("last train") ->
+            clean.contains("timetable") || clean.contains("schedule") || clean.contains("first train") || clean.contains("last train") ||
+                clean.contains("時刻表") || clean.contains("尾班車") || clean.contains("末班車") || clean.contains("終電") || clean.contains("막차") || clean.contains("시간표") ->
                 TransitQueryIntent.TIMETABLE_LOOKUP
-            clean.contains("next") || clean.contains("when") || clean.contains("train") || clean.contains("bus") || clean.contains("depart") ->
+            clean.contains("next") || clean.contains("when") || clean.contains("train") || clean.contains("bus") || clean.contains("depart") ||
+                clean.contains("下一班") || clean.contains("列車") || clean.contains("巴士") || clean.contains("次の") || clean.contains("電車") || clean.contains("バス") || clean.contains("다음") || clean.contains("열차") || clean.contains("버스") ->
                 TransitQueryIntent.NEXT_DEPARTURE
             else ->
                 TransitQueryIntent.GENERAL_QUERY
@@ -157,8 +161,13 @@ class LiteRtTransitClassifier(
 
     private fun extractFeatures(query: String, size: Int = 32): FloatArray {
         val array = FloatArray(size)
-        val tokens = query.split(WHITESPACE_REGEX)
-        for ((idx, token) in tokens.withIndex()) {
+        val tokens = query.split(WHITESPACE_REGEX).filter { it.isNotBlank() }
+        val featureUnits = if (tokens.size <= 1 && query.length > 2) {
+            query.windowed(size = 2, step = 1)
+        } else {
+            tokens
+        }
+        for ((idx, token) in featureUnits.withIndex()) {
             if (idx >= size) break
             array[idx] = (token.hashCode() % 1000) / 1000f
         }

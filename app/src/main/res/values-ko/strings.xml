@@ -201,7 +201,7 @@
     <string name="search_stations_subtitle">실시간 출발 정보를 확인하고 대시보드에 고정하세요</string>
     <string name="search_stations_close">검색 닫기</string>
     <string name="search_stations_placeholder_hk">역 이름 또는 버스 노선 검색 (예: Central, 1A, 104)…</string>
-    <string name="search_stations_placeholder_general">역 이름 또는 버스 노선 검색 (예: Shinjuku, 221, SL1)…</string>
+    <string name="search_stations_placeholder_general">역 이름, 노선 또는 버스 노선 검색…</string>
     <string name="search_stations_clear">검색어 지우기</string>
     <string name="search_stations_popular">인기 역</string>
     <string name="search_stations_results_count">검색 결과 (%1$d)</string>
@@ -252,6 +252,35 @@
     <string name="line_status_filter_disrupted">지연 노선 (%1$d)</string>
     <string name="line_status_expand_desc">상세 정보 펼치기</string>
     <string name="line_status_collapse_desc">상세 정보 접기</string>
+    <string name="line_status_title_sg">MRT 운행 현황</string>
+    <string name="line_status_title_au">시드니 철도 운행 현황</string>
+    <string name="line_status_title_jp">도쿄 노선 운행 현황</string>
+    <string name="line_status_desc_sg">싱가포르 MRT 노선망</string>
+    <string name="line_status_desc_au">시드니 트레인 및 메트로 노선망</string>
+    <string name="line_status_desc_jp">도쿄 메트로, 도에이 및 JR 동일본 노선망</string>
+    <string name="line_status_good_service">정상 운행</string>
+    <string name="line_status_disrupted">운행 차질</string>
+    <string name="line_status_bus_prefix">버스 %1$s</string>
+
+    <!-- Region Subtitles & Transit Modes -->
+    <string name="region_subtitle_gb">영국 국철 및 TfL</string>
+    <string name="region_subtitle_hk">MTR 및 프랜차이즈 버스</string>
+    <string name="region_subtitle_sg">MRT 및 버스</string>
+    <string name="region_subtitle_au">시드니 트레인 및 메트로</string>
+    <string name="region_subtitle_jp">도쿄 메트로 및 JR 동일본</string>
+    <string name="mode_all">전체</string>
+    <string name="mode_tube">지하철 (Tube)</string>
+    <string name="mode_elizabeth_line">엘리자베스선</string>
+    <string name="mode_overground">오버그라운드</string>
+    <string name="mode_dlr">DLR</string>
+    <string name="mode_national_rail">국철 (National Rail)</string>
+    <string name="mode_tram">트램</string>
+    <string name="mode_bus">버스</string>
+    <string name="mode_mtr">MTR</string>
+    <string name="mode_mrt">MRT</string>
+    <string name="mode_metro">메트로</string>
+    <string name="mode_train">기차</string>
+    <string name="mode_jr_rail">JR / 철도</string>
 
     <!-- Station Detail Screen -->
 
@@ -465,7 +494,7 @@
 
     <!-- AI Quota Exceeded -->
     <string name="ai_quota_exceeded">오늘 무료 AI 검색 한도(%1$d회)에 도달했습니다. Pro로 업그레이드하여 무제한 AI 질문, 실시간 지연 확인 및 전체 정차역 조회를 이용해 보세요.</string>
-    <string name="ai_input_placeholder">질문 또는 음성 입력: \"Mill Hill East행 열차\"…</string>
+    <string name="ai_input_placeholder">질문 또는 음성 입력: \"다음 열차\" 또는 \"지연 있나요?\"…</string>
 
     <!-- Last Train Home & Night Service -->
     <string name="badge_last_train">🌙 막차</string>
@@ -579,4 +608,7 @@
     <string name="shortcut_station_departures">%1$s 출발 정보</string>
     <string name="travel_alert_read_more">더 보기</string>
     <string name="travel_alert_show_less">접기</string>
+    <string name="delay_repay_claim_online">온라인 청구 ↗</string>
+    <string name="delay_repay_copy_details">세부 정보 복사</string>
+    <string name="delay_repay_copied_toast">지연 세부 정보를 클립보드에 복사했습니다</string>
 </resources>

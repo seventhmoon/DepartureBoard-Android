@@ -62,6 +62,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -89,6 +90,7 @@ import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.ui.feature.paywall.PaywallBottomSheet
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
+import com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -167,12 +169,16 @@ class WidgetConfigurationActivity : AppCompatActivity() {
             val isDynamicColor by prefsDataSource.dynamicColorFlow.collectAsStateWithLifecycle(
                 initialValue = true
             )
+            val isBilingualEnabled by prefsDataSource.isBilingualEnabledFlow.collectAsStateWithLifecycle(
+                initialValue = true
+            )
 
             DepartureBoardTheme(
                 themeMode = themeMode,
                 dynamicColor = isDynamicColor
             ) {
-                Surface(
+                CompositionLocalProvider(LocalIsBilingualEnabled provides isBilingualEnabled) {
+                    Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
@@ -208,6 +214,7 @@ class WidgetConfigurationActivity : AppCompatActivity() {
                         )
                     }
                 }
+                }
             }
         }
     }
@@ -222,11 +229,13 @@ class WidgetConfigurationActivity : AppCompatActivity() {
         isFinalizing = true
 
         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val isBilingual = applicationContext.appContainer.stationPreferencesDataSource.isBilingualEnabledFlow.first()
+            val resolvedStationName = station.resolveDisplayName(isBilingual)
             // Persist keyed to this appWidgetId on Dispatchers.IO before Glance update & finish()
             val sp = applicationContext.getSharedPreferences("widget_config", MODE_PRIVATE)
             sp.edit(commit = true) {
                 putString("station_id_$appWidgetId", station.id)
-                    .putString("station_name_$appWidgetId", station.displayName)
+                    .putString("station_name_$appWidgetId", resolvedStationName)
                     .apply {
                         if (lineBadge != null) {
                             putString("filter_line_id_$appWidgetId", lineBadge.lineId)
@@ -246,12 +255,12 @@ class WidgetConfigurationActivity : AppCompatActivity() {
             try {
                 val glanceManager = GlanceAppWidgetManager(applicationContext)
                 val glanceId = glanceManager.getGlanceIdBy(appWidgetId)
-                android.util.Log.d("WidgetConfig", "Updating glanceId $glanceId for appWidgetId $appWidgetId with station ${station.displayName}")
+                android.util.Log.d("WidgetConfig", "Updating glanceId $glanceId for appWidgetId $appWidgetId with station $resolvedStationName")
 
                 updateAppWidgetState(applicationContext, PreferencesGlanceStateDefinition, glanceId) { prefs ->
                     prefs.toMutablePreferences().apply {
                         this[DepartureBoardWidget.PREF_STATION_ID] = station.id
-                        this[DepartureBoardWidget.PREF_STATION_NAME] = station.displayName
+                        this[DepartureBoardWidget.PREF_STATION_NAME] = resolvedStationName
                         if (lineBadge != null) {
                             this[DepartureBoardWidget.PREF_FILTER_LINE_ID] = lineBadge.lineId
                             this[DepartureBoardWidget.PREF_FILTER_LINE_NAME] = lineBadge.displayName
@@ -646,7 +655,7 @@ fun WidgetStationPickerScreen(
 
                             Column {
                                 Text(
-                                    text = station.displayName,
+                                    text = station.resolveDisplayName(LocalIsBilingualEnabled.current),
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )

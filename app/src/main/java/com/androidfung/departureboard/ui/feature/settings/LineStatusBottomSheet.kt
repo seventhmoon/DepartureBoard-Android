@@ -51,17 +51,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.androidfung.departureboard.R
+import com.androidfung.departureboard.data.model.TransitLineDefinition
+import com.androidfung.departureboard.data.model.TransitLineMatcher
 import com.androidfung.departureboard.data.model.TransitRegion
+import com.androidfung.departureboard.data.model.au.AuSydneyLine
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.gb.TflLineStatusDetail
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.data.model.hk.HkMtrLine
+import com.androidfung.departureboard.data.model.jp.JpTokyoLine
+import com.androidfung.departureboard.data.model.sg.SgMrtLine
 import com.androidfung.departureboard.ui.theme.GoodServiceGreen
 import com.androidfung.departureboard.ui.theme.MinorDelaysAmber
 import com.androidfung.departureboard.ui.theme.SevereDelaysRed
@@ -103,8 +109,26 @@ fun LineStatusBottomSheet(
     var filterToMyLinesOnly by remember { mutableStateOf(false) }
     val expandedLineIds = remember { mutableStateMapOf<String, Boolean>() }
 
-    val displayItems = remember(lineStatuses, selectedRegion, relevantLineIds) {
-        buildDisplayLineStatusItems(lineStatuses, selectedRegion, relevantLineIds)
+    val goodServiceLabel = stringResource(R.string.line_status_good_service)
+    val disruptedLabel = stringResource(R.string.line_status_disrupted)
+    val busLabelTemplate = stringResource(R.string.line_status_bus_prefix, "%s")
+
+    val displayItems = remember(
+        lineStatuses,
+        selectedRegion,
+        relevantLineIds,
+        goodServiceLabel,
+        disruptedLabel,
+        busLabelTemplate
+    ) {
+        buildDisplayLineStatusItems(
+            lineStatuses = lineStatuses,
+            selectedRegion = selectedRegion,
+            relevantLineIds = relevantLineIds,
+            goodServiceLabel = goodServiceLabel,
+            disruptedLabel = disruptedLabel,
+            formatBusName = { busName -> busLabelTemplate.replace("%s", busName) }
+        )
     }
 
     val hasRelevantLines = remember(displayItems) {
@@ -309,34 +333,22 @@ internal data class DisplayLineStatusItem(
 internal fun buildDisplayLineStatusItems(
     lineStatuses: Map<String, TflLineStatusItem>,
     selectedRegion: TransitRegion,
-    relevantLineIds: Set<String> = emptySet()
+    relevantLineIds: Set<String> = emptySet(),
+    goodServiceLabel: String = "Good Service",
+    disruptedLabel: String = "Disrupted",
+    formatBusName: (String) -> String = { "Bus $it" }
 ): List<DisplayLineStatusItem> {
     fun isLineRelevant(lineId: String): Boolean {
         if (relevantLineIds.isEmpty()) return false
         val normalized = lineId.lowercase()
         return relevantLineIds.any { rel ->
-            com.androidfung.departureboard.data.model.TransitLineMatcher.isSameLine(normalized, rel) ||
+            TransitLineMatcher.isSameLine(normalized, rel) ||
                 normalized.contains(rel) ||
                 rel.contains(normalized)
         }
     }
 
-    if (selectedRegion == TransitRegion.HK) {
-        val items = HkMtrLine.LINES.values.map { mtrLine ->
-            val statusItem = lineStatuses[mtrLine.code.lowercase()]
-            val primaryStatus = statusItem?.lineStatuses?.minByOrNull { it.statusSeverity }
-            DisplayLineStatusItem(
-                id = mtrLine.code,
-                name = mtrLine.displayName,
-                badgeCode = mtrLine.shortName,
-                badgeBgColor = mtrLine.color,
-                badgeTextColor = mtrLine.textColor,
-                statusDescription = primaryStatus?.statusSeverityDescription ?: "Good Service",
-                severity = primaryStatus?.statusSeverity ?: 10,
-                reason = primaryStatus?.reason,
-                isRelevantToUser = isLineRelevant(mtrLine.code)
-            )
-        }
+    fun sortItems(items: List<DisplayLineStatusItem>): List<DisplayLineStatusItem> {
         return items.sortedWith(
             compareByDescending<DisplayLineStatusItem> { it.isRelevantToUser }
                 .thenByDescending { it.isDisrupted }
@@ -344,13 +356,95 @@ internal fun buildDisplayLineStatusItems(
         )
     }
 
+    fun buildFromRegistry(definitions: Collection<TransitLineDefinition>): List<DisplayLineStatusItem> {
+        val matchedKeys = mutableSetOf<String>()
+        val registryItems = definitions.map { def ->
+            val directEntry = lineStatuses.entries.firstOrNull { (key, _) ->
+                key.equals(def.code, ignoreCase = true) ||
+                    key.equals(def.badgeText, ignoreCase = true) ||
+                    TransitLineMatcher.isSameLine(key, def.code)
+            }
+            if (directEntry != null) matchedKeys.add(directEntry.key)
+            val statusItem = directEntry?.value
+            val primaryStatus = statusItem?.lineStatuses?.minByOrNull { it.statusSeverity }
+            val distinctReasons = statusItem?.lineStatuses
+                ?.mapNotNull { it.reason?.trim() }
+                ?.filter { it.isNotEmpty() }
+                ?.distinct()
+                ?.joinToString("\n\n")
+            val textColor = if (def.color.luminance() > 0.55f) Color.Black else Color.White
+
+            DisplayLineStatusItem(
+                id = def.code,
+                name = def.getLocalizedName(),
+                badgeCode = def.badgeText,
+                badgeBgColor = def.color,
+                badgeTextColor = textColor,
+                statusDescription = primaryStatus?.statusSeverityDescription ?: goodServiceLabel,
+                severity = primaryStatus?.statusSeverity ?: 10,
+                reason = distinctReasons,
+                isRelevantToUser = isLineRelevant(def.code) || isLineRelevant(def.badgeText)
+            )
+        }
+
+        // Include any extra live status items not in the static registry (e.g. extra ODPT rail lines)
+        val extraItems = lineStatuses.entries
+            .filter { (key, _) -> key !in matchedKeys }
+            .map { (key, statusItem) ->
+                val primaryStatus = statusItem.lineStatuses.minByOrNull { it.statusSeverity }
+                val distinctReasons = statusItem.lineStatuses
+                    .mapNotNull { it.reason?.trim() }
+                    .filter { it.isNotEmpty() }
+                    .distinct()
+                    .joinToString("\n\n")
+                DisplayLineStatusItem(
+                    id = statusItem.id.ifBlank { key },
+                    name = statusItem.name.ifBlank { key.uppercase() },
+                    badgeCode = statusItem.id.ifBlank { key }.take(4).uppercase(),
+                    badgeBgColor = Color(0xFF455A64),
+                    badgeTextColor = Color.White,
+                    statusDescription = primaryStatus?.statusSeverityDescription ?: goodServiceLabel,
+                    severity = primaryStatus?.statusSeverity ?: 10,
+                    reason = distinctReasons,
+                    isRelevantToUser = isLineRelevant(statusItem.id) || isLineRelevant(statusItem.name)
+                )
+            }
+
+        return sortItems(registryItems + extraItems)
+    }
+
+    when (selectedRegion) {
+        TransitRegion.HK -> {
+            val items = HkMtrLine.LINES.values.map { mtrLine ->
+                val statusItem = lineStatuses[mtrLine.code.lowercase()]
+                val primaryStatus = statusItem?.lineStatuses?.minByOrNull { it.statusSeverity }
+                DisplayLineStatusItem(
+                    id = mtrLine.code,
+                    name = mtrLine.displayName,
+                    badgeCode = mtrLine.shortName,
+                    badgeBgColor = mtrLine.color,
+                    badgeTextColor = mtrLine.textColor,
+                    statusDescription = primaryStatus?.statusSeverityDescription ?: goodServiceLabel,
+                    severity = primaryStatus?.statusSeverity ?: 10,
+                    reason = primaryStatus?.reason,
+                    isRelevantToUser = isLineRelevant(mtrLine.code)
+                )
+            }
+            return sortItems(items)
+        }
+        TransitRegion.SG -> return buildFromRegistry(SgMrtLine.allLines)
+        TransitRegion.AU -> return buildFromRegistry(AuSydneyLine.allLines)
+        TransitRegion.JP -> return buildFromRegistry(JpTokyoLine.allLines)
+        TransitRegion.GB -> Unit
+    }
+
     val canonicalResults = CANONICAL_GB_LINES.map { (lineId, fallbackName) ->
         val badge = TflLineColors.getLineBadge(lineId, fallbackName, null)
         val statusItem = lineStatuses[lineId]
-            ?: lineStatuses.entries.firstOrNull { com.androidfung.departureboard.data.model.TransitLineMatcher.isSameLine(it.key, lineId) }?.value
+            ?: lineStatuses.entries.firstOrNull { TransitLineMatcher.isSameLine(it.key, lineId) }?.value
         val primaryStatus: TflLineStatusDetail? = statusItem?.lineStatuses?.minByOrNull { it.statusSeverity }
         val severity = primaryStatus?.statusSeverity ?: 10
-        val description = primaryStatus?.statusSeverityDescription ?: "Good Service"
+        val description = primaryStatus?.statusSeverityDescription ?: goodServiceLabel
         val distinctReasons = statusItem?.lineStatuses
             ?.mapNotNull { it.reason?.trim() }
             ?.filter { it.isNotEmpty() }
@@ -377,11 +471,11 @@ internal fun buildDisplayLineStatusItems(
             val badge = TflLineColors.getLineBadge(statusItem.id, statusItem.name, "bus")
             DisplayLineStatusItem(
                 id = statusItem.id,
-                name = "Bus ${statusItem.name}",
+                name = formatBusName(statusItem.name),
                 badgeCode = badge.lineCode.ifBlank { badge.displayName },
                 badgeBgColor = badge.backgroundColor,
                 badgeTextColor = badge.textColor,
-                statusDescription = primaryStatus?.statusSeverityDescription ?: "Disrupted",
+                statusDescription = primaryStatus?.statusSeverityDescription ?: disruptedLabel,
                 severity = primaryStatus?.statusSeverity ?: 9,
                 reason = primaryStatus?.reason,
                 isRelevantToUser = isLineRelevant(statusItem.id) || isLineRelevant(statusItem.name)
@@ -389,11 +483,7 @@ internal fun buildDisplayLineStatusItems(
         }
 
     // Sort: user's lines first, then disrupted lines first so commuters immediately see relevant issues
-    return (canonicalResults + bodsItems).sortedWith(
-        compareByDescending<DisplayLineStatusItem> { it.isRelevantToUser }
-            .thenByDescending { it.isDisrupted }
-            .thenBy { it.severity }
-    )
+    return sortItems(canonicalResults + bodsItems)
 }
 
 @Composable

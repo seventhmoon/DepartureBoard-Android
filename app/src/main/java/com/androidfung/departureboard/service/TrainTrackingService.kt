@@ -92,6 +92,17 @@ class TrainTrackingService : Service() {
         // Precompiled regex patterns to avoid per-notification allocations
         private val PLATFORM_LABEL_REGEX = Regex("""Platform\s+[A-Za-z0-9]+""", RegexOption.IGNORE_CASE)
         private val STOP_LABEL_REGEX = Regex("""Stop\s+[A-Za-z0-9]+""", RegexOption.IGNORE_CASE)
+        private val NON_STATION_LIVE_STATUSES = setOf(
+            "Approaching",
+            "In Transit",
+            "Arriving",
+            "Double-Decker",
+            "Due",
+            "On time",
+            "Delayed",
+            "Cancelled",
+            "At Platform"
+        )
 
         // Default brand & status colors (ARGB) for ProgressStyle segments
         const val DEFAULT_TRANSIT_BLUE_ARGB = 0xFF1976D2.toInt()
@@ -768,8 +779,10 @@ class TrainTrackingService : Service() {
                             }
 
                             // 1. Check for explicit cancellation
+                            val localizedCancelled = getString(R.string.status_cancelled)
                             if (target.status == DepartureStatus.CANCELLED ||
-                                target.currentLocation.equals("Cancelled", ignoreCase = true)
+                                target.currentLocation.equals("Cancelled", ignoreCase = true) ||
+                                target.currentLocation.equals(localizedCancelled, ignoreCase = true)
                             ) {
                                 isCancelled = true
                             }
@@ -991,11 +1004,14 @@ class TrainTrackingService : Service() {
 
                 // Calculate stops away using cached calling points to prevent repeated API calls
                 val stopsAway = try {
-                    if (liveLocation != null && lineId.isNotBlank()) {
+                    val trimmedLoc = liveLocation?.trim().orEmpty()
+                    val isNonStationStatus = trimmedLoc.length < 3 ||
+                        NON_STATION_LIVE_STATUSES.any { trimmedLoc.equals(it, ignoreCase = true) }
+                    if (!isNonStationStatus && lineId.isNotBlank()) {
                         val points = cachedCallingPoints ?: emptyList()
                         val curIdx = points.indexOfFirst { cp ->
-                            liveLocation.contains(cp.stationName, ignoreCase = true) ||
-                            cp.stationName.contains(liveLocation, ignoreCase = true)
+                            trimmedLoc.contains(cp.stationName, ignoreCase = true) ||
+                            cp.stationName.contains(trimmedLoc, ignoreCase = true)
                         }
                         val targetAlightStop = _targetAlightStopFlow.value
                         val alightIdx = if (!targetAlightStop.isNullOrBlank()) {

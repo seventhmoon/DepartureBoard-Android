@@ -136,6 +136,8 @@ fun AiTransitSheet(
             tts?.stop()
             isSpeaking = false
         } else {
+            val activeLocale = com.androidfung.departureboard.util.LocaleHelper.getActiveLocale()
+            tts?.language = activeLocale
             tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_answer")
             isSpeaking = true
         }
@@ -282,7 +284,7 @@ fun AiTransitSheet(
 
                 var effectiveNearest = nearestStation
                 val cleanPrompt = prompt.trim().lowercase()
-                val isExplicitOrigin = cleanPrompt.contains("from ")
+                val isExplicitOrigin = cleanPrompt.contains("from ") || cleanPrompt.contains("從") || cleanPrompt.contains("から")
                 val isLocationIntent = !isExplicitOrigin && (cleanPrompt.contains("near me") ||
                         cleanPrompt.contains("nearby") ||
                         cleanPrompt.contains("around me") ||
@@ -299,7 +301,19 @@ fun AiTransitSheet(
                         cleanPrompt.contains("can i make") ||
                         cleanPrompt.contains("where to stand") ||
                         cleanPrompt.contains("where should i stand") ||
-                        cleanPrompt.contains("platform"))
+                        cleanPrompt.contains("platform") ||
+                        cleanPrompt.contains("附近") ||
+                        cleanPrompt.contains("最近") ||
+                        cleanPrompt.contains("趕得上") ||
+                        cleanPrompt.contains("尾班車") ||
+                        cleanPrompt.contains("下一班") ||
+                        cleanPrompt.contains("近く") ||
+                        cleanPrompt.contains("次の") ||
+                        cleanPrompt.contains("終電") ||
+                        cleanPrompt.contains("間に合う") ||
+                        cleanPrompt.contains("근처") ||
+                        cleanPrompt.contains("다음") ||
+                        cleanPrompt.contains("막차"))
 
                 if (isLocationIntent) {
                     if (!hasLocationPermission && onRequestLocationPermission != null) {
@@ -346,6 +360,10 @@ fun AiTransitSheet(
             putExtra(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE,
+                com.androidfung.departureboard.util.LocaleHelper.getActiveLocale().toLanguageTag()
             )
             putExtra(RecognizerIntent.EXTRA_PROMPT, resources.getString(R.string.ai_speech_prompt))
         }

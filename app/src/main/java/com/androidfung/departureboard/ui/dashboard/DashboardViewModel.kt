@@ -632,7 +632,7 @@ class DashboardViewModel @JvmOverloads constructor(
 
         // Already contains this station
         if (_uiState.value.stationCards.any { it.station.id == station.id }) {
-            _uiState.update { it.copy(userMessage = resolveString(R.string.station_already_saved, station.displayName)) }
+            _uiState.update { it.copy(userMessage = resolveString(R.string.station_already_saved, station.resolveDisplayName(_uiState.value.isBilingualEnabled))) }
             return
         }
 
@@ -665,7 +665,7 @@ class DashboardViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             repository.saveStation(station)
             _uiState.update {
-                it.copy(userMessage = resolveString(R.string.station_added, station.displayName))
+                it.copy(userMessage = resolveString(R.string.station_added, station.resolveDisplayName(_uiState.value.isBilingualEnabled)))
             }
         }
     }
@@ -1064,7 +1064,7 @@ class DashboardViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             repository.removeStation(station.id)
             _uiState.update {
-                it.copy(userMessage = resolveString(R.string.station_removed, station.displayName))
+                it.copy(userMessage = resolveString(R.string.station_removed, station.resolveDisplayName(_uiState.value.isBilingualEnabled)))
             }
         }
     }
@@ -1238,10 +1238,9 @@ class DashboardViewModel @JvmOverloads constructor(
             }
 
             // Zero-Tap Default Auto-Switch:
-            // If experimental multi-region is enabled and user is physically in a supported region
-            // that is different from currently selected region, auto-switch to it.
-            if (_uiState.value.isHkRegionEnabled &&
-                !hasManuallySelectedRegion &&
+            // If user is physically in a supported region different from the currently selected
+            // region (and hasn't manually overridden it), auto-switch to it.
+            if (!hasManuallySelectedRegion &&
                 detectionResult.matchedRegion != null
             ) {
                 val matched = detectionResult.matchedRegion

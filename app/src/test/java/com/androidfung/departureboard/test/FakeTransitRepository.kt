@@ -3,6 +3,7 @@ package com.androidfung.departureboard.test
 import com.androidfung.departureboard.data.model.CallingPoint
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.StationServiceHoursInfo
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
@@ -103,7 +104,7 @@ open class FakeTransitRepository(
         dynamicColorStateFlow.value = enabled
     }
 
-    override suspend fun searchStations(query: String): Result<List<Station>> = searchResult(query)
+    override suspend fun searchStations(query: String, region: TransitRegion?): Result<List<Station>> = searchResult(query)
 
     override suspend fun getStationById(stationId: String): Station? {
         return GbDefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(stationId, ignoreCase = true) }
@@ -122,7 +123,7 @@ open class FakeTransitRepository(
     override suspend fun getCachedDepartures(stationId: String): List<Departure> =
         departuresResult(stationId, "").getOrNull()?.filter { it.stationId == stationId } ?: emptyList()
 
-    override suspend fun getLineStatuses(): Map<String, TflLineStatusItem> = lineStatuses
+    override suspend fun getLineStatuses(region: TransitRegion?): Map<String, TflLineStatusItem> = lineStatuses
 
     override suspend fun getCallingPoints(departure: Departure): List<CallingPoint> =
         callingPointsResult(departure)
@@ -178,6 +179,10 @@ open class FakeTransitRepository(
         updateRecentStateFlow()
     }
 
-    override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> =
-        nearbyStationsResult(lat, lon, radiusMeters)
+    override suspend fun getNearbyStationsFromApi(
+        lat: Double,
+        lon: Double,
+        radiusMeters: Int,
+        region: TransitRegion?
+    ): List<Station> = nearbyStationsResult(lat, lon, radiusMeters)
 }

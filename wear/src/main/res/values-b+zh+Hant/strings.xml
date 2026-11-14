@@ -42,4 +42,25 @@
     <string name="wear_pace_makeable">%1$s • 可趕上</string>
     <string name="wear_pace_sprint">%1$s • 快步！</string>
     <string name="wear_pace_unlikely">%1$s • 緊迫</string>
+    <string name="wear_ambient_wake_short">🌙 微光模式 • 點擊喚醒</string>
+    <string name="wear_nav_back_board">← 班次板</string>
+    <string name="wear_nav_back_to_board">← 返回班次板</string>
+    <string name="wear_nav_station_board">← %1$s 班次板</string>
+    <string name="wear_share_live_eta">📤 分享即時到站</string>
+    <string name="wear_open_on_phone">📱 在手機開啟</string>
+    <string name="wear_stop_tracking">⏹ 停止追蹤</string>
+    <string name="wear_tap_stop_alight">🎯 點擊車站設下車提醒</string>
+    <string name="wear_one_stop_alert">前一站提醒</string>
+    <string name="wear_continue_phone_ai">📱 在手機 AI 繼續</string>
+    <string name="wear_ask_ai_hint">⌨️ 輸入或詢問 AI…</string>
+    <string name="wear_sprint_hud_tap">🎯 衝刺模式 • 點擊開啟</string>
+    <string name="wear_calls_prefix">途經：%1$s</string>
+    <string name="wear_simulate_plat">⚡ 模擬月台公布</string>
+    <string name="wear_search_add_station">搜尋 / 新增車站…</string>
+    <string name="wear_add_via_phone">+ 透過手機新增「%1$s」</string>
+    <string name="wear_your_stations">已儲存車站 (%1$d)</string>
+    <string name="wear_add_concourse_hub">+ 新增車站樞紐</string>
+    <string name="wear_notif_channels_title">🔔 通知頻道</string>
+    <string name="wear_notif_channels_subtitle">切換提醒類型或自訂音效與震動</string>
+    <string name="wear_all_system_channels">⚙ 所有系統頻道</string>
 </resources>

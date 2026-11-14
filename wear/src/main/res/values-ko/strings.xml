@@ -42,4 +42,25 @@
     <string name="wear_pace_makeable">%1$s • 탑승 가능</string>
     <string name="wear_pace_sprint">%1$s • 뛰세요!</string>
     <string name="wear_pace_unlikely">%1$s • 빠듯함</string>
+    <string name="wear_ambient_wake_short">🌙 절전 모드 • 탭하여 깨우기</string>
+    <string name="wear_nav_back_board">← 전광판</string>
+    <string name="wear_nav_back_to_board">← 전광판으로 돌아가기</string>
+    <string name="wear_nav_station_board">← %1$s 전광판</string>
+    <string name="wear_share_live_eta">📤 실시간 도착 공유</string>
+    <string name="wear_open_on_phone">📱 휴대전화에서 열기</string>
+    <string name="wear_stop_tracking">⏹ 추적 중지</string>
+    <string name="wear_tap_stop_alight">🎯 하차 알림 정차역 선택</string>
+    <string name="wear_one_stop_alert">1정거장 전 알림</string>
+    <string name="wear_continue_phone_ai">📱 휴대전화 AI에서 계속</string>
+    <string name="wear_ask_ai_hint">⌨️ 입력 또는 AI에게 질문…</string>
+    <string name="wear_sprint_hud_tap">🎯 스프린트 HUD • 탭</string>
+    <string name="wear_calls_prefix">정차: %1$s</string>
+    <string name="wear_simulate_plat">⚡ 승강장 안내 시뮬레이션</string>
+    <string name="wear_search_add_station">역 검색 / 추가…</string>
+    <string name="wear_add_via_phone">+ 휴대전화로 \"%1$s\" 추가</string>
+    <string name="wear_your_stations">저장된 역 (%1$d)</string>
+    <string name="wear_add_concourse_hub">+ 환승 허브 추가</string>
+    <string name="wear_notif_channels_title">🔔 알림 채널</string>
+    <string name="wear_notif_channels_subtitle">알림 유형 전환 및 소리/진동 설정</string>
+    <string name="wear_all_system_channels">⚙ 모든 시스템 채널</string>
 </resources>

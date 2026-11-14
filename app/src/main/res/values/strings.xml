@@ -163,7 +163,7 @@
 
     <!-- Empty Dashboard State -->
     <string name="empty_dashboard_title">No Saved Stations</string>
-    <string name="empty_dashboard_desc">Add your regular transit stations, MTR lines, or bus stops to see real-time departure countdowns.</string>
+    <string name="empty_dashboard_desc">Add your regular transit stations, rail lines, or bus stops to see real-time departure countdowns.</string>
     <string name="empty_dashboard_add_station">Add Station</string>
 
     <!-- Station Departure Card & Details -->
@@ -207,7 +207,7 @@
     <string name="search_stations_subtitle">View live departures &amp; pin to your dashboard</string>
     <string name="search_stations_close">Close search</string>
     <string name="search_stations_placeholder_hk">Search station or bus route (e.g. Central, 1A, 104)…</string>
-    <string name="search_stations_placeholder_general" tools:ignore="Typos">Search station or bus route (e.g. 221, SL1)…</string>
+    <string name="search_stations_placeholder_general">Search station, line, or bus route…</string>
     <string name="search_stations_clear">Clear search</string>
     <string name="search_stations_popular">Popular Stations</string>
     <string name="search_stations_results_count">Search Results (%1$d)</string>
@@ -258,6 +258,35 @@
     <string name="line_status_filter_disrupted">Disrupted (%1$d)</string>
     <string name="line_status_expand_desc">Expand details</string>
     <string name="line_status_collapse_desc">Collapse details</string>
+    <string name="line_status_title_sg">MRT Network Status</string>
+    <string name="line_status_title_au">Sydney Network Status</string>
+    <string name="line_status_title_jp">Tokyo Network Status</string>
+    <string name="line_status_desc_sg">Singapore MRT Lines</string>
+    <string name="line_status_desc_au">Sydney Trains &amp; Metro Lines</string>
+    <string name="line_status_desc_jp">Tokyo Metro, Toei &amp; JR East Lines</string>
+    <string name="line_status_good_service">Good Service</string>
+    <string name="line_status_disrupted">Disrupted</string>
+    <string name="line_status_bus_prefix">Bus %1$s</string>
+
+    <!-- Region Subtitles & Transit Modes -->
+    <string name="region_subtitle_gb">National Rail &amp; TfL</string>
+    <string name="region_subtitle_hk">MTR &amp; Franchised Buses</string>
+    <string name="region_subtitle_sg">MRT &amp; Buses</string>
+    <string name="region_subtitle_au">Sydney Trains &amp; Metro</string>
+    <string name="region_subtitle_jp">Tokyo Metro &amp; JR East</string>
+    <string name="mode_all">All</string>
+    <string name="mode_tube">Tube</string>
+    <string name="mode_elizabeth_line">Elizabeth line</string>
+    <string name="mode_overground">Overground</string>
+    <string name="mode_dlr">DLR</string>
+    <string name="mode_national_rail">National Rail</string>
+    <string name="mode_tram">Tram</string>
+    <string name="mode_bus">Bus</string>
+    <string name="mode_mtr">MTR</string>
+    <string name="mode_mrt">MRT</string>
+    <string name="mode_metro">Metro</string>
+    <string name="mode_train">Train</string>
+    <string name="mode_jr_rail">JR / Rail</string>
 
     <!-- Station Detail Screen -->
 
@@ -471,7 +500,7 @@
 
     <!-- AI Quota Exceeded -->
     <string name="ai_quota_exceeded" tools:ignore="PluralsCandidate">You\'ve reached your limit of %1$d free AI queries today. Upgrade to Pro for unlimited AI prompts, live journey disruption checks, and full calling points.</string>
-    <string name="ai_input_placeholder">Ask or speak: “train to Mill Hill East”…</string>
+    <string name="ai_input_placeholder">Ask or speak: “next train” or “any delays?”…</string>
 
     <!-- Last Train Home & Night Service -->
     <string name="badge_last_train">🌙 LAST TRAIN</string>
@@ -586,4 +615,7 @@
     <string name="shortcut_station_departures">%1$s departures</string>
     <string name="travel_alert_read_more">Read more</string>
     <string name="travel_alert_show_less">Show less</string>
+    <string name="delay_repay_claim_online">Claim Online ↗</string>
+    <string name="delay_repay_copy_details">Copy Details</string>
+    <string name="delay_repay_copied_toast">Delay details copied to clipboard</string>
 </resources>

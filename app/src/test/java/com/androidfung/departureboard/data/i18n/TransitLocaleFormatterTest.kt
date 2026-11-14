@@ -83,4 +83,31 @@ class TransitLocaleFormatterTest {
         val zhOnly = TransitLocaleFormatter.formatBilingual(null, "中環")
         assertEquals("中環", zhOnly)
     }
+
+    @Test
+    fun testFormatBilingual_fromMapRespectsActiveLocale() {
+        val names = mapOf(
+            "en" to "Orchard",
+            "zh-Hans" to "乌节",
+            "zh-Hant" to "烏節",
+            "ja" to "オーチャード",
+            "ko" to "오차드"
+        )
+        val original = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.forLanguageTag("zh-SG"))
+            assertEquals("Orchard (乌节)", TransitLocaleFormatter.formatBilingual(names, parentheses = true))
+
+            Locale.setDefault(Locale.forLanguageTag("zh-HK"))
+            assertEquals("Orchard (烏節)", TransitLocaleFormatter.formatBilingual(names, parentheses = true))
+
+            Locale.setDefault(Locale.JAPANESE)
+            assertEquals("Orchard (オーチャード)", TransitLocaleFormatter.formatBilingual(names, parentheses = true))
+
+            Locale.setDefault(Locale.KOREAN)
+            assertEquals("Orchard (오차드)", TransitLocaleFormatter.formatBilingual(names, parentheses = true))
+        } finally {
+            Locale.setDefault(original)
+        }
+    }
 }

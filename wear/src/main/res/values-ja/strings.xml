@@ -42,4 +42,25 @@
     <string name="wear_pace_makeable">%1$s • 間に合う</string>
     <string name="wear_pace_sprint">%1$s • 急いで！</string>
     <string name="wear_pace_unlikely">%1$s • 厳しい</string>
+    <string name="wear_ambient_wake_short">🌙 アンビエント • タップで復帰</string>
+    <string name="wear_nav_back_board">← 発車標</string>
+    <string name="wear_nav_back_to_board">← 発車標に戻る</string>
+    <string name="wear_nav_station_board">← %1$s 発車標</string>
+    <string name="wear_share_live_eta">📤 到着時刻を共有</string>
+    <string name="wear_open_on_phone">📱 スマホで開く</string>
+    <string name="wear_stop_tracking">⏹ 追跡を停止</string>
+    <string name="wear_tap_stop_alight">🎯 駅をタップして降車通知</string>
+    <string name="wear_one_stop_alert">1駅手前通知</string>
+    <string name="wear_continue_phone_ai">📱 スマホ AI で続ける</string>
+    <string name="wear_ask_ai_hint">⌨️ 入力または AI に質問…</string>
+    <string name="wear_sprint_hud_tap">🎯 スプリント HUD • タップ</string>
+    <string name="wear_calls_prefix">停車駅：%1$s</string>
+    <string name="wear_simulate_plat">⚡ 番線発表をシミュレート</string>
+    <string name="wear_search_add_station">駅を検索 / 追加…</string>
+    <string name="wear_add_via_phone">+ スマホで「%1$s」を追加</string>
+    <string name="wear_your_stations">登録駅 (%1$d)</string>
+    <string name="wear_add_concourse_hub">+ コンコース駅を追加</string>
+    <string name="wear_notif_channels_title">🔔 通知チャンネル</string>
+    <string name="wear_notif_channels_subtitle">通知の種類や音・バイブを設定</string>
+    <string name="wear_all_system_channels">⚙ すべてのシステム設定</string>
 </resources>

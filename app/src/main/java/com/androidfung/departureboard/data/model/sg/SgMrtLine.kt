@@ -24,6 +24,7 @@ enum class SgMrtLine(
 
     override val localizedNames: Map<String, String> get() = mapOf(
         "en" to lineName,
+        "zh-Hans" to chineseName,
         "zh-Hant" to chineseName
     )
     override val mode: TransitMode get() = TransitMode.METRO

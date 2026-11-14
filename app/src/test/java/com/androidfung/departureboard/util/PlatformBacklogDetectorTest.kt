@@ -338,4 +338,22 @@ class PlatformBacklogDetectorTest {
         val alerts = PlatformBacklogDetector.detectBacklogs(listOf(dep1, dep2), time = lateEvening, dayOfWeek = weekday)
         assertTrue("Expected no late-evening false backlog alert, but got: $alerts", alerts.isEmpty())
     }
+
+    @Test
+    fun `multi-region HK SG AU JP headways resolve cleanly`() {
+        val weekday = DayOfWeek.TUESDAY
+        val peak = LocalTime.of(8, 30)
+
+        val hkDep = createMetroDeparture("hk1", lineId = "tsuen-wan", lineName = "Tsuen Wan", timeToStationSeconds = 180)
+        assertEquals(2, PlatformBacklogDetector.resolveTypicalHeadwayMinutes(hkDep, listOf(hkDep), peak, weekday))
+
+        val sgDep = createMetroDeparture("sg1", lineId = "nsl", lineName = "North South Line", timeToStationSeconds = 180)
+        assertEquals(2, PlatformBacklogDetector.resolveTypicalHeadwayMinutes(sgDep, listOf(sgDep), peak, weekday))
+
+        val auDep = createRailDeparture("au1", lineId = "t1", lineName = "T1 North Shore & Western", timeToStationSeconds = 300)
+        assertEquals(5, PlatformBacklogDetector.resolveTypicalHeadwayMinutes(auDep, listOf(auDep), peak, weekday))
+
+        val jpDep = createRailDeparture("jp1", lineId = "jy", lineName = "Yamanote Line", timeToStationSeconds = 180)
+        assertEquals(2, PlatformBacklogDetector.resolveTypicalHeadwayMinutes(jpDep, listOf(jpDep), peak, weekday))
+    }
 }

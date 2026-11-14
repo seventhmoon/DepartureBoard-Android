@@ -327,7 +327,7 @@ private fun RegionCardItem(
                 }
 
                 Text(
-                    text = region.subtitle,
+                    text = stringResource(region.subtitleRes),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

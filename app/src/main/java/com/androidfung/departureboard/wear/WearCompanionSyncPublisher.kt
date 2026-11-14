@@ -249,10 +249,12 @@ object WearCompanionSyncPublisher {
         val orderedCards = stationCards.sortedByDescending { it.isAtConcourseStation }
         orderedCards.take(8).forEach { card ->
             val st = card.station
+            val resolvedStationName = st.resolveDisplayName(showBilingual = false)
             val stationObj = JSONObject().apply {
                 put("stationId", st.id)
-                put("stationName", st.name)
-                put("stationCrs", deriveThreeLetterCode(st.id, st.name))
+                put("stationName", resolvedStationName)
+                put("stationCrs", deriveThreeLetterCode(st.id, resolvedStationName))
+                put("regionCode", com.androidfung.departureboard.data.model.TransitRegion.fromStationId(st.id).code)
                 put("isAtConcourse", card.isAtConcourseStation)
                 put("syncedAtEpochMs", syncedAtEpochMs)
                 put(
@@ -272,10 +274,11 @@ object WearCompanionSyncPublisher {
                     val expectedPlatCode = if (isExpectedOnly) compactPlatformForWatch(resolvedPlat.code) else ""
                     val delayRepay = DelayRepayCalculator.evaluate(dep)
                     val depObj = JSONObject().apply {
+                        val resolvedDest = dep.resolveDestinationName(showBilingual = false)
                         put("id", dep.id)
                         put("lineName", dep.lineName)
-                        put("destination", dep.destinationName)
-                        put("destinationCrs", deriveThreeLetterCode(dep.destinationStationId ?: "", dep.destinationName))
+                        put("destination", resolvedDest)
+                        put("destinationCrs", deriveThreeLetterCode(dep.destinationStationId ?: "", resolvedDest))
                         put("platformCode", platCode)
                         put("isPlatformConfirmed", resolvedPlat.isConfirmed && !platCode.equals("TBD", ignoreCase = true))
                         put("expectedPlatformCode", expectedPlatCode)
@@ -304,7 +307,7 @@ object WearCompanionSyncPublisher {
                             dep.callingPoints
                         }
                         val stopsSummary = upcomingStops
-                            .map { it.stationName.replace("Underground Station", "", ignoreCase = true).replace("Rail Station", "", ignoreCase = true).replace("Station", "", ignoreCase = true).trim() }
+                            .map { it.resolveDisplayName(showBilingual = false).replace("Underground Station", "", ignoreCase = true).replace("Rail Station", "", ignoreCase = true).replace("Station", "", ignoreCase = true).trim() }
                             .filter { it.isNotBlank() }
                             .take(5)
                             .joinToString(" → ")

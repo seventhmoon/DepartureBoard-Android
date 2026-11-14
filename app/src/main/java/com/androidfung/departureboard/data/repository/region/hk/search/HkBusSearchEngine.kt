@@ -62,11 +62,10 @@ class HkBusSearchEngine(
                     val stopId = detail.stop ?: return@mapNotNull null
                     val nameTc = detail.localizedNames["zh-Hant"].orEmpty().trim()
                     val nameEn = detail.localizedNames["en"].orEmpty().trim()
-                    val displayName = when {
-                        nameTc.isNotBlank() && nameEn.isNotBlank() -> "$nameEn ($nameTc)"
-                        nameTc.isNotBlank() -> nameTc
-                        nameEn.isNotBlank() -> nameEn
-                        else -> "Bus Stop"
+                    val baseName = nameEn.ifBlank { nameTc }.ifBlank { "Bus Stop" }
+                    val localizedMap = buildMap {
+                        if (nameEn.isNotBlank()) put("en", "$nameEn (Route $cleanRoute)")
+                        if (nameTc.isNotBlank()) put("zh-Hant", "$nameTc (路線 $cleanRoute)")
                     }
 
                     val lat = detail.lat?.toDoubleOrNull()
@@ -74,7 +73,8 @@ class HkBusSearchEngine(
 
                     Station(
                         id = "HK_BUS_KMB_$stopId",
-                        name = "$displayName (Route $cleanRoute)",
+                        name = "$baseName (Route $cleanRoute)",
+                        localizedNames = localizedMap,
                         modes = listOf(TransitMode.BUS.id),
                         zone = null,
                         lat = lat,

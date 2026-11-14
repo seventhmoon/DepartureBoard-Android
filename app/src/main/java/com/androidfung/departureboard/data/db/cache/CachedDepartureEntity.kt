@@ -15,8 +15,13 @@ import com.androidfung.departureboard.data.model.TrainFormation
 import com.androidfung.departureboard.data.model.TrainInfo
 import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.TransitOperator
+import com.androidfung.departureboard.data.model.au.AuSydneyLine
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.data.model.hk.HkMtrLine
+import com.androidfung.departureboard.data.model.jp.JpTokyoLine
+import com.androidfung.departureboard.data.model.sg.SgMrtLine
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -25,13 +30,13 @@ import java.time.temporal.ChronoUnit
  */
 @Entity(
     tableName = "cached_departures",
+    primaryKeys = ["stationId", "id"],
     indices = [
         Index(value = ["stationId", "timeToStationSeconds"]),
         Index(value = ["cachedAtMillis"])
     ]
 )
 data class CachedDepartureEntity(
-    @PrimaryKey
     val id: String,
     val stationId: String,
     val stationName: String,
@@ -65,6 +70,7 @@ data class CachedDepartureEntity(
     val statusName: String? = null,
     val scheduledDepartureEpochMillis: Long? = null,
     val expectedDepartureEpochMillis: Long? = null,
+    val localizedDestinationNamesJson: String? = null,
     val cachedAtMillis: Long = System.currentTimeMillis()
 ) {
     fun toDeparture(nowMillis: Long = System.currentTimeMillis()): Departure {
@@ -87,6 +93,12 @@ data class CachedDepartureEntity(
             )
         } else if (stationId.startsWith("HK_MTR_") || lineId.uppercase() in HkMtrLine.LINES) {
             HkMtrLine.getLineBadge(lineId)
+        } else if (stationId.startsWith("SG_MRT_") || SgMrtLine.fromCode(lineId) != null) {
+            SgMrtLine.getLineBadge(lineId)
+        } else if (stationId.startsWith("AU_TRAIN_") || AuSydneyLine.fromCode(lineId) != null) {
+            AuSydneyLine.getLineBadge(lineId)
+        } else if (stationId.startsWith("JP_RAIL_") || JpTokyoLine.fromCode(lineId) != null) {
+            JpTokyoLine.getLineBadge(lineId)
         } else {
             TflLineColors.getLineBadge(lineId, lineName, modeName)
         }
@@ -156,7 +168,8 @@ data class CachedDepartureEntity(
             expectedDepartureInstant = expectedDepartureEpochMillis?.let { Instant.ofEpochMilli(it) },
             stopActivity = restoredStopActivity,
             frequency = restoredFrequency,
-            dataFreshness = com.androidfung.departureboard.data.model.DataFreshness.CACHED_LIVE
+            dataFreshness = com.androidfung.departureboard.data.model.DataFreshness.CACHED_LIVE,
+            localizedDestinationNames = decodeLocalizedMap(localizedDestinationNamesJson)
         )
     }
 
@@ -225,8 +238,25 @@ data class CachedDepartureEntity(
                 statusName = departure.status.name,
                 scheduledDepartureEpochMillis = departure.scheduledDepartureInstant?.toEpochMilli(),
                 expectedDepartureEpochMillis = departure.expectedDepartureInstant?.toEpochMilli(),
+                localizedDestinationNamesJson = encodeLocalizedMap(departure.localizedDestinationNames),
                 cachedAtMillis = nowMillis
             )
+        }
+
+        private val localizedMapAdapter by lazy {
+            val moshi = Moshi.Builder().build()
+            val type = Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
+            moshi.adapter<Map<String, String>>(type)
+        }
+
+        private fun encodeLocalizedMap(map: Map<String, String>): String? {
+            if (map.isEmpty()) return null
+            return runCatching { localizedMapAdapter.toJson(map) }.getOrNull()
+        }
+
+        private fun decodeLocalizedMap(json: String?): Map<String, String> {
+            if (json.isNullOrBlank()) return emptyMap()
+            return runCatching { localizedMapAdapter.fromJson(json) }.getOrNull().orEmpty()
         }
     }
 }

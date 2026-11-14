@@ -67,10 +67,12 @@ fun DepartureRowItem(
     trailingAction: (@Composable () -> Unit)? = null,
     busSpacing: com.androidfung.departureboard.util.BusSpacingInfo? = null
 ) {
+    val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
+    val resolvedDestName = departure.resolveDestinationName(isBilingual)
     val departureContentDescription = if (departure.status == DepartureStatus.CANCELLED) {
-        stringResource(R.string.cd_departure_cancelled, departure.lineName, departure.destinationName)
+        stringResource(R.string.cd_departure_cancelled, departure.lineName, resolvedDestName)
     } else {
-        stringResource(R.string.cd_departure_departing, departure.lineName, departure.destinationName, departure.formattedTimeToArrival)
+        stringResource(R.string.cd_departure_departing, departure.lineName, resolvedDestName, departure.formattedTimeToArrival)
     }
 
     Row(
@@ -94,7 +96,7 @@ fun DepartureRowItem(
 
         // Destination & Platform details
         Column(modifier = Modifier.weight(1f)) {
-            val destinationText = departure.destinationName.ifBlank { departure.lineName }
+            val destinationText = resolvedDestName.ifBlank { departure.lineName }
             val isCancelled = departure.status == DepartureStatus.CANCELLED
 
             Text(
@@ -390,7 +392,7 @@ fun DepartureRowItem(
                         }
                     }
 
-                    if (departure.fare != null) {
+                    if (departure.fare != null && com.androidfung.departureboard.data.model.TransitRegion.fromStationId(departure.stationId).supportsGbPeakFareIndicator) {
                         val isPeak = departure.fare.period == com.androidfung.departureboard.data.model.FarePeriod.PEAK
                         Surface(
                             shape = RoundedCornerShape(4.dp),

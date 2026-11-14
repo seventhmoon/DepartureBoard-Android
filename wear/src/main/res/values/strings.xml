@@ -44,4 +44,25 @@
     <string name="wear_pace_makeable">%1$s • Makeable</string>
     <string name="wear_pace_sprint">%1$s • Sprint!</string>
     <string name="wear_pace_unlikely">%1$s • Tight</string>
+    <string name="wear_ambient_wake_short">🌙 Ambient • Tap to Wake</string>
+    <string name="wear_nav_back_board">← Board</string>
+    <string name="wear_nav_back_to_board">← Back to Board</string>
+    <string name="wear_nav_station_board">← %1$s Board</string>
+    <string name="wear_share_live_eta">📤 Share Live ETA</string>
+    <string name="wear_open_on_phone">📱 Open on Phone</string>
+    <string name="wear_stop_tracking">⏹ Stop Tracking</string>
+    <string name="wear_tap_stop_alight">🎯 Tap Stop for Alight Alert</string>
+    <string name="wear_one_stop_alert">1-stop alert</string>
+    <string name="wear_continue_phone_ai">📱 Continue in Phone AI</string>
+    <string name="wear_ask_ai_hint">⌨️ Type or ask AI…</string>
+    <string name="wear_sprint_hud_tap">🎯 SPRINT HUD • TAP</string>
+    <string name="wear_calls_prefix">Calls: %1$s</string>
+    <string name="wear_simulate_plat">⚡ Simulate Plat Announced</string>
+    <string name="wear_search_add_station">Search / add station…</string>
+    <string name="wear_add_via_phone">+ Add \"%1$s\" via Phone</string>
+    <string name="wear_your_stations">Your Stations (%1$d)</string>
+    <string name="wear_add_concourse_hub">+ Add Concourse Hub</string>
+    <string name="wear_notif_channels_title">🔔 Notification Channels</string>
+    <string name="wear_notif_channels_subtitle">Toggle alert types or customize sound/vibration</string>
+    <string name="wear_all_system_channels">⚙ All System Channels</string>
 </resources>

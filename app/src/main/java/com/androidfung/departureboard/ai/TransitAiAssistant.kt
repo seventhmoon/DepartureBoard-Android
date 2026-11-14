@@ -155,9 +155,12 @@ class TransitAiAssistant(
     ): AiTransitResult {
         val cleanQuery = query.trim().lowercase()
 
-        // 1. Check if the query asks about a specific bus line (e.g. "221", "SL1", "73")
+        // 1. Check if the query asks about a specific bus line (e.g. "221", "SL1", "1A", "960X")
         val busLineMatch = BUS_LINE_REGEX.find(cleanQuery)
-        val queriedLine = busLineMatch?.groupValues?.getOrNull(1)?.uppercase()
+        val queriedLine = busLineMatch?.let { m ->
+            m.groupValues.getOrNull(1)?.takeIf { it.isNotBlank() }
+                ?: m.groupValues.getOrNull(2)?.takeIf { it.isNotBlank() }
+        }?.uppercase()
 
         // 2. Identify if an explicit origin station was specified with "from <station>"
         val fromStationMatch = FROM_STATION_REGEX.find(cleanQuery)
@@ -177,6 +180,13 @@ class TransitAiAssistant(
                 cleanQuery.contains("around me") ||
                 cleanQuery.contains("closest") ||
                 cleanQuery.contains("nearest") ||
+                cleanQuery.contains("附近") ||
+                cleanQuery.contains("最近") ||
+                cleanQuery.contains("這裡") ||
+                cleanQuery.contains("近く") ||
+                cleanQuery.contains("最寄り") ||
+                cleanQuery.contains("근처") ||
+                cleanQuery.contains("가까운") ||
                 HERE_WORD_REGEX.containsMatchIn(cleanQuery)
 
         // Intent classification for specialized concourse stationmaster inquiries
@@ -187,7 +197,14 @@ class TransitAiAssistant(
                 cleanQuery.contains("do i need to run") ||
                 cleanQuery.contains("time to catch") ||
                 cleanQuery.contains("have time") ||
-                cleanQuery.contains("hurry")
+                cleanQuery.contains("hurry") ||
+                cleanQuery.contains("趕得上") ||
+                cleanQuery.contains("趕不趕") ||
+                cleanQuery.contains("來得及") ||
+                cleanQuery.contains("間に合う") ||
+                cleanQuery.contains("走ったほう") ||
+                cleanQuery.contains("탈 수 있") ||
+                cleanQuery.contains("뛰어야")
 
         val isLastTrainQuery = cleanQuery.contains("last train") ||
                 cleanQuery.contains("last tube") ||
@@ -196,7 +213,12 @@ class TransitAiAssistant(
                 cleanQuery.contains("final service") ||
                 cleanQuery.contains("night service") ||
                 cleanQuery.contains("night tube") ||
-                cleanQuery.contains("overnight")
+                cleanQuery.contains("overnight") ||
+                cleanQuery.contains("尾班車") ||
+                cleanQuery.contains("末班車") ||
+                cleanQuery.contains("終電") ||
+                cleanQuery.contains("最終列車") ||
+                cleanQuery.contains("막차")
 
         val isFormationQuery = cleanQuery.contains("where to stand") ||
                 cleanQuery.contains("where should i stand") ||
@@ -206,10 +228,21 @@ class TransitAiAssistant(
                 cleanQuery.contains("quiet coach") ||
                 cleanQuery.contains("which carriage") ||
                 cleanQuery.contains("crowded") ||
-                cleanQuery.contains("occupancy")
+                cleanQuery.contains("occupancy") ||
+                cleanQuery.contains("月台哪") ||
+                cleanQuery.contains("車廂") ||
+                cleanQuery.contains("どこで待") ||
+                cleanQuery.contains("何両") ||
+                cleanQuery.contains("어디서 타") ||
+                cleanQuery.contains("몇 칸")
 
         // Prioritize tube/rail stations over bus stops when asking about trains, platforms, or carriage formation
-        val isExplicitBusQuery = queriedLine != null || cleanQuery.contains("bus")
+        val isExplicitBusQuery = queriedLine != null ||
+                cleanQuery.contains("bus") ||
+                cleanQuery.contains("巴士") ||
+                cleanQuery.contains("公車") ||
+                cleanQuery.contains("バス") ||
+                cleanQuery.contains("버스")
         val isTrainQuery = !isExplicitBusQuery && (
             cleanQuery.contains("train") ||
                 cleanQuery.contains("tube") ||
@@ -217,6 +250,13 @@ class TransitAiAssistant(
                 cleanQuery.contains("rail") ||
                 cleanQuery.contains("metro") ||
                 cleanQuery.contains("platform") ||
+                cleanQuery.contains("列車") ||
+                cleanQuery.contains("地鐵") ||
+                cleanQuery.contains("港鐵") ||
+                cleanQuery.contains("電車") ||
+                cleanQuery.contains("地下鉄") ||
+                cleanQuery.contains("열차") ||
+                cleanQuery.contains("지하철") ||
                 isFormationQuery ||
                 isLastTrainQuery
         )
@@ -650,7 +690,9 @@ class TransitAiAssistant(
         namedLine: LineAlias?,
         contextStation: Station?
     ): AiTransitResult = withContext(Dispatchers.Default) {
-        val allStatuses = repository.getLineStatuses()
+        val allStatuses = repository.getLineStatuses(
+            contextStation?.let { TransitRegion.fromStationId(it.id) }
+        )
 
         // Narrow to the named line if the query mentions one (e.g. "Elizabeth line status").
         // Prefer exact ID/name matches so "northern" resolves to Northern rather than Great Northern.
@@ -924,7 +966,10 @@ class TransitAiAssistant(
     )
 
     private val STATUS_KEYWORDS = listOf(
-        "status", "delays", "delay", "disruption", "disruptions", "running", "good service", "problems"
+        "status", "delays", "delay", "disruption", "disruptions", "running", "good service", "problems",
+        "延誤", "受阻", "停駛", "服務狀態", "路線狀態", "運作正常",
+        "遅延", "運転見合わせ", "運行状況", "平常",
+        "지연", "운행", "정상", "차질"
     )
 
     private fun matchesNamedLine(
@@ -979,7 +1024,9 @@ class TransitAiAssistant(
 
     private fun getConcourseAlternative(lineId: String, lineName: String): String? {
         val lower = lineName.lowercase()
+        val idLower = lineId.lowercase()
         return when {
+            // GB (London)
             "northern" in lower && "great" !in lower -> "Consider the Victoria or Piccadilly lines, Thameslink, or Great Northern departures for cross-London travel."
             "central" in lower -> "The Elizabeth line and Jubilee line offer fast parallel alternatives across central London."
             "victoria" in lower -> "Use the Piccadilly line, Northern line, or Thameslink downstairs as direct alternatives."
@@ -988,15 +1035,36 @@ class TransitAiAssistant(
             "elizabeth" in lower -> "Central line, Jubilee line, or Great Western Railway departures can be used."
             "district" in lower || "circle" in lower -> "Take the Piccadilly or Central line for east-west journeys across central London."
             "bakerloo" in lower -> "Jubilee and Northern lines cover shared corridors between Waterloo and central London."
+            // HK (MTR)
+            idLower == "twl" || "tsuen wan" in lower || "荃灣" in lineName -> "Consider the Tung Chung line (via Lai King/Hong Kong), Island line on Hong Kong Island, or KMB/Citybus cross-harbour routes."
+            idLower == "isl" || "island" in lower || "港島" in lineName -> "Consider the South Island line (via Admiralty), Tseung Kwan O line, or Hong Kong Tramways & Citybus along the north shore."
+            idLower == "ktl" || "kwun tong" in lower || "觀塘" in lineName -> "Consider the Tuen Ma line (via Diamond Hill/Ho Man Tin) or Tseung Kwan O line (via Yau Tong)."
+            idLower == "eal" || "east rail" in lower || "東鐵" in lineName -> "Consider the Tuen Ma line (via Tai Wai/Hung Hom) or KMB express routes to Kowloon/Hong Kong Island."
+            idLower == "tml" || "tuen ma" in lower || "屯馬" in lineName -> "Consider the East Rail line, Tsuen Wan line, or KMB/LRT feeder routes."
+            // SG (MRT)
+            idLower == "nsl" || "north south" in lower || "南北" in lineName -> "Consider the Thomson-East Coast line (TEL) or Circle line (CCL) for parallel north-south connections."
+            idLower == "ewl" || "east west" in lower || "東西" in lineName -> "Consider the Downtown line (DTL) or Circle line (CCL) across central Singapore."
+            idLower == "nel" || "north east" in lower || "東北" in lineName -> "Consider the Circle line (via Serangoon/Dhoby Ghaut) or Downtown line (via Little India/Chinatown)."
+            // AU (Sydney)
+            idLower == "t1" || "north shore" in lower || "western" in lower -> "Consider Sydney Metro M1 (via Central/Chatswood) or T9 Northern Line services."
+            idLower == "t4" || "eastern suburbs" in lower -> "Consider T8 Airport & South Line or express bus corridors via Central/Town Hall."
+            idLower == "m1" || "metro" in lower -> "Consider T1 North Shore & Western Line or T9 Northern Line rail alternatives."
+            // JP (Tokyo)
+            "yamanote" in lower || "山手" in lineName -> "Consider the Keihin-Tohoku line, Chuo-Sobu line, or Tokyo Metro Ginza/Marunouchi lines."
+            "chuo" in lower || "中央" in lineName -> "Consider the Tokyo Metro Marunouchi line, Tozai line, or Shinjuku/Yamanote connections."
+            "keihin" in lower || "京浜" in lineName -> "Consider the Yamanote line or Ueno-Tokyo / Tokaido line."
             else -> null
         }
     }
 
     companion object {
-        private val BUS_LINE_REGEX = Regex("""\b(?:bus\s+)?([0-9]{1,3}|sl[0-9]{1,2}|n[0-9]{1,3})\b""", RegexOption.IGNORE_CASE)
-        private val FROM_STATION_REGEX = Regex("""\bfrom\s+([a-zA-Z0-9\s'.]+?)(?:\s+to|\?|$)""")
+        private val BUS_LINE_REGEX = Regex(
+            """(?:\b(?:bus|route|巴士|路線|系統|バス|버스)\s*([0-9]{1,3}[A-Z]{0,2}|[A-Z]{1,2}[0-9]{1,3}[A-Z]{0,2})\b|\b([0-9]{1,3}[A-Z]{0,2}|sl[0-9]{1,2}|n[0-9]{1,3})\s*(?:bus|號巴士|號線|番|번)?\b)""",
+            RegexOption.IGNORE_CASE
+        )
+        private val FROM_STATION_REGEX = Regex("""(?:from|從|由)\s+([^\?]+?)(?:\s+(?:to|往|去)|\?|$)""", RegexOption.IGNORE_CASE)
         private val HERE_WORD_REGEX = Regex("""\bhere\b""")
-        private val TO_STATION_REGEX = Regex("""\bto\s+([a-zA-Z0-9\s'.]+?)(?:\s+from|\?|$)""")
+        private val TO_STATION_REGEX = Regex("""(?:to|往|去)\s+([^\?]+?)(?:\s+(?:from|從|由)|\?|$)""", RegexOption.IGNORE_CASE)
         private val WHITESPACE_REGEX = Regex("""\s+""")
     }
 }

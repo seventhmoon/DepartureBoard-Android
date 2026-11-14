@@ -660,15 +660,16 @@ fun SettingsBottomSheet(
                                         onClick = {
                                             com.androidfung.departureboard.util.DelayRepayReceiptLog.openClaimPortal(context, receipt)
                                         },
-                                        label = { Text("Claim Online ↗") }
+                                        label = { Text(stringResource(R.string.delay_repay_claim_online)) }
                                     )
+                                    val copiedToast = stringResource(R.string.delay_repay_copied_toast)
                                     FilterChip(
                                         selected = false,
                                         onClick = {
                                             com.androidfung.departureboard.util.DelayRepayReceiptLog.copyReceiptToClipboard(context, receipt)
-                                            android.widget.Toast.makeText(context, "Delay details copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
+                                            android.widget.Toast.makeText(context, copiedToast, android.widget.Toast.LENGTH_SHORT).show()
                                         },
-                                        label = { Text("Copy Details") }
+                                        label = { Text(stringResource(R.string.delay_repay_copy_details)) }
                                     )
                                 }
                             }

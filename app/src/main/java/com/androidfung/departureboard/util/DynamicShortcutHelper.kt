@@ -26,7 +26,7 @@ object DynamicShortcutHelper {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
 
-                val cleanName = station.displayName.substringBefore("(").trim()
+                val cleanName = station.resolveDisplayName(showBilingual = false).substringBefore("(").trim()
 
                 ShortcutInfoCompat.Builder(context, "station_${station.id}")
                     .setShortLabel(cleanName.take(15))

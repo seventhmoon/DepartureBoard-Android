@@ -9,7 +9,12 @@ object CompactTransitFormatter {
     private val PLATFORM_NUMBER_REGEX = Regex("""(?:Plat(?:form)?\s*|Stop\s*|Stand\s*|[0-9]+號月台|(\d+)番線)?(\d+[A-Za-z]?)\b""", RegexOption.IGNORE_CASE)
     private val CJK_PLATFORM_REGEX = Regex("""(\d+[A-Za-z]?)\s*(?:號月台|号站台|番線|번\s*승강장)""")
     private val PARENS_SUFFIX_REGEX = Regex("""\s*\([^)]*\)""")
-    private val MULTI_CODE_PREFIXES = listOf("HK_MTR_", "SG_MRT_", "AU_SYD_", "JP_JR_", "JP_METRO_")
+    private val MULTI_CODE_PREFIXES = listOf(
+        "HK_MTR_", "HK_BUS_",
+        "SG_MRT_", "SG_BUS_",
+        "AU_TRAIN_", "AU_SYD_", "AU_BUS_",
+        "JP_RAIL_", "JP_JR_", "JP_METRO_", "JP_BUS_"
+    )
 
     /**
      * Compacts verbose platform strings across UK, HK, SG, AU, and JP feeds
@@ -23,6 +28,11 @@ object CompactTransitFormatter {
             .trim()
         if (cleaned.isBlank() || cleaned.equals("TBD", ignoreCase = true)) return "TBD"
 
+        val lower = cleaned.lowercase()
+        if (lower.startsWith("stop ") || lower.startsWith("stand ") || lower.startsWith("bay ")) {
+            return cleaned.split("•", "-").first().trim().take(8).ifBlank { "TBD" }
+        }
+
         CJK_PLATFORM_REGEX.find(raw)?.groupValues?.getOrNull(1)?.let { num ->
             if (num.isNotBlank()) return num.uppercase()
         }
@@ -31,7 +41,6 @@ object CompactTransitFormatter {
             if (num.any { ch -> ch.isDigit() }) return num.uppercase()
         }
 
-        val lower = cleaned.lowercase()
         return when {
             lower.contains("eastbound") -> "EB"
             lower.contains("westbound") -> "WB"
@@ -64,7 +73,7 @@ object CompactTransitFormatter {
         }
         if (MULTI_CODE_PREFIXES.any { cleanId.startsWith(it) }) {
             val tail = cleanId.substringAfterLast('_')
-            if (tail.length in 2..4 && tail.any { it.isLetter() }) {
+            if (tail.length in 2..4 && tail.any { it.isLetterOrDigit() }) {
                 return tail
             }
         }

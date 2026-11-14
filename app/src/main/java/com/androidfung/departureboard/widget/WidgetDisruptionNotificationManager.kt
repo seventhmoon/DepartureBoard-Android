@@ -317,29 +317,40 @@ object WidgetDisruptionNotificationManager {
             "${it.stationId}_${it.filterLineId.orEmpty()}_${it.filterDirection.orEmpty()}"
         }
 
-        // Pre-fetch shared line statuses and transit alerts once per background cycle
-        val lineStatuses = try {
-            repository.getLineStatuses()
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to fetch line statuses", e)
-            emptyMap()
+        // Pre-fetch shared line statuses and transit alerts once per region represented in targets
+        val targetRegions = uniqueTargets.map {
+            com.androidfung.departureboard.data.model.TransitRegion.fromStationId(it.stationId)
+        }.distinct()
+
+        val statusesByRegion = targetRegions.associateWith { region ->
+            try {
+                repository.getLineStatuses(region)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to fetch line statuses for ${region.code}", e)
+                emptyMap()
+            }
         }
 
-        val transitAlerts = try {
-            repository.getTransitAlerts()
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to fetch transit alerts", e)
-            emptyList()
+        val alertsByRegion = targetRegions.associateWith { region ->
+            try {
+                repository.getTransitAlerts(region)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to fetch transit alerts for ${region.code}", e)
+                emptyList()
+            }
         }
 
         val statePrefs = context.getSharedPreferences(PREFS_DISRUPTION_STATE, Context.MODE_PRIVATE)
         val notificationManager = context.getSystemService<NotificationManager>() ?: return
 
         for (target in uniqueTargets) {
+            val targetRegion = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(target.stationId)
+            val lineStatuses = statusesByRegion[targetRegion].orEmpty()
+            val transitAlerts = alertsByRegion[targetRegion].orEmpty()
             val departuresResult = repository.getDepartures(target.stationId, target.stationName)
             if (departuresResult.isFailure) {
                 // Keep any active disruption notification when network/feed is temporarily unreachable

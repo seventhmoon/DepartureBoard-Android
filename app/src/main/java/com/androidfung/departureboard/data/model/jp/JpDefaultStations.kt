@@ -433,6 +433,7 @@ object JpDefaultStations {
                         modeName = if (tokyoLine.mode == TransitMode.RAIL) "rail" else "metro",
                         lineBadge = tokyoLine.toLineBadge(),
                         status = if (waitSec <= 60) DepartureStatus.DUE else DepartureStatus.ON_TIME,
+                        dataFreshness = com.androidfung.departureboard.data.model.DataFreshness.OFFLINE_SCHEDULED,
                         callingPoints = listOf(
                             CallingPoint(cleanName, "Dep"),
                             CallingPoint(template.destination, "${waitSec / 60 + 6} min")

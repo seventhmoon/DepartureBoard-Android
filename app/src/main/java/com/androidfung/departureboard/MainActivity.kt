@@ -179,6 +179,9 @@ class MainActivity : AppCompatActivity() {
                 themeMode = uiState.themeMode,
                 dynamicColor = uiState.isDynamicColor
             ) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled provides uiState.isBilingualEnabled
+                ) {
                 com.androidfung.departureboard.ui.theme.ProvideWindowWidthClass {
                     val windowWidthClass = com.androidfung.departureboard.ui.theme.LocalWindowWidthClass.current
                     val snackbarHostState = remember { SnackbarHostState() }
@@ -876,6 +879,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         )
                     }
+                }
                 }
             }
         }

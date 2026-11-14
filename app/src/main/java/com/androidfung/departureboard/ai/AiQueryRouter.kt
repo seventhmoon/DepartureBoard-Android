@@ -59,10 +59,14 @@ class AiQueryRouter(
         val clean = query.trim().lowercase()
 
         // 2. Exact CRS/Bus Line/Station direct queries -> Instant Deterministic (<5ms)
-        val isExactBusOrLine = clean.matches(Regex("""^(?:bus\s+)?([0-9]{1,3}|sl[0-9]{1,2}|n[0-9]{1,3})$"""))
-        val isSimpleDeparture = clean.startsWith("next ") && !clean.contains("?") && !clean.contains("why") && !clean.contains("how")
+        val isExactBusOrLine = clean.matches(Regex("""^(?:(?:bus|巴士|バス|버스)\s*)?([0-9]{1,3}[a-z]?|sl[0-9]{1,2}|n[0-9]{1,3}|[a-z][0-9]{1,3}[a-z]?)$"""))
+        val isSimpleDeparture = (clean.startsWith("next ") || clean.contains("下班") || clean.contains("下一班") || clean.contains("次の") || clean.contains("다음")) &&
+            !clean.contains("?") && !clean.contains("？") &&
+            !clean.contains("why") && !clean.contains("how") &&
+            !clean.contains("點解") && !clean.contains("為什麼") && !clean.contains("なぜ") && !clean.contains("왜")
+        val isShortQuery = if (clean.contains(" ")) clean.split(Regex("""\s+""")).size <= 5 else clean.length <= 16
 
-        if (isExactBusOrLine || (isSimpleDeparture && clean.split(" ").size <= 5)) {
+        if (isExactBusOrLine || (isSimpleDeparture && isShortQuery)) {
             return AiExecutionTier.INSTANT_DETERMINISTIC
         }
 
@@ -84,6 +88,11 @@ class AiQueryRouter(
         val needsReasoning = clean.contains("why") || clean.contains("how") ||
                 clean.contains("should i") || clean.contains("better to") ||
                 clean.contains("explain") || clean.contains("alternative") ||
+                clean.contains("點解") || clean.contains("為什麼") || clean.contains("怎麼") ||
+                clean.contains("應唔應該") || clean.contains("應該") || clean.contains("替代") ||
+                clean.contains("なぜ") || clean.contains("どう") || clean.contains("べき") ||
+                clean.contains("迂回") || clean.contains("おすすめ") ||
+                clean.contains("왜") || clean.contains("어떻게") || clean.contains("대안") ||
                 classifiedIntent == TransitQueryIntent.GENERAL_QUERY
 
         if (needsReasoning) {

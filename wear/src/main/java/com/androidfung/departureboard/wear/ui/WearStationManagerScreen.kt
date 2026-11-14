@@ -125,7 +125,7 @@ internal fun WearStationManagerScreen(
                         .clickable(onClick = onBack)
                 ) {
                     Text(
-                        text = "← Back to Board",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_nav_back_to_board),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp
@@ -167,7 +167,7 @@ internal fun WearStationManagerScreen(
                         ) {
                             if (searchQuery.isEmpty()) {
                                 Text(
-                                    text = "Search / add station…",
+                                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_search_add_station),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                     color = Color(0xFF90CAF9),
                                     maxLines = 1,
@@ -284,7 +284,7 @@ internal fun WearStationManagerScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "+ Add \"$customName\" via Phone",
+                                text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_add_via_phone, customName),
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
@@ -307,7 +307,7 @@ internal fun WearStationManagerScreen(
 
             item(key = "active_header") {
                 Text(
-                    text = "Your Stations (${activeBoards.size})",
+                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_your_stations, activeBoards.size),
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 11.sp
@@ -379,7 +379,7 @@ internal fun WearStationManagerScreen(
             if (availableToAdd.isNotEmpty()) {
                 item(key = "add_header") {
                     Text(
-                        text = "+ Add Concourse Hub",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_add_concourse_hub),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 11.sp

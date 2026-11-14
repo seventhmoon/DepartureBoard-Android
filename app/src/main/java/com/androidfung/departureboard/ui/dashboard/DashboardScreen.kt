@@ -187,8 +187,8 @@ fun DashboardContent(
                             }
                         }
 
-                        // Debug Region Switcher Chip (Shown only in debug builds when HK experimental is enabled)
-                        if (BuildConfig.DEBUG && uiState.isHkRegionEnabled) {
+                        // Debug Region Switcher Chip (Shown in debug builds)
+                        if (BuildConfig.DEBUG) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
@@ -494,6 +494,7 @@ fun DashboardContent(
                             onClick = onAddStationClick,
                             lastUpdatedTimestamp = uiState.lastUpdatedTimestamp,
                             isOnline = uiState.isOnline,
+                            timeZone = uiState.selectedRegion.timeZone,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -722,12 +723,13 @@ fun DashboardSearchBar(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     lastUpdatedTimestamp: Long = 0L,
-    isOnline: Boolean = true
+    isOnline: Boolean = true,
+    timeZone: java.time.ZoneId = java.time.ZoneId.systemDefault()
 ) {
-    val updatedTimeText = remember(lastUpdatedTimestamp) {
+    val updatedTimeText = remember(lastUpdatedTimestamp, timeZone) {
         if (lastUpdatedTimestamp <= 0L) null
         else java.time.Instant.ofEpochMilli(lastUpdatedTimestamp)
-            .atZone(java.time.ZoneId.systemDefault())
+            .atZone(timeZone)
             .format(DASHBOARD_TIME_FORMATTER)
     }
 

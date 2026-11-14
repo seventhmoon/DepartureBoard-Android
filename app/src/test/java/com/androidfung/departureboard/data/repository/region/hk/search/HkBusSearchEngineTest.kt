@@ -71,11 +71,13 @@ class HkBusSearchEngineTest {
         val stops = engine.searchRouteStops("1A")
         assertEquals(2, stops.size)
         assertEquals("HK_BUS_KMB_001476", stops[0].id)
-        assertEquals("Star Ferry TST (尖沙咀天星碼頭) (Route 1A)", stops[0].name)
+        assertEquals("Star Ferry TST (Route 1A)", stops[0].name)
+        assertEquals("尖沙咀天星碼頭 (路線 1A)", stops[0].localizedNames["zh-Hant"])
         assertTrue(stops[0].modes.contains("bus"))
 
         assertEquals("HK_BUS_KMB_001614", stops[1].id)
-        assertEquals("Mong Kok Bank Centre (旺角銀行中心) (Route 1A)", stops[1].name)
+        assertEquals("Mong Kok Bank Centre (Route 1A)", stops[1].name)
+        assertEquals("旺角銀行中心 (路線 1A)", stops[1].localizedNames["zh-Hant"])
     }
 
     @Test

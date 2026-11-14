@@ -67,7 +67,7 @@ internal fun WearTrackedJourneyCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "🎯 SPRINT HUD • TAP",
+                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_sprint_hud_tap),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 9.sp
@@ -409,7 +409,7 @@ internal fun WearDepartureCard(
                     val stopsText = departure.callingPointsSummary?.takeIf { it.isNotBlank() }
                         ?: "Direct / Check calling points on Phone"
                     Text(
-                        text = "Calls: $stopsText",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_calls_prefix, stopsText),
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
                         color = Color(0xFFCFD8DC),
                         maxLines = 2,
@@ -426,7 +426,7 @@ internal fun WearDepartureCard(
                                 .clickable(onClick = onSimulatePlatformAnnouncement)
                         ) {
                             Text(
-                                text = "⚡ Simulate Plat Announced",
+                                text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_simulate_plat),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 9.sp

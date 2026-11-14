@@ -143,7 +143,7 @@ class AuDepartureSource(
                             else -> {
                                 val railLine = matchedRailLine ?: AuSydneyLine.T1
                                 ResolvedAuService(
-                                    modeName = if (isMetro) "tube" else "national-rail",
+                                    modeName = if (isMetro) "metro" else "rail",
                                     lineName = railLine.lineName,
                                     badge = railLine.toLineBadge(),
                                     platformName = "Platform ${platRaw ?: "1"}",

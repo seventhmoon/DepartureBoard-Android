@@ -1438,8 +1438,9 @@ private fun CallingPointTimelineItem(
                     else -> MaterialTheme.colorScheme.onSurface
                 }
 
+                val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
                 Text(
-                    text = callingPoint.resolveDisplayName(),
+                    text = callingPoint.resolveDisplayName(showBilingual = isBilingual),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = if (callingPoint.isCurrentStation || isLast || isTrainLocation) FontWeight.Bold else FontWeight.Normal,
                         fontSize = 15.sp,

@@ -8,12 +8,14 @@ import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.InformedEntity
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitAlert
+import com.androidfung.departureboard.data.model.TransitMode
 import com.androidfung.departureboard.data.model.TransitRegion
 import com.androidfung.departureboard.data.model.gb.TflLineStatusDetail
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 import com.androidfung.departureboard.data.model.isJpTransitId
 import com.androidfung.departureboard.data.model.jp.JpDefaultStations
 import com.androidfung.departureboard.data.model.jp.JpStationDirectory
+import com.androidfung.departureboard.data.model.jp.JpTokyoLine
 import com.androidfung.departureboard.data.network.jp.JpOdptNetworkClient
 import com.androidfung.departureboard.data.network.jp.JpOdptTrainInformationItem
 import com.androidfung.departureboard.data.repository.DepartureSource
@@ -62,8 +64,8 @@ object JpRegionalTransitProvider : RegionalTransitProvider {
         Result.success(JpStationDirectory.searchStations(query))
 
     override suspend fun getStationById(stationId: String): Station? =
-        JpDefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(stationId, ignoreCase = true) }
-            ?: JpStationDirectory.getStationById(stationId)
+        JpStationDirectory.getStationById(stationId)
+            ?: JpDefaultStations.POPULAR_STATIONS.firstOrNull { it.id.equals(stationId, ignoreCase = true) }
 
     override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> {
         val isBusStop = stationId.startsWith("JP_BUS_", ignoreCase = true)
@@ -99,15 +101,30 @@ object JpRegionalTransitProvider : RegionalTransitProvider {
             val textJa = item.textMap?.get("ja").orEmpty()
             val textEn = item.textMap?.get("en").orEmpty()
             val statusJa = item.statusMap?.get("ja").orEmpty()
+            val statusEn = item.statusMap?.get("en").orEmpty()
+            val preferJa = com.androidfung.departureboard.util.LocaleHelper.getActiveLocale().language == "ja"
             val isNormal = statusJa.isBlank() &&
                 (textJa.contains("平常") || textEn.contains("on time", ignoreCase = true) || textEn.contains("normal", ignoreCase = true))
             val severity = if (isNormal) 10 else 6
-            val desc = if (isNormal) "Good Service" else (item.statusMap?.get("en") ?: statusJa.ifBlank { "Delays" })
-            val reason = if (isNormal) null else (textEn.ifBlank { textJa }).takeIf { it.isNotBlank() }
+            val desc = if (isNormal) {
+                "Good Service"
+            } else if (preferJa) {
+                statusJa.ifBlank { statusEn.ifBlank { "遅延" } }
+            } else {
+                statusEn.ifBlank { statusJa.ifBlank { "Delays" } }
+            }
+            val reason = if (isNormal) {
+                null
+            } else if (preferJa) {
+                textJa.ifBlank { textEn }.takeIf { it.isNotBlank() }
+            } else {
+                textEn.ifBlank { textJa }.takeIf { it.isNotBlank() }
+            }
+            val modeName = if (JpTokyoLine.fromCode(lineCode)?.mode == TransitMode.RAIL) "rail" else "metro"
             result[lineCode.lowercase()] = TflLineStatusItem(
                 id = lineCode.lowercase(),
                 name = lineName,
-                modeName = "tube",
+                modeName = modeName,
                 lineStatuses = listOf(
                     TflLineStatusDetail(
                         id = 0,
@@ -128,19 +145,34 @@ object JpRegionalTransitProvider : RegionalTransitProvider {
             val textJa = item.textMap?.get("ja").orEmpty()
             val textEn = item.textMap?.get("en").orEmpty()
             val statusJa = item.statusMap?.get("ja").orEmpty()
+            val statusEn = item.statusMap?.get("en").orEmpty()
+            val preferJa = com.androidfung.departureboard.util.LocaleHelper.getActiveLocale().language == "ja"
             val isNormal = statusJa.isBlank() &&
                 (textJa.contains("平常") || textEn.contains("on time", ignoreCase = true) || textEn.contains("normal", ignoreCase = true))
             if (isNormal) return@mapNotNull null
 
-            val body = when {
-                textEn.isNotBlank() && textJa.isNotBlank() -> "$textEn ($textJa)"
-                textEn.isNotBlank() -> textEn
-                else -> textJa
+            val body = if (preferJa) {
+                when {
+                    textJa.isNotBlank() && textEn.isNotBlank() -> "$textJa ($textEn)"
+                    textJa.isNotBlank() -> textJa
+                    else -> textEn
+                }
+            } else {
+                when {
+                    textEn.isNotBlank() && textJa.isNotBlank() -> "$textEn ($textJa)"
+                    textEn.isNotBlank() -> textEn
+                    else -> textJa
+                }
             }
             if (body.isBlank()) return@mapNotNull null
+            val statusTitle = if (preferJa) {
+                statusJa.ifBlank { statusEn.ifBlank { "運行情報" } }
+            } else {
+                statusEn.ifBlank { statusJa.ifBlank { "Service Alert" } }
+            }
             TransitAlert(
                 id = "odpt_${lineCode}_${body.hashCode()}",
-                headerText = "$lineName — ${item.statusMap?.get("en") ?: statusJa.ifBlank { "Service Alert" }}",
+                headerText = "$lineName — $statusTitle",
                 descriptionText = body,
                 cause = AlertCause.OTHER_CAUSE,
                 effect = AlertEffect.SIGNIFICANT_DELAYS,

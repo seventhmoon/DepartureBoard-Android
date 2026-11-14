@@ -128,8 +128,10 @@ class HkBusCallingPointsResolver(
                 val stopDetails = deferredStops.awaitAll()
 
                 stopDetails.mapIndexed { index, item ->
+                    val enName = item.localizedNames["en"]?.trim()?.takeIf { it.isNotBlank() }
                     CallingPoint(
-                        stationName = item.displayName.ifBlank { "Bus Stop 巴士站" },
+                        stationName = enName ?: item.displayName.ifBlank { "Bus Stop" },
+                        localizedNames = item.localizedNames,
                         isCurrentStation = index == 0,
                         isDestination = index == stopDetails.lastIndex,
                         stationId = item.stop,

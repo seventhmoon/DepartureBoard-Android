@@ -31,7 +31,8 @@ import java.time.ZoneId
  */
 data class RegionTransitMode(
     val mode: TransitMode?,
-    val displayName: String
+    val displayName: String,
+    @StringRes val displayNameRes: Int
 )
 
 enum class TransitRegion(
@@ -40,6 +41,7 @@ enum class TransitRegion(
     val timeZone: ZoneId,
     @StringRes val displayNameRes: Int,
     val subtitle: String,
+    @StringRes val subtitleRes: Int,
     val supportedModes: List<RegionTransitMode>
 ) {
     GB(
@@ -48,15 +50,16 @@ enum class TransitRegion(
         timeZone = ZoneId.of("Europe/London"),
         displayNameRes = R.string.region_uk,
         subtitle = "National Rail & TfL",
+        subtitleRes = R.string.region_subtitle_gb,
         supportedModes = listOf(
-            RegionTransitMode(null, "All"),
-            RegionTransitMode(TransitMode.METRO, "Tube"),
-            RegionTransitMode(TransitMode.RAIL, "Elizabeth line"),
-            RegionTransitMode(TransitMode.RAIL, "Overground"),
-            RegionTransitMode(TransitMode.TRAM, "DLR"),
-            RegionTransitMode(TransitMode.RAIL, "National Rail"),
-            RegionTransitMode(TransitMode.TRAM, "Tram"),
-            RegionTransitMode(TransitMode.BUS, "Bus")
+            RegionTransitMode(null, "All", R.string.mode_all),
+            RegionTransitMode(TransitMode.METRO, "Tube", R.string.mode_tube),
+            RegionTransitMode(TransitMode.RAIL, "Elizabeth line", R.string.mode_elizabeth_line),
+            RegionTransitMode(TransitMode.RAIL, "Overground", R.string.mode_overground),
+            RegionTransitMode(TransitMode.TRAM, "DLR", R.string.mode_dlr),
+            RegionTransitMode(TransitMode.RAIL, "National Rail", R.string.mode_national_rail),
+            RegionTransitMode(TransitMode.TRAM, "Tram", R.string.mode_tram),
+            RegionTransitMode(TransitMode.BUS, "Bus", R.string.mode_bus)
         )
     ),
     HK(
@@ -65,10 +68,11 @@ enum class TransitRegion(
         timeZone = ZoneId.of("Asia/Hong_Kong"),
         displayNameRes = R.string.region_hk,
         subtitle = "MTR & Franchised Buses",
+        subtitleRes = R.string.region_subtitle_hk,
         supportedModes = listOf(
-            RegionTransitMode(null, "All"),
-            RegionTransitMode(TransitMode.METRO, "MTR"),
-            RegionTransitMode(TransitMode.BUS, "Bus")
+            RegionTransitMode(null, "All", R.string.mode_all),
+            RegionTransitMode(TransitMode.METRO, "MTR", R.string.mode_mtr),
+            RegionTransitMode(TransitMode.BUS, "Bus", R.string.mode_bus)
         )
     ),
     SG(
@@ -77,10 +81,11 @@ enum class TransitRegion(
         timeZone = ZoneId.of("Asia/Singapore"),
         displayNameRes = R.string.region_sg,
         subtitle = "MRT & Buses",
+        subtitleRes = R.string.region_subtitle_sg,
         supportedModes = listOf(
-            RegionTransitMode(null, "All"),
-            RegionTransitMode(TransitMode.METRO, "MRT"),
-            RegionTransitMode(TransitMode.BUS, "Bus")
+            RegionTransitMode(null, "All", R.string.mode_all),
+            RegionTransitMode(TransitMode.METRO, "MRT", R.string.mode_mrt),
+            RegionTransitMode(TransitMode.BUS, "Bus", R.string.mode_bus)
         )
     ),
     AU(
@@ -89,11 +94,12 @@ enum class TransitRegion(
         timeZone = ZoneId.of("Australia/Sydney"),
         displayNameRes = R.string.region_au,
         subtitle = "Sydney Trains & Metro",
+        subtitleRes = R.string.region_subtitle_au,
         supportedModes = listOf(
-            RegionTransitMode(null, "All"),
-            RegionTransitMode(TransitMode.METRO, "Metro"),
-            RegionTransitMode(TransitMode.RAIL, "Train"),
-            RegionTransitMode(TransitMode.BUS, "Bus")
+            RegionTransitMode(null, "All", R.string.mode_all),
+            RegionTransitMode(TransitMode.METRO, "Metro", R.string.mode_metro),
+            RegionTransitMode(TransitMode.RAIL, "Train", R.string.mode_train),
+            RegionTransitMode(TransitMode.BUS, "Bus", R.string.mode_bus)
         )
     ),
     JP(
@@ -102,11 +108,12 @@ enum class TransitRegion(
         timeZone = ZoneId.of("Asia/Tokyo"),
         displayNameRes = R.string.region_jp,
         subtitle = "Tokyo Metro & JR East",
+        subtitleRes = R.string.region_subtitle_jp,
         supportedModes = listOf(
-            RegionTransitMode(null, "All"),
-            RegionTransitMode(TransitMode.METRO, "Metro"),
-            RegionTransitMode(TransitMode.RAIL, "JR / Rail"),
-            RegionTransitMode(TransitMode.BUS, "Bus")
+            RegionTransitMode(null, "All", R.string.mode_all),
+            RegionTransitMode(TransitMode.METRO, "Metro", R.string.mode_metro),
+            RegionTransitMode(TransitMode.RAIL, "JR / Rail", R.string.mode_jr_rail),
+            RegionTransitMode(TransitMode.BUS, "Bus", R.string.mode_bus)
         )
     );
 
@@ -116,6 +123,35 @@ enum class TransitRegion(
     fun getModeDisplayName(mode: TransitMode): String {
         return supportedModes.firstOrNull { it.mode == mode }?.displayName
             ?: mode.displayName
+    }
+
+    /**
+     * Resolves localized string resource for a raw station/departure mode identifier in this region.
+     */
+    @StringRes
+    fun getModeDisplayNameRes(rawMode: String): Int? {
+        return when (rawMode.lowercase().trim()) {
+            "tube" -> R.string.mode_tube
+            "elizabeth-line" -> R.string.mode_elizabeth_line
+            "overground" -> R.string.mode_overground
+            "dlr" -> R.string.mode_dlr
+            "national-rail" -> when (this) {
+                AU -> R.string.mode_train
+                JP -> R.string.mode_jr_rail
+                else -> R.string.mode_national_rail
+            }
+            "rail" -> when (this) {
+                AU -> R.string.mode_train
+                JP -> R.string.mode_jr_rail
+                else -> R.string.mode_national_rail
+            }
+            "tram" -> R.string.mode_tram
+            "bus" -> R.string.mode_bus
+            "mtr" -> R.string.mode_mtr
+            "mrt" -> R.string.mode_mrt
+            "metro" -> R.string.mode_metro
+            else -> null
+        }
     }
 
     // Backward-compatibility property so any existing code using `.id` continues to work
@@ -209,14 +245,26 @@ enum class TransitRegion(
      */
     @get:StringRes
     val lineStatusTitleRes: Int
-        get() = if (this == HK) R.string.line_status_title_mtr else R.string.line_status_title_live
+        get() = when (this) {
+            HK -> R.string.line_status_title_mtr
+            SG -> R.string.line_status_title_sg
+            AU -> R.string.line_status_title_au
+            JP -> R.string.line_status_title_jp
+            GB -> R.string.line_status_title_live
+        }
 
     /**
      * Localized string resource for network/line disruption status sheet subtitle.
      */
     @get:StringRes
     val lineStatusDescRes: Int
-        get() = if (this == HK) R.string.line_status_desc_hk else R.string.line_status_desc_general
+        get() = when (this) {
+            HK -> R.string.line_status_desc_hk
+            SG -> R.string.line_status_desc_sg
+            AU -> R.string.line_status_desc_au
+            JP -> R.string.line_status_desc_jp
+            GB -> R.string.line_status_desc_general
+        }
 
     companion object {
         /**

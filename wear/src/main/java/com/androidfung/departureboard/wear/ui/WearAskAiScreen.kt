@@ -118,7 +118,7 @@ internal fun WearAskAiScreen(
                         .clickable(onClick = onBack)
                 ) {
                     Text(
-                        text = "← ${station.stationCrs} Board",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_nav_station_board, station.stationCrs),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp
@@ -172,7 +172,7 @@ internal fun WearAskAiScreen(
                                     .clickable { onOpenAiOnPhone(resp.rawQuery) }
                             ) {
                                 Text(
-                                    text = "📱 Continue in Phone AI",
+                                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_continue_phone_ai),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 9.sp
@@ -211,7 +211,7 @@ internal fun WearAskAiScreen(
                         ) {
                             if (textQuery.isEmpty()) {
                                 Text(
-                                    text = "⌨️ Type or ask AI…",
+                                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_ask_ai_hint),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                     color = Color(0xFF90CAF9),
                                     maxLines = 1,

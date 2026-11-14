@@ -111,10 +111,20 @@ object TransitLocaleFormatter {
         parentheses: Boolean = false
     ): String {
         val en = names["en"]?.trim()?.takeIf { it.isNotBlank() }
-        val zh = (names["zh-Hant"] ?: names["zh-Hans"] ?: names["zh-HK"] ?: names["zh-TW"] ?: names["zh-CN"] ?: names["zh"])?.trim()?.takeIf { it.isNotBlank() }
+        val activeLocale = com.androidfung.departureboard.util.LocaleHelper.getActiveLocale()
+        val zh = if (isSimplifiedChinese(activeLocale)) {
+            names["zh-Hans"] ?: names["zh-CN"] ?: names["zh-SG"] ?: names["zh"] ?: names["zh-Hant"] ?: names["zh-HK"] ?: names["zh-TW"]
+        } else {
+            names["zh-Hant"] ?: names["zh-HK"] ?: names["zh-TW"] ?: names["zh"] ?: names["zh-Hans"] ?: names["zh-CN"]
+        }?.trim()?.takeIf { it.isNotBlank() }
         val ja = (names["ja"] ?: names["ja-Jpan"])?.trim()?.takeIf { it.isNotBlank() }
+        val ko = names["ko"]?.trim()?.takeIf { it.isNotBlank() }
         val cy = names["cy"]?.trim()?.takeIf { it.isNotBlank() }
-        val secondary = zh ?: ja ?: cy
+        val secondary = when (activeLocale.language) {
+            "ja" -> ja ?: zh ?: ko ?: cy
+            "ko" -> ko ?: zh ?: ja ?: cy
+            else -> zh ?: ja ?: ko ?: cy
+        }
 
         return formatBilingual(en, secondary, parentheses)
     }

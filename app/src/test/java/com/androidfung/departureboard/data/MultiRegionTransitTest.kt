@@ -39,7 +39,8 @@ class MultiRegionTransitTest {
 
         val departures = source.fetchDepartures(orchard.id, orchard.name, false).getOrThrow()
         assertTrue("Departures should be generated for Orchard", departures.isNotEmpty())
-        assertEquals("tube", departures[0].modeName)
+        assertEquals("metro", departures[0].modeName)
+        assertEquals(com.androidfung.departureboard.data.model.DataFreshness.OFFLINE_SCHEDULED, departures[0].dataFreshness)
         assertNotNull(departures[0].lineBadge)
     }
 

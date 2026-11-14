@@ -206,13 +206,43 @@ object PlatformBacklogDetector {
         // Hong Kong MTR lines
         "island" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 4, lateNightMinutes = 6),
         "tsuen-wan" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 4, lateNightMinutes = 6),
-        "twen-wan" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 4, lateNightMinutes = 6),
         "kwun-tong" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 4, lateNightMinutes = 6),
         "east-rail" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 7),
         "south-island" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 7),
         "tung-chung" to HeadwayProfile(peakMinutes = 4, offPeakMinutes = 7, lateNightMinutes = 10),
         "tuen-ma" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 7),
-        "airport-express" to HeadwayProfile(peakMinutes = 10, offPeakMinutes = 10, lateNightMinutes = 12)
+        "airport-express" to HeadwayProfile(peakMinutes = 10, offPeakMinutes = 10, lateNightMinutes = 12),
+
+        // Singapore MRT lines
+        "nsl" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 4, lateNightMinutes = 7),
+        "ewl" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 4, lateNightMinutes = 7),
+        "nel" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 5, lateNightMinutes = 7),
+        "ccl" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 8),
+        "dtl" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 8),
+        "tel" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 6, lateNightMinutes = 9),
+
+        // Sydney Trains & Metro (AU)
+        "t1" to HeadwayProfile(peakMinutes = 5, offPeakMinutes = 10, lateNightMinutes = 15),
+        "t2" to HeadwayProfile(peakMinutes = 5, offPeakMinutes = 10, lateNightMinutes = 15),
+        "t3" to HeadwayProfile(peakMinutes = 7, offPeakMinutes = 15, lateNightMinutes = 20),
+        "t4" to HeadwayProfile(peakMinutes = 5, offPeakMinutes = 10, lateNightMinutes = 15),
+        "t8" to HeadwayProfile(peakMinutes = 6, offPeakMinutes = 12, lateNightMinutes = 20),
+        "t9" to HeadwayProfile(peakMinutes = 6, offPeakMinutes = 12, lateNightMinutes = 20),
+        "m1" to HeadwayProfile(peakMinutes = 4, offPeakMinutes = 8, lateNightMinutes = 10),
+
+        // Tokyo JR & Metro lines (JP)
+        "jy" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 4, lateNightMinutes = 8),
+        "jc" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 4, lateNightMinutes = 8),
+        "jk" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 10),
+        "g" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 4, lateNightMinutes = 8),
+        "m" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 4, lateNightMinutes = 8),
+        "h" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 9),
+        "t" to HeadwayProfile(peakMinutes = 2, offPeakMinutes = 5, lateNightMinutes = 9),
+        "c" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 9),
+        "y" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 9),
+        "z" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 9),
+        "n" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 6, lateNightMinutes = 10),
+        "f" to HeadwayProfile(peakMinutes = 3, offPeakMinutes = 5, lateNightMinutes = 10)
     )
 
     /**

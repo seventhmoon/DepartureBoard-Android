@@ -96,15 +96,17 @@ class DepartureBoardWidget : GlanceAppWidget() {
         internal suspend fun resolveSmartCommuteStation(
             repository: com.androidfung.departureboard.data.repository.TransitRepository
         ): Pair<Station, String> {
-            val period = com.androidfung.departureboard.util.SmartCommuteHelper.getCommutePeriod()
+            val fallbackRegion = runCatching { repository.selectedRegionFlow.firstOrNull() }
+                .getOrNull() ?: com.androidfung.departureboard.data.model.TransitRegion.GB
+            val period = com.androidfung.departureboard.util.SmartCommuteHelper.getCommutePeriod(
+                java.time.LocalTime.now(fallbackRegion.timeZone)
+            )
             val saved = runCatching { repository.savedStationsFlow.firstOrNull().orEmpty() }.getOrDefault(emptyList())
             val ordered = com.androidfung.departureboard.util.SmartCommuteHelper.reorderForCommute(
                 items = saved,
                 tagSelector = { it.commuteTag },
                 period = period
             )
-            val fallbackRegion = runCatching { repository.selectedRegionFlow.firstOrNull() }
-                .getOrNull() ?: com.androidfung.departureboard.data.model.TransitRegion.GB
             val chosen = ordered.firstOrNull()
                 ?: fallbackRegion.defaultStations.firstOrNull()
                 ?: com.androidfung.departureboard.data.model.gb.GbDefaultStations.POPULAR_STATIONS.first()
@@ -160,10 +162,11 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 val filterDirection = prefs[PREF_FILTER_DIRECTION] ?: fastFilterDirection
                 val refreshTimestamp = prefs[PREF_LAST_REFRESH_TIMESTAMP] ?: 0L
 
+                val isBilingual by repository.isBilingualEnabledFlow.collectAsState(initial = true)
                 val isSmartCommuteMode = rawStationId == SMART_COMMUTE_WIDGET_STATION_ID
                 val stationId = if (isSmartCommuteMode) smartCommuteResolved.first.id else rawStationId
                 val stationName = if (isSmartCommuteMode) {
-                    "${smartCommuteResolved.second}${smartCommuteResolved.first.displayName}"
+                    "${smartCommuteResolved.second}${smartCommuteResolved.first.resolveDisplayName(isBilingual)}"
                 } else {
                     rawStationName
                 }
@@ -193,12 +196,12 @@ class DepartureBoardWidget : GlanceAppWidget() {
                     val payload by androidx.compose.runtime.remember(stationId, refreshTimestamp) {
                         flow {
                             val cached = repository.getCachedDepartures(stationId)
-                            val cachedStatuses = repository.getLineStatuses()
+                            val cachedStatuses = repository.getLineStatuses(region)
                             if (cached.isNotEmpty()) {
                                 emit(WidgetPayload(Result.success(cached), cachedStatuses))
                             }
                             val departuresResult = repository.getDepartures(stationId, targetStation.name)
-                            val freshStatuses = repository.getLineStatuses()
+                            val freshStatuses = repository.getLineStatuses(region)
                             emit(WidgetPayload(departuresResult, freshStatuses))
                         }.flowOn(Dispatchers.IO)
                     }.collectAsState(initial = null)
@@ -208,7 +211,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
                             // Loading state
                             WidgetPreparingPlaceholder(
                                 station = targetStation,
-                                filterLabel = combinedFilterLabel
+                                filterLabel = combinedFilterLabel,
+                                isBilingual = isBilingual
                             )
                         }
                         else -> {
@@ -236,7 +240,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
                                 departures = filteredDepartures,
                                 isLiveData = isSuccess,
                                 isError = currentPayload.departuresResult.isFailure,
-                                interruptionInfo = interruptionInfo
+                                interruptionInfo = interruptionInfo,
+                                isBilingual = isBilingual
                             )
                         }
                     }
@@ -257,7 +262,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
         departures: List<Departure>,
         isLiveData: Boolean = true,
         isError: Boolean = false,
-        interruptionInfo: WidgetInterruptionHelper.InterruptionInfo = WidgetInterruptionHelper.InterruptionInfo()
+        interruptionInfo: WidgetInterruptionHelper.InterruptionInfo = WidgetInterruptionHelper.InterruptionInfo(),
+        isBilingual: Boolean = true
     ) {
         val context = androidx.glance.LocalContext.current
         val clickIntent = Intent(context, MainActivity::class.java).apply {
@@ -315,7 +321,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
 
                 Column(modifier = GlanceModifier.defaultWeight()) {
                     Text(
-                        text = station.displayName,
+                        text = station.resolveDisplayName(isBilingual),
                         style = TextStyle(
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
@@ -420,7 +426,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
                     ) { departure ->
                         WidgetDepartureRow(
                             departure = departure,
-                            station = station
+                            station = station,
+                            isBilingual = isBilingual
                         )
                     }
                 }
@@ -439,7 +446,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
     @Composable
     private fun WidgetDepartureRow(
         departure: Departure,
-        station: Station
+        station: Station,
+        isBilingual: Boolean = true
     ) {
         val context = androidx.glance.LocalContext.current
         val clickIntent = Intent(context, MainActivity::class.java).apply {
@@ -517,7 +525,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
 
             Column(modifier = GlanceModifier.defaultWeight()) {
                 Text(
-                    text = departure.destinationName,
+                    text = departure.resolveDestinationName(isBilingual),
                     style = TextStyle(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
@@ -659,7 +667,8 @@ class DepartureBoardWidget : GlanceAppWidget() {
     @Composable
     private fun WidgetPreparingPlaceholder(
         station: Station,
-        filterLabel: String?
+        filterLabel: String?,
+        isBilingual: Boolean = true
     ) {
         val context = androidx.glance.LocalContext.current
         Column(
@@ -681,7 +690,7 @@ class DepartureBoardWidget : GlanceAppWidget() {
             Spacer(modifier = GlanceModifier.height(10.dp))
 
             Text(
-                text = station.displayName,
+                text = station.resolveDisplayName(isBilingual),
                 style = TextStyle(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,

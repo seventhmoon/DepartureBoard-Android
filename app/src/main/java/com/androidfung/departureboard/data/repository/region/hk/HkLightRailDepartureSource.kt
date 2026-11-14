@@ -67,11 +67,10 @@ class HkLightRailDepartureSource(
 
                     val destEn = item.destEn?.trim().orEmpty()
                     val destCh = item.destCh?.trim().orEmpty()
-                    val destinationLabel = when {
-                        destEn.isNotBlank() && destCh.isNotBlank() -> "$destEn ($destCh)"
-                        destEn.isNotBlank() -> destEn
-                        destCh.isNotBlank() -> destCh
-                        else -> "Light Rail"
+                    val destinationLabel = destEn.ifBlank { destCh }.ifBlank { "Light Rail" }
+                    val localizedDest = buildMap {
+                        if (destEn.isNotBlank()) put("en", destEn)
+                        if (destCh.isNotBlank()) put("zh-Hant", destCh)
                     }
 
                     val arrivalInstant = now.plusSeconds(waitSeconds.toLong())
@@ -84,6 +83,7 @@ class HkLightRailDepartureSource(
                             lineName = "Light Rail $routeNo",
                             platformName = platStr,
                             destinationName = destinationLabel,
+                            localizedDestinationNames = localizedDest,
                             towards = destinationLabel,
                             timeToStationSeconds = waitSeconds,
                             expectedArrivalIso = arrivalInstant.toString(),

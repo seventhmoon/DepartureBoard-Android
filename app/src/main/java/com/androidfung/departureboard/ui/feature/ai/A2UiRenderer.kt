@@ -269,8 +269,9 @@ private fun DeparturesActionCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
+                val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
                 Text(
-                    text = station.displayName,
+                    text = station.resolveDisplayName(isBilingual),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
@@ -412,9 +413,10 @@ private fun ActionButtonChip(
         }
 
         is A2UiAction.PinStation -> {
+            val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
             AssistChip(
                 onClick = { onActionClick(action) },
-                label = { Text(stringResource(R.string.ai_action_pin, action.station.displayName.substringBefore("(").trim())) },
+                label = { Text(stringResource(R.string.ai_action_pin, action.station.resolveDisplayName(isBilingual).substringBefore("(").trim())) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Rounded.PushPin,

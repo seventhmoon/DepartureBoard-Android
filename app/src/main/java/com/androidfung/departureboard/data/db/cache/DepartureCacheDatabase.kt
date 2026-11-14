@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CachedDepartureEntity::class,
         HistoricalPlatformObservationEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class DepartureCacheDatabase : RoomDatabase() {

@@ -132,7 +132,7 @@ internal fun WearSprintHudScreen(
                             .clickable(onClick = onToggleManualAmbient)
                     ) {
                         Text(
-                            text = "🌙 Ambient • Tap to Wake",
+                            text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_ambient_wake_short),
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                             color = Color(0xFF78909C),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
@@ -152,7 +152,7 @@ internal fun WearSprintHudScreen(
                                 .clickable(onClick = onBackToBoard)
                         ) {
                             Text(
-                                text = "← Board",
+                                text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_nav_back_board),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 9.sp
@@ -343,7 +343,7 @@ internal fun WearSprintHudScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "📤 Share Live ETA",
+                                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_share_live_eta),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 10.sp
@@ -370,7 +370,7 @@ internal fun WearSprintHudScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "📱 Open on Phone",
+                                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_open_on_phone),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 10.sp
@@ -397,7 +397,7 @@ internal fun WearSprintHudScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "⏹ Stop Tracking",
+                                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_stop_tracking),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 10.sp
@@ -415,7 +415,7 @@ internal fun WearSprintHudScreen(
             if (!isAmbientMode && journey.callingPoints.isNotEmpty()) {
                 item(key = "hud_alight_header", contentType = "alight_header") {
                     Text(
-                        text = "🎯 Tap Stop for Alight Alert",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_tap_stop_alight),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 9.sp
@@ -462,7 +462,7 @@ internal fun WearSprintHudScreen(
                             )
                             if (isSelected) {
                                 Text(
-                                    text = "1-stop alert",
+                                    text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_one_stop_alert),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                                     color = Color(0xFFA7FFEB)
                                 )

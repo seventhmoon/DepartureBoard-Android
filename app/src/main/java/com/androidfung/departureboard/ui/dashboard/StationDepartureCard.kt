@@ -411,6 +411,8 @@ private fun StationHeaderSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
+            val resolvedStationName = station.resolveDisplayName(isBilingual)
             Row(
                 modifier = Modifier
                     .weight(1f)
@@ -418,7 +420,7 @@ private fun StationHeaderSection(
                         if (onStationClick != null) {
                             Modifier
                                 .semantics(mergeDescendants = true) {
-                                    contentDescription = station.displayName
+                                    contentDescription = resolvedStationName
                                 }
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                                     onStationClick(station)
@@ -467,7 +469,7 @@ private fun StationHeaderSection(
                         Spacer(modifier = Modifier.height(2.dp))
                     }
                     Text(
-                        text = station.displayName,
+                        text = resolvedStationName,
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp

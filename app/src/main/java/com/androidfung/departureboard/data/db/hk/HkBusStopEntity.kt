@@ -40,7 +40,8 @@ data class HkBusStopEntity(
 
     fun toStation(): Station = Station(
         id = "HK_BUS_$stopId",
-        name = if (nameTc.isNotBlank()) "$nameEn ($nameTc)" else nameEn,
+        name = nameEn.ifBlank { nameTc },
+        localizedNames = localizedNames,
         modes = listOf("bus"),
         lines = listOf(StationLineInfo("BUS", "KMB / LWB"))
     )

@@ -110,17 +110,26 @@ object StationSearchRanker {
 
         return stations.sortedWith(
             compareBy<Station> { station ->
-                val nameLower = station.name.lowercase().trim()
-                val baseName = nameLower.substringBefore(" (").trim()
-                when {
-                    baseName == q -> 0
-                    nameLower == q -> 1
-                    baseName.startsWith(q) -> 2
-                    nameLower.startsWith(q) -> 3
-                    baseName.split(WORD_SPLIT_REGEX).any { it.startsWith(q) } -> 4
-                    nameLower.split(WORD_SPLIT_REGEX).any { it.startsWith(q) } -> 5
-                    baseName.contains(q) || nameLower.contains(q) -> 6
-                    else -> 7
+                val candidates = buildList {
+                    add(station.name.lowercase().trim())
+                    station.localizedNames.values.forEach { localized ->
+                        val lower = localized.lowercase().trim()
+                        if (lower.isNotBlank()) add(lower)
+                    }
+                }.distinct()
+
+                candidates.minOf { candidate ->
+                    val baseName = candidate.substringBefore(" (").trim()
+                    when {
+                        baseName == q -> 0
+                        candidate == q -> 1
+                        baseName.startsWith(q) -> 2
+                        candidate.startsWith(q) -> 3
+                        baseName.split(WORD_SPLIT_REGEX).any { it.startsWith(q) } -> 4
+                        candidate.split(WORD_SPLIT_REGEX).any { it.startsWith(q) } -> 5
+                        baseName.contains(q) || candidate.contains(q) -> 6
+                        else -> 7
+                    }
                 }
             }.thenBy { station ->
                 val isRail = station.primaryTransitMode.isRail

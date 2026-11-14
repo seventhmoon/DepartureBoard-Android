@@ -34,7 +34,7 @@ object AuStationDirectory : BaseStationDirectory<AuStationDirectory.AuStationEnt
         override fun toStation(): Station = Station(
             id = "AU_TRAIN_$code",
             name = name,
-            modes = if (isMetroOnly) listOf("tube") else listOf("national-rail"),
+            modes = if (isMetroOnly) listOf("metro") else listOf("rail"),
             lat = STATION_COORDS[code]?.first,
             lon = STATION_COORDS[code]?.second,
             lines = lines.map { StationLineInfo(it.first, it.second) }

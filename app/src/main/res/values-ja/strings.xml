@@ -201,7 +201,7 @@
     <string name="search_stations_subtitle">リアルタイム発車情報を確認してホームに固定</string>
     <string name="search_stations_close">検索を閉じる</string>
     <string name="search_stations_placeholder_hk">駅名またはバス系統（例: 中環、1A、104）…</string>
-    <string name="search_stations_placeholder_general">駅名またはバス系統（例: 新宿、221、SL1）…</string>
+    <string name="search_stations_placeholder_general">駅名、路線、またはバス系統を検索…</string>
     <string name="search_stations_clear">検索をクリア</string>
     <string name="search_stations_popular">人気の駅</string>
     <string name="search_stations_results_count">検索結果 (%1$d)</string>
@@ -233,7 +233,7 @@
     <string name="dashboard_menu_upgrade_pro">Pro にアップグレード</string>
     <string name="dashboard_fab_ask_ai">AI に質問</string>
     <string name="dashboard_fab_ask_ai_desc">EkiBoard AI に質問</string>
-    <string name="dashboard_offline_banner">オフライン • キャ��シュされた発車情報を表示中</string>
+    <string name="dashboard_offline_banner">オフライン • キャッシュされた発車情報を表示中</string>
     <string name="dashboard_search_bar_placeholder">駅・路線を検索…</string>
     <string name="dashboard_search_desc">検索</string>
 
@@ -252,6 +252,35 @@
     <string name="line_status_filter_disrupted">乱れ発生中 (%1$d)</string>
     <string name="line_status_expand_desc">詳細を展開</string>
     <string name="line_status_collapse_desc">詳細を折りたたむ</string>
+    <string name="line_status_title_sg">MRT 運行状況</string>
+    <string name="line_status_title_au">シドニー鉄道運行状況</string>
+    <string name="line_status_title_jp">東京路線運行状況</string>
+    <string name="line_status_desc_sg">シンガポール MRT 路線網</string>
+    <string name="line_status_desc_au">シドニー・トレインズ＆メトロ路線網</string>
+    <string name="line_status_desc_jp">東京メトロ・都営・JR東日本路線網</string>
+    <string name="line_status_good_service">平常運転</string>
+    <string name="line_status_disrupted">運転見合わせ・遅延</string>
+    <string name="line_status_bus_prefix">バス %1$s</string>
+
+    <!-- Region Subtitles & Transit Modes -->
+    <string name="region_subtitle_gb">イギリス国鉄・TfL</string>
+    <string name="region_subtitle_hk">MTR・路線バス</string>
+    <string name="region_subtitle_sg">MRT・バス</string>
+    <string name="region_subtitle_au">シドニー・トレインズ＆メトロ</string>
+    <string name="region_subtitle_jp">東京メトロ・JR東日本</string>
+    <string name="mode_all">すべて</string>
+    <string name="mode_tube">地下鉄 (Tube)</string>
+    <string name="mode_elizabeth_line">エリザベス線</string>
+    <string name="mode_overground">オーバーグラウンド</string>
+    <string name="mode_dlr">DLR</string>
+    <string name="mode_national_rail">国鉄 (National Rail)</string>
+    <string name="mode_tram">トラム</string>
+    <string name="mode_bus">バス</string>
+    <string name="mode_mtr">MTR</string>
+    <string name="mode_mrt">MRT</string>
+    <string name="mode_metro">メトロ</string>
+    <string name="mode_train">電車</string>
+    <string name="mode_jr_rail">JR・鉄道</string>
 
     <!-- Station Detail Screen -->
 
@@ -465,7 +494,7 @@
 
     <!-- AI Quota Exceeded -->
     <string name="ai_quota_exceeded">本日の無料 AI クエリ上限（%1$d 回）に達しました。Pro にアップグレードすると、無制限の AI プロンプト、リアルタイムの運行情報確認、停車駅案内をご利用いただけます。</string>
-    <string name="ai_input_placeholder">質問または音声入力:「Mill Hill East行きの電車」…</string>
+    <string name="ai_input_placeholder">質問または音声入力:「次の電車」や「遅延はある？」…</string>
 
     <!-- Last Train Home & Night Service -->
     <string name="badge_last_train">🌙 終電</string>
@@ -498,7 +527,7 @@
 
     <!-- Labs & Experimental Features -->
     <string name="settings_section_labs">Labs &amp; 先行機能</string>
-    <string name="settings_labs_title">Labs</string>
+    <string name="settings_labs_title">ラボ (Labs)</string>
     <string name="settings_labs_subtitle">開発中の実験的機能と先行プレビュー</string>
     <string name="labs_title">EkiBoard Labs</string>
     <string name="labs_subtitle">開発中の実験的な交通案内機能をいち早く体験</string>
@@ -579,4 +608,7 @@
     <string name="shortcut_station_departures">%1$s 発車案内</string>
     <string name="travel_alert_read_more">続きを読む</string>
     <string name="travel_alert_show_less">折りたたむ</string>
+    <string name="delay_repay_claim_online">オンラインで申請 ↗</string>
+    <string name="delay_repay_copy_details">詳細をコピー</string>
+    <string name="delay_repay_copied_toast">遅延詳細をクリップボードにコピーしました</string>
 </resources>

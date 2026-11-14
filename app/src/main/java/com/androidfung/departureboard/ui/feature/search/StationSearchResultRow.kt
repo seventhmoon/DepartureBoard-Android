@@ -95,9 +95,10 @@ fun StationSearchResultRow(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
+                val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = station.name,
+                        text = station.resolveDisplayName(isBilingual),
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp

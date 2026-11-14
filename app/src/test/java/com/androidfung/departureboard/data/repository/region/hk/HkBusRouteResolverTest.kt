@@ -46,10 +46,12 @@ class HkBusRouteResolverTest {
         val callingPoints = resolver.resolveCallingPoints("1A", "STOP_2", "outbound")
 
         assertEquals(2, callingPoints.size)
-        assertEquals("Nathan Road 彌敦道", callingPoints[0].stationName)
+        assertEquals("Nathan", callingPoints[0].stationName)
+        assertEquals("Road 彌敦道", callingPoints[0].localizedNames["zh-Hant"])
         assertTrue(callingPoints[0].isCurrentStation)
 
-        assertEquals("Sau Mau Ping 中秀茂坪", callingPoints[1].stationName)
+        assertEquals("Sau", callingPoints[1].stationName)
+        assertEquals("Mau Ping 中秀茂坪", callingPoints[1].localizedNames["zh-Hant"])
         assertTrue(callingPoints[1].isDestination)
     }
 }

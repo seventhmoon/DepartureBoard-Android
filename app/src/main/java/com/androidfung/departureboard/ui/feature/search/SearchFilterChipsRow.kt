@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.androidfung.departureboard.data.model.RegionTransitMode
@@ -41,7 +42,7 @@ fun SearchFilterChipsRow(
                 onClick = { onModeSelected(modeItem) },
                 label = {
                     Text(
-                        text = modeItem.displayName,
+                        text = stringResource(modeItem.displayNameRes),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                         )

@@ -72,14 +72,14 @@ interface TransitRepository {
     val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean>
     val recentSearchedStationsFlow: Flow<List<Station>>
 
-    suspend fun searchStations(query: String): Result<List<Station>>
+    suspend fun searchStations(query: String, region: TransitRegion? = null): Result<List<Station>>
     suspend fun getStationById(stationId: String): Station?
     suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>>
     suspend fun getBatchDepartures(stations: List<Station>): Map<String, Result<List<Departure>>>
     fun getDeparturesFlow(stationId: String, stationName: String): Flow<Result<List<Departure>>>
     suspend fun getCachedDepartures(stationId: String): List<Departure>
-    suspend fun getLineStatuses(): Map<String, TflLineStatusItem>
-    suspend fun getTransitAlerts(): List<TransitAlert> = emptyList()
+    suspend fun getLineStatuses(region: TransitRegion? = null): Map<String, TflLineStatusItem>
+    suspend fun getTransitAlerts(region: TransitRegion? = null): List<TransitAlert> = emptyList()
     suspend fun getStationAccessibilityAlerts(stationId: String): List<TransitAlert> = emptyList()
     suspend fun getCallingPoints(departure: Departure): List<CallingPoint>
     suspend fun checkStationServiceHours(stationId: String, lineId: String? = null): StationServiceHoursInfo?
@@ -99,7 +99,12 @@ interface TransitRepository {
     suspend fun setBikeshareEnabled(enabled: Boolean)
     suspend fun setAutoSortByLocation(enabled: Boolean)
     suspend fun setWidgetDisruptionNotificationsEnabled(enabled: Boolean)
-    suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int = 1500): List<Station>
+    suspend fun getNearbyStationsFromApi(
+        lat: Double,
+        lon: Double,
+        radiusMeters: Int = 1500,
+        region: TransitRegion? = null
+    ): List<Station>
 }
 
 /**
@@ -214,9 +219,9 @@ class TransitRepositoryImpl(
         TransitRegion.GB
     }
 
-    override suspend fun searchStations(query: String): Result<List<Station>> = withContext(Dispatchers.IO) {
-        val currentRegion = currentRegionOrDefault()
-        val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
+    override suspend fun searchStations(query: String, region: TransitRegion?): Result<List<Station>> = withContext(Dispatchers.IO) {
+        val targetRegion = region ?: currentRegionOrDefault()
+        val provider = providersByRegion[targetRegion] ?: gbRegionalProvider
         provider.searchStations(query)
     }
 
@@ -303,15 +308,15 @@ class TransitRepositoryImpl(
         emit(getDepartures(stationId, stationName))
     }.flowOn(Dispatchers.IO)
 
-    override suspend fun getLineStatuses(): Map<String, TflLineStatusItem> = withContext(Dispatchers.IO) {
-        val currentRegion = currentRegionOrDefault()
-        val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
+    override suspend fun getLineStatuses(region: TransitRegion?): Map<String, TflLineStatusItem> = withContext(Dispatchers.IO) {
+        val targetRegion = region ?: currentRegionOrDefault()
+        val provider = providersByRegion[targetRegion] ?: gbRegionalProvider
         provider.getLineStatuses()
     }
 
-    override suspend fun getTransitAlerts(): List<TransitAlert> = withContext(Dispatchers.IO) {
-        val currentRegion = currentRegionOrDefault()
-        val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
+    override suspend fun getTransitAlerts(region: TransitRegion?): List<TransitAlert> = withContext(Dispatchers.IO) {
+        val targetRegion = region ?: currentRegionOrDefault()
+        val provider = providersByRegion[targetRegion] ?: gbRegionalProvider
         provider.getTransitAlerts()
     }
 
@@ -378,9 +383,14 @@ class TransitRepositoryImpl(
     /**
      * Fetches nearby stations for the currently selected region by latitude and longitude.
      */
-    override suspend fun getNearbyStationsFromApi(lat: Double, lon: Double, radiusMeters: Int): List<Station> = withContext(Dispatchers.IO) {
-        val currentRegion = currentRegionOrDefault()
-        val provider = providersByRegion[currentRegion] ?: gbRegionalProvider
+    override suspend fun getNearbyStationsFromApi(
+        lat: Double,
+        lon: Double,
+        radiusMeters: Int,
+        region: TransitRegion?
+    ): List<Station> = withContext(Dispatchers.IO) {
+        val targetRegion = region ?: currentRegionOrDefault()
+        val provider = providersByRegion[targetRegion] ?: gbRegionalProvider
         provider.getNearbyStations(lat, lon, radiusMeters)
     }
 

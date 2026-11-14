@@ -22,7 +22,7 @@ object JpStationDirectory : BaseStationDirectory<JpStationDirectory.JpStationEnt
         val japaneseName: String,
         val hiragana: String,
         val lines: List<Pair<String, String>>,
-        val modes: List<String> = listOf("tube")
+        val modes: List<String> = listOf("metro")
     ) : CatalogStationEntry {
         override fun matchesQuery(normalizedQuery: String): Boolean {
             return englishName.lowercase().contains(normalizedQuery) ||
@@ -37,7 +37,7 @@ object JpStationDirectory : BaseStationDirectory<JpStationDirectory.JpStationEnt
 
         override fun toStation(): Station = Station(
             id = "JP_METRO_$code",
-            name = "$englishName ($japaneseName)",
+            name = englishName,
             localizedNames = mapOf(
                 "en" to englishName,
                 "ja" to japaneseName,

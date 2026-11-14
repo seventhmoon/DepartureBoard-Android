@@ -37,7 +37,14 @@ object SgStationDirectory : BaseStationDirectory<SgStationDirectory.SgStationEnt
         override fun toStation(): Station = Station(
             id = "SG_MRT_$code",
             name = englishName,
-            modes = listOf("tube"),
+            localizedNames = buildMap {
+                put("en", englishName)
+                if (chineseName.isNotBlank()) {
+                    put("zh-Hans", chineseName)
+                    put("zh-Hant", chineseName)
+                }
+            },
+            modes = listOf("mrt"),
             lat = lat ?: STATION_COORDS[englishName]?.first,
             lon = lon ?: STATION_COORDS[englishName]?.second,
             lines = lines.map { StationLineInfo(it.first, it.second) }

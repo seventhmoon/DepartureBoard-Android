@@ -559,8 +559,23 @@ data class Departure(
     val fare: FareEstimate? = null,
     val isLastTrain: Boolean = false,
     val isNightService: Boolean = false,
-    val dataFreshness: DataFreshness = DataFreshness.LIVE
+    val dataFreshness: DataFreshness = DataFreshness.LIVE,
+    val localizedDestinationNames: Map<String, String> = emptyMap()
 ) {
+    fun resolveDestinationName(showBilingual: Boolean = false): String {
+        if (localizedDestinationNames.isEmpty()) return destinationName
+        return if (showBilingual) {
+            com.androidfung.departureboard.data.i18n.TransitLocaleFormatter.formatBilingual(
+                localizedDestinationNames,
+                parentheses = true
+            ).ifBlank { destinationName }
+        } else {
+            com.androidfung.departureboard.data.i18n.TransitLocaleFormatter.formatLocalized(
+                localizedDestinationNames,
+                fallbackToBilingual = false
+            ).ifBlank { destinationName }
+        }
+    }
     val resolvedPlatform: PlatformInfo
         get() = platform ?: PlatformInfo(
             code = platformName.ifBlank { "TBD" },

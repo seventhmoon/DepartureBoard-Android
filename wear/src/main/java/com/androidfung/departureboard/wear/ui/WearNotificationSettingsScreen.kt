@@ -92,7 +92,7 @@ internal fun WearNotificationSettingsScreen(
             item(key = "notif_header") {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "🔔 Notification Channels",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_notif_channels_title),
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
@@ -101,7 +101,7 @@ internal fun WearNotificationSettingsScreen(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Toggle alert types or customize sound/vibration",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_notif_channels_subtitle),
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
                         color = Color(0xFF90A4AE),
                         textAlign = TextAlign.Center
@@ -219,7 +219,7 @@ internal fun WearNotificationSettingsScreen(
                         .clickable { onOpenSystemChannelSettings(null) }
                 ) {
                     Text(
-                        text = "⚙ All System Channels",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_all_system_channels),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp
@@ -239,7 +239,7 @@ internal fun WearNotificationSettingsScreen(
                         .clickable(onClick = onBack)
                 ) {
                     Text(
-                        text = "← Back to Board",
+                        text = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.wear.R.string.wear_nav_back_to_board),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp

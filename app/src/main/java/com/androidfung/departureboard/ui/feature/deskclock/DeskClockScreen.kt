@@ -393,9 +393,10 @@ private fun DeskClockBoardPane(
                     )
                 }
 
+                val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = station.displayName.uppercase(),
+                        text = station.resolveDisplayName(isBilingual).uppercase(),
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Black,

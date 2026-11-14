@@ -104,15 +104,15 @@ class HkRegionalTransitProvider(
     }
 
     override suspend fun getStationById(stationId: String): Station? {
-        HkDefaultStations.POPULAR_STATIONS.firstOrNull {
-            it.id.equals(stationId, ignoreCase = true)
-        }?.let { return it }
-
         val mtrRef = stationId.parseHkMtrStationId()
         val mtrStation = HkMtrStationRegistry.getStation(mtrRef.stationCode)
         if (mtrStation != null) {
             return HkStationDirectory.mtrToStation(mtrStation, mtrRef.lineCode)
         }
+
+        HkDefaultStations.POPULAR_STATIONS.firstOrNull {
+            it.id.equals(stationId, ignoreCase = true)
+        }?.let { return it }
 
         if (stationId.startsWith("HK_BUS_KMB_", ignoreCase = true)) {
             val rawStopId = extractRawHkBusStopId(stationId)
@@ -125,15 +125,15 @@ class HkRegionalTransitProvider(
                 val detail = hkBusSearchEngine.fetchStopDetail(rawStopId)
                 val nameTc = detail.localizedNames["zh-Hant"].orEmpty().trim()
                 val nameEn = detail.localizedNames["en"].orEmpty().trim()
-                val displayName = when {
-                    nameTc.isNotBlank() && nameEn.isNotBlank() -> "$nameEn ($nameTc)"
-                    nameTc.isNotBlank() -> nameTc
-                    nameEn.isNotBlank() -> nameEn
-                    else -> "Bus Stop"
+                val baseName = nameEn.ifBlank { nameTc }.ifBlank { "Bus Stop" }
+                val localizedMap = buildMap {
+                    if (nameEn.isNotBlank()) put("en", nameEn)
+                    if (nameTc.isNotBlank()) put("zh-Hant", nameTc)
                 }
                 Station(
                     id = stationId,
-                    name = displayName,
+                    name = baseName,
+                    localizedNames = localizedMap,
                     modes = listOf(TransitMode.BUS.id),
                     zone = null,
                     lat = detail.lat?.toDoubleOrNull(),
@@ -225,27 +225,15 @@ class HkRegionalTransitProvider(
                         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
                             throw e
                         } catch (_: Exception) {
-                            // Fallback to Good Service if query fails
-                            mtrLine.code.lowercase() to TflLineStatusItem(
-                                id = mtrLine.code.lowercase(),
-                                name = mtrLine.lineName,
-                                modeName = "mtr",
-                                lineStatuses = listOf(
-                                    TflLineStatusDetail(
-                                        id = 0,
-                                        statusSeverity = 10,
-                                        statusSeverityDescription = "Good Service",
-                                        reason = null
-                                    )
-                                )
-                            )
+                            // Omit failed line instead of falsely reporting Good Service
+                            null
                         }
                     }
                 }
 
                 lineDeferreds.forEach { deferred ->
-                    val (key, item) = deferred.await()
-                    results[key] = item
+                    val pair = deferred.await() ?: return@forEach
+                    results[pair.first] = pair.second
                 }
                 results
             }

@@ -200,7 +200,7 @@
     <string name="search_stations_subtitle">查看即時離站班次並釘選至儀表板</string>
     <string name="search_stations_close">關閉搜尋</string>
     <string name="search_stations_placeholder_hk">搜尋車站或巴士路線（例如 中環、1A、104）…</string>
-    <string name="search_stations_placeholder_general">搜尋車站或巴士路線（例如 221、SL1）…</string>
+    <string name="search_stations_placeholder_general">搜尋車站、路線或巴士路線…</string>
     <string name="search_stations_clear">清除搜尋</string>
     <string name="search_stations_popular">熱門車站</string>
     <string name="search_stations_results_count">搜尋結果 (%1$d)</string>
@@ -251,6 +251,35 @@
     <string name="line_status_filter_disrupted">異常路線 (%1$d)</string>
     <string name="line_status_expand_desc">展開詳細資訊</string>
     <string name="line_status_collapse_desc">收起詳細資訊</string>
+    <string name="line_status_title_sg">新加坡地鐵路網狀態</string>
+    <string name="line_status_title_au">雪梨鐵路網狀態</string>
+    <string name="line_status_title_jp">東京鐵路網狀態</string>
+    <string name="line_status_desc_sg">新加坡地鐵路線</string>
+    <string name="line_status_desc_au">雪梨鐵路及地鐵路線</string>
+    <string name="line_status_desc_jp">東京地鐵、都營地鐵及 JR 東日本路線</string>
+    <string name="line_status_good_service">服務正常</string>
+    <string name="line_status_disrupted">服務受阻</string>
+    <string name="line_status_bus_prefix">巴士 %1$s</string>
+
+    <!-- Region Subtitles & Transit Modes -->
+    <string name="region_subtitle_gb">英國國家鐵路及倫敦交通局</string>
+    <string name="region_subtitle_hk">港鐵及專營巴士</string>
+    <string name="region_subtitle_sg">新加坡地鐵及巴士</string>
+    <string name="region_subtitle_au">雪梨鐵路及地鐵</string>
+    <string name="region_subtitle_jp">東京地鐵及 JR 東日本</string>
+    <string name="mode_all">全部</string>
+    <string name="mode_tube">地鐵 (Tube)</string>
+    <string name="mode_elizabeth_line">伊利沙伯綫</string>
+    <string name="mode_overground">地上鐵</string>
+    <string name="mode_dlr">DLR 輕鐵</string>
+    <string name="mode_national_rail">國家鐵路</string>
+    <string name="mode_tram">電車</string>
+    <string name="mode_bus">巴士</string>
+    <string name="mode_mtr">港鐵</string>
+    <string name="mode_mrt">地鐵 (MRT)</string>
+    <string name="mode_metro">地鐵</string>
+    <string name="mode_train">火車</string>
+    <string name="mode_jr_rail">JR / 鐵路</string>
 
     <!-- Station Detail Screen -->
 
@@ -464,7 +493,7 @@
 
     <!-- AI Quota Exceeded -->
     <string name="ai_quota_exceeded">您已達到今日 %1$d 次免費 AI 查詢上限。升級至 Pro 即可享用無限制 AI 提問、即時路線受阻查詢及完整停車站資訊。</string>
-    <string name="ai_input_placeholder">輸入或語音詢問：「前往 Mill Hill East 的列車」…</string>
+    <string name="ai_input_placeholder">輸入或語音詢問：「下一班車」或「有延誤嗎？」…</string>
 
     <!-- Last Train Home & Night Service -->
     <string name="badge_last_train">🌙 尾班車</string>
@@ -578,4 +607,7 @@
     <string name="shortcut_station_departures">%1$s 班次</string>
     <string name="travel_alert_read_more">閱讀更多</string>
     <string name="travel_alert_show_less">收合內容</string>
+    <string name="delay_repay_claim_online">網上申請賠償 ↗</string>
+    <string name="delay_repay_copy_details">複製詳情</string>
+    <string name="delay_repay_copied_toast">已複製延誤詳情至剪貼簿</string>
 </resources>

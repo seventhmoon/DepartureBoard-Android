@@ -159,5 +159,40 @@ class CachedDepartureEntityTest {
         assertEquals(10, hkItems.size)
         assertTrue(hkItems.any { it.id == "ISL" })
         assertEquals("ISL", hkItems.first { it.id == "ISL" }.badgeCode)
+
+        val sgItems = buildDisplayLineStatusItems(emptyMap(), TransitRegion.SG)
+        assertTrue(sgItems.any { it.id == "NSL" })
+        assertEquals("NS", sgItems.first { it.id == "NSL" }.badgeCode)
+
+        val auItems = buildDisplayLineStatusItems(emptyMap(), TransitRegion.AU)
+        assertTrue(auItems.any { it.id == "T1" })
+        assertEquals("T1", auItems.first { it.id == "T1" }.badgeCode)
+
+        val jpItems = buildDisplayLineStatusItems(emptyMap(), TransitRegion.JP)
+        assertTrue(jpItems.any { it.id == "JY" })
+        assertEquals("JY", jpItems.first { it.id == "JY" }.badgeCode)
+    }
+
+    @Test
+    fun `fromDeparture and toDeparture preserve localizedDestinationNames`() {
+        val dep = Departure(
+            id = "hk_1",
+            stationId = "HK_MTR_TWL_CEN",
+            stationName = "Central",
+            lineId = "TWL",
+            lineName = "Tsuen Wan Line",
+            platformName = "Platform 1",
+            destinationName = "Tsuen Wan",
+            towards = "Tsuen Wan",
+            timeToStationSeconds = 120,
+            expectedArrivalIso = null,
+            currentLocation = null,
+            modeName = "mtr",
+            lineBadge = LineBadgeInfo("TWL", "Tsuen Wan Line", Color.Red, mode = TransitMode.METRO, lineCode = "TWL"),
+            localizedDestinationNames = mapOf("en" to "Tsuen Wan", "zh-Hant" to "荃灣")
+        )
+        val restored = CachedDepartureEntity.fromDeparture(dep).toDeparture()
+        assertEquals(mapOf("en" to "Tsuen Wan", "zh-Hant" to "荃灣"), restored.localizedDestinationNames)
+        assertEquals("Tsuen Wan (荃灣)", restored.resolveDestinationName(showBilingual = true))
     }
 }

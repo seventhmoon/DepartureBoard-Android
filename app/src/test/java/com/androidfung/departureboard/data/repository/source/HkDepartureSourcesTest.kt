@@ -68,7 +68,8 @@ class HkDepartureSourcesTest {
 
         val item = departures[0]
         assertEquals("1A", item.lineName)
-        assertEquals("Sau Mau Ping (中秀茂坪)", item.destinationName)
+        assertEquals("Sau Mau Ping", item.destinationName)
+        assertEquals("Sau Mau Ping (中秀茂坪)", item.resolveDestinationName(showBilingual = true))
         assertEquals(DepartureStatus.ON_TIME, item.status)
         assertEquals("bus", item.modeName)
     }
