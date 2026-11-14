@@ -1,8 +1,11 @@
 package com.androidfung.departureboard.data.repository.region.gb.mapper
 
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.StationAccessibility
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.model.WheelchairBoardingStatus
 import com.androidfung.departureboard.data.model.gb.TflStopPointChild
+import com.androidfung.departureboard.data.model.gb.TflStopPointDetail
 import com.androidfung.departureboard.data.model.gb.TflStopPointMatch
 import com.androidfung.departureboard.data.repository.region.gb.StationNameFormatter
 import com.androidfung.departureboard.data.repository.region.gb.TflStopPointUtils
@@ -161,6 +164,42 @@ object TflStationMapper {
             }
             .distinctBy { it.id }
             .sortedBy { it.name }
+    }
+
+    /**
+     * Extracts accessibility and amenity flags from [TflStopPointDetail.additionalProperties].
+     */
+    fun extractAccessibility(detail: TflStopPointDetail): Pair<WheelchairBoardingStatus, StationAccessibility?> {
+        val props = detail.additionalProperties
+        if (props.isEmpty()) return WheelchairBoardingStatus.UNKNOWN to null
+
+        fun prop(vararg keys: String): String? =
+            keys.firstNotNullOfOrNull { k -> detail.propertyValue(k) }
+
+        val stepFreeRaw = prop("StepFreeAccess", "Accessibility", "Lifts")?.lowercase()
+        val wheelchairStatus = when {
+            stepFreeRaw == null -> WheelchairBoardingStatus.UNKNOWN
+            "no" in stepFreeRaw || "none" in stepFreeRaw || "stairs" in stepFreeRaw -> WheelchairBoardingStatus.NOT_ACCESSIBLE
+            "ramp" in stepFreeRaw || "platform" in stepFreeRaw -> WheelchairBoardingStatus.STEP_FREE_WITH_RAMP
+            "yes" in stepFreeRaw || "step-free" in stepFreeRaw || "lift" in stepFreeRaw || "true" in stepFreeRaw -> WheelchairBoardingStatus.STEP_FREE_LEVEL_BOARDING
+            else -> WheelchairBoardingStatus.UNKNOWN
+        }
+
+        val toiletRaw = prop("Accessible Toilets", "Toilets")?.lowercase()
+        val hasAccessibleToilet = toiletRaw?.let {
+            "yes" in it || "accessible" in it || "true" in it
+        }
+        val requiresRamp = stepFreeRaw?.let { "ramp" in it || "train" in it }
+
+        val accessibility = if (hasAccessibleToilet != null || requiresRamp != null) {
+            StationAccessibility(
+                hasAccessibleToilet = hasAccessibleToilet,
+                requiresBoardingRamp = requiresRamp
+            )
+        } else {
+            null
+        }
+        return wheelchairStatus to accessibility
     }
 
     private fun buildDisambiguatedStopName(cleaned: String, stopLetter: String?, towards: String?): String {

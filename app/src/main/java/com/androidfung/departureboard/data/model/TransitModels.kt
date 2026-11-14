@@ -491,10 +491,17 @@ data class TrainFormation(
     val coaches: List<CoachInfo> = emptyList(),
     val associations: List<TrainAssociation> = emptyList()
 ) {
+    /**
+     * Resolved carriage count preferring an explicit positive [coachCount] and
+     * falling back to [coaches.size] when upstream feeds report `0`.
+     */
+    val effectiveCoachCount: Int
+        get() = if (coachCount > 0) coachCount else coaches.size
+
     val displayCoachCount: String
-        get() = when (coachCount) {
+        get() = when (val count = effectiveCoachCount) {
             1 -> "1 coach"
-            else -> "$coachCount coaches"
+            else -> "$count coaches"
         }
 }
 

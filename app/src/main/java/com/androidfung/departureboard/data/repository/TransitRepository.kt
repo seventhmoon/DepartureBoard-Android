@@ -331,7 +331,7 @@ class TransitRepositoryImpl(
         allAlerts.filter { alert ->
             alert.effect == com.androidfung.departureboard.data.model.AlertEffect.ACCESSIBILITY_ISSUE &&
                 (alert.appliesToStation(stationId) || alert.informedEntities.isEmpty())
-        }
+        }.distinctBy { "${it.headerText.lowercase()}|${it.descriptionText?.lowercase().orEmpty()}" }
     }
 
     override suspend fun getCallingPoints(departure: Departure): List<CallingPoint> = withContext(Dispatchers.IO) {

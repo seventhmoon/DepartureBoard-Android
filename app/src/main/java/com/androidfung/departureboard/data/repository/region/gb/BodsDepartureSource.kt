@@ -2,10 +2,12 @@ package com.androidfung.departureboard.data.repository.region.gb
 
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
+import com.androidfung.departureboard.data.model.gb.BodsVehicleActivity
 import com.androidfung.departureboard.data.model.gb.BodsXmlParser
 import com.androidfung.departureboard.data.model.isBodsTransitId
 import com.androidfung.departureboard.data.network.gb.BodsApiService
 import com.androidfung.departureboard.data.repository.DepartureSource
+import com.androidfung.departureboard.util.runSuspendCatching
 
 /**
  * Departure source for Department for Transport (DfT) Bus Open Data Service (BODS) live vehicle monitoring.
@@ -34,12 +36,12 @@ class BodsDepartureSource(
             return Result.success(emptyList())
         }
 
-        return try {
+        return runSuspendCatching {
             val station = stationResolver(stationId)
             val lat = station?.lat
             val lon = station?.lon
             if (lat == null || lon == null) {
-                return Result.success(emptyList())
+                return@runSuspendCatching emptyList()
             }
 
             // Query BODS bounding box around station (+/- 0.03 deg ~ 3.3km)
@@ -49,19 +51,32 @@ class BodsDepartureSource(
             val maxLon = lon + 0.04
             val bbox = "$minLon,$minLat,$maxLon,$maxLat"
 
-            val responseBody = bodsApiService.getVehicleDatafeed(boundingBox = bbox)
-            val xmlString = responseBody.string()
-            val activities = BodsXmlParser.parse(xmlString)
+            val activities = bodsApiService.getVehicleDatafeed(boundingBox = bbox)
+                .byteStream()
+                .use { stream -> BodsXmlParser.parseStream(stream) }
 
-            val departures = activities.map { activity ->
-                activity.toDeparture(stationId, stationName, lat, lon)
-            }.sortedBy { it.timeToStationSeconds }
-
-            Result.success(departures)
-        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Result.failure(e)
+            filterActivitiesForStation(activities, station)
+                .map { activity -> activity.toDeparture(stationId, stationName, lat, lon) }
+                .sortedBy { it.timeToStationSeconds }
         }
+    }
+
+    internal fun filterActivitiesForStation(
+        activities: List<BodsVehicleActivity>,
+        station: Station
+    ): List<BodsVehicleActivity> {
+        val knownLineTokens = station.lines
+            .flatMap { listOf(it.id.removePrefix("bods-"), it.name) }
+            .map { it.trim().lowercase() }
+            .filter { it.isNotEmpty() }
+            .toSet()
+
+        if (knownLineTokens.isEmpty()) return activities
+        val matched = activities.filter { activity ->
+            val ref = activity.lineRef.trim().lowercase()
+            val pub = activity.publishedLineName.trim().lowercase()
+            ref in knownLineTokens || pub in knownLineTokens
+        }
+        return matched.ifEmpty { activities }
     }
 }

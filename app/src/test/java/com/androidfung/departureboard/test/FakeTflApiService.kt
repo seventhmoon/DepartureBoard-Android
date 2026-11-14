@@ -107,4 +107,11 @@ open class FakeTflApiService(
         if (shouldThrow) throw throwException
         return emptyList()
     }
+
+    override suspend fun getStationCrowding(
+        naptan: String
+    ): com.androidfung.departureboard.data.model.gb.TflCrowdingResponse {
+        if (shouldThrow) throw throwException
+        return com.androidfung.departureboard.data.model.gb.TflCrowdingResponse(naptan = naptan)
+    }
 }

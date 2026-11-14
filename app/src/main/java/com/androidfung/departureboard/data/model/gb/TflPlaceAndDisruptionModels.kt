@@ -48,3 +48,14 @@ data class TflLiftDisruption(
     val outageEndArea: String? = null,
     val message: String? = null
 )
+
+/**
+ * Live station crowding response from TfL `/crowding/Live/{naptan}`.
+ */
+@JsonClass(generateAdapter = true)
+data class TflCrowdingResponse(
+    val naptan: String? = null,
+    val percentageOfBaseline: Double? = null,
+    val dataAvailable: Boolean = false,
+    val timeUtc: String? = null
+)

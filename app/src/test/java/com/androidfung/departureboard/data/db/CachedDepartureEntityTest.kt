@@ -2,6 +2,7 @@ package com.androidfung.departureboard.data.db
 
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.db.cache.CachedDepartureEntity
+import com.androidfung.departureboard.data.model.CoachInfo
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
 import com.androidfung.departureboard.data.model.LineBadgeInfo
@@ -18,6 +19,7 @@ import com.androidfung.departureboard.data.repository.region.gb.TyneAndWearMetro
 import com.androidfung.departureboard.ui.feature.settings.buildDisplayLineStatusItems
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -104,6 +106,38 @@ class CachedDepartureEntityTest {
         assertEquals(12, restored.formation?.coachCount)
         assertEquals("12 coaches", restored.formation?.displayCoachCount)
         assertEquals("Signal fault", restored.delayReason)
+    }
+
+    @Test
+    fun `TrainFormation effectiveCoachCount falls back to coaches size and cache ignores zero`() {
+        val zeroButWithCoaches = TrainFormation(
+            coachCount = 0,
+            coaches = listOf(CoachInfo(coachNumber = "1"), CoachInfo(coachNumber = "2"))
+        )
+        assertEquals(2, zeroButWithCoaches.effectiveCoachCount)
+        assertEquals("2 coaches", zeroButWithCoaches.displayCoachCount)
+
+        val emptyZero = TrainFormation(coachCount = 0)
+        val cached = CachedDepartureEntity.fromDeparture(
+            Departure(
+                id = "train_zero",
+                stationId = "LST",
+                stationName = "Liverpool Street",
+                lineId = "elizabeth",
+                lineName = "Elizabeth line",
+                platformName = "Platform B",
+                destinationName = "Heathrow Terminal 4",
+                towards = "Heathrow Terminal 4",
+                timeToStationSeconds = 60,
+                expectedArrivalIso = null,
+                currentLocation = "Delayed",
+                modeName = "rail",
+                lineBadge = LineBadgeInfo("elizabeth", "Elizabeth line", Color.Magenta, mode = TransitMode.RAIL),
+                train = TrainInfo(formation = emptyZero)
+            )
+        )
+        assertNull(cached.coachCount)
+        assertNull(cached.toDeparture().formation)
     }
 
     @Test

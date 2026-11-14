@@ -75,6 +75,9 @@ class GbRegionalTransitProvider(
     private val stopDisruptionCache = com.androidfung.departureboard.util.CoalescingTimedCache<String, List<TransitAlert>>(
         ttlMillis = 3 * 60 * 1000L
     )
+    private val crowdingCache = com.androidfung.departureboard.util.CoalescingTimedCache<String, TransitAlert?>(
+        ttlMillis = 3 * 60 * 1000L
+    )
 
     override suspend fun getStationById(stationId: String): Station? {
         val defaultStation = GbDefaultStations.POPULAR_STATIONS.firstOrNull {
@@ -91,15 +94,19 @@ class GbRegionalTransitProvider(
             val extractedModes = lines.mapNotNull { it.mode }.distinct()
             val modes = extractedModes.ifEmpty { listOf("tube") }
             val firstChild = detail.children.firstOrNull()
+            val zone = detail.propertyValue("Zone")
+            val (wheelchairStatus, accessibility) = TflStationMapper.extractAccessibility(detail)
 
             Station(
                 id = detail.id,
                 name = cleaned,
                 modes = modes,
-                zone = null,
+                zone = zone,
                 lat = firstChild?.lat,
                 lon = firstChild?.lon,
                 lines = lines,
+                wheelchairStatus = wheelchairStatus,
+                accessibility = accessibility,
                 isFavorite = false
             )
         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
@@ -156,7 +163,7 @@ class GbRegionalTransitProvider(
     suspend fun getStationDisruptionAlerts(stationId: String): List<TransitAlert> {
         val normalizedId = stationId.trim()
         if (normalizedId.isBlank()) return emptyList()
-        return stopDisruptionCache.getOrPutCoalesced(
+        val tflDisruptions = stopDisruptionCache.getOrPutCoalesced(
             key = normalizedId.lowercase(),
             scope = providerScope
         ) {
@@ -206,7 +213,44 @@ class GbRegionalTransitProvider(
                 emptyList()
             }
         }
+        val nrccAlerts = nationalRailDepartureSource.getCachedNrccAlerts(normalizedId, normalizedId)
+        val crowdingAlert = getStationCrowdingAlert(normalizedId)
+        return (tflDisruptions + nrccAlerts + listOfNotNull(crowdingAlert))
+            .distinctBy { "${it.headerText.lowercase()}|${it.descriptionText?.lowercase().orEmpty()}" }
     }
+
+    suspend fun getStationCrowdingAlert(stationId: String): TransitAlert? {
+        val normalizedId = stationId.trim()
+        if (normalizedId.isBlank() || TflStopPointUtils.isBusStop(normalizedId, normalizedId)) return null
+        return crowdingCache.getOrPutCoalesced(key = normalizedId.lowercase(), scope = providerScope) {
+            com.androidfung.departureboard.util.runSuspendCatching {
+                val res = apiService.getStationCrowding(normalizedId)
+                val pct = res.percentageOfBaseline
+                if (!res.dataAvailable || pct == null || pct < 0.80) return@runSuspendCatching null
+                val pctInt = (pct * 100).toInt()
+                TransitAlert(
+                    id = "tfl_crowding_${normalizedId.lowercase()}",
+                    headerText = "Busy Station — $pctInt% of baseline crowding",
+                    descriptionText = "TfL live station crowding is currently elevated ($pctInt% of typical peak).",
+                    cause = com.androidfung.departureboard.data.model.AlertCause.OTHER_CAUSE,
+                    effect = com.androidfung.departureboard.data.model.AlertEffect.SIGNIFICANT_DELAYS,
+                    severity = if (pct >= 1.0) com.androidfung.departureboard.data.model.AlertSeverity.WARNING else com.androidfung.departureboard.data.model.AlertSeverity.INFO,
+                    informedEntities = listOf(
+                        com.androidfung.departureboard.data.model.InformedEntity(
+                            agencyId = "TfL",
+                            stationId = normalizedId
+                        )
+                    )
+                )
+            }.getOrNull()
+        }
+    }
+
+    suspend fun getNationalRailArrivals(stationId: String, stationName: String): Result<List<Departure>> =
+        nationalRailDepartureSource.fetchArrivals(stationId, stationName)
+
+    suspend fun getNationalRailServiceDetails(serviceId: String): com.androidfung.departureboard.data.model.gb.NrServiceDetailsResponse? =
+        nationalRailDepartureSource.fetchServiceDetails(serviceId)
 
     override suspend fun getDepartures(stationId: String, stationName: String): Result<List<Departure>> = coroutineScope {
         val isBusStop = TflStopPointUtils.isBusStop(stationId, stationName)
@@ -354,6 +398,8 @@ class GbRegionalTransitProvider(
                 }
             }
         }.getOrElse { emptyList() }
-        return lineAlerts + liftAlerts
+        val nrccAlerts = nationalRailDepartureSource.getAllCachedNrccAlerts()
+        return (lineAlerts + liftAlerts + nrccAlerts)
+            .distinctBy { "${it.headerText.lowercase()}|${it.descriptionText?.lowercase().orEmpty()}" }
     }
 }

@@ -299,7 +299,7 @@ object WearCompanionSyncPublisher {
                         put("lineColorArgb", dep.lineBadge.backgroundColor.toArgb().toLong() and 0xFFFFFFFFL)
                         put("delayRepayBadge", delayRepay?.badgeLabel ?: "")
                         put("isLastTrain", dep.isLastTrain)
-                        put("coachCount", dep.formation?.coachCount ?: 0)
+                        put("coachCount", dep.formation?.effectiveCoachCount ?: 0)
                         val curIdx = dep.callingPoints.indexOfFirst { it.isCurrentStation }
                         val upcomingStops = if (curIdx >= 0 && curIdx + 1 < dep.callingPoints.size) {
                             dep.callingPoints.subList(curIdx + 1, dep.callingPoints.size)

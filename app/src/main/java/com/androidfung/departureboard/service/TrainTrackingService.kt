@@ -214,7 +214,7 @@ class TrainTrackingService : Service() {
                 putExtra(EXTRA_VEHICLE_ID, departure.vehicleId)
                 putExtra(EXTRA_LINE_COLOR_ARGB, departure.lineBadge.backgroundColor.toArgb())
                 putExtra(EXTRA_TRAIN_CODE, departure.displayTrainCode)
-                putExtra(EXTRA_COACH_COUNT, departure.formation?.coachCount ?: 0)
+                putExtra(EXTRA_COACH_COUNT, departure.formation?.effectiveCoachCount ?: 0)
                 putExtra(EXTRA_DELAY_REASON, departure.delayReason)
                 putExtra(EXTRA_IS_DELAYED, departure.status == DepartureStatus.DELAYED)
                 putExtra(EXTRA_TARGET_ALIGHT_STOP_NAME, _targetAlightStopFlow.value)
@@ -767,7 +767,7 @@ class TrainTrackingService : Service() {
                             remainingSeconds = target.timeToStationSeconds
                             liveLocation = target.currentLocation
                             currentTrainCode = target.displayTrainCode ?: currentTrainCode
-                            currentCoachCount = target.formation?.coachCount ?: currentCoachCount
+                            currentCoachCount = target.formation?.effectiveCoachCount?.takeIf { it > 0 } ?: currentCoachCount
                             currentDelayReason = target.delayReason ?: currentDelayReason
                             currentIsDelayed = target.status == DepartureStatus.DELAYED
                             if (target.resolvedPlatform.isHistoricalExpected && target.resolvedPlatform.code.isNotBlank()) {

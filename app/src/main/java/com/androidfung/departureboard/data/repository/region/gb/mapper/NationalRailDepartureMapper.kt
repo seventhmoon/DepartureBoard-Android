@@ -2,9 +2,11 @@ package com.androidfung.departureboard.data.repository.region.gb.mapper
 
 import androidx.compose.ui.graphics.Color
 import com.androidfung.departureboard.data.model.CallingPoint
+import com.androidfung.departureboard.data.model.CoachInfo
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.JourneyDestination
 import com.androidfung.departureboard.data.model.LineBadgeInfo
+import com.androidfung.departureboard.data.model.OccupancyStatus
 import com.androidfung.departureboard.data.model.PlatformInfo
 import com.androidfung.departureboard.data.model.StopScheduleRelationship
 import com.androidfung.departureboard.data.model.TrainFormation
@@ -98,11 +100,24 @@ object NationalRailDepartureMapper {
             directionHint = null
         )
 
-        val isElizabeth = operatorCode.equals("XR", ignoreCase = true) || com.androidfung.departureboard.data.model.gb.GbTransitLine.ELIZABETH.matches(operatorCode, operatorName)
-        val isOverground = operatorCode.equals("LO", ignoreCase = true) || com.androidfung.departureboard.data.model.gb.GbTransitLine.OVERGROUND.matches(operatorCode, operatorName)
-        val isThameslink = operatorCode.equals("TL", ignoreCase = true) || com.androidfung.departureboard.data.model.gb.GbTransitLine.THAMESLINK.matches(operatorCode, operatorName)
+        val isReplacementBus = service.serviceType.equals("bus", ignoreCase = true)
+        val isElizabeth = !isReplacementBus && (operatorCode.equals("XR", ignoreCase = true) || com.androidfung.departureboard.data.model.gb.GbTransitLine.ELIZABETH.matches(operatorCode, operatorName))
+        val isOverground = !isReplacementBus && (operatorCode.equals("LO", ignoreCase = true) || com.androidfung.departureboard.data.model.gb.GbTransitLine.OVERGROUND.matches(operatorCode, operatorName))
+        val isThameslink = !isReplacementBus && (operatorCode.equals("TL", ignoreCase = true) || com.androidfung.departureboard.data.model.gb.GbTransitLine.THAMESLINK.matches(operatorCode, operatorName))
 
         val (resolvedLineId, resolvedLineName, badge) = when {
+            isReplacementBus -> {
+                val lineId = "nr-bus-${operatorCode.lowercase()}"
+                val lineBadge = LineBadgeInfo(
+                    lineId = lineId,
+                    displayName = "$operatorName Rail Replacement",
+                    backgroundColor = Color(0xFFDC241F),
+                    textColor = Color.White,
+                    mode = TransitMode.BUS,
+                    lineCode = "RRB"
+                )
+                Triple(lineId, "$operatorName (Rail Replacement)", lineBadge)
+            }
             isElizabeth -> {
                 val line = com.androidfung.departureboard.data.model.gb.GbTransitLine.ELIZABETH
                 Triple(line.code, line.lineName, line.toLineBadge())
@@ -171,7 +186,7 @@ object NationalRailDepartureMapper {
             else -> null
         }
 
-        val modeId = TransitMode.RAIL.id
+        val modeId = if (isReplacementBus) TransitMode.BUS.id else TransitMode.RAIL.id
 
         val subsequentPoints = service.subsequentCallingPoints?.firstOrNull()?.callingPoint?.map { cp ->
             val isSkipped = cp.isCancelled || cp.et.equals("Cancelled", ignoreCase = true)
@@ -211,31 +226,95 @@ object NationalRailDepartureMapper {
             region = TransitRegion.GB
         )
 
-        // Darwin train associations: detect train splitting/dividing into multiple destination portions
-        val associations = if (service.destination.size > 1) {
-            val primaryDest = service.destination.first().locationName
-            val secondaryDest = service.destination.drop(1).joinToString(", ") { it.locationName }
-            val junctionName = service.subsequentCallingPoints?.firstOrNull()?.callingPoint?.lastOrNull { cp1 ->
-                service.subsequentCallingPoints.drop(1).any { otherList ->
-                    otherList.callingPoint.any { cp2 -> cp2.locationName.equals(cp1.locationName, ignoreCase = true) }
-                }
-            }?.locationName ?: primaryDest
+        // Darwin train associations: detect splitting/dividing portions, front detachment, or reverse formation
+        val associations = buildList {
+            if (service.destination.size > 1) {
+                val primaryDest = service.destination.first().locationName
+                val secondaryDest = service.destination.drop(1).joinToString(", ") { it.locationName }
+                val junctionName = service.subsequentCallingPoints?.firstOrNull()?.callingPoint?.lastOrNull { cp1 ->
+                    service.subsequentCallingPoints.drop(1).any { otherList ->
+                        otherList.callingPoint.any { cp2 -> cp2.locationName.equals(cp1.locationName, ignoreCase = true) }
+                    }
+                }?.locationName ?: primaryDest
 
-            listOf(
-                com.androidfung.departureboard.data.model.TrainAssociation(
-                    type = com.androidfung.departureboard.data.model.TrainAssociationType.DIVIDES,
-                    junctionStationName = junctionName,
-                    portionDestination = secondaryDest,
-                    notice = "Divides at $junctionName for $secondaryDest"
+                add(
+                    com.androidfung.departureboard.data.model.TrainAssociation(
+                        type = com.androidfung.departureboard.data.model.TrainAssociationType.DIVIDES,
+                        junctionStationName = junctionName,
+                        portionDestination = secondaryDest,
+                        notice = "Divides at $junctionName for $secondaryDest"
+                    )
                 )
-            )
-        } else emptyList()
+            }
+            if (service.detachFront) {
+                add(
+                    com.androidfung.departureboard.data.model.TrainAssociation(
+                        type = com.androidfung.departureboard.data.model.TrainAssociationType.DIVIDES,
+                        junctionStationName = stationName,
+                        portionDestination = destination,
+                        notice = "Front portion detaches en route — check coach destination"
+                    )
+                )
+            }
+            if (service.isReverseFormation) {
+                add(
+                    com.androidfung.departureboard.data.model.TrainAssociation(
+                        type = com.androidfung.departureboard.data.model.TrainAssociationType.DIVIDES,
+                        junctionStationName = stationName,
+                        portionDestination = destination,
+                        notice = "Train running in reverse formation"
+                    )
+                )
+            }
+        }
 
-        val formationInfo = service.length?.let {
-            TrainFormation(coachCount = it, associations = associations)
-        } ?: if (associations.isNotEmpty()) {
-            TrainFormation(coachCount = 8, associations = associations)
-        } else null
+        val mappedCoaches = service.formation?.coaches?.map { coach ->
+            val loadingPct = coach.loading
+            val coachOccupancy = when {
+                loadingPct == null -> null
+                loadingPct <= 15 -> OccupancyStatus.EMPTY.name
+                loadingPct <= 45 -> OccupancyStatus.MANY_SEATS_AVAILABLE.name
+                loadingPct <= 75 -> OccupancyStatus.FEW_SEATS_AVAILABLE.name
+                loadingPct <= 95 -> OccupancyStatus.STANDING_ROOM_ONLY.name
+                else -> OccupancyStatus.FULL.name
+            }
+            val hasToilet = coach.toilet?.let { t ->
+                val v = (t.value ?: t.status).orEmpty()
+                v.isNotBlank() && !v.equals("None", ignoreCase = true)
+            }
+            CoachInfo(
+                coachNumber = coach.number,
+                coachClass = coach.coachClass,
+                occupancyStatus = coachOccupancy,
+                isWheelchairAccessible = coach.toilet?.value?.contains("Accessible", ignoreCase = true) == true,
+                hasToilet = hasToilet
+            )
+        }.orEmpty()
+
+        val resolvedCoachCount = service.length?.takeIf { it > 0 } ?: mappedCoaches.size.takeIf { it > 0 }
+        val formationInfo = when {
+            resolvedCoachCount != null -> TrainFormation(
+                coachCount = resolvedCoachCount,
+                coaches = mappedCoaches,
+                associations = associations
+            )
+            associations.isNotEmpty() -> TrainFormation(
+                coachCount = 8,
+                coaches = mappedCoaches,
+                associations = associations
+            )
+            else -> null
+        }
+
+        val trainOccupancy = service.formation?.avgLoading?.let { avg ->
+            when {
+                avg <= 15 -> OccupancyStatus.EMPTY.name
+                avg <= 45 -> OccupancyStatus.MANY_SEATS_AVAILABLE.name
+                avg <= 75 -> OccupancyStatus.FEW_SEATS_AVAILABLE.name
+                avg <= 95 -> OccupancyStatus.STANDING_ROOM_ONLY.name
+                else -> OccupancyStatus.FULL.name
+            }
+        }
 
         val trainInfo = TrainInfo(
             serviceId = service.serviceId,
@@ -285,6 +364,7 @@ object NationalRailDepartureMapper {
             lineBadge = badge,
             status = resolvedStatus,
             destinationStationId = destCrs,
+            occupancyStatus = trainOccupancy,
             callingPoints = fullCallingPoints,
             platform = platformInfo.copy(directionHint = resolvedDirection),
             train = trainInfo,

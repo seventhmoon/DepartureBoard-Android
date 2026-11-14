@@ -245,7 +245,7 @@ fun DepartureRowItem(
                         }
                     }
 
-                    if (departure.formation != null && departure.formation!!.coachCount > 0) {
+                    if (departure.formation != null && departure.formation!!.effectiveCoachCount > 0) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant

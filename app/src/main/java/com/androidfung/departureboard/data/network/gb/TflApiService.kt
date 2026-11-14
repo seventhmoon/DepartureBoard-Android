@@ -95,7 +95,7 @@ interface TflApiService {
      */
     @GET("Line/Mode/{modes}/Status")
     suspend fun getLineStatuses(
-        @Path("modes") modes: String = "tube,dlr,overground,elizabeth-line,national-rail"
+        @Path("modes") modes: String = "tube,dlr,overground,elizabeth-line,national-rail,tram,river-bus"
     ): List<TflLineStatusItem>
 
     /**
@@ -141,4 +141,12 @@ interface TflApiService {
      */
     @GET("Disruptions/Lifts/v2")
     suspend fun getLiftDisruptions(): List<com.androidfung.departureboard.data.model.gb.TflLiftDisruption>
+
+    /**
+     * Fetches real-time station crowding percentage for [naptan] from TfL `/crowding/Live/{naptan}`.
+     */
+    @GET("crowding/Live/{naptan}")
+    suspend fun getStationCrowding(
+        @Path("naptan") naptan: String
+    ): com.androidfung.departureboard.data.model.gb.TflCrowdingResponse
 }

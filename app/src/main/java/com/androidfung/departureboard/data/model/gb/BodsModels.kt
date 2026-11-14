@@ -61,6 +61,17 @@ data class BodsVehicleActivity(
             modeName = "bus"
         )
 
+        val gpsLocationText = if (latitude != null && longitude != null) {
+            if (stationLat != null && stationLon != null) {
+                val meters = haversineMeters(latitude, longitude, stationLat, stationLon).toInt()
+                if (meters in 1..15_000) "Live GPS • ${meters}m away" else "Live GPS"
+            } else {
+                "Live GPS"
+            }
+        } else {
+            null
+        }
+
         return Departure(
             id = "bods-${vehicleRef ?: lineRef}_${destinationRef ?: dest}_${destinationAimedArrivalTime ?: originRef ?: stationId}",
             stationId = stationId,
@@ -72,10 +83,11 @@ data class BodsVehicleActivity(
             towards = dest,
             timeToStationSeconds = seconds,
             expectedArrivalIso = destinationAimedArrivalTime,
-            currentLocation = if (latitude != null && longitude != null) "In service" else null,
+            currentLocation = gpsLocationText,
             modeName = "bus",
             status = DepartureStatus.ON_TIME,
             lineBadge = badge,
+            vehicleId = vehicleRef,
             destinationStationId = destinationRef,
             isWheelchairAccessible = wheelchairAccessible,
             occupancyStatus = occupancy
@@ -83,7 +95,15 @@ data class BodsVehicleActivity(
     }
 
     private fun calculateTimeToArrival(stationLat: Double?, stationLon: Double?): Int {
-        if (!destinationAimedArrivalTime.isNullOrBlank()) {
+        val distMeters = if (latitude != null && longitude != null && stationLat != null && stationLon != null) {
+            haversineMeters(latitude, longitude, stationLat, stationLon)
+        } else {
+            null
+        }
+
+        // DestinationAimedArrivalTime is the vehicle's scheduled arrival at its final terminus,
+        // not intermediate stops—so only prefer it when the stop is near the terminus or GPS is absent.
+        if (!destinationAimedArrivalTime.isNullOrBlank() && (distMeters == null || distMeters <= 400.0)) {
             try {
                 val arrivalInstant = Instant.from(DateTimeFormatter.ISO_OFFSET_DATE_TIME.parse(destinationAimedArrivalTime))
                 val diff = arrivalInstant.epochSecond - Instant.now().epochSecond
@@ -91,11 +111,9 @@ data class BodsVehicleActivity(
             } catch (_: Exception) {}
         }
 
-        // Fallback: estimate time based on distance from station (assuming average bus speed ~20 km/h = 5.5 m/s)
-        if (latitude != null && longitude != null && stationLat != null && stationLon != null) {
-            val distMeters = haversineMeters(latitude, longitude, stationLat, stationLon)
-            val estSeconds = (distMeters / 5.5).toInt().coerceIn(60, 3600)
-            return estSeconds
+        // Estimate time based on GPS distance from station (assuming average bus speed ~20 km/h = 5.5 m/s)
+        if (distMeters != null) {
+            return (distMeters / 5.5).toInt().coerceIn(60, 3600)
         }
 
         return 300 // default 5 min
@@ -197,25 +215,47 @@ object BodsXmlParser {
         xmlString: String,
         pullParser: XmlPullParser? = null
     ): List<BodsVehicleActivity> {
-        val activities = mutableListOf<BodsVehicleActivity>()
-        try {
+        return try {
             StringReader(xmlString).use { reader ->
-                val parser = BodsXmlPullHelper.newHardenedParser(reader, pullParser)
-
-                var eventType = parser.eventType
-                while (eventType != XmlPullParser.END_DOCUMENT) {
-                    if (eventType == XmlPullParser.START_TAG && (parser.name?.equals("VehicleActivity", ignoreCase = true) == true)) {
-                        val activity = parseVehicleActivity(parser)
-                        if (activity != null) {
-                            activities.add(activity)
-                        }
-                    }
-                    eventType = parser.next()
-                }
+                parseReader(reader, pullParser)
             }
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun parseStream(
+        inputStream: java.io.InputStream,
+        pullParser: XmlPullParser? = null
+    ): List<BodsVehicleActivity> {
+        return try {
+            inputStream.bufferedReader().use { reader ->
+                parseReader(reader, pullParser)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun parseReader(
+        reader: Reader,
+        pullParser: XmlPullParser? = null
+    ): List<BodsVehicleActivity> {
+        val activities = mutableListOf<BodsVehicleActivity>()
+        val parser = BodsXmlPullHelper.newHardenedParser(reader, pullParser)
+        var eventType = parser.eventType
+        while (eventType != XmlPullParser.END_DOCUMENT) {
+            if (eventType == XmlPullParser.START_TAG && (parser.name?.equals("VehicleActivity", ignoreCase = true) == true)) {
+                val activity = parseVehicleActivity(parser)
+                if (activity != null) {
+                    activities.add(activity)
+                }
+            }
+            eventType = parser.next()
         }
         return activities
     }

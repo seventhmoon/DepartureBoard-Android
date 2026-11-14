@@ -8,6 +8,11 @@ import com.androidfung.departureboard.data.network.gb.TflApiService
 import com.androidfung.departureboard.data.repository.DepartureSource
 import com.androidfung.departureboard.data.repository.region.gb.direction.DestinationResolver
 import com.androidfung.departureboard.data.repository.region.gb.mapper.TflDepartureMapper
+import com.androidfung.departureboard.util.CoalescingTimedCache
+import com.androidfung.departureboard.util.getOrPutCoalescedSafe
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -20,6 +25,9 @@ class TflDepartureSource(
     private val apiService: TflApiService,
     private val timetableResolver: TimetableScheduleResolver = TimetableScheduleResolver(apiService)
 ) : DepartureSource {
+
+    private val lineArrivalsCache = CoalescingTimedCache<String, List<TflArrivalPrediction>>(ttlMillis = 20_000L)
+    private val sourceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun canHandle(stationId: String, stationName: String, isBusStop: Boolean): Boolean {
         return true
@@ -61,15 +69,20 @@ class TflDepartureSource(
                 }
 
                 val lineArrivalsByVehicle = if (hasTerminatingTrains) {
-                    val lineIds = distinct.mapNotNull { it.lineId }.distinct()
-                    try {
-                        lineIds.flatMap { lineId ->
-                            apiService.getLineArrivals(lineId)
-                        }.groupBy { it.vehicleId }
-                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
-                        throw e
-                    } catch (_: Exception) {
-                        emptyMap()
+                    val lineIds = distinct.mapNotNull { it.lineId?.lowercase() }.distinct()
+                    coroutineScope {
+                        lineIds.map { lineId ->
+                            async {
+                                lineArrivalsCache.getOrPutCoalescedSafe(
+                                    key = lineId,
+                                    scope = sourceScope,
+                                    defaultValue = emptyList(),
+                                    shouldCache = { it.isNotEmpty() }
+                                ) {
+                                    apiService.getLineArrivals(lineId)
+                                }
+                            }
+                        }.awaitAll().flatten().groupBy { it.vehicleId }
                     }
                 } else {
                     emptyMap()

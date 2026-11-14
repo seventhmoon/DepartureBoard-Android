@@ -117,7 +117,8 @@ data class CachedDepartureEntity(
             )
         } else null
 
-        val restoredTrain = if (!operatorCode.isNullOrBlank() || !operatorName.isNullOrBlank() || coachCount != null || !cancelReason.isNullOrBlank() || !delayReason.isNullOrBlank()) {
+        val validCoachCount = coachCount?.takeIf { it > 0 }
+        val restoredTrain = if (!operatorCode.isNullOrBlank() || !operatorName.isNullOrBlank() || validCoachCount != null || !cancelReason.isNullOrBlank() || !delayReason.isNullOrBlank()) {
             TrainInfo(
                 operator = if (!operatorCode.isNullOrBlank() || !operatorName.isNullOrBlank()) {
                     TransitOperator(
@@ -125,7 +126,7 @@ data class CachedDepartureEntity(
                         name = operatorName ?: operatorCode ?: ""
                     )
                 } else null,
-                formation = coachCount?.let { TrainFormation(coachCount = it) },
+                formation = validCoachCount?.let { TrainFormation(coachCount = it) },
                 cancelReason = cancelReason,
                 delayReason = delayReason,
                 isWheelchairAccessible = isWheelchairAccessible
@@ -230,7 +231,7 @@ data class CachedDepartureEntity(
                 expectedPlatformConfidence = platformInfo?.expectedConfidencePercent,
                 operatorCode = trainInfo?.operator?.id,
                 operatorName = trainInfo?.operator?.name,
-                coachCount = trainInfo?.formation?.coachCount,
+                coachCount = trainInfo?.formation?.effectiveCoachCount?.takeIf { it > 0 },
                 cancelReason = trainInfo?.cancelReason ?: departure.cancelReason,
                 delayReason = trainInfo?.delayReason ?: departure.delayReason,
                 headwaySeconds = departure.frequency?.headwaySeconds,
