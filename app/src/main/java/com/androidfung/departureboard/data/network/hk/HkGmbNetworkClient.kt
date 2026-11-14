@@ -1,5 +1,7 @@
 package com.androidfung.departureboard.data.network.hk
 
+import com.androidfung.departureboard.data.model.hk.HkGmbRouteResponse
+import com.androidfung.departureboard.data.model.hk.HkGmbRouteStopResponse
 import com.androidfung.departureboard.data.model.hk.HkGmbStopEtaResponse
 import com.androidfung.departureboard.data.network.SharedNetworkConfig
 import okhttp3.OkHttpClient
@@ -15,6 +17,18 @@ interface HkGmbApiService {
     suspend fun getStopEta(
         @Path("stop_id") stopId: String
     ): HkGmbStopEtaResponse
+
+    @GET("route/{region}/{route_code}")
+    suspend fun getRouteByRegionAndCode(
+        @Path("region") region: String,
+        @Path("route_code") routeCode: String
+    ): HkGmbRouteResponse
+
+    @GET("route-stop/{route_id}/{route_seq}")
+    suspend fun getRouteStops(
+        @Path("route_id") routeId: Long,
+        @Path("route_seq") routeSeq: Int = 1
+    ): HkGmbRouteStopResponse
 }
 
 object HkGmbNetworkClient {

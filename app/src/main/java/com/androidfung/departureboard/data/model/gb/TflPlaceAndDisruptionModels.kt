@@ -35,3 +35,16 @@ data class TflStopPointDisruption(
     val description: String? = null,
     val appearance: String? = null
 )
+
+/**
+ * Station lift outage returned by TfL `/Disruptions/Lifts/v2`.
+ */
+@JsonClass(generateAdapter = true)
+data class TflLiftDisruption(
+    val icsCode: String? = null,
+    val naptanCode: String? = null,
+    val stationName: String? = null,
+    val outageStartArea: String? = null,
+    val outageEndArea: String? = null,
+    val message: String? = null
+)

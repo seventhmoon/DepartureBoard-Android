@@ -55,10 +55,38 @@ enum class JpTokyoLine(
     )
 
     companion object : TransitLineRegistry {
+        private val ODPT_RAILWAY_TO_CODE: Map<String, String> = mapOf(
+            "Toei.Asakusa" to "A",
+            "Toei.Mita" to "I",
+            "Toei.Shinjuku" to "S",
+            "Toei.Oedo" to "E",
+            "TokyoMetro.Ginza" to "G",
+            "TokyoMetro.Marunouchi" to "M",
+            "TokyoMetro.Hibiya" to "H",
+            "TokyoMetro.Tozai" to "T",
+            "TokyoMetro.Chiyoda" to "C",
+            "TokyoMetro.Yurakucho" to "Y",
+            "TokyoMetro.Hanzomon" to "Z",
+            "TokyoMetro.Namboku" to "N",
+            "TokyoMetro.Fukutoshin" to "F",
+            "JR-East.Yamanote" to "JY",
+            "JR-East.ChuoRapid" to "JC",
+            "JR-East.ChuoSobuLocal" to "JB",
+            "JR-East.KeihinTohokuNegishi" to "JK",
+            "JR-East.SaikyoKawagoe" to "JA",
+            "JR-East.ShonanShinjuku" to "JS"
+        )
+
         override val allLines: Collection<JpTokyoLine> get() = entries
         override fun fromCode(code: String?): JpTokyoLine? {
             if (code == null) return null
             return entries.firstOrNull { it.code.equals(code, ignoreCase = true) || it.badgeText.equals(code, ignoreCase = true) }
+        }
+
+        fun fromOdptRailway(railwayUri: String?): JpTokyoLine? {
+            val tail = railwayUri?.substringAfter("odpt.Railway:") ?: return null
+            val code = ODPT_RAILWAY_TO_CODE[tail] ?: return null
+            return fromCode(code)
         }
     }
 }

@@ -102,4 +102,9 @@ open class FakeTflApiService(
         if (shouldThrow) throw throwException
         return stopPointDisruptionsResult
     }
+
+    override suspend fun getLiftDisruptions(): List<com.androidfung.departureboard.data.model.gb.TflLiftDisruption> {
+        if (shouldThrow) throw throwException
+        return emptyList()
+    }
 }

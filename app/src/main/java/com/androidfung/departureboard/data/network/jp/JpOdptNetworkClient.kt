@@ -16,6 +16,22 @@ data class JpOdptTrainInformationItem(
     @param:Json(name = "odpt:trainInformationText") val textMap: Map<String, String>? = null
 )
 
+@JsonClass(generateAdapter = true)
+data class JpOdptTrainItem(
+    @param:Json(name = "owl:sameAs") val sameAs: String? = null,
+    @param:Json(name = "odpt:railway") val railway: String? = null,
+    @param:Json(name = "odpt:operator") val operator: String? = null,
+    @param:Json(name = "odpt:trainNumber") val trainNumber: String? = null,
+    @param:Json(name = "odpt:trainType") val trainType: String? = null,
+    @param:Json(name = "odpt:delay") val delaySeconds: Int? = null,
+    @param:Json(name = "odpt:fromStation") val fromStation: String? = null,
+    @param:Json(name = "odpt:toStation") val toStation: String? = null,
+    @param:Json(name = "odpt:railDirection") val railDirection: String? = null,
+    @param:Json(name = "odpt:destinationStation") val destinationStations: List<String> = emptyList(),
+    @param:Json(name = "odpt:carComposition") val carComposition: Int? = null,
+    @param:Json(name = "dc:date") val recordedAt: String? = null
+)
+
 interface JpOdptApiService {
     @GET("api/v4/odpt:TrainInformation")
     suspend fun getPublicTrainInformation(
@@ -26,6 +42,16 @@ interface JpOdptApiService {
     suspend fun getKeyedTrainInformation(
         @Query("acl:consumerKey") consumerKey: String
     ): List<JpOdptTrainInformationItem>
+
+    @GET("api/v4/odpt:Train")
+    suspend fun getPublicTrains(
+        @Query("odpt:operator") operator: String = "odpt.Operator:Toei"
+    ): List<JpOdptTrainItem>
+
+    @GET("api/v4/odpt:Train")
+    suspend fun getKeyedTrains(
+        @Query("acl:consumerKey") consumerKey: String
+    ): List<JpOdptTrainItem>
 }
 
 object JpOdptNetworkClient {

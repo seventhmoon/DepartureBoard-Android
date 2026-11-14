@@ -291,6 +291,9 @@ class GbRegionalTransitProvider(
     private val lineStatusesCache = com.androidfung.departureboard.util.CoalescingTimedCache<String, Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem>>(
         ttlMillis = 3 * 60 * 1000L
     )
+    private val liftDisruptionsCache = com.androidfung.departureboard.util.CoalescingTimedCache<String, List<TransitAlert>>(
+        ttlMillis = 5 * 60 * 1000L
+    )
     private val providerScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
 
     override suspend fun getLineStatuses(): Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -339,6 +342,18 @@ class GbRegionalTransitProvider(
     }
 
     override suspend fun getTransitAlerts(): List<TransitAlert> {
-        return getLineStatuses().values.flatMap { GbTransitAlertMapper.fromTflLineStatus(it) }
+        val lineAlerts = getLineStatuses().values.flatMap { GbTransitAlertMapper.fromTflLineStatus(it) }
+        val liftAlerts = com.androidfung.departureboard.util.runSuspendCatching {
+            liftDisruptionsCache.getOrPutCoalesced(
+                key = "tfl_lift_disruptions",
+                scope = providerScope,
+                shouldCache = { it.isNotEmpty() }
+            ) {
+                apiService.getLiftDisruptions().mapIndexedNotNull { idx, lift ->
+                    GbTransitAlertMapper.fromTflLiftDisruption(lift, idx)
+                }
+            }
+        }.getOrElse { emptyList() }
+        return lineAlerts + liftAlerts
     }
 }

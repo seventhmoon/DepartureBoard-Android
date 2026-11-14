@@ -1,6 +1,7 @@
 package com.androidfung.departureboard.data.repository.region.au
 
 import com.androidfung.departureboard.data.model.TransitMode
+import com.androidfung.departureboard.data.network.au.AuTfnswAddInfoResponse
 import com.androidfung.departureboard.data.network.au.AuTfnswApiService
 import com.androidfung.departureboard.data.network.au.AuTfnswDepartureMonResponse
 import com.androidfung.departureboard.data.network.au.AuTfnswDestination
@@ -21,6 +22,13 @@ class AuDepartureSourceTest {
     fun `bus and light rail TfNSW events map to non-rail modes without Waratah train formation`() = runTest {
         val fiveMinsFromNow = Instant.now().plusSeconds(300).toString()
         val fakeApi = object : AuTfnswApiService {
+            override suspend fun getServiceAlerts(
+                outputFormat: String,
+                coordOutputFormat: String,
+                filterPublicationStatus: String,
+                version: String
+            ): AuTfnswAddInfoResponse = AuTfnswAddInfoResponse()
+
             override suspend fun getDepartures(
                 stopId: String,
                 outputFormat: String,

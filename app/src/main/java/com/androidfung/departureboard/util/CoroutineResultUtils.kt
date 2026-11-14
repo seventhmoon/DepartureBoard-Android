@@ -107,3 +107,16 @@ class CoalescingTimedCache<K : Any, V>(
         entries.clear()
     }
 }
+
+/**
+ * Coalesces concurrent [loader] calls on [scope] and falls back to [defaultValue] on non-cancellation errors.
+ */
+suspend fun <K : Any, V> CoalescingTimedCache<K, V>.getOrPutCoalescedSafe(
+    key: K,
+    scope: CoroutineScope,
+    defaultValue: V,
+    shouldCache: (V) -> Boolean = { true },
+    loader: suspend () -> V
+): V = getOrPutCoalesced(key = key, scope = scope, shouldCache = shouldCache) {
+    runSuspendCatching { loader() }.getOrElse { defaultValue }
+}

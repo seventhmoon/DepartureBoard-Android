@@ -38,23 +38,6 @@ object JpRegionalTransitProvider : RegionalTransitProvider {
     private val providerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val trainInfoCache = CoalescingTimedCache<String, List<JpOdptTrainInformationItem>>(ttlMillis = 3 * 60 * 1000L)
 
-    private val ODPT_RAILWAY_TO_CODE: Map<String, Pair<String, String>> = mapOf(
-        "Toei.Asakusa" to ("A" to "Toei Asakusa Line"),
-        "Toei.Mita" to ("I" to "Toei Mita Line"),
-        "Toei.Shinjuku" to ("S" to "Toei Shinjuku Line"),
-        "Toei.Oedo" to ("E" to "Toei Oedo Line"),
-        "TokyoMetro.Ginza" to ("G" to "Ginza Line"),
-        "TokyoMetro.Marunouchi" to ("M" to "Marunouchi Line"),
-        "TokyoMetro.Hibiya" to ("H" to "Hibiya Line"),
-        "TokyoMetro.Tozai" to ("T" to "Tozai Line"),
-        "TokyoMetro.Chiyoda" to ("C" to "Chiyoda Line"),
-        "TokyoMetro.Yurakucho" to ("Y" to "Yurakucho Line"),
-        "TokyoMetro.Hanzomon" to ("Z" to "Hanzomon Line"),
-        "TokyoMetro.Fukutoshin" to ("F" to "Fukutoshin Line"),
-        "JR-East.Yamanote" to ("JY" to "Yamanote Line"),
-        "JR-East.ChuoRapid" to ("JC" to "Chuo Line")
-    )
-
     override val departureSources: List<DepartureSource> = listOf(departureSource)
     override val callingPointsResolvers: List<CallingPointsResolver> = listOf(callingPointsResolver)
 
@@ -96,8 +79,9 @@ object JpRegionalTransitProvider : RegionalTransitProvider {
         val items = fetchLiveOdptTrainInfo()
         val result = mutableMapOf<String, TflLineStatusItem>()
         for (item in items) {
-            val railwayTail = item.railway?.substringAfter("odpt.Railway:") ?: continue
-            val (lineCode, lineName) = ODPT_RAILWAY_TO_CODE[railwayTail] ?: continue
+            val lineDef = JpTokyoLine.fromOdptRailway(item.railway) ?: continue
+            val lineCode = lineDef.code
+            val lineName = lineDef.lineName
             val textJa = item.textMap?.get("ja").orEmpty()
             val textEn = item.textMap?.get("en").orEmpty()
             val statusJa = item.statusMap?.get("ja").orEmpty()
@@ -141,7 +125,9 @@ object JpRegionalTransitProvider : RegionalTransitProvider {
     override suspend fun getTransitAlerts(): List<TransitAlert> {
         return fetchLiveOdptTrainInfo().mapNotNull { item ->
             val railwayTail = item.railway?.substringAfter("odpt.Railway:") ?: return@mapNotNull null
-            val (lineCode, lineName) = ODPT_RAILWAY_TO_CODE[railwayTail] ?: (railwayTail to railwayTail)
+            val lineDef = JpTokyoLine.fromOdptRailway(item.railway)
+            val lineCode = lineDef?.code ?: railwayTail
+            val lineName = lineDef?.lineName ?: railwayTail
             val textJa = item.textMap?.get("ja").orEmpty()
             val textEn = item.textMap?.get("en").orEmpty()
             val statusJa = item.statusMap?.get("ja").orEmpty()

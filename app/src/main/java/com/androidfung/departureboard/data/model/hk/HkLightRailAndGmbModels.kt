@@ -57,3 +57,45 @@ data class HkGmbEtaEntry(
     val remarks_en: String? = null,
     val timestamp: String? = null
 )
+
+@JsonClass(generateAdapter = true)
+data class HkGmbRouteResponse(
+    val data: List<HkGmbRouteDetail> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class HkGmbRouteDetail(
+    @param:Json(name = "route_id") val routeId: Long = 0L,
+    val region: String? = null,
+    @param:Json(name = "route_code") val routeCode: String? = null,
+    @param:Json(name = "description_tc") val descriptionTc: String? = null,
+    @param:Json(name = "description_en") val descriptionEn: String? = null,
+    val directions: List<HkGmbRouteDirection> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class HkGmbRouteDirection(
+    @param:Json(name = "route_seq") val routeSeq: Int = 1,
+    @param:Json(name = "orig_tc") val origTc: String? = null,
+    @param:Json(name = "orig_en") val origEn: String? = null,
+    @param:Json(name = "dest_tc") val destTc: String? = null,
+    @param:Json(name = "dest_en") val destEn: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class HkGmbRouteStopResponse(
+    val data: HkGmbRouteStopData? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class HkGmbRouteStopData(
+    @param:Json(name = "route_stops") val routeStops: List<HkGmbRouteStopItem> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class HkGmbRouteStopItem(
+    @param:Json(name = "stop_seq") val stopSeq: Int = 0,
+    @param:Json(name = "stop_id") val stopId: Long = 0L,
+    @param:Json(name = "name_tc") val nameTc: String? = null,
+    @param:Json(name = "name_en") val nameEn: String? = null
+)

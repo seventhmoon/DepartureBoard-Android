@@ -44,6 +44,52 @@ data class SgLtaStationCrowd(
     @param:Json(name = "CrowdLevel") val crowdLevel: String? = null // l, m, h
 )
 
+@JsonClass(generateAdapter = true)
+data class SgLtaTrainServiceAlertsResponse(
+    val value: SgLtaTrainServiceAlertValue? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class SgLtaTrainServiceAlertValue(
+    @param:Json(name = "Status") val status: Int = 1,
+    @param:Json(name = "AffectedSegments") val affectedSegments: List<SgLtaAffectedSegment> = emptyList(),
+    @param:Json(name = "Message") val messages: List<SgLtaAlertMessage> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class SgLtaAffectedSegment(
+    @param:Json(name = "Line") val line: String? = null,
+    @param:Json(name = "Direction") val direction: String? = null,
+    @param:Json(name = "Stations") val stations: String? = null,
+    @param:Json(name = "From") val from: String? = null,
+    @param:Json(name = "To") val to: String? = null,
+    @param:Json(name = "FreePublicBus") val freePublicBus: String? = null,
+    @param:Json(name = "FreeMRTShuttle") val freeMrtShuttle: String? = null,
+    @param:Json(name = "MRTShuttleDirection") val mrtShuttleDirection: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class SgLtaAlertMessage(
+    @param:Json(name = "Content") val content: String? = null,
+    @param:Json(name = "CreatedDate") val createdDate: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class SgLtaFacilitiesMaintenanceResponse(
+    val value: List<SgLtaFacilityMaintenance> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class SgLtaFacilityMaintenance(
+    @param:Json(name = "StationCode") val stationCode: String? = null,
+    @param:Json(name = "StationName") val stationName: String? = null,
+    @param:Json(name = "FacilityType") val facilityType: String? = null,
+    @param:Json(name = "FacilityCode") val facilityCode: String? = null,
+    @param:Json(name = "Location") val location: String? = null,
+    @param:Json(name = "Status") val status: String? = null,
+    @param:Json(name = "EstimatedCompletionDate") val estimatedCompletionDate: String? = null
+)
+
 interface SgLtaApiService {
     @GET("v3/BusArrival")
     suspend fun getBusArrival(
@@ -54,6 +100,12 @@ interface SgLtaApiService {
     suspend fun getPlatformCrowdDensity(
         @Query("TrainLine") trainLine: String
     ): SgLtaPcdCrowdResponse
+
+    @GET("TrainServiceAlerts")
+    suspend fun getTrainServiceAlerts(): SgLtaTrainServiceAlertsResponse
+
+    @GET("v2/FacilitiesMaintenance")
+    suspend fun getFacilitiesMaintenance(): SgLtaFacilitiesMaintenanceResponse
 }
 
 object SgLtaNetworkClient {

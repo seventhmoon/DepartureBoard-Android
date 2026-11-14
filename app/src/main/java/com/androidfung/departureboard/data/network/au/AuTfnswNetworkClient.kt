@@ -52,6 +52,36 @@ data class AuTfnswDestination(
     val name: String? = null
 )
 
+@JsonClass(generateAdapter = true)
+data class AuTfnswAddInfoResponse(
+    val infos: AuTfnswInfos? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class AuTfnswInfos(
+    val current: List<AuTfnswInfoItem> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class AuTfnswInfoItem(
+    val id: String? = null,
+    val infoType: String? = null,
+    val priority: String? = null,
+    val publicationStart: String? = null,
+    val publicationEnd: String? = null,
+    val title: String? = null,
+    val subtitle: String? = null,
+    val description: String? = null,
+    val content: String? = null,
+    val infoLinks: List<AuTfnswInfoLink> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class AuTfnswInfoLink(
+    val urlText: String? = null,
+    val url: String? = null
+)
+
 interface AuTfnswApiService {
     @GET("departure_mon")
     suspend fun getDepartures(
@@ -63,6 +93,14 @@ interface AuTfnswApiService {
         @Query("TfNSWDM") tfnswDm: String = "true",
         @Query("version") version: String = "10.2.1.42"
     ): AuTfnswDepartureMonResponse
+
+    @GET("add_info")
+    suspend fun getServiceAlerts(
+        @Query("outputFormat") outputFormat: String = "rapidJSON",
+        @Query("coordOutputFormat") coordOutputFormat: String = "EPSG:4326",
+        @Query("filterPublicationStatus") filterPublicationStatus: String = "current",
+        @Query("version") version: String = "10.2.1.42"
+    ): AuTfnswAddInfoResponse
 }
 
 object AuTfnswNetworkClient {

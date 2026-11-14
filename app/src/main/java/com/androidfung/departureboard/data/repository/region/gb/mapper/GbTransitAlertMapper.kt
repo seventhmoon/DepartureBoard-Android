@@ -7,6 +7,7 @@ import com.androidfung.departureboard.data.model.InformedEntity
 import com.androidfung.departureboard.data.model.TransitAlert
 import com.androidfung.departureboard.data.model.gb.BodsDisruption
 import com.androidfung.departureboard.data.model.gb.NrMessage
+import com.androidfung.departureboard.data.model.gb.TflLiftDisruption
 import com.androidfung.departureboard.data.model.gb.TflLineStatusItem
 
 /**
@@ -39,6 +40,28 @@ object GbTransitAlertMapper {
                     )
                 )
             }
+    }
+
+    /**
+     * Converts a TfL `/Disruptions/Lifts/v2` [TflLiftDisruption] into an accessibility [TransitAlert].
+     */
+    fun fromTflLiftDisruption(lift: TflLiftDisruption, index: Int = 0): TransitAlert? {
+        val station = lift.stationName?.trim()?.takeIf(String::isNotEmpty)
+            ?: lift.naptanCode?.trim()?.takeIf(String::isNotEmpty)
+            ?: return null
+        val area = listOfNotNull(
+            lift.outageStartArea?.trim()?.takeIf(String::isNotEmpty),
+            lift.outageEndArea?.trim()?.takeIf(String::isNotEmpty)
+        ).joinToString(" to ")
+        return TransitAlert.accessibilityOutage(
+            id = "tfl-lift-${lift.naptanCode ?: lift.icsCode ?: index}-$index",
+            stationLabel = station,
+            facilityLabel = "Lift Outage",
+            areaOrLocation = area.ifBlank { null },
+            description = lift.message,
+            agencyId = "TfL",
+            stationId = lift.naptanCode
+        )
     }
 
     /**

@@ -135,4 +135,10 @@ interface TflApiService {
     suspend fun getStopPointDisruptions(
         @Path("ids") stopPointId: String
     ): List<com.androidfung.departureboard.data.model.gb.TflStopPointDisruption>
+
+    /**
+     * Fetches network-wide step-free lift outages from TfL `/Disruptions/Lifts/v2`.
+     */
+    @GET("Disruptions/Lifts/v2")
+    suspend fun getLiftDisruptions(): List<com.androidfung.departureboard.data.model.gb.TflLiftDisruption>
 }

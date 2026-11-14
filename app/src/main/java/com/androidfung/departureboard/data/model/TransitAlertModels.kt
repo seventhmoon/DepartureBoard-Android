@@ -29,6 +29,77 @@ data class TransitAlert(
 
     fun appliesToOperator(agencyId: String): Boolean =
         informedEntities.any { it.agencyId.equals(agencyId, ignoreCase = true) }
+
+    companion object {
+        private val HTML_TAG_REGEX = Regex("<[^>]+>")
+        private val MULTI_SPACE_REGEX = Regex("\\s+")
+
+        /**
+         * Strips HTML tags and collapses extra whitespace from alert descriptions.
+         */
+        fun stripHtml(raw: String?): String? {
+            if (raw.isNullOrBlank()) return null
+            return raw.replace(HTML_TAG_REGEX, " ")
+                .replace(MULTI_SPACE_REGEX, " ")
+                .trim()
+                .ifBlank { null }
+        }
+
+        /**
+         * Infers standard GTFS-RT [AlertCause] and [AlertEffect] from free-form disruption text.
+         */
+        fun inferCauseAndEffect(text: String): Pair<AlertCause, AlertEffect> {
+            val lower = text.lowercase()
+            val cause = when {
+                "strike" in lower || "industrial action" in lower -> AlertCause.STRIKE
+                "signal" in lower || "fault" in lower || "failure" in lower || "technical" in lower -> AlertCause.TECHNICAL_PROBLEM
+                "trackwork" in lower || "maintenance" in lower || "planned" in lower || "engineering" in lower -> AlertCause.MAINTENANCE
+                "weather" in lower || "flood" in lower || "wind" in lower || "storm" in lower -> AlertCause.WEATHER
+                "police" in lower || "security" in lower -> AlertCause.POLICE_ACTIVITY
+                "medical" in lower || "emergency" in lower || "ill" in lower -> AlertCause.MEDICAL_EMERGENCY
+                else -> AlertCause.OTHER_CAUSE
+            }
+            val effect = when {
+                "suspend" in lower || "no service" in lower || "closed" in lower || "cancel" in lower -> AlertEffect.NO_SERVICE
+                "part suspend" in lower || "reduced" in lower || "trackwork" in lower || "bus" in lower -> AlertEffect.MODIFIED_SERVICE
+                "delay" in lower || "minor" in lower || "severe" in lower -> AlertEffect.SIGNIFICANT_DELAYS
+                else -> AlertEffect.OTHER_EFFECT
+            }
+            return cause to effect
+        }
+
+        /**
+         * Shared factory for station accessibility / lift outage alerts across regions.
+         */
+        fun accessibilityOutage(
+            id: String,
+            stationLabel: String,
+            facilityLabel: String = "Lift Outage",
+            areaOrLocation: String? = null,
+            description: String? = null,
+            agencyId: String,
+            stationId: String? = null
+        ): TransitAlert {
+            val header = if (!areaOrLocation.isNullOrBlank()) {
+                "$stationLabel — $facilityLabel ($areaOrLocation)"
+            } else {
+                "$stationLabel — $facilityLabel"
+            }
+            return TransitAlert(
+                id = id,
+                cause = AlertCause.MAINTENANCE,
+                effect = AlertEffect.ACCESSIBILITY_ISSUE,
+                severity = AlertSeverity.INFO,
+                headerText = header,
+                descriptionText = description?.trim()?.takeIf(String::isNotEmpty),
+                informedEntities = listOfNotNull(
+                    stationId?.trim()?.takeIf(String::isNotEmpty)?.let {
+                        InformedEntity(agencyId = agencyId, stationId = it)
+                    }
+                )
+            )
+        }
+    }
 }
 
 /**
