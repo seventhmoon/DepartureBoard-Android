@@ -121,26 +121,18 @@ fun TrainJourneyScreen(
             pageCount = { departureList.size }
         )
 
-        LaunchedEffect(departure.id) {
-            val targetPage = departureList.indexOfFirst { it.id == departure.id }
-            if (targetPage >= 0 && targetPage != pagerState.currentPage) {
-                pagerState.scrollToPage(targetPage)
-            }
-        }
-
-        LaunchedEffect(pagerState.settledPage, departureList) {
-            val settledIdx = pagerState.settledPage
-            if (settledIdx in departureList.indices) {
-                val currentDep = departureList[settledIdx]
-                if (currentDep.id != departure.id) {
-                    onDepartureChange?.invoke(currentDep)
-                }
-            }
-        }
+        SyncPagerWithSelection(
+            pagerState = pagerState,
+            items = departureList,
+            selectedId = departure.id,
+            idSelector = { it.id },
+            onSelectionChanged = onDepartureChange
+        )
 
         androidx.compose.foundation.pager.HorizontalPager(
             state = pagerState,
             modifier = modifier.fillMaxSize(),
+            beyondViewportPageCount = 1,
             key = { departureList[it].id }
         ) { page ->
             TrainJourneyContent(
@@ -298,9 +290,10 @@ private fun TrainJourneyContent(
         onBack = onBack,
         modifier = modifier,
         headerLeading = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            FlowRow(
+                itemVerticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -314,7 +307,9 @@ private fun TrainJourneyContent(
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 12.sp
                         ),
-                        color = departure.lineBadge.textColor
+                        color = departure.lineBadge.textColor,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
 
@@ -324,7 +319,9 @@ private fun TrainJourneyContent(
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -346,6 +343,8 @@ private fun TrainJourneyContent(
                                 fontFamily = FontFamily.Monospace
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            softWrap = false,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -357,7 +356,9 @@ private fun TrainJourneyContent(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Medium
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }

@@ -158,28 +158,20 @@ fun StationDetailScreen(
             pageCount = { stationList.size }
         )
 
-        LaunchedEffect(station.id) {
-            val targetPage = stationList.indexOfFirst { it.id == station.id }
-            if (targetPage >= 0 && targetPage != pagerState.currentPage) {
-                pagerState.scrollToPage(targetPage)
-            }
-        }
-
-        LaunchedEffect(pagerState.settledPage, stationList) {
-            val settledIdx = pagerState.settledPage
-            if (settledIdx in stationList.indices) {
-                val currentStation = stationList[settledIdx]
-                if (currentStation.id != station.id) {
-                    onStationChange?.invoke(currentStation)
-                }
-            }
-        }
+        SyncPagerWithSelection(
+            pagerState = pagerState,
+            items = stationList,
+            selectedId = station.id,
+            idSelector = { it.id },
+            onSelectionChanged = onStationChange
+        )
 
         val coroutineScope = rememberCoroutineScope()
 
         androidx.compose.foundation.pager.HorizontalPager(
             state = pagerState,
             modifier = modifier.fillMaxSize(),
+            beyondViewportPageCount = 1,
             key = { stationList[it].id }
         ) { page ->
             val pageStation = stationList[page]

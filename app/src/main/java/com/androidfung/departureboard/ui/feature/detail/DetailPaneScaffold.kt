@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,6 +23,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -171,7 +180,9 @@ fun DetailPaneScaffold(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (headerLeading != null) {
@@ -201,5 +212,52 @@ fun DetailPaneScaffold(
 
             content(PaddingValues(bottom = bottomInset + contentBottomPadding))
         }
+    }
+}
+
+/**
+ * Keeps a [PagerState] synchronized with an externally selected item without ping-ponging
+ * between programmatic scrolls and user-initiated settled page changes.
+ */
+@Composable
+internal fun <T> SyncPagerWithSelection(
+    pagerState: PagerState,
+    items: List<T>,
+    selectedId: String,
+    idSelector: (T) -> String,
+    onSelectionChanged: ((T) -> Unit)?
+) {
+    val currentSelectedId by rememberUpdatedState(selectedId)
+    val currentItems by rememberUpdatedState(items)
+    val currentOnSelectionChanged by rememberUpdatedState(onSelectionChanged)
+    var pendingProgrammaticPage by remember { mutableStateOf<Int?>(null) }
+
+    LaunchedEffect(selectedId, items) {
+        val targetPage = items.indexOfFirst { idSelector(it) == selectedId }
+        if (targetPage >= 0 && targetPage != pagerState.currentPage) {
+            pendingProgrammaticPage = targetPage
+            try {
+                pagerState.scrollToPage(targetPage)
+            } finally {
+                if (pendingProgrammaticPage == targetPage) {
+                    pendingProgrammaticPage = null
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }
+            .distinctUntilChanged()
+            .collect { settledIdx ->
+                if (pendingProgrammaticPage != null && settledIdx != pendingProgrammaticPage) {
+                    return@collect
+                }
+                pendingProgrammaticPage = null
+                val item = currentItems.getOrNull(settledIdx) ?: return@collect
+                if (idSelector(item) != currentSelectedId) {
+                    currentOnSelectionChanged?.invoke(item)
+                }
+            }
     }
 }
