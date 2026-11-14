@@ -26,29 +26,36 @@ object StationBadgeSynthesizer {
         departures: List<Departure>,
         lineStatuses: Map<String, TflLineStatusItem>
     ): List<LineBadgeInfo> {
-        // Extract line badges strictly from active departures, falling back to verified station lines only if departures are empty
-        val departureBadges = departures.map { it.lineBadge }.distinctBy { it.displayName }
-        val rawBadges = if (departureBadges.isNotEmpty()) {
-            val isWembleyPark = TflStopPointUtils.isWembleyPark(station.id, station.name)
-            val isStPancrasOrKingsCrossNR = TflStopPointUtils.isStPancrasOrKingsCrossNR(station.id, station.name)
+        // Extract line badges from active departures, falling back to verified station lines when departures are empty,
+        // and always merging any disrupted serving lines so full/partial closures with zero predictions still surface alerts.
+        val isWembleyPark = TflStopPointUtils.isWembleyPark(station.id, station.name)
+        val isStPancrasOrKingsCrossNR = TflStopPointUtils.isStPancrasOrKingsCrossNR(station.id, station.name)
 
-            departureBadges.filter { badge ->
-                // Guard: Filter out spurious depot movements (e.g. H&C depot run at Wembley Park)
-                if (isWembleyPark && badge.lineId.equals(com.androidfung.departureboard.data.model.gb.GbTransitLine.HAMMERSMITH_CITY.code, ignoreCase = true)) return@filter false
-
-                // Guard: Filter out Tube badges for St Pancras or King's Cross National Rail
-                if (isStPancrasOrKingsCrossNR) {
-                    if (badge.mode == TransitMode.METRO ||
-                        badge.lineId.lowercase() in TflLineColors.TUBE_LINE_IDS
-                    ) {
-                        return@filter false
-                    }
-                }
-
-                true
+        fun isAllowedBadge(badge: LineBadgeInfo): Boolean {
+            if (isWembleyPark && badge.lineId.equals(com.androidfung.departureboard.data.model.gb.GbTransitLine.HAMMERSMITH_CITY.code, ignoreCase = true)) {
+                return false
             }
+            if (isStPancrasOrKingsCrossNR &&
+                (badge.mode == TransitMode.METRO || badge.lineId.lowercase() in TflLineColors.TUBE_LINE_IDS)
+            ) {
+                return false
+            }
+            return true
+        }
+
+        val rawDepartureBadges = departures.map { it.lineBadge }.distinctBy { it.displayName }
+        val inferredBadges = StationLineInferrer.infer(station).filter(::isAllowedBadge)
+        val rawBadges = if (rawDepartureBadges.isNotEmpty()) {
+            val filteredDepartureBadges = rawDepartureBadges.filter(::isAllowedBadge)
+            val existingIds = filteredDepartureBadges.map { it.lineId.lowercase() }.toSet()
+            val disruptedInferred = inferredBadges.filter { inferred ->
+                val lowerId = inferred.lineId.lowercase()
+                lowerId !in existingIds &&
+                    (lineStatuses[lowerId]?.lineStatuses?.firstOrNull()?.statusSeverity ?: 10) != 10
+            }
+            filteredDepartureBadges + disruptedInferred
         } else {
-            StationLineInferrer.infer(station)
+            inferredBadges
         }
 
         // Sort line badges logically: Tube/Rail lines alphabetically, then numeric Bus routes in ascending order

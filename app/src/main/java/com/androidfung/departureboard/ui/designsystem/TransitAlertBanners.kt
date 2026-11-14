@@ -411,12 +411,9 @@ fun PlatformBacklogBanner(
         borderColor = borderColor,
         modifier = modifier,
         bodyContent = {
-            Text(
+            ExpandableDisruptionBodyText(
                 text = alert.message,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
+                accentColor = accentColor
             )
         }
     )
@@ -511,12 +508,9 @@ fun StepFreeOutageBanner(
         borderColor = borderColor,
         modifier = modifier,
         bodyContent = {
-            Text(
+            ExpandableDisruptionBodyText(
                 text = primaryAlert.descriptionText?.takeIf { it.isNotBlank() } ?: primaryAlert.headerText,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.90f),
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
+                accentColor = accentColor
             )
         }
     )

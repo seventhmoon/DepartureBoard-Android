@@ -179,68 +179,6 @@ class TransitAiAssistant(
                 cleanQuery.contains("nearest") ||
                 HERE_WORD_REGEX.containsMatchIn(cleanQuery)
 
-        // Dynamically resolve live nearest station via LocationDataSource if available and nearestStation is null or stale
-        var resolvedNearestStation = nearestStation
-
-        if ((isExplicitNearMe || resolvedNearestStation == null) && locationDataSource != null) {
-            val userCoords = locationDataSource.getCurrentCoordinates()
-            if (userCoords != null) {
-                val apiNearby = com.androidfung.departureboard.util.runSuspendCatching {
-                    repository.getNearbyStationsFromApi(userCoords.latitude, userCoords.longitude, 2000)
-                }.getOrDefault(emptyList())
-
-                val candidates = (apiNearby + savedStations).distinctBy { it.id }
-                val nearestPair = com.androidfung.departureboard.util.LocationHelper.findNearestStation(
-                    lat = userCoords.latitude,
-                    lon = userCoords.longitude,
-                    stations = candidates
-                )
-                if (nearestPair != null) {
-                    resolvedNearestStation = nearestPair.first
-                }
-            }
-        }
-
-        // If the user explicitly asked for departures "near me" or "closest", but device location cannot be determined,
-        // do not silently guess Oxford Circus or the first saved station. Inform the user clearly.
-        if (isExplicitNearMe && resolvedNearestStation == null) {
-            return AiTransitResult(
-                answer = "I couldn't detect your current location. Please ensure location permissions and GPS are enabled, or specify a station name (e.g. \"Next departure from King's Cross\")."
-            )
-        }
-
-        // If no explicit origin is stated, context-aware routing prefers the user's nearest station
-        val defaultOrigin = originStation ?: resolvedNearestStation ?: savedStations.firstOrNull()
-
-        // 3. Identify target destination station
-        val toMatch = TO_STATION_REGEX.find(cleanQuery)
-        val targetDestinationName = toMatch?.groupValues?.getOrNull(1)?.trim()?.lowercase()
-
-        // Prioritize stations based on user location and query context:
-        // If query asks about trains ("train", "tube", "underground"), prioritize tube/rail stations over bus stops
-        val isTrainQuery = cleanQuery.contains("train") || cleanQuery.contains("tube") || cleanQuery.contains("underground")
-
-        // 4. LiteRT-Runtime Intent Classification
-        val classified = preClassified ?: classifier?.classifyIntent(query)
-        val isClassifiedStatus = classified?.intent == TransitQueryIntent.SERVICE_STATUS ||
-                classified?.intent == TransitQueryIntent.DISRUPTION_CHECK
-
-        // 5. Named line recognition (e.g. "Central line", "Victoria", "Elizabeth line", "Northern")
-        val namedLine = KNOWN_LINES.firstOrNull { alias ->
-            alias.keywords.any { kw -> cleanQuery.contains(kw) }
-        }
-
-        val isDelayRepayQuery = cleanQuery.contains("delay repay") ||
-                cleanQuery.contains("service delay refund") ||
-                cleanQuery.contains("compensation") ||
-                cleanQuery.contains("claim refund")
-
-        // 6. Service-status intent (e.g. "Any Tube delays or disruptions?", "Elizabeth line status")
-        val isStatusQuery = !isDelayRepayQuery && (isClassifiedStatus || STATUS_KEYWORDS.any { kw -> cleanQuery.contains(kw) })
-        if (isStatusQuery) {
-            return answerStatusQuery(namedLine, defaultOrigin)
-        }
-
         // Intent classification for specialized concourse stationmaster inquiries
         val isRunQuery = cleanQuery.contains("should i run") ||
                 cleanQuery.contains("can i make") ||
@@ -270,16 +208,130 @@ class TransitAiAssistant(
                 cleanQuery.contains("crowded") ||
                 cleanQuery.contains("occupancy")
 
+        // Prioritize tube/rail stations over bus stops when asking about trains, platforms, or carriage formation
+        val isExplicitBusQuery = queriedLine != null || cleanQuery.contains("bus")
+        val isTrainQuery = !isExplicitBusQuery && (
+            cleanQuery.contains("train") ||
+                cleanQuery.contains("tube") ||
+                cleanQuery.contains("underground") ||
+                cleanQuery.contains("rail") ||
+                cleanQuery.contains("metro") ||
+                cleanQuery.contains("platform") ||
+                isFormationQuery ||
+                isLastTrainQuery
+        )
+
+        // Dynamically resolve live nearest station via LocationDataSource if available and nearestStation is null,
+        // or if we need a nearby rail/tube station because nearestStation is bus-only.
+        var resolvedNearestStation = nearestStation
+        var userCoords: com.androidfung.departureboard.util.DeviceCoordinates? = null
+        var discoveredNearbyStations: List<Station> = emptyList()
+
+        if ((isExplicitNearMe || resolvedNearestStation == null || (isTrainQuery && resolvedNearestStation.isBusOnly)) &&
+            locationDataSource != null
+        ) {
+            userCoords = locationDataSource.getCurrentCoordinates()
+            if (userCoords != null) {
+                discoveredNearbyStations = com.androidfung.departureboard.util.runSuspendCatching {
+                    repository.getNearbyStationsFromApi(userCoords.latitude, userCoords.longitude, 2000)
+                }.getOrDefault(emptyList())
+
+                val candidates = (discoveredNearbyStations + savedStations).distinctBy { it.id }
+                val nearestPair = if (isTrainQuery) {
+                    com.androidfung.departureboard.util.LocationHelper.findNearestStation(
+                        lat = userCoords.latitude,
+                        lon = userCoords.longitude,
+                        stations = candidates.filter { !it.isBusOnly }
+                    ) ?: com.androidfung.departureboard.util.LocationHelper.findNearestStation(
+                        lat = userCoords.latitude,
+                        lon = userCoords.longitude,
+                        stations = candidates
+                    )
+                } else {
+                    com.androidfung.departureboard.util.LocationHelper.findNearestStation(
+                        lat = userCoords.latitude,
+                        lon = userCoords.longitude,
+                        stations = candidates
+                    )
+                }
+                if (nearestPair != null) {
+                    resolvedNearestStation = nearestPair.first
+                }
+            }
+        }
+
+        // If locationDataSource wasn't available (or returned null) but we already have a bus-only nearestStation
+        // with coordinates for a train query, still query nearby rail/tube stations around it.
+        if (isTrainQuery && originStation == null &&
+            discoveredNearbyStations.isEmpty() &&
+            resolvedNearestStation?.isBusOnly == true &&
+            resolvedNearestStation.lat != null &&
+            resolvedNearestStation.lon != null
+        ) {
+            discoveredNearbyStations = com.androidfung.departureboard.util.runSuspendCatching {
+                repository.getNearbyStationsFromApi(resolvedNearestStation.lat, resolvedNearestStation.lon, 2000)
+            }.getOrDefault(emptyList())
+        }
+
+        // If the user explicitly asked for departures "near me" or "closest", but device location cannot be determined,
+        // do not silently guess Oxford Circus or the first saved station. Inform the user clearly.
+        if (isExplicitNearMe && resolvedNearestStation == null) {
+            return AiTransitResult(
+                answer = "I couldn't detect your current location. Please ensure location permissions and GPS are enabled, or specify a station name (e.g. \"Next departure from King's Cross\")."
+            )
+        }
+
+        // If no explicit origin is stated, context-aware routing prefers the user's nearest station
+        val defaultOrigin = originStation ?: resolvedNearestStation ?: savedStations.firstOrNull()
+
+        // 3. Identify target destination station
+        val toMatch = TO_STATION_REGEX.find(cleanQuery)
+        val targetDestinationName = toMatch?.groupValues?.getOrNull(1)?.trim()?.lowercase()
+
+        // 4. LiteRT-Runtime Intent Classification
+        val classified = preClassified ?: classifier?.classifyIntent(query)
+        val isClassifiedStatus = classified?.intent == TransitQueryIntent.SERVICE_STATUS ||
+                classified?.intent == TransitQueryIntent.DISRUPTION_CHECK
+
+        // 5. Named line recognition (e.g. "Central line", "Victoria", "Elizabeth line", "Northern")
+        val namedLine = KNOWN_LINES.firstOrNull { alias ->
+            alias.keywords.any { kw -> cleanQuery.contains(kw) }
+        }
+
+        val isDelayRepayQuery = cleanQuery.contains("delay repay") ||
+                cleanQuery.contains("service delay refund") ||
+                cleanQuery.contains("compensation") ||
+                cleanQuery.contains("claim refund")
+
+        // 6. Service-status intent (e.g. "Any Tube delays or disruptions?", "Elizabeth line status")
+        val isStatusQuery = !isDelayRepayQuery && (isClassifiedStatus || STATUS_KEYWORDS.any { kw -> cleanQuery.contains(kw) })
+        if (isStatusQuery) {
+            return answerStatusQuery(namedLine, defaultOrigin)
+        }
+
         // Candidate origins: prioritize user's physical nearest station first, followed by saved stations
         val effectiveNearestStation = resolvedNearestStation
         val baseStationsToSearch = when {
             originStation != null -> listOf(originStation)
-            effectiveNearestStation != null -> listOf(effectiveNearestStation) + savedStations.filter { it.id != effectiveNearestStation.id }
-            else -> savedStations
+            effectiveNearestStation != null -> (listOf(effectiveNearestStation) + discoveredNearbyStations + savedStations).distinctBy { it.id }
+            else -> (discoveredNearbyStations + savedStations).distinctBy { it.id }
         }
 
+        val refLat = userCoords?.latitude ?: effectiveNearestStation?.lat
+        val refLon = userCoords?.longitude ?: effectiveNearestStation?.lon
         val stationsToSearch = if (isTrainQuery && originStation == null) {
-            baseStationsToSearch.sortedBy { it.isBusOnly }
+            baseStationsToSearch.sortedWith(
+                compareBy<Station> { it.isBusOnly }
+                    .thenBy { st ->
+                        if (refLat != null && refLon != null && st.lat != null && st.lon != null) {
+                            com.androidfung.departureboard.util.LocationHelper.calculateDistanceMeters(
+                                refLat, refLon, st.lat, st.lon
+                            )
+                        } else {
+                            Double.MAX_VALUE
+                        }
+                    }
+            )
         } else {
             baseStationsToSearch
         }
@@ -308,11 +360,11 @@ class TransitAiAssistant(
                     dep.lineName.equals(queriedLine, ignoreCase = true)
                 )
 
-                val namedLineMatches = namedLine != null && (
-                    dep.lineId.equals(namedLine.lineId, ignoreCase = true) ||
-                    namedLine.keywords.any { kw ->
-                        dep.lineName.contains(kw, ignoreCase = true) || dep.lineId.contains(kw, ignoreCase = true)
-                    }
+                val namedLineMatches = namedLine != null && matchesNamedLine(
+                    namedLine = namedLine,
+                    lineId = dep.lineId,
+                    lineName = dep.lineName,
+                    exactOnly = false
                 )
 
                 val destMatches = targetDestinationName != null && (depDest.contains(targetDestinationName) || targetDestinationName.contains(depDest) ||
@@ -351,16 +403,26 @@ class TransitAiAssistant(
         }
 
         // 7. Specialized Stationmaster Responses:
+        val onlyBusDeparturesAvailable = isTrainQuery &&
+            matchingDepartures.isEmpty() &&
+            (primaryStation?.isBusOnly == true ||
+                (primaryDeps.isNotEmpty() && primaryDeps.all { TransitMode.fromModeString(it.modeName) == TransitMode.BUS }))
+
+        if (onlyBusDeparturesAvailable && (isRunQuery || isLastTrainQuery || isFormationQuery)) {
+            val advice = "No nearby rail or Tube stations with live departures were found. Try specifying a station name (e.g. \"next train from King's Cross\")."
+            return AiTransitResult(
+                answer = advice,
+                originQuery = explicitOriginName,
+                destinationQuery = targetDestinationName,
+                a2uiResponse = A2UiResponse(listOf(A2UiBlock.TextSummary(advice)))
+            )
+        }
+
         if (isRunQuery && primaryStation != null && primaryDeps.isNotEmpty()) {
             val next = primaryDeps.first()
             val sec = next.timeToStationSeconds
             val mins = (sec + 30) / 60
-            val plat = next.platformName.ifBlank { "Platform" }
-            val platformPhrase = if (plat.startsWith("towards", ignoreCase = true) || plat.startsWith("from ", ignoreCase = true)) {
-                plat
-            } else {
-                "from $plat"
-            }
+            val platformPhrase = formatPlatformPreposition(next.platformName, "from")
             val subsequent = primaryDeps.getOrNull(1)
             val subsequentSuffix = if (subsequent != null) {
                 val subClock = subsequent.formattedActualClockTime ?: subsequent.formattedTimeToArrival
@@ -391,10 +453,11 @@ class TransitAiAssistant(
         if (isLastTrainQuery && primaryStation != null && primaryDeps.isNotEmpty()) {
             val lastDep = primaryDeps.lastOrNull { it.isLastTrain } ?: primaryDeps.last()
             val clock = lastDep.formattedActualClockTime ?: lastDep.formattedTimeToArrival
+            val platformPhrase = formatPlatformPreposition(lastDep.platformName, "from")
             val advice = if (lastDep.isNightService) {
-                "🦉 [Stationmaster] 24-hour night transit operates on this route overnight. The next late departure to ${lastDep.destinationName} leaves at $clock from ${lastDep.platformName}."
+                "🦉 [Stationmaster] 24-hour night transit operates on this route overnight. The next late departure to ${lastDep.destinationName} leaves at $clock $platformPhrase."
             } else {
-                "🌙 [Stationmaster] The final scheduled departure to ${lastDep.destinationName} leaves at $clock from ${lastDep.platformName} (${lastDep.formattedTimeToArrival}). After this, regular service closes for the night."
+                "🌙 [Stationmaster] The final scheduled departure to ${lastDep.destinationName} leaves at $clock $platformPhrase (${lastDep.formattedTimeToArrival}). After this, regular service closes for the night."
             }
 
             val blocks = listOf(
@@ -415,6 +478,8 @@ class TransitAiAssistant(
         if (isFormationQuery && primaryStation != null && primaryDeps.isNotEmpty()) {
             val next = primaryDeps.first()
             val plat = next.platformName.ifBlank { "Platform" }
+            val onPlatformPhrase = formatPlatformPreposition(plat, "on")
+            val ofPlatformPhrase = if (plat.startsWith("towards", ignoreCase = true)) plat else "of $plat"
             val formation = next.train?.formation
             val recommendation = CarriageExitAdvisor.recommend(
                 formation = formation,
@@ -426,12 +491,12 @@ class TransitAiAssistant(
                 val quietMsg = if (quietCoach != null) " Quiet coach is Coach $quietCoach." else ""
                 if (recommendation != null) {
                     val coachList = recommendation.recommendedCoachLabels.joinToString("/")
-                    "🚆 [Stationmaster] The upcoming ${next.lineName} to ${next.destinationName} is formed of $coachCount coaches.$quietMsg Best carriage for boarding on $plat: Coach $coachList (${recommendation.reason})."
+                    "🚆 [Stationmaster] The upcoming ${next.lineName} to ${next.destinationName} is formed of $coachCount coaches.$quietMsg Best carriage for boarding $onPlatformPhrase: Coach $coachList (${recommendation.reason})."
                 } else {
-                    "🚆 [Stationmaster] The upcoming ${next.lineName} to ${next.destinationName} is formed of $coachCount coaches.$quietMsg Board near the middle of $plat for the best seat availability."
+                    "🚆 [Stationmaster] The upcoming ${next.lineName} to ${next.destinationName} is formed of $coachCount coaches.$quietMsg Board near the middle $ofPlatformPhrase for the best seat availability."
                 }
             } else {
-                "📍 [Stationmaster] For the ${next.lineName} to ${next.destinationName} on $plat, boarding near the middle of the platform offers the best seat availability and easiest egress at busy interchange stations."
+                "📍 [Stationmaster] For the ${next.lineName} to ${next.destinationName} $onPlatformPhrase, boarding near the middle of the platform offers the best seat availability and easiest egress at busy interchange stations."
             }
 
             val blocks = listOf(
@@ -593,21 +658,11 @@ class TransitAiAssistant(
             allStatuses
         } else {
             val exactMatches = allStatuses.filter { (lineId, item) ->
-                lineId.equals(namedLine.lineId, ignoreCase = true) ||
-                    item.name.equals(namedLine.lineId, ignoreCase = true) ||
-                    namedLine.keywords.any { kw ->
-                        item.name.equals(kw, ignoreCase = true) ||
-                            item.name.equals("$kw line", ignoreCase = true)
-                    }
+                matchesNamedLine(namedLine, lineId, item.name, exactOnly = true)
             }
             exactMatches.ifEmpty {
                 allStatuses.filter { (lineId, item) ->
-                    val isCompoundNorthernMismatch = namedLine.lineId == "northern" &&
-                        (lineId.contains("great", ignoreCase = true) || item.name.contains("great", ignoreCase = true))
-                    !isCompoundNorthernMismatch && (
-                        lineId.contains(namedLine.lineId, ignoreCase = true) ||
-                            namedLine.keywords.any { kw -> item.name.contains(kw, ignoreCase = true) }
-                        )
+                    matchesNamedLine(namedLine, lineId, item.name, exactOnly = false)
                 }
             }
         }
@@ -871,6 +926,42 @@ class TransitAiAssistant(
     private val STATUS_KEYWORDS = listOf(
         "status", "delays", "delay", "disruption", "disruptions", "running", "good service", "problems"
     )
+
+    private fun matchesNamedLine(
+        namedLine: LineAlias,
+        lineId: String,
+        lineName: String,
+        exactOnly: Boolean
+    ): Boolean {
+        val isCompoundNorthernMismatch = namedLine.lineId == "northern" &&
+            (lineId.contains("great", ignoreCase = true) || lineName.contains("great", ignoreCase = true))
+        if (isCompoundNorthernMismatch) return false
+
+        val isExact = lineId.equals(namedLine.lineId, ignoreCase = true) ||
+            lineName.equals(namedLine.lineId, ignoreCase = true) ||
+            namedLine.keywords.any { kw ->
+                lineName.equals(kw, ignoreCase = true) ||
+                    lineName.equals("$kw line", ignoreCase = true)
+            }
+        if (isExact || exactOnly) return isExact
+
+        return lineId.contains(namedLine.lineId, ignoreCase = true) ||
+            namedLine.keywords.any { kw ->
+                lineName.contains(kw, ignoreCase = true) || lineId.contains(kw, ignoreCase = true)
+            }
+    }
+
+    private fun formatPlatformPreposition(platformName: String, preposition: String = "from"): String {
+        val plat = platformName.trim().ifBlank { "Platform" }
+        return if (plat.startsWith("towards", ignoreCase = true) ||
+            plat.startsWith("from ", ignoreCase = true) ||
+            plat.startsWith("on ", ignoreCase = true)
+        ) {
+            plat
+        } else {
+            "$preposition $plat"
+        }
+    }
 
     private fun decodeDisruptionReason(rawReason: String): String {
         val lower = rawReason.lowercase()

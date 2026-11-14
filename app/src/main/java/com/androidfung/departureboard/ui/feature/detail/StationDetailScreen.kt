@@ -117,7 +117,8 @@ fun StationDetailScreen(
     stations: List<Station> = listOf(station),
     onStationChange: ((Station) -> Unit)? = null,
     onOpenDeskClock: ((Station) -> Unit)? = null,
-    isBikeshareEnabled: Boolean = false
+    isBikeshareEnabled: Boolean = false,
+    lineStatuses: Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = emptyMap()
 ) {
     val stationList = remember(stations, station) {
         val combined = if (stations.none { it.id == station.id }) {
@@ -148,7 +149,8 @@ fun StationDetailScreen(
             accessibilityAlerts = accessibilityAlerts,
             isPro = isPro,
             onOpenDeskClock = onOpenDeskClock,
-            isBikeshareEnabled = isBikeshareEnabled
+            isBikeshareEnabled = isBikeshareEnabled,
+            lineStatuses = lineStatuses
         )
     } else {
         val pagerState = androidx.compose.foundation.pager.rememberPagerState(
@@ -207,7 +209,8 @@ fun StationDetailScreen(
                     }
                 },
                 onOpenDeskClock = onOpenDeskClock,
-                isBikeshareEnabled = isBikeshareEnabled
+                isBikeshareEnabled = isBikeshareEnabled,
+                lineStatuses = lineStatuses
             )
         }
     }
@@ -316,7 +319,8 @@ private fun StationDetailContent(
     currentPage: Int = 0,
     onPageClick: ((Int) -> Unit)? = null,
     onOpenDeskClock: ((Station) -> Unit)? = null,
-    isBikeshareEnabled: Boolean = false
+    isBikeshareEnabled: Boolean = false,
+    lineStatuses: Map<String, com.androidfung.departureboard.data.model.gb.TflLineStatusItem> = emptyMap()
 ) {
     val modeIconRes = TransitIconHelper.getTransitModeIconRes(station.primaryTransitMode)
 
@@ -688,11 +692,21 @@ private fun StationDetailContent(
         val isThreePane = LocalIsThreePaneMode.current
         val isMultiPane = isTwoPane || isThreePane
 
-        val disruptedBadgesToShow = remember(distinctLines, selectedLineId, isMultiPane) {
+        val synthesizedDisruptedBadges = remember(station, departures, lineStatuses) {
+            com.androidfung.departureboard.ui.dashboard.StationBadgeSynthesizer
+                .buildStationLineBadges(station, departures, lineStatuses)
+                .filter { it.isDisrupted }
+        }
+        val allDisruptedBadges = remember(distinctLines, synthesizedDisruptedBadges) {
+            (distinctLines.filter { it.isDisrupted } + synthesizedDisruptedBadges)
+                .distinctBy { it.lineId.lowercase() }
+        }
+
+        val disruptedBadgesToShow = remember(allDisruptedBadges, selectedLineId, isMultiPane) {
             if (selectedLineId != null) {
-                distinctLines.filter { TransitIconHelper.isSameLine(it.lineId, selectedLineId) && it.isDisrupted }
+                allDisruptedBadges.filter { TransitIconHelper.isSameLine(it.lineId, selectedLineId) }
             } else if (!isMultiPane) {
-                distinctLines.filter { it.isDisrupted }
+                allDisruptedBadges
             } else {
                 emptyList()
             }

@@ -473,6 +473,7 @@ class MainActivity : AppCompatActivity() {
                                                 savedStationIds = savedIds,
                                                 serviceHoursInfo = uiState.serviceHoursInfo,
                                                 accessibilityAlerts = uiState.detailAccessibilityAlerts,
+                                                lineStatuses = uiState.lineStatuses,
                                                 stations = uiState.detailStationsContext.ifEmpty { listOf(station) },
                                                 onStationChange = { nextStation ->
                                                     viewModel.openStationDetail(

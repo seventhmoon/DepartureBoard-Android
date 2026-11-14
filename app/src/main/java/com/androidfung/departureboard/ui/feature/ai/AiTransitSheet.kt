@@ -293,7 +293,13 @@ fun AiTransitSheet(
                         cleanPrompt.contains("last train") ||
                         cleanPrompt.contains("next tube") ||
                         cleanPrompt.contains("next train") ||
-                        cleanPrompt.contains("next bus"))
+                        cleanPrompt.contains("next bus") ||
+                        cleanPrompt.contains("should i run") ||
+                        cleanPrompt.contains("can i catch") ||
+                        cleanPrompt.contains("can i make") ||
+                        cleanPrompt.contains("where to stand") ||
+                        cleanPrompt.contains("where should i stand") ||
+                        cleanPrompt.contains("platform"))
 
                 if (isLocationIntent) {
                     if (!hasLocationPermission && onRequestLocationPermission != null) {

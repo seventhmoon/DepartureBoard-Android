@@ -463,4 +463,149 @@ class TransitAiAssistantTest {
                 !result.answer.contains("Great Northern is running with good service", ignoreCase = true)
         )
     }
+
+    @Test
+    fun `where to stand on platform skips bus-only nearest stop and uses rail station`() = runTest {
+        val busStop = Station(
+            id = "490011898S",
+            name = "Sanders Lane (Stop S)",
+            modes = listOf("bus"),
+            lat = 51.608,
+            lon = -0.211
+        )
+        val tubeStation = Station(
+            id = "940GZZLUMHL",
+            name = "Mill Hill East",
+            modes = listOf("tube"),
+            lat = 51.6083,
+            lon = -0.2103
+        )
+        val busDep = departure("221", "221", "Turnpike Lane", stationId = busStop.id, stationName = busStop.name, seconds = 60, mode = "bus")
+        val tubeDep = departure("northern", "Northern", "Morden via Bank", stationId = tubeStation.id, stationName = tubeStation.name, seconds = 240, mode = "tube")
+
+        val repo = FakeTransitRepository(
+            departuresResult = { stationId, _ ->
+                when (stationId) {
+                    busStop.id -> Result.success(listOf(busDep))
+                    tubeStation.id -> Result.success(listOf(tubeDep))
+                    else -> Result.success(emptyList())
+                }
+            }
+        )
+        val assistant = TransitAiAssistant(repo)
+        val result = assistant.answerQuery(
+            query = "where to stand on platform?",
+            savedStations = listOf(tubeStation, busStop),
+            nearestStation = busStop
+        )
+
+        assertEquals(tubeStation.id, result.matchedStation?.id)
+    }
+
+    @Test
+    fun `should I run for next train prefers physically nearest train station over earlier far saved station`() = runTest {
+        val busStop = Station(
+            id = "490011898S",
+            name = "Sanders Lane (Stop S)",
+            modes = listOf("bus"),
+            lat = 51.6080,
+            lon = -0.2110
+        )
+        val farTubeStation = Station(
+            id = "940GZZLUMCR",
+            name = "Mornington Crescent",
+            modes = listOf("tube"),
+            lat = 51.5343,
+            lon = -0.1387
+        )
+        val nearTubeStation = Station(
+            id = "940GZZLUMHL",
+            name = "Mill Hill East",
+            modes = listOf("tube"),
+            lat = 51.6083,
+            lon = -0.2103
+        )
+        val busDep = departure("221", "221", "Turnpike Lane", stationId = busStop.id, stationName = busStop.name, seconds = 60, mode = "bus")
+        val farDep = departure("northern", "Northern", "Kennington", stationId = farTubeStation.id, stationName = farTubeStation.name, seconds = 180, mode = "tube")
+        val nearDep = departure("northern", "Northern", "Morden via Bank", stationId = nearTubeStation.id, stationName = nearTubeStation.name, seconds = 240, mode = "tube")
+
+        val repo = FakeTransitRepository(
+            departuresResult = { stationId, _ ->
+                when (stationId) {
+                    busStop.id -> Result.success(listOf(busDep))
+                    farTubeStation.id -> Result.success(listOf(farDep))
+                    nearTubeStation.id -> Result.success(listOf(nearDep))
+                    else -> Result.success(emptyList())
+                }
+            }
+        )
+        val assistant = TransitAiAssistant(repo)
+        val result = assistant.answerQuery(
+            query = "Should I run for the next train?",
+            savedStations = listOf(farTubeStation, nearTubeStation),
+            nearestStation = busStop
+        )
+
+        assertEquals(nearTubeStation.id, result.matchedStation?.id)
+        assertTrue(
+            "Expected Mill Hill East / Morden via Bank, got: ${result.answer}",
+            result.answer.contains("Morden", ignoreCase = true)
+        )
+    }
+
+    @Test
+    fun `should I run for next train does not masquerade bus stop as train when no rail stations exist`() = runTest {
+        val busStop = Station(
+            id = "490011898S",
+            name = "Sanders Lane (Stop S)",
+            modes = listOf("bus"),
+            lat = 51.6080,
+            lon = -0.2110
+        )
+        val busDep = departure("221", "221", "Turnpike Lane", stationId = busStop.id, stationName = busStop.name, seconds = 60, mode = "bus")
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(listOf(busDep)) }
+        )
+        val assistant = TransitAiAssistant(repo)
+        val result = assistant.answerQuery(
+            query = "Should I run for the next train?",
+            savedStations = listOf(busStop),
+            nearestStation = busStop
+        )
+
+        assertTrue(
+            "Expected no-rail-stations guidance instead of bus 221, got: ${result.answer}",
+            result.answer.contains("No nearby rail or Tube stations", ignoreCase = true) &&
+                !result.answer.contains("221")
+        )
+    }
+
+    @Test
+    fun `next Northern train query does not match Great Northern departure`() = runTest {
+        val station = Station(
+            id = "910GFINPK",
+            name = "Finsbury Park",
+            modes = listOf("tube", "national-rail"),
+            lat = 51.5642,
+            lon = -0.1065
+        )
+        val greatNorthernDep = departure("great-northern", "Great Northern", "Cambridge", stationId = station.id, stationName = station.name, seconds = 120, mode = "national-rail")
+        val northernDep = departure("northern", "Northern", "Morden", stationId = station.id, stationName = station.name, seconds = 300, mode = "tube")
+
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(listOf(greatNorthernDep, northernDep)) }
+        )
+        val assistant = TransitAiAssistant(repo)
+        val result = assistant.answerQuery(
+            query = "Next Northern train",
+            savedStations = listOf(station),
+            nearestStation = station
+        )
+
+        assertTrue(
+            "Expected Morden (Northern) rather than Cambridge (Great Northern), got: ${result.answer}",
+            result.answer.contains("Morden", ignoreCase = true) &&
+                !result.answer.contains("Cambridge", ignoreCase = true)
+        )
+    }
 }
