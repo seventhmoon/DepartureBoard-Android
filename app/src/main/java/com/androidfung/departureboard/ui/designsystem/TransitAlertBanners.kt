@@ -3,6 +3,7 @@ package com.androidfung.departureboard.ui.designsystem
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,6 +57,68 @@ import com.androidfung.departureboard.ui.theme.LocalIsDarkTheme
 import com.androidfung.departureboard.util.PlatformBacklogAlert
 
 private val HTTPS_URL_REGEX = Regex("""(https://[^\s]+)""")
+
+@Composable
+private fun ExpandableDisruptionBodyText(
+    text: String,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by rememberSaveable(text) { mutableStateOf(false) }
+    var isTruncated by remember(text) { mutableStateOf(false) }
+    val canToggle = isTruncated || isExpanded
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize()
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            maxLines = if (isExpanded) Int.MAX_VALUE else 3,
+            overflow = TextOverflow.Ellipsis,
+            onTextLayout = { result ->
+                if (!isExpanded) {
+                    isTruncated = result.hasVisualOverflow
+                }
+            },
+            modifier = if (canToggle) {
+                Modifier.clickable { isExpanded = !isExpanded }
+            } else {
+                Modifier
+            }
+        )
+        if (canToggle) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(vertical = 2.dp)
+            ) {
+                Text(
+                    text = stringResource(
+                        if (isExpanded) R.string.travel_alert_show_less else R.string.travel_alert_read_more
+                    ),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = accentColor
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+                Icon(
+                    imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+    }
+}
 
 /**
  * Standardized Transit Alert Banner Container that enforces identical margins, padding,
@@ -267,12 +331,9 @@ fun LineDisruptionBanner(
                     // Mixed text and URL: display clean text with a trailing link button
                     val textWithoutUrl = reason.replace(url, "").trim()
                     if (textWithoutUrl.isNotBlank()) {
-                        Text(
+                        ExpandableDisruptionBodyText(
                             text = textWithoutUrl,
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis
+                            accentColor = accentColor
                         )
                     }
                     Text(
@@ -293,12 +354,9 @@ fun LineDisruptionBanner(
                     )
                 } else {
                     // Plain text disruption description
-                    Text(
+                    ExpandableDisruptionBodyText(
                         text = reason,
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
+                        accentColor = accentColor
                     )
                 }
             }

@@ -348,4 +348,119 @@ class TransitAiAssistantTest {
             result.answer.contains("Victoria", ignoreCase = true) || result.answer.contains("signalling", ignoreCase = true)
         )
     }
+
+    @Test
+    fun `should I run for next train skips bus-only nearest stop in favour of saved rail station`() = runTest {
+        val busStop = Station(
+            id = "490011898S",
+            name = "Sanders Lane (Stop S)",
+            modes = listOf("bus"),
+            lat = 51.608,
+            lon = -0.211
+        )
+        val tubeStation = Station(
+            id = "940GZZLUMHL",
+            name = "Mill Hill East",
+            modes = listOf("tube"),
+            lat = 51.6083,
+            lon = -0.2103
+        )
+        val busDep = departure("221", "221", "Turnpike Lane", stationId = busStop.id, stationName = busStop.name, seconds = 60, mode = "bus")
+            .copy(platformName = "towards North Finchley")
+        val tubeDep = departure("northern", "Northern", "Morden via Bank", stationId = tubeStation.id, stationName = tubeStation.name, seconds = 240, mode = "tube")
+            .copy(platformName = "Plat 1")
+
+        val repo = FakeTransitRepository(
+            departuresResult = { stationId, _ ->
+                when (stationId) {
+                    busStop.id -> Result.success(listOf(busDep))
+                    tubeStation.id -> Result.success(listOf(tubeDep))
+                    else -> Result.success(emptyList())
+                }
+            }
+        )
+        val assistant = TransitAiAssistant(repo)
+        val result = assistant.answerQuery(
+            query = "Should I run for the next train?",
+            savedStations = listOf(tubeStation, busStop),
+            nearestStation = busStop
+        )
+
+        assertEquals(tubeStation.id, result.matchedStation?.id)
+        assertTrue(
+            "Expected Northern/Morden train response, got: ${result.answer}",
+            result.answer.contains("Northern", ignoreCase = true) && result.answer.contains("Morden", ignoreCase = true)
+        )
+    }
+
+    @Test
+    fun `should I run avoids from towards duplication when platform already starts with towards`() = runTest {
+        val busStop = Station(
+            id = "490011898S",
+            name = "Sanders Lane (Stop S)",
+            modes = listOf("bus"),
+            lat = 51.608,
+            lon = -0.211
+        )
+        val busDep = departure("221", "221", "Turnpike Lane", stationId = busStop.id, stationName = busStop.name, seconds = 60, mode = "bus")
+            .copy(platformName = "towards North Finchley")
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(listOf(busDep)) }
+        )
+        val assistant = TransitAiAssistant(repo)
+        val result = assistant.answerQuery(
+            query = "Should I run for the next bus?",
+            savedStations = listOf(busStop),
+            nearestStation = busStop
+        )
+
+        assertTrue(
+            "Expected clean platform phrasing without 'from towards', got: ${result.answer}",
+            !result.answer.contains("from towards", ignoreCase = true) &&
+                result.answer.contains("towards North Finchley", ignoreCase = true)
+        )
+    }
+
+    @Test
+    fun `northern status query matches Northern Part Closure rather than Great Northern Good Service`() = runTest {
+        val repo = FakeTransitRepository(
+            departuresResult = { _, _ -> Result.success(emptyList()) },
+            lineStatuses = linkedMapOf(
+                "great-northern" to TflLineStatusItem(
+                    id = "great-northern",
+                    name = "Great Northern",
+                    modeName = "national-rail",
+                    lineStatuses = listOf(
+                        com.androidfung.departureboard.data.model.gb.TflLineStatusDetail(
+                            statusSeverity = 10,
+                            statusSeverityDescription = "Good Service"
+                        )
+                    )
+                ),
+                "northern" to TflLineStatusItem(
+                    id = "northern",
+                    name = "Northern",
+                    modeName = "tube",
+                    lineStatuses = listOf(
+                        com.androidfung.departureboard.data.model.gb.TflLineStatusDetail(
+                            statusSeverity = 3,
+                            statusSeverityDescription = "Part Closure",
+                            reason = "NORTHERN LINE: No service between Euston and Morden."
+                        )
+                    )
+                )
+            )
+        )
+        val assistant = TransitAiAssistant(repo)
+        val result = assistant.answerQuery(
+            query = "What are the best alternative routes if Northern has delays?",
+            savedStations = listOf(oxfordCircus)
+        )
+
+        assertTrue(
+            "Expected Northern Part Closure, got: ${result.answer}",
+            result.answer.contains("part closure", ignoreCase = true) &&
+                !result.answer.contains("Great Northern is running with good service", ignoreCase = true)
+        )
+    }
 }

@@ -576,4 +576,6 @@
     <string name="smart_commute_offpeak_active">スマート通勤を有効化（朝夕の通勤時間帯に自宅・職場駅を自動優先）</string>
     <string name="smart_commute_disabled">スマート通勤を無効にしました</string>
     <string name="shortcut_station_departures">%1$s 発車案内</string>
+    <string name="travel_alert_read_more">続きを読む</string>
+    <string name="travel_alert_show_less">折りたたむ</string>
 </resources>

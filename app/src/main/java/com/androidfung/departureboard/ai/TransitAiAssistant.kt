@@ -328,8 +328,27 @@ class TransitAiAssistant(
             }
         }
 
-        val primaryStation = departureStation ?: defaultOrigin ?: departuresByStation.firstOrNull()?.first
-        val primaryDeps = if (matchingDepartures.isNotEmpty()) matchingDepartures else (departuresByStation.firstOrNull { it.first.id == primaryStation?.id }?.second ?: departuresByStation.firstOrNull()?.second ?: emptyList())
+        val preferredNonBusOrigin = if (isTrainQuery && originStation == null) {
+            departuresByStation.firstOrNull { (st, deps) ->
+                !st.isBusOnly && deps.any { TransitMode.fromModeString(it.modeName) != TransitMode.BUS }
+            }?.first ?: departuresByStation.firstOrNull { (st, deps) ->
+                !st.isBusOnly && deps.isNotEmpty()
+            }?.first ?: departuresByStation.firstOrNull { (st, _) -> !st.isBusOnly }?.first
+        } else null
+
+        val primaryStation = departureStation ?: preferredNonBusOrigin ?: defaultOrigin ?: departuresByStation.firstOrNull()?.first
+        val rawPrimaryDeps = if (matchingDepartures.isNotEmpty()) {
+            matchingDepartures
+        } else {
+            departuresByStation.firstOrNull { it.first.id == primaryStation?.id }?.second
+                ?: departuresByStation.firstOrNull()?.second
+                ?: emptyList()
+        }
+        val primaryDeps = if (isTrainQuery && matchingDepartures.isEmpty()) {
+            rawPrimaryDeps.filter { TransitMode.fromModeString(it.modeName) != TransitMode.BUS }.ifEmpty { rawPrimaryDeps }
+        } else {
+            rawPrimaryDeps
+        }
 
         // 7. Specialized Stationmaster Responses:
         if (isRunQuery && primaryStation != null && primaryDeps.isNotEmpty()) {
@@ -337,6 +356,11 @@ class TransitAiAssistant(
             val sec = next.timeToStationSeconds
             val mins = (sec + 30) / 60
             val plat = next.platformName.ifBlank { "Platform" }
+            val platformPhrase = if (plat.startsWith("towards", ignoreCase = true) || plat.startsWith("from ", ignoreCase = true)) {
+                plat
+            } else {
+                "from $plat"
+            }
             val subsequent = primaryDeps.getOrNull(1)
             val subsequentSuffix = if (subsequent != null) {
                 val subClock = subsequent.formattedActualClockTime ?: subsequent.formattedTimeToArrival
@@ -344,9 +368,9 @@ class TransitAiAssistant(
             } else ""
 
             val advice = when {
-                sec <= 90 -> "🚨 [Stationmaster] Too tight! The ${next.lineName} towards ${next.destinationName} departs in less than 90 seconds from $plat (boarding doors close 1 min prior). Don't run—wait for the next service$subsequentSuffix."
-                sec in 91..240 -> "🏃 [Stationmaster] Run! The ${next.lineName} to ${next.destinationName} departs in ~$mins min from $plat. If you proceed through the ticket barriers now, you can catch it!"
-                else -> "✅ [Stationmaster] Plenty of time! The next ${next.lineName} to ${next.destinationName} departs in ~$mins min from $plat (scheduled at ${next.formattedActualClockTime ?: ""}). No need to rush."
+                sec <= 90 -> "🚨 [Stationmaster] Too tight! The ${next.lineName} towards ${next.destinationName} departs in less than 90 seconds $platformPhrase (boarding doors close 1 min prior). Don't run—wait for the next service$subsequentSuffix."
+                sec in 91..240 -> "🏃 [Stationmaster] Run! The ${next.lineName} to ${next.destinationName} departs in ~$mins min $platformPhrase. If you proceed through the ticket barriers now, you can catch it!"
+                else -> "✅ [Stationmaster] Plenty of time! The next ${next.lineName} to ${next.destinationName} departs in ~$mins min $platformPhrase (scheduled at ${next.formattedActualClockTime ?: ""}). No need to rush."
             }
 
             val blocks = listOf(
@@ -564,10 +588,28 @@ class TransitAiAssistant(
         val allStatuses = repository.getLineStatuses()
 
         // Narrow to the named line if the query mentions one (e.g. "Elizabeth line status").
-        val relevant = allStatuses.filter { (lineId, item) ->
-            namedLine == null ||
-                lineId.contains(namedLine.lineId, ignoreCase = true) ||
-                namedLine.keywords.any { kw -> item.name.contains(kw, ignoreCase = true) }
+        // Prefer exact ID/name matches so "northern" resolves to Northern rather than Great Northern.
+        val relevant = if (namedLine == null) {
+            allStatuses
+        } else {
+            val exactMatches = allStatuses.filter { (lineId, item) ->
+                lineId.equals(namedLine.lineId, ignoreCase = true) ||
+                    item.name.equals(namedLine.lineId, ignoreCase = true) ||
+                    namedLine.keywords.any { kw ->
+                        item.name.equals(kw, ignoreCase = true) ||
+                            item.name.equals("$kw line", ignoreCase = true)
+                    }
+            }
+            exactMatches.ifEmpty {
+                allStatuses.filter { (lineId, item) ->
+                    val isCompoundNorthernMismatch = namedLine.lineId == "northern" &&
+                        (lineId.contains("great", ignoreCase = true) || item.name.contains("great", ignoreCase = true))
+                    !isCompoundNorthernMismatch && (
+                        lineId.contains(namedLine.lineId, ignoreCase = true) ||
+                            namedLine.keywords.any { kw -> item.name.contains(kw, ignoreCase = true) }
+                        )
+                }
+            }
         }
 
         val disrupted = relevant.values.mapNotNull { item ->
@@ -784,6 +826,7 @@ class TransitAiAssistant(
         LineAlias("central", listOf("central line", "central")),
         LineAlias("victoria", listOf("victoria line", "victoria")),
         LineAlias("piccadilly", listOf("piccadilly line", "piccadilly")),
+        LineAlias("great-northern", listOf("great northern", "northern city")),
         LineAlias("northern", listOf("northern line", "northern")),
         LineAlias("bakerloo", listOf("bakerloo line", "bakerloo")),
         LineAlias("district", listOf("district line", "district")),
@@ -846,7 +889,7 @@ class TransitAiAssistant(
     private fun getConcourseAlternative(lineId: String, lineName: String): String? {
         val lower = lineName.lowercase()
         return when {
-            "northern" in lower -> "Consider the Victoria or Piccadilly lines, Thameslink, or Great Northern departures for cross-London travel."
+            "northern" in lower && "great" !in lower -> "Consider the Victoria or Piccadilly lines, Thameslink, or Great Northern departures for cross-London travel."
             "central" in lower -> "The Elizabeth line and Jubilee line offer fast parallel alternatives across central London."
             "victoria" in lower -> "Use the Piccadilly line, Northern line, or Thameslink downstairs as direct alternatives."
             "piccadilly" in lower -> "Consider the Central line, District line, or the Elizabeth line towards Heathrow."

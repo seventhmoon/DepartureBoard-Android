@@ -575,4 +575,6 @@
     <string name="smart_commute_offpeak_active">已啟用智慧通勤（將於早晚繁忙時段自動切換住家／公司車站）</string>
     <string name="smart_commute_disabled">已停用智慧通勤</string>
     <string name="shortcut_station_departures">%1$s 班次</string>
+    <string name="travel_alert_read_more">閱讀更多</string>
+    <string name="travel_alert_show_less">收合內容</string>
 </resources>

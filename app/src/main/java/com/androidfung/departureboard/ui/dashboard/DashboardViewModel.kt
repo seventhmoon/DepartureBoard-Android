@@ -773,6 +773,7 @@ class DashboardViewModel @JvmOverloads constructor(
                 },
                 isDetailLoading = cachedDepartures.isEmpty(),
                 selectedJourneyDeparture = keptJourney,
+                isStationDetailAboveJourney = false,
                 journeyDeparturesContext = keptJourneyContext
             )
         }
@@ -925,7 +926,8 @@ class DashboardViewModel @JvmOverloads constructor(
                 detailStationsContext = emptyList(),
                 detailDepartures = emptyList(),
                 isDetailLoading = false,
-                serviceHoursInfo = null
+                serviceHoursInfo = null,
+                isStationDetailAboveJourney = false
             )
         }
     }
@@ -939,7 +941,8 @@ class DashboardViewModel @JvmOverloads constructor(
         _uiState.update {
             it.copy(
                 selectedJourneyDeparture = departure,
-                journeyDeparturesContext = resolvedDepartures
+                journeyDeparturesContext = resolvedDepartures,
+                isStationDetailAboveJourney = false
             )
         }
     }
@@ -948,7 +951,8 @@ class DashboardViewModel @JvmOverloads constructor(
         _uiState.update {
             it.copy(
                 selectedJourneyDeparture = null,
-                journeyDeparturesContext = emptyList()
+                journeyDeparturesContext = emptyList(),
+                isStationDetailAboveJourney = false
             )
         }
     }
@@ -974,15 +978,14 @@ class DashboardViewModel @JvmOverloads constructor(
         val currentJourney = _uiState.value.selectedJourneyDeparture
         val currentJourneyContext = _uiState.value.journeyDeparturesContext
 
-        openStationDetail(fallbackStation, fallbackCallingStations)
+        openStationDetail(fallbackStation, fallbackCallingStations, preserveActiveJourney = true)
 
-        if (currentJourney != null) {
-            _uiState.update { current ->
-                current.copy(
-                    selectedJourneyDeparture = currentJourney,
-                    journeyDeparturesContext = currentJourneyContext
-                )
-            }
+        _uiState.update { current ->
+            current.copy(
+                selectedJourneyDeparture = currentJourney ?: current.selectedJourneyDeparture,
+                journeyDeparturesContext = if (currentJourney != null) currentJourneyContext else current.journeyDeparturesContext,
+                isStationDetailAboveJourney = currentJourney != null
+            )
         }
 
         // Enrich the station models asynchronously in the background if repository has more metadata

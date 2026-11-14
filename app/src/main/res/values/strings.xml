@@ -583,4 +583,6 @@
     <string name="smart_commute_offpeak_active">Smart Commute active: Auto-prioritizes Home (AM) &amp; Work (PM)</string>
     <string name="smart_commute_disabled">Smart Commute disabled</string>
     <string name="shortcut_station_departures">%1$s departures</string>
+    <string name="travel_alert_read_more">Read more</string>
+    <string name="travel_alert_show_less">Show less</string>
 </resources>

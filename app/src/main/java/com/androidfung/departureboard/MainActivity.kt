@@ -354,14 +354,23 @@ class MainActivity : AppCompatActivity() {
                     val selectedStationId = uiState.selectedDetailStation?.id
                     val selectedDepartureId = uiState.selectedJourneyDeparture?.id
 
-                    LaunchedEffect(selectedStationId, selectedDepartureId) {
+                    LaunchedEffect(selectedStationId, selectedDepartureId, uiState.isStationDetailAboveJourney) {
                         val newStack = buildList<NavKey> {
                             add(DashboardListRoute)
-                            if (selectedStationId != null) {
-                                add(StationDetailRoute(selectedStationId))
-                            }
-                            if (selectedDepartureId != null) {
-                                add(TrainJourneyRoute(selectedDepartureId))
+                            if (uiState.isStationDetailAboveJourney) {
+                                if (selectedDepartureId != null) {
+                                    add(TrainJourneyRoute(selectedDepartureId))
+                                }
+                                if (selectedStationId != null) {
+                                    add(StationDetailRoute(selectedStationId))
+                                }
+                            } else {
+                                if (selectedStationId != null) {
+                                    add(StationDetailRoute(selectedStationId))
+                                }
+                                if (selectedDepartureId != null) {
+                                    add(TrainJourneyRoute(selectedDepartureId))
+                                }
                             }
                         }
                         if (backStack.toList() != newStack) {

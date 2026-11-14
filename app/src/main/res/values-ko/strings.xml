@@ -576,4 +576,6 @@
     <string name="smart_commute_offpeak_active">스마트 통근 활성화됨 (출퇴근 시간대에 맞춰 집/직장 역 자동 우선 정렬)</string>
     <string name="smart_commute_disabled">스마트 통근이 비활성화되었습니다</string>
     <string name="shortcut_station_departures">%1$s 출발 정보</string>
+    <string name="travel_alert_read_more">더 보기</string>
+    <string name="travel_alert_show_less">접기</string>
 </resources>

@@ -386,4 +386,59 @@ class DashboardViewModelTest {
         advanceUntilIdle()
         assertTrue(viewModel.uiState.value.isAutoSortByLocation)
     }
+
+    @Test
+    fun testOpenStationDetailFromCallingPoint_placesDetailAboveJourneyAndRestoresOnBack() = runTest {
+        val fakeRepo = FakeTransitRepository()
+        val viewModel = DashboardViewModel(
+            application = FakeApplication(),
+            repository = fakeRepo,
+            billingRepository = FakeBillingRepository(),
+            locationDataSource = object : com.androidfung.departureboard.util.LocationDataSource {
+                override suspend fun getCurrentLocation(): android.location.Location? = null
+            }
+        )
+        advanceUntilIdle()
+
+        val departure = com.androidfung.departureboard.data.model.Departure(
+            id = "dep_1",
+            stationId = "940GZZLUOXC",
+            stationName = "Oxford Circus",
+            towards = "Elephant & Castle",
+            lineId = "bakerloo",
+            lineName = "Bakerloo",
+            destinationName = "Elephant & Castle",
+            platformName = "Platform 3",
+            timeToStationSeconds = 120,
+            expectedArrivalIso = "",
+            currentLocation = "At Platform",
+            modeName = "tube",
+            lineBadge = com.androidfung.departureboard.data.model.LineBadgeInfo(
+                lineId = "bakerloo",
+                displayName = "Bakerloo",
+                backgroundColor = androidx.compose.ui.graphics.Color(0xFFB36305),
+                textColor = androidx.compose.ui.graphics.Color.White
+            ),
+            status = com.androidfung.departureboard.data.model.DepartureStatus.ON_TIME
+        )
+        viewModel.openTrainJourney(departure, listOf(departure))
+        assertFalse(viewModel.uiState.value.isStationDetailAboveJourney)
+
+        val cp = com.androidfung.departureboard.data.model.CallingPoint(
+            stationId = "940GZZLUPCC",
+            stationName = "Piccadilly Circus",
+            modes = listOf("tube")
+        )
+        viewModel.openStationDetailFromCallingPoint(cp, listOf(cp))
+        advanceUntilIdle()
+
+        assertEquals("940GZZLUPCC", viewModel.uiState.value.selectedDetailStation?.id)
+        assertEquals("dep_1", viewModel.uiState.value.selectedJourneyDeparture?.id)
+        assertTrue(viewModel.uiState.value.isStationDetailAboveJourney)
+
+        viewModel.closeStationDetail()
+        assertEquals(null, viewModel.uiState.value.selectedDetailStation)
+        assertEquals("dep_1", viewModel.uiState.value.selectedJourneyDeparture?.id)
+        assertFalse(viewModel.uiState.value.isStationDetailAboveJourney)
+    }
 }
