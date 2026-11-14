@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CompareArrows
 import androidx.compose.material.icons.rounded.DesktopWindows
 import androidx.compose.material.icons.rounded.Extension
+import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.Schedule
@@ -40,11 +41,18 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -166,7 +174,7 @@ fun LabsBottomSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Section 1: Display & Hardware Modes
+            // Section 1: Display & Hardware
             Text(
                 text = stringResource(R.string.labs_section_display),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
@@ -178,13 +186,53 @@ fun LabsBottomSheet(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier.fillMaxWidth()
             ) {
+                LabsActionItem(
+                    icon = Icons.Rounded.DesktopWindows,
+                    title = stringResource(R.string.labs_desk_clock_title),
+                    subtitle = stringResource(R.string.labs_desk_clock_desc),
+                    onClick = onOpenDeskClock
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Section 2: Language & Localization
+            Text(
+                text = stringResource(R.string.labs_section_language),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
+                    val currentLanguageTag = com.androidfung.departureboard.util.LocaleHelper.getAppLocale()?.toLanguageTag().orEmpty()
+                    var showLanguagePicker by remember { mutableStateOf(false) }
+                    val currentLangName = com.androidfung.departureboard.ui.feature.settings.SUPPORTED_LANGUAGES.find {
+                        if (it.tag.isEmpty()) currentLanguageTag.isEmpty()
+                        else currentLanguageTag.startsWith(it.tag, ignoreCase = true)
+                    }?.nativeName ?: stringResource(R.string.language_system)
+
                     LabsActionItem(
-                        icon = Icons.Rounded.DesktopWindows,
-                        title = stringResource(R.string.labs_desk_clock_title),
-                        subtitle = stringResource(R.string.labs_desk_clock_desc),
-                        onClick = onOpenDeskClock
+                        icon = Icons.Rounded.Language,
+                        title = stringResource(R.string.settings_language_title),
+                        subtitle = currentLangName,
+                        onClick = { showLanguagePicker = true }
                     )
+
+                    if (showLanguagePicker) {
+                        com.androidfung.departureboard.ui.feature.settings.LanguagePickerBottomSheet(
+                            currentLanguageTag = currentLanguageTag,
+                            onSelectLanguage = { tag ->
+                                showLanguagePicker = false
+                                com.androidfung.departureboard.util.LocaleHelper.setAppLanguage(tag.ifEmpty { null })
+                            },
+                            onDismissRequest = { showLanguagePicker = false }
+                        )
+                    }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 
@@ -229,6 +277,24 @@ fun LabsBottomSheet(
                         subtitle = stringResource(R.string.labs_bikeshare_desc),
                         checked = isBikeshareEnabled,
                         onCheckedChange = onToggleBikeshareEnabled
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+                    val context = LocalContext.current
+                    LaunchedEffect(Unit) {
+                        com.androidfung.departureboard.util.NotificationHelper.loadPreferences(context)
+                    }
+                    val notificationPrefs by com.androidfung.departureboard.util.NotificationHelper.preferencesFlow.collectAsState()
+                    LabsToggleItem(
+                        icon = Icons.Rounded.Flag,
+                        title = stringResource(R.string.settings_alighting_alerts_title),
+                        subtitle = stringResource(R.string.settings_alighting_alerts_desc),
+                        checked = notificationPrefs.alightingAlertsEnabled,
+                        onCheckedChange = { enabled ->
+                            com.androidfung.departureboard.util.NotificationHelper.setAlightingAlertsEnabled(context, enabled)
+                            com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishNotificationPreferences(context)
+                        }
                     )
                 }
             }

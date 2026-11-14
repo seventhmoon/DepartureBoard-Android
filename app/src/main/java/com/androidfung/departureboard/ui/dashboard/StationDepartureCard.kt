@@ -234,11 +234,11 @@ fun StationDepartureCard(
                     StationHeaderSection(
                         station = cardModel.station,
                         lineBadges = cardModel.availableLineBadges,
-                        selectedLineId = selectedLineId,
-                        selectedDirection = selectedDirection,
+                        selectedLineId = if (isSelectedInDetailPane) null else selectedLineId,
+                        selectedDirection = if (isSelectedInDetailPane) null else selectedDirection,
                         isNearest = isNearest,
                         distanceMeters = distanceMeters,
-                        onLineBadgeClick = { badge ->
+                        onLineBadgeClick = if (isSelectedInDetailPane) null else { badge ->
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             val availableDirections = cardModel.getAvailableDirectionsForLine(badge.lineId)
 
@@ -396,7 +396,7 @@ private fun StationHeaderSection(
     lineBadges: List<LineBadgeInfo>,
     selectedLineId: String?,
     selectedDirection: String?,
-    onLineBadgeClick: (LineBadgeInfo) -> Unit,
+    onLineBadgeClick: ((LineBadgeInfo) -> Unit)?,
     isLoading: Boolean,
     modifier: Modifier = Modifier,
     departures: List<Departure> = emptyList(),
@@ -528,7 +528,7 @@ private fun StationHeaderSection(
                         isSelected = isSelected,
                         selectedDirection = if (isSelected) selectedDirection else null,
                         isDimmed = isDimmed,
-                        onClick = onLineBadgeClick.let { { it(badge) } }
+                        onClick = onLineBadgeClick?.let { callback -> { callback(badge) } }
                     )
                 }
             }

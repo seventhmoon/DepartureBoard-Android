@@ -27,7 +27,7 @@ object NotificationHelper {
 
     data class NotificationTypePreferences(
         val platformAlertsEnabled: Boolean = true,
-        val alightingAlertsEnabled: Boolean = true,
+        val alightingAlertsEnabled: Boolean = false,
         val disruptionAlertsEnabled: Boolean = true,
         val wearAutoLaunchHudEnabled: Boolean = true
     )
@@ -39,7 +39,7 @@ object NotificationHelper {
         val sp = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val prefs = NotificationTypePreferences(
             platformAlertsEnabled = sp.getBoolean(KEY_PLATFORM_ALERTS, true),
-            alightingAlertsEnabled = sp.getBoolean(KEY_ALIGHTING_ALERTS, true),
+            alightingAlertsEnabled = sp.getBoolean(KEY_ALIGHTING_ALERTS, false),
             disruptionAlertsEnabled = sp.getBoolean(KEY_DISRUPTION_ALERTS, true),
             wearAutoLaunchHudEnabled = sp.getBoolean(KEY_WEAR_AUTO_HUD, true)
         )

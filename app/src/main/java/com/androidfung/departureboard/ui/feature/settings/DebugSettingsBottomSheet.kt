@@ -515,65 +515,6 @@ fun DebugSettingsBody(
                         )
                     }
 
-                    // App Language Selector
-                    val currentLanguageTag = LocaleHelper.getAppLocale()?.toLanguageTag().orEmpty()
-                    var showLanguagePicker by remember { mutableStateOf(false) }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showLanguagePicker = true }
-                            .padding(vertical = dimensions.paddingLarge),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Language,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(dimensions.iconStandard)
-                        )
-                        Spacer(modifier = Modifier.width(dimensions.paddingLarge))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.settings_language_title),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            val currentLangName = SUPPORTED_LANGUAGES.find {
-                                if (it.tag.isEmpty()) currentLanguageTag.isEmpty()
-                                else currentLanguageTag.startsWith(it.tag, ignoreCase = true)
-                            }?.nativeName ?: stringResource(R.string.language_system)
-                            Text(
-                                text = currentLangName,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(dimensions.cornerRadiusExtraLarge)
-                        )
-                    }
-
-                    if (showLanguagePicker) {
-                        @OptIn(ExperimentalMaterial3Api::class)
-                        LanguagePickerBottomSheet(
-                            currentLanguageTag = currentLanguageTag,
-                            onSelectLanguage = { tag ->
-                                showLanguagePicker = false
-                                LocaleHelper.setAppLanguage(tag.ifEmpty { null })
-                            },
-                            onDismissRequest = { showLanguagePicker = false }
-                        )
-                    }
-
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                        modifier = Modifier.padding(vertical = dimensions.paddingExtraLarge)
-                    )
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

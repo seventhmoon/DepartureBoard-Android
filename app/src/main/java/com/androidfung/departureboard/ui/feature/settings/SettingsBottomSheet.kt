@@ -437,43 +437,7 @@ fun SettingsBottomSheet(
                         modifier = Modifier.padding(vertical = 16.dp)
                     )
 
-                    // 2. Target Alighting Stop Alerts
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                            Text(
-                                text = stringResource(R.string.settings_alighting_alerts_title),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = stringResource(R.string.settings_alighting_alerts_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = notificationPrefs.alightingAlertsEnabled,
-                            onCheckedChange = { enabled ->
-                                com.androidfung.departureboard.util.NotificationHelper.setAlightingAlertsEnabled(context, enabled)
-                                com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishNotificationPreferences(context)
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        )
-                    }
-
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                        modifier = Modifier.padding(vertical = 16.dp)
-                    )
-
-                    // 3. Tracked Train Delay & Cancellation Alerts
+                    // 2. Tracked Train Delay & Cancellation Alerts
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,

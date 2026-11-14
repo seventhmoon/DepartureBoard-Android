@@ -504,6 +504,7 @@
     <string name="labs_subtitle">현재 활발히 개발 중인 새로운 대중교통 기능을 먼저 체험해 보세요</string>
     <string name="labs_disclaimer">Labs의 기능은 실험적 미리보기이며 피드백에 따라 변경되거나 개선될 수 있습니다.</string>
     <string name="labs_section_display">디스플레이 및 하드웨어</string>
+    <string name="labs_section_language">언어 및 지역화</string>
     <string name="labs_section_commute">통근 인텔리전스</string>
     <string name="labs_section_comparisons">역 및 노선 비교</string>
     <string name="labs_section_ai">AI 및 음성 안내</string>

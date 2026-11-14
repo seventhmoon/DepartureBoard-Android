@@ -510,6 +510,7 @@
     <string name="labs_subtitle">Try out experimental transit features under active development</string>
     <string name="labs_disclaimer">Features in Labs are experimental previews. They may change, be redesigned, or evolve based on feedback.</string>
     <string name="labs_section_display">Display &amp; Hardware</string>
+    <string name="labs_section_language">Language &amp; Localization</string>
     <string name="labs_section_commute">Commute Intelligence</string>
     <string name="labs_section_comparisons">Station &amp; Route Comparisons</string>
     <string name="labs_section_ai">AI &amp; Speech</string>

@@ -504,6 +504,7 @@
     <string name="labs_subtitle">開発中の実験的な交通案内機能をいち早く体験</string>
     <string name="labs_disclaimer">Labs の機能は実験的なプレビューです。フィードバックに基づき仕様変更や改善が行われる場合があります。</string>
     <string name="labs_section_display">ディスプレイとハードウェア</string>
+    <string name="labs_section_language">言語とローカライズ</string>
     <string name="labs_section_commute">通勤インテリジェンス</string>
     <string name="labs_section_comparisons">駅・ルートの比較</string>
     <string name="labs_section_ai">AI と音声案内</string>

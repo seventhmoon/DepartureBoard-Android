@@ -503,6 +503,7 @@
     <string name="labs_subtitle">搶先試用正在積極開發的進階通勤功能</string>
     <string name="labs_disclaimer">實驗室中的功能為搶先預覽版本，可能會根據用戶意見作出調整或重新設計。</string>
     <string name="labs_section_display">顯示與硬體模式</string>
+    <string name="labs_section_language">語言與本地化</string>
     <string name="labs_section_commute">智慧通勤分析</string>
     <string name="labs_section_comparisons">車站與路線比較</string>
     <string name="labs_section_ai">AI 與語音播報</string>

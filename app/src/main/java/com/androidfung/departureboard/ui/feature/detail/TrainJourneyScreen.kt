@@ -252,6 +252,11 @@ private fun TrainJourneyContent(
         .collectAsStateWithLifecycle()
     val targetAlightStop by com.androidfung.departureboard.service.TrainTrackingService.targetAlightStopFlow
         .collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) {
+        com.androidfung.departureboard.util.NotificationHelper.loadPreferences(context)
+    }
+    val notificationPrefs by com.androidfung.departureboard.util.NotificationHelper.preferencesFlow
+        .collectAsStateWithLifecycle()
     val isTracked = trackedDepartureId == departure.id
 
     val delayRepay = remember(departure, callingPoints) {
@@ -1054,7 +1059,8 @@ private fun TrainJourneyContent(
                                 !isPassed &&
                                 !item.callingPoint.isCancelled &&
                                 (currentStationIndex < 0 || item.index > currentStationIndex)
-                            val isTargetAlightStop = isTracked &&
+                            val isTargetAlightStop = notificationPrefs.alightingAlertsEnabled &&
+                                isTracked &&
                                 !targetAlightStop.isNullOrBlank() &&
                                 (item.callingPoint.stationName.equals(targetAlightStop, ignoreCase = true) ||
                                     item.callingPoint.resolveDisplayName().equals(targetAlightStop, ignoreCase = true))
@@ -1069,7 +1075,10 @@ private fun TrainJourneyContent(
                                 trainLocationLabel = rawLocation.takeIf { hasMeaningfulLocation },
                                 hasIncomingTrainAbove = isTrainApproachingBeforeBoarding,
                                 isTargetAlightStop = isTargetAlightStop,
-                                onToggleTargetAlightStop = if (isDownstreamStop && departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
+                                onToggleTargetAlightStop = if (notificationPrefs.alightingAlertsEnabled &&
+                                    isDownstreamStop &&
+                                    departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED
+                                ) {
                                     {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         if (isTargetAlightStop) {
