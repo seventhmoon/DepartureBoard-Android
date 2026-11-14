@@ -28,17 +28,12 @@
     <string name="transfer_recommended">建議轉乘</string>
     <string name="transfer_timed">定時轉乘銜接</string>
     <string name="transfer_step_free">無障礙通道</string>
-    <string name="transfer_via_stairs">經樓梯</string>
-    <string name="transfer_via_lift">經升降機</string>
-    <string name="transfer_via_escalator">經扶手電梯</string>
-    <string name="micromobility_title">共享單車與微型出行</string>
     <string name="micromobility_bikes_available">%1$d 輛單車</string>
     <string name="micromobility_ebikes_available">%1$d 輛電動單車</string>
     <string name="micromobility_docks_available">%1$d 空位</string>
     <string name="train_formation_coaches">列車編組</string>
     <string name="train_divides_notice">於 %1$s 分拆：%2$s</string>
     <string name="train_joins_notice">於 %1$s 連結：%2$s</string>
-    <string name="train_divides_tag">於 %1$s 分拆</string>
     <string name="platform_changed_alert">%1$s 號月台（原為 %2$s）</string>
     <string name="fare_peak">繁忙時段</string>
     <string name="fare_off_peak">非繁忙時段</string>
@@ -46,7 +41,6 @@
     <string name="amenity_tactile_paving">盲人引導徑</string>
     <string name="amenity_hearing_loop">助聽感應線圈</string>
     <string name="amenity_accessible_toilet">無障礙洗手間</string>
-    <string name="amenity_ramp_required">需活動摺板</string>
     <string name="coach_label">%1$s 號車廂</string>
     <string name="amenity_quiet">靜音車廂</string>
     <string name="amenity_bike">單車停泊處</string>
@@ -92,9 +86,6 @@
     <string name="settings_widget_disruptions_desc">當固定於主畫面的車站或路線發生延誤、取消或關閉時發送通知</string>
     <string name="widget_notification_disruption_title_line">%1$s (%2$s)</string>
     <string name="widget_notification_station_closed">車站已關閉</string>
-    <string name="widget_notification_service_closed">夜間服務已結束</string>
-    <string name="widget_notification_service_closed_with_time">夜間服務已結束 • 首班車時間為 %1$s</string>
-    <string name="widget_notification_severe_delays">嚴重延誤</string>
     <string name="tracking_action_stop">停止追蹤</string>
     <string name="tracking_action_dismiss">關閉</string>
     <string name="tracking_destination_changed_title">目的地異動</string>
@@ -474,7 +465,6 @@
     <string name="tracking_action_track">追蹤</string>
     <string name="tracking_action_untrack">取消追蹤</string>
     <string name="ai_prompt_morning_commute">早晨通勤狀況</string>
-    <string name="ai_prompt_evening_commute">黃昏通勤即時通報</string>
     <string name="ai_prompt_evening_delays">回家路線是否有延誤？</string>
     <string name="ai_prompt_last_train">今晚尾班車時間</string>
     <string name="ai_prompt_last_tube">今晚地鐵尾班車</string>
@@ -505,7 +495,6 @@
     <string name="night_service_banner_subtitle">通宵班次現正提供服務</string>
 
     <!-- Full-Screen Desk Clock / Split-Flap & Tabletop Mode -->
-    <string name="desk_clock_title">翻頁式座檯班次鐘</string>
     <string name="desk_clock_menu_item">座檯鐘 / 翻頁式離站板</string>
     <string name="desk_clock_tabletop_banner">桌面摺疊模式 • 開啟翻頁式座檯班次鐘</string>
     <string name="desk_clock_style_split_flap">機械翻頁</string>
@@ -522,7 +511,6 @@
 
     <!-- Platform & Ecosystem Extensions -->
     <string name="quick_settings_tile_name">即時班次</string>
-    <string name="corridor_route_menu_item">走廊快慢車路線比較</string>
 
     <!-- Labs & Experimental Features -->
     <string name="settings_section_labs">實驗室與預覽功能</string>

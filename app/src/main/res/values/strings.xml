@@ -31,17 +31,12 @@
     <string name="transfer_recommended">Recommended</string>
     <string name="transfer_timed">Timed connection</string>
     <string name="transfer_step_free">Step-free</string>
-    <string name="transfer_via_stairs">Via stairs</string>
-    <string name="transfer_via_lift">Via lift</string>
-    <string name="transfer_via_escalator">Via escalator</string>
-    <string name="micromobility_title">Bikeshare &amp; Micromobility</string>
     <string name="micromobility_bikes_available" tools:ignore="PluralsCandidate">%1$d bikes</string>
     <string name="micromobility_ebikes_available">%1$d e-bikes</string>
     <string name="micromobility_docks_available" tools:ignore="PluralsCandidate">%1$d spaces</string>
     <string name="train_formation_coaches">Train Formation</string>
     <string name="train_divides_notice">Divides at %1$s: %2$s</string>
     <string name="train_joins_notice">Attaches at %1$s: %2$s</string>
-    <string name="train_divides_tag">Divides at %1$s</string>
     <string name="platform_changed_alert">Plat %1$s (was %2$s)</string>
     <string name="fare_peak">Peak</string>
     <string name="fare_off_peak">Off-Peak</string>
@@ -49,7 +44,6 @@
     <string name="amenity_tactile_paving">Tactile Paving</string>
     <string name="amenity_hearing_loop">Hearing Loop</string>
     <string name="amenity_accessible_toilet">Accessible Toilet</string>
-    <string name="amenity_ramp_required">Ramp Required</string>
     <string name="coach_label">Coach %1$s</string>
     <string name="amenity_quiet">Quiet Coach</string>
     <string name="amenity_bike">Bicycle Area</string>
@@ -95,9 +89,6 @@
     <string name="settings_widget_disruptions_desc">Notify when pinned stations or lines experience delays, cancellations, or closures</string>
     <string name="widget_notification_disruption_title_line">%1$s (%2$s)</string>
     <string name="widget_notification_station_closed">Station is closed</string>
-    <string name="widget_notification_service_closed">Service is closed for the night</string>
-    <string name="widget_notification_service_closed_with_time">Service is closed for the night • Next departure at %1$s</string>
-    <string name="widget_notification_severe_delays">Severe Delays</string>
     <string name="tracking_action_stop">Stop Tracking</string>
     <string name="tracking_action_dismiss">Dismiss</string>
     <string name="tracking_destination_changed_title">Destination Changed</string>
@@ -481,7 +472,6 @@
     <string name="tracking_action_track">Track</string>
     <string name="tracking_action_untrack">Untrack</string>
     <string name="ai_prompt_morning_commute">Morning commute status</string>
-    <string name="ai_prompt_evening_commute">Evening commute disruptions</string>
     <string name="ai_prompt_evening_delays">Any delays heading home?</string>
     <string name="ai_prompt_last_train">Last train tonight</string>
     <string name="ai_prompt_last_tube">Last Tube tonight</string>
@@ -512,7 +502,6 @@
     <string name="night_service_banner_subtitle">Overnight services operating</string>
 
     <!-- Full-Screen Desk Clock / Split-Flap & Tabletop Mode -->
-    <string name="desk_clock_title">Split-Flap Desk Clock</string>
     <string name="desk_clock_menu_item">Desk Clock / Split-Flap Board</string>
     <string name="desk_clock_tabletop_banner">Tabletop Posture • Open Split-Flap Desk Clock</string>
     <string name="desk_clock_style_split_flap">Split-Flap</string>
@@ -529,7 +518,6 @@
 
     <!-- Platform & Ecosystem Extensions -->
     <string name="quick_settings_tile_name">Live Departures</string>
-    <string name="corridor_route_menu_item">Corridor Route Comparison</string>
 
     <!-- Labs & Experimental Features -->
     <string name="settings_section_labs">Labs &amp; Previews</string>

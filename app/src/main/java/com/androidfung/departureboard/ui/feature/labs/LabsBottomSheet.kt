@@ -69,8 +69,6 @@ fun LabsBottomSheet(
     onDismissRequest: () -> Unit,
     isBilingualEnabled: Boolean,
     onToggleBilingualEnabled: (Boolean) -> Unit,
-    isBikeshareEnabled: Boolean = false,
-    onToggleBikeshareEnabled: (Boolean) -> Unit = {},
     isSmartCommuteEnabled: Boolean,
     onToggleSmartCommute: () -> Unit,
     onOpenDeskClock: () -> Unit,
@@ -78,6 +76,8 @@ fun LabsBottomSheet(
     onOpenCorridorRoute: () -> Unit,
     onOpenAiAssistant: () -> Unit,
     modifier: Modifier = Modifier,
+    isBikeshareEnabled: Boolean = false,
+    onToggleBikeshareEnabled: (Boolean) -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     ModalBottomSheet(

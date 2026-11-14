@@ -66,10 +66,10 @@ import kotlinx.serialization.Serializable
 data object DashboardListRoute : NavKey
 
 @Serializable
-data class StationDetailRoute(val stationId: String = "") : NavKey
+data object StationDetailRoute : NavKey
 
 @Serializable
-data class TrainJourneyRoute(val departureId: String = "") : NavKey
+data object TrainJourneyRoute : NavKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : AppCompatActivity() {
@@ -362,17 +362,17 @@ class MainActivity : AppCompatActivity() {
                             add(DashboardListRoute)
                             if (uiState.isStationDetailAboveJourney) {
                                 if (selectedDepartureId != null) {
-                                    add(TrainJourneyRoute(selectedDepartureId))
+                                    add(TrainJourneyRoute)
                                 }
                                 if (selectedStationId != null) {
-                                    add(StationDetailRoute(selectedStationId))
+                                    add(StationDetailRoute)
                                 }
                             } else {
                                 if (selectedStationId != null) {
-                                    add(StationDetailRoute(selectedStationId))
+                                    add(StationDetailRoute)
                                 }
                                 if (selectedDepartureId != null) {
-                                    add(TrainJourneyRoute(selectedDepartureId))
+                                    add(TrainJourneyRoute)
                                 }
                             }
                         }

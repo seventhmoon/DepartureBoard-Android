@@ -99,38 +99,31 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         private const val MAX_RECENT_SEARCHES = 10
     }
 
-    override val themeModeFlow: Flow<AppThemeMode> = context.dataStore.data
+    private val safeData: Flow<Preferences> = context.dataStore.data
         .catch { exception ->
             if (exception is IOException) {
                 emit(emptyPreferences())
             } else {
                 throw exception
-            }
-        }
-        .map { preferences ->
-            val modeName = preferences[KEY_THEME_MODE]
-            if (modeName != null) {
-                try {
-                    AppThemeMode.valueOf(modeName)
-                } catch (_: IllegalArgumentException) {
-                    AppThemeMode.SYSTEM
-                }
-            } else {
-                AppThemeMode.SYSTEM
             }
         }
 
-    override val dynamicColorFlow: Flow<Boolean> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
+    override val themeModeFlow: Flow<AppThemeMode> = safeData.map { preferences ->
+        val modeName = preferences[KEY_THEME_MODE]
+        if (modeName != null) {
+            try {
+                AppThemeMode.valueOf(modeName)
+            } catch (_: IllegalArgumentException) {
+                AppThemeMode.SYSTEM
             }
+        } else {
+            AppThemeMode.SYSTEM
         }
-        .map { preferences ->
-            preferences[KEY_DYNAMIC_COLOR] ?: DEFAULT_DYNAMIC_COLOR
-        }
+    }
+
+    override val dynamicColorFlow: Flow<Boolean> = safeData.map { preferences ->
+        preferences[KEY_DYNAMIC_COLOR] ?: DEFAULT_DYNAMIC_COLOR
+    }
 
     override suspend fun setThemeMode(mode: AppThemeMode) {
         context.dataStore.edit { preferences ->
@@ -144,17 +137,9 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         }
     }
 
-    override val departureRowsCountFlow: Flow<Int> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[KEY_DEPARTURE_ROWS_COUNT] ?: DEFAULT_DEPARTURE_ROWS
-        }
+    override val departureRowsCountFlow: Flow<Int> = safeData.map { preferences ->
+        preferences[KEY_DEPARTURE_ROWS_COUNT] ?: DEFAULT_DEPARTURE_ROWS
+    }
 
     override suspend fun setDepartureRowsCount(count: Int) {
         context.dataStore.edit { preferences ->
@@ -162,17 +147,9 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         }
     }
 
-    override val isHkRegionEnabledFlow: Flow<Boolean> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[KEY_HK_REGION_ENABLED] ?: false
-        }
+    override val isHkRegionEnabledFlow: Flow<Boolean> = safeData.map { preferences ->
+        preferences[KEY_HK_REGION_ENABLED] ?: false
+    }
 
     override suspend fun setHkRegionEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
@@ -183,17 +160,9 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         }
     }
 
-    override val isBilingualEnabledFlow: Flow<Boolean> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[KEY_BILINGUAL_ENABLED] ?: true
-        }
+    override val isBilingualEnabledFlow: Flow<Boolean> = safeData.map { preferences ->
+        preferences[KEY_BILINGUAL_ENABLED] ?: true
+    }
 
     override suspend fun setBilingualEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
@@ -201,17 +170,9 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         }
     }
 
-    override val isBikeshareEnabledFlow: Flow<Boolean> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[KEY_BIKESHARE_ENABLED] ?: false
-        }
+    override val isBikeshareEnabledFlow: Flow<Boolean> = safeData.map { preferences ->
+        preferences[KEY_BIKESHARE_ENABLED] ?: false
+    }
 
     override suspend fun setBikeshareEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
@@ -219,17 +180,9 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         }
     }
 
-    override val autoSortByLocationFlow: Flow<Boolean> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[KEY_AUTO_SORT_BY_LOCATION] ?: false
-        }
+    override val autoSortByLocationFlow: Flow<Boolean> = safeData.map { preferences ->
+        preferences[KEY_AUTO_SORT_BY_LOCATION] ?: false
+    }
 
     override suspend fun setAutoSortByLocation(enabled: Boolean) {
         context.dataStore.edit { preferences ->
@@ -237,18 +190,9 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         }
     }
 
-    override val selectedRegionFlow: Flow<TransitRegion> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            val regionId = preferences[KEY_SELECTED_REGION]
-            TransitRegion.fromId(regionId)
-        }
+    override val selectedRegionFlow: Flow<TransitRegion> = safeData.map { preferences ->
+        TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
+    }
 
     override suspend fun setSelectedRegion(region: TransitRegion) {
         context.dataStore.edit { preferences ->
@@ -256,17 +200,9 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         }
     }
 
-    override val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[KEY_WIDGET_DISRUPTIONS_NOTIFICATIONS_ENABLED] ?: DEFAULT_WIDGET_DISRUPTIONS_NOTIFICATIONS
-        }
+    override val widgetDisruptionNotificationsEnabledFlow: Flow<Boolean> = safeData.map { preferences ->
+        preferences[KEY_WIDGET_DISRUPTIONS_NOTIFICATIONS_ENABLED] ?: DEFAULT_WIDGET_DISRUPTIONS_NOTIFICATIONS
+    }
 
     override suspend fun setWidgetDisruptionNotificationsEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
@@ -309,47 +245,31 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
     /**
      * Flow of saved/favorite stations. If empty, provides popular defaults for the active region.
      */
-    override val savedStationsFlow: Flow<List<Station>> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
-            val key = getSavedStationsKey(region)
-            val defaults = getDefaultStationsForRegion(region)
-            val json = preferences[key]
-            if (json.isNullOrBlank()) {
+    override val savedStationsFlow: Flow<List<Station>> = safeData.map { preferences ->
+        val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
+        val key = getSavedStationsKey(region)
+        val defaults = getDefaultStationsForRegion(region)
+        val json = preferences[key]
+        if (json.isNullOrBlank()) {
+            defaults
+        } else {
+            try {
+                val dtos = stationListAdapter.fromJson(json)
+                dtos?.map { it.toStation() } ?: defaults
+            } catch (_: Exception) {
                 defaults
-            } else {
-                try {
-                    val dtos = stationListAdapter.fromJson(json)
-                    dtos?.map { it.toStation() } ?: defaults
-                } catch (_: Exception) {
-                    defaults
-                }
             }
         }
+    }
 
     /**
      * Flow of the most recently selected station ID.
      */
-    override val recentStationIdFlow: Flow<String?> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
-            val defaults = getDefaultStationsForRegion(region)
-            preferences[getRecentStationIdKey(region)] ?: defaults.firstOrNull()?.id
-        }
+    override val recentStationIdFlow: Flow<String?> = safeData.map { preferences ->
+        val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
+        val defaults = getDefaultStationsForRegion(region)
+        preferences[getRecentStationIdKey(region)] ?: defaults.firstOrNull()?.id
+    }
 
     /**
      * Saves a station or toggles favorite status.
@@ -395,18 +315,10 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
         }
     }
 
-    override val recentSearchedStationsFlow: Flow<List<Station>> = context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
-            parseRecentStations(preferences[getRecentSearchedStationsKey(region)]).map { it.toStation() }
-        }
+    override val recentSearchedStationsFlow: Flow<List<Station>> = safeData.map { preferences ->
+        val region = TransitRegion.fromId(preferences[KEY_SELECTED_REGION])
+        parseRecentStations(preferences[getRecentSearchedStationsKey(region)]).map { it.toStation() }
+    }
 
     /**
      * Parses a stored JSON list of [StationDto], returning an empty list when the value

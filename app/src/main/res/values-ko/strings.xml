@@ -29,17 +29,12 @@
     <string name="transfer_recommended">추천 환승</string>
     <string name="transfer_timed">연계 환승</string>
     <string name="transfer_step_free">무단차 통로</string>
-    <string name="transfer_via_stairs">계단 경유</string>
-    <string name="transfer_via_lift">엘리베이터 경유</string>
-    <string name="transfer_via_escalator">에스컬레이터 경유</string>
-    <string name="micromobility_title">공유자전거 및 마이크로 모빌리티</string>
     <string name="micromobility_bikes_available">자전거 %1$d대</string>
     <string name="micromobility_ebikes_available">전기자전거 %1$d대</string>
     <string name="micromobility_docks_available">거치공간 %1$d대</string>
     <string name="train_formation_coaches">열차 편성</string>
     <string name="train_divides_notice">%1$s에서 분리: %2$s</string>
     <string name="train_joins_notice">%1$s에서 연결: %2$s</string>
-    <string name="train_divides_tag">%1$s에서 분리</string>
     <string name="platform_changed_alert">%1$s홈 (이전 %2$s)</string>
     <string name="fare_peak">출퇴근 혼잡시간</string>
     <string name="fare_off_peak">일반시간</string>
@@ -47,7 +42,6 @@
     <string name="amenity_tactile_paving">점자블록</string>
     <string name="amenity_hearing_loop">청각보조 인덕션 루프</string>
     <string name="amenity_accessible_toilet">장애인 화장실</string>
-    <string name="amenity_ramp_required">발판 지원 필요</string>
     <string name="coach_label">%1$s호차</string>
     <string name="amenity_quiet">정숙 차실</string>
     <string name="amenity_bike">자전거 거치 공간</string>
@@ -93,9 +87,6 @@
     <string name="settings_widget_disruptions_desc">홈 화면에 추가된 역이나 노선에 지연, 운휴 또는 폐쇄가 발생하면 알림을 받습니다</string>
     <string name="widget_notification_disruption_title_line">%1$s (%2$s)</string>
     <string name="widget_notification_station_closed">역이 폐쇄되었습니다</string>
-    <string name="widget_notification_service_closed">운행이 마감되었습니다</string>
-    <string name="widget_notification_service_closed_with_time">운행이 마감되었습니다 • 첫차 %1$s</string>
-    <string name="widget_notification_severe_delays">심각한 지연</string>
     <string name="tracking_action_stop">추적 중지</string>
     <string name="tracking_action_dismiss">닫기</string>
     <string name="tracking_destination_changed_title">목적지 변경</string>
@@ -475,7 +466,6 @@
     <string name="tracking_action_track">추적</string>
     <string name="tracking_action_untrack">추적 해제</string>
     <string name="ai_prompt_morning_commute">아침 출근길 운행 상황</string>
-    <string name="ai_prompt_evening_commute">퇴근길 운행 지연 정보</string>
     <string name="ai_prompt_evening_delays">퇴근길에 지연이 있나요?</string>
     <string name="ai_prompt_last_train">오늘 밤 막차 시간</string>
     <string name="ai_prompt_last_tube">오늘 밤 지하철 막차</string>
@@ -506,7 +496,6 @@
     <string name="night_service_banner_subtitle">야간 연장 운행 서비스가 진행 중입니다</string>
 
     <!-- Full-Screen Desk Clock / Split-Flap & Tabletop Mode -->
-    <string name="desk_clock_title">스플릿 플랩 탁상 시계</string>
     <string name="desk_clock_menu_item">탁상 시계 / 플랩 출발 안내판</string>
     <string name="desk_clock_tabletop_banner">테이블탑 모드 • 스플릿 플랩 탁상 시계 열기</string>
     <string name="desk_clock_style_split_flap">스플릿 플랩</string>
@@ -523,7 +512,6 @@
 
     <!-- Platform & Ecosystem Extensions -->
     <string name="quick_settings_tile_name">실시간 출발</string>
-    <string name="corridor_route_menu_item">구간 급행·완행 노선 비교</string>
 
     <!-- Labs & Experimental Features -->
     <string name="settings_section_labs">실험실 및 미리보기</string>
