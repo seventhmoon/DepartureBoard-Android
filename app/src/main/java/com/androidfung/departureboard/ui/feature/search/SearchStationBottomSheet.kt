@@ -142,7 +142,7 @@ fun SearchStationBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
-        modifier = modifier.fillMaxHeight(0.92f),
+        modifier = modifier,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         tonalElevation = 8.dp,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
@@ -150,6 +150,7 @@ fun SearchStationBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight(0.88f)
                 .padding(horizontal = 20.dp)
         ) {
             // Header Row

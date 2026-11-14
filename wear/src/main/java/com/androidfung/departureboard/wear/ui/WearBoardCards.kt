@@ -386,7 +386,7 @@ internal fun WearDepartureCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp),
+                        .padding(start = 4.dp, end = 4.dp, top = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     val metaParts = buildList {

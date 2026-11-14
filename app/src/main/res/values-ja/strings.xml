@@ -234,7 +234,7 @@
     <string name="dashboard_fab_ask_ai">AI に質問</string>
     <string name="dashboard_fab_ask_ai_desc">EkiBoard AI に質問</string>
     <string name="dashboard_offline_banner">オフライン • キャ��シュされた発車情報を表示中</string>
-    <string name="dashboard_search_bar_placeholder">駅、路線、またはバス停を検索…</string>
+    <string name="dashboard_search_bar_placeholder">駅・路線を検索…</string>
     <string name="dashboard_search_desc">検索</string>
 
     <!-- Line Status Bottom Sheet -->

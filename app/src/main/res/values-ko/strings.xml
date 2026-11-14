@@ -234,7 +234,7 @@
     <string name="dashboard_fab_ask_ai">AI 질문</string>
     <string name="dashboard_fab_ask_ai_desc">EkiBoard AI에게 질문하기</string>
     <string name="dashboard_offline_banner">오프라인 상태 • 캐시된 출발 정보 표시 중</string>
-    <string name="dashboard_search_bar_placeholder">역, 노선 또는 버스 정류장 검색…</string>
+    <string name="dashboard_search_bar_placeholder">역 또는 노선 검색…</string>
     <string name="dashboard_search_desc">검색</string>
 
     <!-- Line Status Bottom Sheet -->

@@ -240,7 +240,7 @@
     <string name="dashboard_fab_ask_ai">Ask AI</string>
     <string name="dashboard_fab_ask_ai_desc">Ask EkiBoard AI</string>
     <string name="dashboard_offline_banner">Offline • Showing cached departures</string>
-    <string name="dashboard_search_bar_placeholder">Search station, line, or bus stop…</string>
+    <string name="dashboard_search_bar_placeholder">Search station or line…</string>
     <string name="dashboard_search_desc">Search</string>
 
     <!-- Line Status Bottom Sheet -->

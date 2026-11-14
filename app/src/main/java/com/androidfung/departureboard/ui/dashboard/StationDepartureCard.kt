@@ -95,7 +95,8 @@ fun StationDepartureCard(
     onStationClick: ((Station) -> Unit)? = null,
     onDepartureClick: ((Departure) -> Unit)? = null,
     maxDepartureRows: Int = 5,
-    onAskAiAlternative: ((station: Station, lineName: String) -> Unit)? = null
+    onAskAiAlternative: ((station: Station, lineName: String) -> Unit)? = null,
+    isSelectedInDetailPane: Boolean = false
 ) {
     var selectedLineId by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
     var selectedDirection by rememberSaveable(cardModel.station.id) { mutableStateOf<String?>(null) }
@@ -197,13 +198,24 @@ fun StationDepartureCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(32.dp)),
             shape = RoundedCornerShape(32.dp),
+            border = if (isSelectedInDetailPane) {
+                androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            } else null,
             colors = CardDefaults.cardColors(
                 containerColor = Color.Transparent
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = if (isSelectedInDetailPane) 4.dp else 2.dp)
         ) {
             // M3 Tonal elevation: standard surfaceContainerLow to surfaceContainer subtle gradient
-            val topGradientColor = MaterialTheme.colorScheme.surfaceContainerLow
+            val topGradientColor = if (isSelectedInDetailPane) {
+                androidx.compose.ui.graphics.lerp(
+                    MaterialTheme.colorScheme.surfaceContainerLow,
+                    MaterialTheme.colorScheme.primaryContainer,
+                    0.35f
+                )
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            }
             val bottomGradientColor = MaterialTheme.colorScheme.surfaceContainer
 
             Box(
@@ -299,6 +311,7 @@ fun StationDepartureCard(
                         showServiceHours ||
                         cardModel.dataFreshness != com.androidfung.departureboard.data.model.DataFreshness.LIVE
 
+                    if (!isSelectedInDetailPane) {
                     if (hasAnyAlerts) {
                         Spacer(modifier = Modifier.height(10.dp))
                         Column(
@@ -367,6 +380,7 @@ fun StationDepartureCard(
                             modifier = Modifier.padding(horizontal = 10.dp)
                         )
                     }
+                    }
                 }
             }
         }
@@ -401,8 +415,17 @@ private fun StationHeaderSection(
                 modifier = Modifier
                     .weight(1f)
                     .then(
-                        if (onStationClick != null) Modifier.clickable { onStationClick(station) }
-                        else Modifier
+                        if (onStationClick != null) {
+                            Modifier
+                                .semantics(mergeDescendants = true) {
+                                    contentDescription = station.displayName
+                                }
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button) {
+                                    onStationClick(station)
+                                }
+                        } else {
+                            Modifier
+                        }
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -549,6 +572,12 @@ fun LinePillBadge(
     val isNarrow = windowWidthClass.isNarrow
     val baseName = if (isNarrow && badge.lineCode.isNotBlank()) badge.lineCode else badge.displayName
 
+    val labelText = if (!directionIndicator.isNullOrBlank()) {
+        "$baseName $directionIndicator"
+    } else {
+        baseName
+    }
+
     Box(
         modifier = modifier
             .height(32.dp)
@@ -562,12 +591,19 @@ fun LinePillBadge(
             )
             .background(badge.backgroundColor.copy(alpha = alpha))
             .then(
-                if (onClick != null) Modifier.selectable(
-                    selected = isSelected,
-                    role = androidx.compose.ui.semantics.Role.Tab,
-                    onClick = onClick
-                )
-                else Modifier
+                if (onClick != null) {
+                    Modifier
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = labelText
+                        }
+                        .selectable(
+                            selected = isSelected,
+                            role = androidx.compose.ui.semantics.Role.Tab,
+                            onClick = onClick
+                        )
+                } else {
+                    Modifier
+                }
             )
             .padding(
                 horizontal = if (isNarrow) 8.dp else if (isBusOrNumeric && baseName.length <= 4) 10.dp else 12.dp,
@@ -579,11 +615,6 @@ fun LinePillBadge(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            val labelText = if (!directionIndicator.isNullOrBlank()) {
-                "$baseName $directionIndicator"
-            } else {
-                baseName
-            }
             Text(
                 text = labelText,
                 style = MaterialTheme.typography.labelMedium.copy(

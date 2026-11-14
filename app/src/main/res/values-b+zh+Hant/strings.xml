@@ -233,7 +233,7 @@
     <string name="dashboard_fab_ask_ai">詢問 AI</string>
     <string name="dashboard_fab_ask_ai_desc">向 EkiBoard AI 提問</string>
     <string name="dashboard_offline_banner">離線狀態 • 正在顯示快取班次</string>
-    <string name="dashboard_search_bar_placeholder">搜尋車站、路線或巴士站…</string>
+    <string name="dashboard_search_bar_placeholder">搜尋車站或路線…</string>
     <string name="dashboard_search_desc">搜尋</string>
 
     <!-- Line Status Bottom Sheet -->

@@ -82,7 +82,7 @@ fun DepartureRowItem(
                 vertical = if (variant == DepartureRowVariant.DETAILED) 10.dp else 9.dp,
                 horizontal = MaterialTheme.dimensions.paddingSmall
             )
-            .semantics {
+            .semantics(mergeDescendants = true) {
                 contentDescription = departureContentDescription
             },
         verticalAlignment = Alignment.CenterVertically

@@ -216,10 +216,29 @@ fun DashboardContent(
                         ).count { it.isDisrupted }
                     }
 
+                    val isMultiPane = com.androidfung.departureboard.ui.feature.detail.LocalIsTwoPaneMode.current ||
+                        com.androidfung.departureboard.ui.feature.detail.LocalIsThreePaneMode.current
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
+                        if (isMultiPane) {
+                            IconButton(
+                                onClick = onAiAssistantClick,
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.AutoAwesome,
+                                    contentDescription = stringResource(R.string.dashboard_fab_ask_ai_desc),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
                         Box {
                             IconButton(onClick = onOpenLineStatus) {
                                 Icon(
@@ -376,25 +395,29 @@ fun DashboardContent(
             )
         },
         floatingActionButton = {
-            // Expressive Extended FAB for EkiBoard Transit AI Assistant
-            ExtendedFloatingActionButton(
-                text = { Text(stringResource(R.string.dashboard_fab_ask_ai)) },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Rounded.AutoAwesome,
-                        contentDescription = stringResource(R.string.dashboard_fab_ask_ai_desc),
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                expanded = androidx.compose.runtime.remember {
-                    androidx.compose.runtime.derivedStateOf { !staggeredGridState.isScrollInProgress }
-                }.value,
-                onClick = onAiAssistantClick,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
-                modifier = Modifier.padding(end = 4.dp, bottom = 4.dp)
-            )
+            val isMultiPane = com.androidfung.departureboard.ui.feature.detail.LocalIsTwoPaneMode.current ||
+                com.androidfung.departureboard.ui.feature.detail.LocalIsThreePaneMode.current
+            if (!isMultiPane) {
+                // Expressive Extended FAB for EkiBoard Transit AI Assistant
+                ExtendedFloatingActionButton(
+                    text = { Text(stringResource(R.string.dashboard_fab_ask_ai)) },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Rounded.AutoAwesome,
+                            contentDescription = stringResource(R.string.dashboard_fab_ask_ai_desc),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
+                    expanded = androidx.compose.runtime.remember {
+                        androidx.compose.runtime.derivedStateOf { !staggeredGridState.isScrollInProgress }
+                    }.value,
+                    onClick = onAiAssistantClick,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
+                    modifier = Modifier.padding(end = 4.dp, bottom = 4.dp)
+                )
+            }
         }
     ) { innerPadding ->
         val windowWidthClass = LocalWindowWidthClass.current
@@ -591,6 +614,7 @@ fun DashboardContent(
                                     distanceMeters = cardDistance,
                                     maxDepartureRows = uiState.departureRowsCount,
                                     onAskAiAlternative = onAskAiAlternative,
+                                    isSelectedInDetailPane = (isTwoPane || isThreePane) && uiState.selectedDetailStation?.id == cardModel.station.id,
                                     modifier = Modifier
                                         .reorderableStaggeredItem(reorderState, cardModel.station.id)
                                         .animateItem()
@@ -614,6 +638,7 @@ fun DashboardContent(
                                     distanceMeters = cardDistance,
                                     maxDepartureRows = uiState.departureRowsCount,
                                     onAskAiAlternative = onAskAiAlternative,
+                                    isSelectedInDetailPane = (isTwoPane || isThreePane) && uiState.selectedDetailStation?.id == cardModel.station.id,
                                     modifier = Modifier
                                         .reorderableStaggeredItem(reorderState, cardModel.station.id)
                                         .animateItem()
@@ -655,6 +680,7 @@ fun DashboardContent(
                                         distanceMeters = cardDistance,
                                         maxDepartureRows = uiState.departureRowsCount,
                                         onAskAiAlternative = onAskAiAlternative,
+                                        isSelectedInDetailPane = (isTwoPane || isThreePane) && uiState.selectedDetailStation?.id == cardModel.station.id,
                                         modifier = Modifier
                                             .reorderableStaggeredItem(reorderState, cardModel.station.id)
                                             .animateItem()

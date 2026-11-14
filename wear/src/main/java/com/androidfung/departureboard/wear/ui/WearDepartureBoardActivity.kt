@@ -10,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.scrollBy
@@ -420,7 +421,7 @@ fun WearConcourseBoardScreen(
                 }
                 .focusRequester(rotaryFocusRequester)
                 .focusable(),
-            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 24.dp, bottom = 46.dp),
+            contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 24.dp, bottom = 64.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -472,7 +473,10 @@ fun WearConcourseBoardScreen(
                             ),
                             color = Color.White,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .basicMarquee()
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
