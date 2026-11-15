@@ -293,6 +293,41 @@ private fun StationDetailPagerIndicator(
 }
 
 @Composable
+private fun StationDetailPagerBar(
+    pageCount: Int,
+    currentPage: Int,
+    pageInfo: String?,
+    onPageClick: ((Int) -> Unit)?,
+    modifier: Modifier = Modifier
+) {
+    FlowRow(
+        itemVerticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = modifier
+    ) {
+        if (pageCount > 1) {
+            StationDetailPagerIndicator(
+                pageCount = pageCount,
+                currentPage = currentPage,
+                onPageClick = onPageClick
+            )
+        }
+        if (!pageInfo.isNullOrBlank()) {
+            Text(
+                text = pageInfo,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                maxLines = 1,
+                softWrap = false
+            )
+        }
+    }
+}
+
+@Composable
 private fun StationDetailContent(
     station: Station,
     departures: List<Departure>,
@@ -445,9 +480,24 @@ private fun StationDetailContent(
         }
     }
 
+    val showBackButton = LocalBackButtonVisibility.current
+    val hasPagerMetadata = pageCount > 1 || !pageInfo.isNullOrBlank()
+
     DetailPaneScaffold(
         onBack = onBack,
         modifier = modifier,
+        headerTopStart = if (!showBackButton && hasPagerMetadata) {
+            {
+                StationDetailPagerBar(
+                    pageCount = pageCount,
+                    currentPage = currentPage,
+                    pageInfo = pageInfo,
+                    onPageClick = onPageClick
+                )
+            }
+        } else {
+            null
+        },
         headerLeading = {
             Box(
                 modifier = Modifier
@@ -470,42 +520,21 @@ private fun StationDetailContent(
                 text = station.resolveDisplayName(isBilingual),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
+                    fontSize = 20.sp,
+                    lineHeight = 25.sp
                 ),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
-            if (pageCount > 1) {
-                FlowRow(
-                    itemVerticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+            if (showBackButton && hasPagerMetadata) {
+                StationDetailPagerBar(
+                    pageCount = pageCount,
+                    currentPage = currentPage,
+                    pageInfo = pageInfo,
+                    onPageClick = onPageClick,
                     modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
-                ) {
-                    StationDetailPagerIndicator(
-                        pageCount = pageCount,
-                        currentPage = currentPage,
-                        onPageClick = onPageClick
-                    )
-                    if (!pageInfo.isNullOrBlank()) {
-                        Text(
-                            text = pageInfo,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            } else if (!pageInfo.isNullOrBlank()) {
-                Text(
-                    text = pageInfo,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
 
@@ -532,72 +561,59 @@ private fun StationDetailContent(
                 )
             }
 
-            val displayZone = station.displayZone
-            FlowRow(
-                itemVerticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                if (displayZone != null) {
-                    Text(
-                        text = stringResource(R.string.station_zone, displayZone),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "•",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            val stationRegion = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(station.id)
+            val modeLabels = station.modes.map { mode ->
+                val resId = stationRegion.getModeDisplayNameRes(mode)
+                if (resId != null) stringResource(resId) else mode.replaceFirstChar { it.uppercase() }
+            }
+            val wheelchairStatus = station.wheelchairStatus
+            val hasWheelchairBadge = wheelchairStatus != com.androidfung.departureboard.data.model.WheelchairBoardingStatus.UNKNOWN
 
-                // Station accessibility badge
-                val wheelchairStatus = station.wheelchairStatus
-                if (wheelchairStatus != com.androidfung.departureboard.data.model.WheelchairBoardingStatus.UNKNOWN) {
-                    val statusText = when (wheelchairStatus) {
-                        com.androidfung.departureboard.data.model.WheelchairBoardingStatus.STEP_FREE_LEVEL_BOARDING -> stringResource(R.string.status_level_boarding)
-                        com.androidfung.departureboard.data.model.WheelchairBoardingStatus.STEP_FREE_WITH_RAMP -> stringResource(R.string.status_ramp_boarding)
-                        com.androidfung.departureboard.data.model.WheelchairBoardingStatus.NOT_ACCESSIBLE -> stringResource(R.string.status_not_accessible)
-                        com.androidfung.departureboard.data.model.WheelchairBoardingStatus.UNKNOWN -> null
-                    }
-                    if (statusText != null) {
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = if (wheelchairStatus == com.androidfung.departureboard.data.model.WheelchairBoardingStatus.NOT_ACCESSIBLE) {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            } else {
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                            }
-                        ) {
-                            Text(
-                                text = "♿ $statusText",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
-                                color = if (wheelchairStatus == com.androidfung.departureboard.data.model.WheelchairBoardingStatus.NOT_ACCESSIBLE) {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                } else {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                },
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                            )
+            if (hasWheelchairBadge || modeLabels.isNotEmpty()) {
+                FlowRow(
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    // Station accessibility badge
+                    if (hasWheelchairBadge) {
+                        val statusText = when (wheelchairStatus) {
+                            com.androidfung.departureboard.data.model.WheelchairBoardingStatus.STEP_FREE_LEVEL_BOARDING -> stringResource(R.string.status_level_boarding)
+                            com.androidfung.departureboard.data.model.WheelchairBoardingStatus.STEP_FREE_WITH_RAMP -> stringResource(R.string.status_ramp_boarding)
+                            com.androidfung.departureboard.data.model.WheelchairBoardingStatus.NOT_ACCESSIBLE -> stringResource(R.string.status_not_accessible)
+                            com.androidfung.departureboard.data.model.WheelchairBoardingStatus.UNKNOWN -> null
                         }
+                        if (statusText != null) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = if (wheelchairStatus == com.androidfung.departureboard.data.model.WheelchairBoardingStatus.NOT_ACCESSIBLE) {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                }
+                            ) {
+                                Text(
+                                    text = "♿ $statusText",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                    color = if (wheelchairStatus == com.androidfung.departureboard.data.model.WheelchairBoardingStatus.NOT_ACCESSIBLE) {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    } else {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    },
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (modeLabels.isNotEmpty()) {
                         Text(
-                            text = "•",
-                            style = MaterialTheme.typography.labelMedium,
+                            text = modeLabels.joinToString(", "),
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-
-                val stationRegion = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(station.id)
-                val modeLabels = station.modes.map { mode ->
-                    val resId = stationRegion.getModeDisplayNameRes(mode)
-                    if (resId != null) stringResource(resId) else mode.replaceFirstChar { it.uppercase() }
-                }
-                Text(
-                    text = modeLabels.joinToString(", "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         },
         headerActions = {
@@ -713,109 +729,118 @@ private fun StationDetailContent(
 
         val isBusStop = station.isBusOnly
 
+        val stationRegion = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(station.id)
+        val displayZone = station.displayZone
+        val a11y = station.accessibility
+        val hasMetaChips = stationRegion.supportsGbPeakFareIndicator ||
+            displayZone != null ||
+            a11y?.hasTactilePaving == true ||
+            a11y?.hasHearingLoop == true ||
+            a11y?.hasAccessibleToilet == true
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 16.dp + scaffoldPadding.calculateBottomPadding()),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Station Overview & Fares (GTFS-Fares v2 & OSM Station Accessibility)
-            item(key = "station_meta_chips", contentType = "station_meta_chips") {
-                val stationRegion = com.androidfung.departureboard.data.model.TransitRegion.fromStationId(station.id)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(vertical = 2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (stationRegion.supportsGbPeakFareIndicator) {
-                        val currentFarePeriod = com.androidfung.departureboard.data.model.FarePeriod.currentGbFarePeriod()
-                        val isPeak = currentFarePeriod == com.androidfung.departureboard.data.model.FarePeriod.PEAK
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isPeak) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                            border = androidx.compose.foundation.BorderStroke(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                            )
-                        ) {
-                            Text(
-                                text = if (isPeak) "🟠 ${stringResource(R.string.fare_peak)}" else "🟢 ${stringResource(R.string.fare_off_peak)}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = if (isPeak) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+            if (hasMetaChips) {
+                item(key = "station_meta_chips", contentType = "station_meta_chips") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (stationRegion.supportsGbPeakFareIndicator) {
+                            val currentFarePeriod = com.androidfung.departureboard.data.model.FarePeriod.currentGbFarePeriod()
+                            val isPeak = currentFarePeriod == com.androidfung.departureboard.data.model.FarePeriod.PEAK
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isPeak) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                )
+                            ) {
+                                Text(
+                                    text = if (isPeak) "🟠 ${stringResource(R.string.fare_peak)}" else "🟢 ${stringResource(R.string.fare_off_peak)}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = if (isPeak) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
-                    }
 
-                    if (!station.zone.isNullOrBlank()) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            border = androidx.compose.foundation.BorderStroke(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                            )
-                        ) {
-                            Text(
-                                text = stringResource(R.string.fare_zone_pill, station.zone),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                        if (displayZone != null) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                )
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.fare_zone_pill, displayZone),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
-                    }
 
-                    val a11y = station.accessibility
-                    if (a11y?.hasTactilePaving == true) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            border = androidx.compose.foundation.BorderStroke(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                            )
-                        ) {
-                            Text(
-                                text = "🦯 ${stringResource(R.string.amenity_tactile_paving)}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                        if (a11y?.hasTactilePaving == true) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                )
+                            ) {
+                                Text(
+                                    text = "🦯 ${stringResource(R.string.amenity_tactile_paving)}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
-                    }
-                    if (a11y?.hasHearingLoop == true) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            border = androidx.compose.foundation.BorderStroke(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                            )
-                        ) {
-                            Text(
-                                text = "🦻 ${stringResource(R.string.amenity_hearing_loop)}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                        if (a11y?.hasHearingLoop == true) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                )
+                            ) {
+                                Text(
+                                    text = "🦻 ${stringResource(R.string.amenity_hearing_loop)}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
-                    }
-                    if (a11y?.hasAccessibleToilet == true) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            border = androidx.compose.foundation.BorderStroke(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                            )
-                        ) {
-                            Text(
-                                text = "🚻 ${stringResource(R.string.amenity_accessible_toilet)}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                        if (a11y?.hasAccessibleToilet == true) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                )
+                            ) {
+                                Text(
+                                    text = "🚻 ${stringResource(R.string.amenity_accessible_toilet)}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
                 }

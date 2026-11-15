@@ -4,12 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -83,6 +85,7 @@ fun DetailHeaderIconButton(
 /**
  * Reusable detail pane scaffold that standardizes:
  * - Surface container highest -> surface gradient background.
+ * - Top bar alignment across single-pane, 2-pane, and 3-pane layouts.
  * - Back button rendering respecting [LocalBackButtonVisibility] alongside header actions.
  * - Standard header layout with leading icon/badge and title/subtitle area.
  * - Consistent insets and padding across detail panes (StationDetailScreen, TrainJourneyScreen, etc.).
@@ -91,7 +94,8 @@ fun DetailHeaderIconButton(
 fun DetailPaneScaffold(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 12.dp),
+    contentPadding: PaddingValues = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp),
+    headerTopStart: (@Composable RowScope.() -> Unit)? = null,
     headerLeading: (@Composable () -> Unit)? = null,
     headerTitle: (@Composable ColumnScope.() -> Unit)? = null,
     headerActions: (@Composable RowScope.() -> Unit)? = null,
@@ -122,95 +126,125 @@ fun DetailPaneScaffold(
                 )
         ) {
             val showBackButton = LocalBackButtonVisibility.current
+            val isThreePane = LocalIsThreePaneMode.current
 
-            if (showBackButton) {
-                // Phone / single-pane: Navigation bar on top (Back on left, Actions on right)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    DetailHeaderIconButton(
-                        onClick = onBack,
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.cd_back)
-                    )
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val useSingleRowHeader = !showBackButton && (
+                    headerTitle == null || (!isThreePane && maxWidth >= 560.dp && headerTopStart == null)
+                )
 
-                    if (headerActions != null) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            headerActions()
-                        }
-                    }
-                }
-
-                // Full-width title row below navigation bar on phones
-                if (headerLeading != null || headerTitle != null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (headerLeading != null) {
-                            headerLeading()
-                            if (headerTitle != null) {
-                                Spacer(modifier = Modifier.width(12.dp))
-                            }
-                        }
-                        if (headerTitle != null) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                headerTitle()
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Two-pane / Three-pane (Foldable/Tablet): Unified single row with Leading + Title on left, Actions on right!
-                if (headerLeading != null || headerTitle != null || headerActions != null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(end = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (headerLeading != null) {
-                                headerLeading()
-                                if (headerTitle != null) {
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                }
-                            }
-                            if (headerTitle != null) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    headerTitle()
-                                }
-                            }
-                        }
-
-                        if (headerActions != null) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    if (useSingleRowHeader) {
+                        if (headerLeading != null || headerTitle != null || headerActions != null) {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 48.dp)
+                                    .padding(bottom = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                headerActions()
+                                if (headerLeading != null || headerTitle != null) {
+                                    DetailHeaderIdentityRow(
+                                        headerLeading = headerLeading,
+                                        headerTitle = headerTitle,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(end = 8.dp)
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+
+                                DetailHeaderActionRow(headerActions = headerActions)
                             }
+                        }
+                    } else {
+                        val hasTopRow = showBackButton || headerTopStart != null || headerActions != null
+                        if (hasTopRow) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 48.dp)
+                                    .padding(bottom = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(end = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (showBackButton) {
+                                        DetailHeaderIconButton(
+                                            onClick = onBack,
+                                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                            contentDescription = stringResource(R.string.cd_back)
+                                        )
+                                    }
+                                    if (headerTopStart != null) {
+                                        headerTopStart()
+                                    }
+                                }
+
+                                DetailHeaderActionRow(headerActions = headerActions)
+                            }
+                        }
+
+                        if (headerLeading != null || headerTitle != null) {
+                            DetailHeaderIdentityRow(
+                                headerLeading = headerLeading,
+                                headerTitle = headerTitle,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
+                            )
                         }
                     }
                 }
             }
 
             content(PaddingValues(bottom = bottomInset + contentBottomPadding))
+        }
+    }
+}
+
+@Composable
+private fun DetailHeaderActionRow(
+    headerActions: (@Composable RowScope.() -> Unit)?
+) {
+    if (headerActions != null) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            headerActions()
+        }
+    }
+}
+
+@Composable
+private fun DetailHeaderIdentityRow(
+    headerLeading: (@Composable () -> Unit)?,
+    headerTitle: (@Composable ColumnScope.() -> Unit)?,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (headerLeading != null) {
+            headerLeading()
+            if (headerTitle != null) {
+                Spacer(modifier = Modifier.width(12.dp))
+            }
+        }
+        if (headerTitle != null) {
+            Column(modifier = Modifier.weight(1f)) {
+                headerTitle()
+            }
         }
     }
 }

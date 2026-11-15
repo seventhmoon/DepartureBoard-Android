@@ -351,81 +351,82 @@ private fun TrainJourneyContent(
                 }
 
                 if (!pageInfo.isNullOrBlank()) {
-                    Text(
-                        text = pageInfo,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.8f)
+                    ) {
+                        Text(
+                            text = pageInfo,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
                 }
             }
         },
         headerActions = {
             val shareChooserTitle = stringResource(R.string.share_live_train_eta_chooser)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 1-Tap Share Live ETA button
+            // 1-Tap Share Live ETA button
+            DetailHeaderIconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    val shareText = com.androidfung.departureboard.util.DelayRepayCalculator.formatShareLiveEtaText(
+                        departure = departure,
+                        callingPoints = callingPoints,
+                        targetAlightStop = if (isTracked) targetAlightStop else null
+                    )
+                    val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(android.content.Intent.EXTRA_TEXT, shareText)
+                    }
+                    context.startActivity(
+                        android.content.Intent.createChooser(
+                            sendIntent,
+                            shareChooserTitle
+                        )
+                    )
+                },
+                imageVector = Icons.Rounded.Share,
+                contentDescription = stringResource(R.string.cd_share_live_eta),
+                iconSize = 18.dp
+            )
+
+            // Top-right corner live notification tracking toggle (hidden for cancelled services)
+            if (departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
                 DetailHeaderIconButton(
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        val shareText = com.androidfung.departureboard.util.DelayRepayCalculator.formatShareLiveEtaText(
-                            departure = departure,
-                            callingPoints = callingPoints,
-                            targetAlightStop = if (isTracked) targetAlightStop else null
-                        )
-                        val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(android.content.Intent.EXTRA_TEXT, shareText)
-                        }
-                        context.startActivity(
-                            android.content.Intent.createChooser(
-                                sendIntent,
-                                shareChooserTitle
-                            )
-                        )
-                    },
-                    imageVector = Icons.Rounded.Share,
-                    contentDescription = stringResource(R.string.cd_share_live_eta),
-                    iconSize = 18.dp
-                )
-
-                // Top-right corner live notification tracking toggle (hidden for cancelled services)
-                if (departure.status != com.androidfung.departureboard.data.model.DepartureStatus.CANCELLED) {
-                    DetailHeaderIconButton(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            if (isTracked) {
-                                com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
-                            } else {
-                                com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, departure) { pendingDeparture ->
-                                    pendingTrackDeparture = pendingDeparture
-                                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                                }
+                        if (isTracked) {
+                            com.androidfung.departureboard.service.TrainTrackingService.stopTracking(context)
+                        } else {
+                            com.androidfung.departureboard.util.NotificationHelper.startTrackingWithPermissionCheck(context, departure) { pendingDeparture ->
+                                pendingTrackDeparture = pendingDeparture
+                                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                             }
-                        },
-                        imageVector = if (isTracked) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
-                        contentDescription = if (isTracked) {
-                            stringResource(R.string.cd_stop_live_notification)
-                        } else {
-                            stringResource(R.string.cd_start_live_notification)
-                        },
-                        containerColor = if (isTracked) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainerHighest
-                        },
-                        contentColor = if (isTracked) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
                         }
-                    )
-                }
+                    },
+                    imageVector = if (isTracked) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
+                    contentDescription = if (isTracked) {
+                        stringResource(R.string.cd_stop_live_notification)
+                    } else {
+                        stringResource(R.string.cd_start_live_notification)
+                    },
+                    containerColor = if (isTracked) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    },
+                    contentColor = if (isTracked) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
             }
         }
     ) { scaffoldPadding ->

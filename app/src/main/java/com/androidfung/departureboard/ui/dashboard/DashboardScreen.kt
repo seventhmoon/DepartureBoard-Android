@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -40,7 +41,6 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -74,6 +74,7 @@ import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.data.model.gb.TflLineColors
 import com.androidfung.departureboard.ui.designsystem.EmptyDashboardState
+import com.androidfung.departureboard.ui.feature.detail.DetailHeaderIconButton
 import com.androidfung.departureboard.ui.theme.DepartureBoardTheme
 import com.androidfung.departureboard.ui.theme.LocalWindowWidthClass
 import com.androidfung.departureboard.ui.theme.WindowWidthClass
@@ -100,7 +101,15 @@ fun DashboardContent(
     onAskAiAlternative: ((station: Station, lineName: String) -> Unit)? = null,
     staggeredGridState: androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState = rememberLazyStaggeredGridState()
 ) {
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val windowWidthClass = LocalWindowWidthClass.current
+    val isTwoPane = com.androidfung.departureboard.ui.feature.detail.LocalIsTwoPaneMode.current
+    val isThreePane = com.androidfung.departureboard.ui.feature.detail.LocalIsThreePaneMode.current
+    val isMultiPane = isTwoPane || isThreePane
+    val scrollBehavior = if (isMultiPane) {
+        TopAppBarDefaults.pinnedScrollBehavior()
+    } else {
+        TopAppBarDefaults.enterAlwaysScrollBehavior()
+    }
     val pullToRefreshState = rememberPullToRefreshState()
     val currentCards by androidx.compose.runtime.rememberUpdatedState(uiState.stationCards)
     val currentOnMoveStation by androidx.compose.runtime.rememberUpdatedState(onMoveStation)
@@ -127,167 +136,160 @@ fun DashboardContent(
         )
     }
 
-    Scaffold(
-        modifier = modifier
-            .fillMaxSize()
-            .background(backgroundBrush)
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    val windowWidthClass = LocalWindowWidthClass.current
-        val windowPosture = com.androidfung.departureboard.ui.theme.LocalWindowPosture.current
-                    val isTwoPane = com.androidfung.departureboard.ui.feature.detail.LocalIsTwoPaneMode.current
-                    val (titleFontSize, titleLineHeight) = when {
-                        isTwoPane -> 20.sp to 24.sp
-                        windowWidthClass == WindowWidthClass.NARROW -> 20.sp to 24.sp
-                        windowWidthClass == WindowWidthClass.REGULAR -> 24.sp to 28.sp
-                        windowWidthClass == WindowWidthClass.EXPANDED -> 28.sp to 32.sp
-                        else -> 32.sp to 36.sp
-                    }
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val showUpgradeInTopBar = !uiState.isPro && if (isMultiPane) {
+            maxWidth >= 440.dp
+        } else {
+            maxWidth >= 340.dp
+        }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = titleFontSize,
-                                lineHeight = titleLineHeight
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-
-                        if (uiState.isPro) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(
-                                                Color(0xFFFFD700),
-                                                Color(0xFFFF9800)
-                                            )
-                                        )
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    text = "PRO",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
-                                    color = Color.Black,
-                                    fontSize = 11.sp
-                                )
-                            }
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(backgroundBrush)
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
+            containerColor = Color.Transparent,
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    title = {
+                        val (titleFontSize, titleLineHeight) = when {
+                            isMultiPane -> 20.sp to 24.sp
+                            windowWidthClass == WindowWidthClass.NARROW -> 20.sp to 24.sp
+                            windowWidthClass == WindowWidthClass.REGULAR -> 24.sp to 28.sp
+                            windowWidthClass == WindowWidthClass.EXPANDED -> 28.sp to 32.sp
+                            else -> 32.sp to 36.sp
                         }
 
-                        // Debug Region Switcher Chip (Shown in debug builds)
-                        if (BuildConfig.DEBUG) {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                                    .clickable { onOpenDebugSettings() }
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    text = "${uiState.selectedRegion.flagEmoji} ${uiState.selectedRegion.id}",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-                    }
-                },
-                actions = {
-                    var showMenu by remember { mutableStateOf(false) }
-                    val disruptedCount = remember(uiState.lineStatuses, uiState.selectedRegion) {
-                        com.androidfung.departureboard.ui.feature.settings.buildDisplayLineStatusItems(
-                            uiState.lineStatuses,
-                            uiState.selectedRegion
-                        ).count { it.isDisrupted }
-                    }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.app_name),
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = titleFontSize,
+                                    lineHeight = titleLineHeight
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
 
-                    val isMultiPane = com.androidfung.departureboard.ui.feature.detail.LocalIsTwoPaneMode.current ||
-                        com.androidfung.departureboard.ui.feature.detail.LocalIsThreePaneMode.current
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        if (isMultiPane) {
-                            IconButton(
-                                onClick = onAiAssistantClick,
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.AutoAwesome,
-                                    contentDescription = stringResource(R.string.dashboard_fab_ask_ai_desc),
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        }
-
-                        Box {
-                            IconButton(onClick = onOpenLineStatus) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Traffic,
-                                    contentDescription = stringResource(R.string.dashboard_live_network_status),
-                                    tint = if (disruptedCount > 0) {
-                                        com.androidfung.departureboard.ui.theme.MinorDelaysAmber
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
-                                )
-                            }
-                            if (disruptedCount > 0) {
+                            if (uiState.isPro) {
                                 Box(
                                     modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(top = 8.dp, end = 8.dp)
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(com.androidfung.departureboard.ui.theme.MinorDelaysAmber)
-                                )
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    Color(0xFFFFD700),
+                                                    Color(0xFFFF9800)
+                                                )
+                                            )
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                ) {
+                                    Text(
+                                        text = "PRO",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
+                                        color = Color.Black,
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
+                            }
+
+                            // Debug Region Switcher Chip (Shown in debug builds)
+                            if (BuildConfig.DEBUG) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                        .clickable { onOpenDebugSettings() }
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                ) {
+                                    Text(
+                                        text = "${uiState.selectedRegion.flagEmoji} ${uiState.selectedRegion.id}",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontSize = 12.sp,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
                             }
                         }
+                    },
+                    actions = {
+                        var showMenu by remember { mutableStateOf(false) }
+                        val disruptedCount = remember(uiState.lineStatuses, uiState.selectedRegion) {
+                            com.androidfung.departureboard.ui.feature.settings.buildDisplayLineStatusItems(
+                                uiState.lineStatuses,
+                                uiState.selectedRegion
+                            ).count { it.isDisrupted }
+                        }
 
-                        if (!uiState.isPro) {
-                            IconButton(
-                                onClick = onUpgradeClick,
-                                colors = IconButtonDefaults.iconButtonColors(
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            if (isMultiPane) {
+                                DetailHeaderIconButton(
+                                    onClick = onAiAssistantClick,
+                                    imageVector = Icons.Rounded.AutoAwesome,
+                                    contentDescription = stringResource(R.string.dashboard_fab_ask_ai_desc),
                                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
-                            ) {
-                                Icon(
+                            }
+
+                            Box {
+                                IconButton(onClick = onOpenLineStatus) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Traffic,
+                                        contentDescription = stringResource(R.string.dashboard_live_network_status),
+                                        tint = if (disruptedCount > 0) {
+                                            com.androidfung.departureboard.ui.theme.MinorDelaysAmber
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
+                                }
+                                if (disruptedCount > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(top = 8.dp, end = 8.dp)
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(com.androidfung.departureboard.ui.theme.MinorDelaysAmber)
+                                    )
+                                }
+                            }
+
+                            if (showUpgradeInTopBar) {
+                                DetailHeaderIconButton(
+                                    onClick = onUpgradeClick,
                                     imageVector = Icons.Rounded.WorkspacePremium,
                                     contentDescription = stringResource(R.string.dashboard_upgrade_to_pro),
-                                    tint = Color(0xFFFFB300),
-                                    modifier = Modifier.size(24.dp)
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = Color(0xFFFFB300),
+                                    iconSize = 20.dp
                                 )
                             }
-                        }
 
-                        Box {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(
-                                    imageVector = Icons.Rounded.MoreVert,
-                                    contentDescription = stringResource(R.string.dashboard_more_options),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            Box {
+                                IconButton(onClick = { showMenu = true }) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.MoreVert,
+                                        contentDescription = stringResource(R.string.dashboard_more_options),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
 
                             DropdownMenu(
                                 expanded = showMenu,
@@ -708,6 +710,7 @@ fun DashboardContent(
                 }
             }
         }
+    }
     }
 }
 
