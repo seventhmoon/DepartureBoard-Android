@@ -124,7 +124,7 @@ class WidgetConfigurationActivity : AppCompatActivity() {
         }
 
         val providerInfo = AppWidgetManager.getInstance(this).getAppWidgetInfo(appWidgetId)
-        if (providerInfo != null && providerInfo.provider != ComponentName(this, DepartureBoardWidgetReceiver::class.java)) {
+        if (providerInfo?.provider != ComponentName(this, DepartureBoardWidgetReceiver::class.java)) {
             finish()
             return
         }
@@ -543,14 +543,14 @@ fun WidgetStationPickerScreen(
                 CircularProgressIndicator(strokeWidth = 3.dp)
             }
         } else {
-            val navBarBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-            val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
-            val bottomClearance = maxOf(navBarBottomPadding, imeBottomPadding)
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(bottom = bottomClearance + 20.dp),
+                    .weight(1f)
+                    .padding(WindowInsets.ime.asPaddingValues()),
+                contentPadding = PaddingValues(
+                    bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 20.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 if (searchQuery.isBlank()) {

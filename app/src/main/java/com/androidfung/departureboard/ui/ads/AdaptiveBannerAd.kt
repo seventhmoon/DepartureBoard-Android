@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +49,10 @@ fun AdaptiveBannerAd(
         createAdView(context, adUnitId, adSize)
     }
 
+    LaunchedEffect(adView) {
+        adView.loadAd(AdRequest.Builder().build())
+    }
+
     DisposableEffect(adView) {
         onDispose {
             adView.destroy()
@@ -59,10 +65,12 @@ fun AdaptiveBannerAd(
             .wrapContentHeight(),
         contentAlignment = Alignment.Center
     ) {
-        AndroidView(
-            factory = { adView },
-            modifier = Modifier.fillMaxWidth()
-        )
+        key(adView) {
+            AndroidView(
+                factory = { adView },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
 
@@ -70,6 +78,5 @@ private fun createAdView(context: Context, adUnitId: String, adSize: AdSize): Ad
     return AdView(context).apply {
         setAdSize(adSize)
         this.adUnitId = adUnitId
-        loadAd(AdRequest.Builder().build())
     }
 }

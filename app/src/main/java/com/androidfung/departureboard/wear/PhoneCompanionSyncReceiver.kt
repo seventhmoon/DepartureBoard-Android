@@ -148,7 +148,7 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                         .sanitizeTransitId(intent.getStringExtra(EXTRA_STATION_ID)).orEmpty()
                     val stationName = intent.getStringExtra(EXTRA_STATION_NAME).orEmpty()
                     val departureId = com.androidfung.departureboard.navigation.DeepLinkIntentParser
-                        .sanitizeTransitId(intent.getStringExtra(EXTRA_DEPARTURE_ID)).orEmpty()
+                        .sanitizeDepartureId(intent.getStringExtra(EXTRA_DEPARTURE_ID)).orEmpty()
                     if (stationId.isNotBlank()) {
                         val deepLinkUri = Uri.Builder()
                             .scheme("mindtheboard")
@@ -182,7 +182,7 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
 
                 ACTION_START_TRACKING_FROM_WATCH -> {
                     val departureId = com.androidfung.departureboard.navigation.DeepLinkIntentParser
-                        .sanitizeTransitId(intent.getStringExtra(EXTRA_DEPARTURE_ID))
+                        .sanitizeDepartureId(intent.getStringExtra(EXTRA_DEPARTURE_ID))
                     val sanitizedStationId = com.androidfung.departureboard.navigation.DeepLinkIntentParser
                         .sanitizeTransitId(intent.getStringExtra(EXTRA_STATION_ID))
                     if (!departureId.isNullOrBlank() && !sanitizedStationId.isNullOrBlank()) {
@@ -216,7 +216,10 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                             )
                         )
                         runCatching { TrainTrackingService.startTracking(context, departure) }
-                            .onFailure { Log.w(TAG, "Failed to start tracking from watch request", it) }
+                            .onFailure {
+                                Log.w(TAG, "Failed to start tracking from watch request", it)
+                                WearCompanionSyncPublisher.publishTrackingStopped(context.applicationContext)
+                            }
                     }
                     pendingResult?.finish()
                 }
@@ -255,8 +258,20 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
                 }
 
                 ACTION_REQUEST_PHONE_BOARDS -> {
-                    WearCompanionSyncPublisher.resendCachedStateToWear(context)
-                    pendingResult?.finish()
+                    val appContext = context.applicationContext
+                    receiverScope.launch {
+                        try {
+                            withTimeoutOrNull(ASYNC_BROADCAST_TIMEOUT_MS) {
+                                WearCompanionSyncPublisher.resendCachedStateToWear(appContext)
+                            }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to resend cached state to Wear", e)
+                        } finally {
+                            pendingResult?.finish()
+                        }
+                    }
                 }
 
                 ACTION_ADD_STATION_FROM_WATCH -> {
@@ -482,8 +497,14 @@ class PhoneCompanionSyncReceiver : BroadcastReceiver() {
         val action = intent?.action ?: return
         val needsAsync = action == ACTION_ADD_STATION_FROM_WATCH ||
             action == ACTION_REMOVE_STATION_FROM_WATCH ||
-            action == ACTION_ASK_AI_FROM_WATCH
+            action == ACTION_ASK_AI_FROM_WATCH ||
+            action == ACTION_REQUEST_PHONE_BOARDS
         val pendingResult = if (needsAsync) goAsync() else null
-        handleCompanionCommand(context, intent, pendingResult)
+        try {
+            handleCompanionCommand(context, intent, pendingResult)
+        } catch (t: Throwable) {
+            pendingResult?.finish()
+            throw t
+        }
     }
 }

@@ -36,31 +36,25 @@ class OfflineCacheInterceptor(
 
         return try {
             val response = chain.proceed(request)
-            if (response.code >= 500 && !request.cacheControl.onlyIfCached) {
-                val cachedResponse = try {
-                    response.close()
-                    chain.proceed(originalRequest.toOfflineCachedRequest())
-                } catch (_: IOException) {
-                    null
-                }
-                if (cachedResponse != null && cachedResponse.isSuccessful) {
-                    cachedResponse
-                } else {
-                    cachedResponse?.close()
-                    chain.proceed(request)
-                }
-            } else {
-                response
+            if (request.cacheControl.onlyIfCached && (response.code == 504 || !response.isSuccessful)) {
+                response.close()
+                throw IOException("Offline and no cached response available (HTTP ${response.code})")
             }
+            response
         } catch (e: IOException) {
-            if (request.cacheControl.onlyIfCached) throw e
-            val cachedResponse = chain.proceed(originalRequest.toOfflineCachedRequest())
-            if (cachedResponse.isSuccessful) {
-                cachedResponse
-            } else {
+            if (request.cacheControl.onlyIfCached) {
+                throw e
+            }
+            val cachedResponse = try {
+                chain.proceed(originalRequest.toOfflineCachedRequest())
+            } catch (_: IOException) {
+                throw e
+            }
+            if (cachedResponse.code == 504 || !cachedResponse.isSuccessful) {
                 cachedResponse.close()
                 throw e
             }
+            cachedResponse
         }
     }
 

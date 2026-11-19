@@ -26,14 +26,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.unit.dp
 
 /**
@@ -65,14 +67,22 @@ fun Modifier.shimmerPlaceholder(
 ): Modifier {
     return this
         .clip(shape)
-        .drawBehind {
-            val progress = translateAnim.value
+        .drawWithCache {
             val brush = Brush.linearGradient(
                 colors = shimmerColors,
-                start = Offset(progress - 400f, progress - 400f),
-                end = Offset(progress, progress)
+                start = Offset.Zero,
+                end = Offset(400f, 400f)
             )
-            drawRect(brush = brush)
+            onDrawBehind {
+                val offset = translateAnim.value - 400f
+                withTransform({ translate(left = offset, top = offset) }) {
+                    drawRect(
+                        brush = brush,
+                        topLeft = Offset(-offset, -offset),
+                        size = size
+                    )
+                }
+            }
         }
 }
 
@@ -103,11 +113,14 @@ fun rememberShimmerBrush(
 fun StationCardSkeleton(
     modifier: Modifier = Modifier
 ) {
-    val defaultColors = listOf(
-        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.9f),
-        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f)
-    )
+    val surfaceContainerHighest = MaterialTheme.colorScheme.surfaceContainerHighest
+    val defaultColors = remember(surfaceContainerHighest) {
+        listOf(
+            surfaceContainerHighest.copy(alpha = 0.5f),
+            surfaceContainerHighest.copy(alpha = 0.9f),
+            surfaceContainerHighest.copy(alpha = 0.5f)
+        )
+    }
     val translateAnim = rememberShimmerTranslateAnim()
 
     Card(
@@ -192,7 +205,8 @@ fun StationCardSkeleton(
                         .padding(vertical = 12.dp, horizontal = 14.dp)
                 ) {
                     DepartureRowsSkeleton(
-                        count = 3
+                        count = 3,
+                        sharedTranslateAnim = translateAnim
                     )
                 }
             }
@@ -207,14 +221,20 @@ fun StationCardSkeleton(
 fun DepartureRowsSkeleton(
     modifier: Modifier = Modifier,
     count: Int = 3,
-    shimmerBrush: Brush? = null
+    shimmerBrush: Brush? = null,
+    sharedTranslateAnim: androidx.compose.runtime.State<Float>? = null
 ) {
-    val defaultColors = listOf(
-        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.9f),
-        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f)
-    )
-    val translateAnim = if (shimmerBrush == null) rememberShimmerTranslateAnim() else null
+    val surfaceContainerHighest = MaterialTheme.colorScheme.surfaceContainerHighest
+    val defaultColors = remember(surfaceContainerHighest) {
+        listOf(
+            surfaceContainerHighest.copy(alpha = 0.5f),
+            surfaceContainerHighest.copy(alpha = 0.9f),
+            surfaceContainerHighest.copy(alpha = 0.5f)
+        )
+    }
+    val translateAnim = if (shimmerBrush == null) {
+        sharedTranslateAnim ?: rememberShimmerTranslateAnim()
+    } else null
 
     fun Modifier.placeholder(shape: Shape): Modifier = if (shimmerBrush != null) {
         this.clip(shape).background(shimmerBrush)

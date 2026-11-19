@@ -104,11 +104,13 @@ class TransitAiAssistant(
                 val engine = dynamicAiProvider?.loadDynamicEngine()
                 if (engine != null && engine.loadModel()) {
                     val prompt = buildConstrainedLlmPrompt(query, result.answer)
-                    val generated = buildString {
-                        engine.streamReply(prompt).collect { chunk ->
-                            append(chunk)
+                    val generated = kotlinx.coroutines.withTimeoutOrNull(30_000L) {
+                        buildString {
+                            engine.streamReply(prompt).collect { chunk ->
+                                append(chunk)
+                            }
                         }
-                    }
+                    }.orEmpty()
                     if (generated.isNotBlank()) "🤖 [LiteRT-LM Dynamic] $generated" else "🤖 [Local AI] ${result.answer}"
                 } else if (dynamicAiProvider?.isFeatureInstalled == false) {
                     "🤖 [Local AI] On-device generative module not installed. Download it in the banner above."
@@ -129,7 +131,28 @@ class TransitAiAssistant(
             AiExecutionTier.LITERT_LOCAL_CLASSIFIER -> result.answer
         }
 
-        result.copy(answer = finalAnswer)
+        val updatedA2ui = result.a2uiResponse?.let { card ->
+            if (finalAnswer == result.answer) {
+                card
+            } else {
+                var replaced = false
+                val updatedBlocks = card.blocks.map { block ->
+                    if (!replaced && block is A2UiBlock.TextSummary) {
+                        replaced = true
+                        block.copy(message = finalAnswer)
+                    } else {
+                        block
+                    }
+                }
+                card.copy(
+                    blocks = if (replaced) updatedBlocks else listOf(
+                        A2UiBlock.TextSummary(finalAnswer)
+                    ) + updatedBlocks
+                )
+            }
+        }
+
+        result.copy(answer = finalAnswer, a2uiResponse = updatedA2ui)
     }
 
     private fun buildConstrainedLlmPrompt(rawQuery: String, transitContext: String): String {

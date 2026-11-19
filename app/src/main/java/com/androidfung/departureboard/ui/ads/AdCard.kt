@@ -14,6 +14,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,8 +51,11 @@ fun AdCard(
         AdView(context).apply {
             setAdSize(adSize)
             this.adUnitId = adUnitId
-            loadAd(AdRequest.Builder().build())
         }
+    }
+
+    LaunchedEffect(adView) {
+        adView.loadAd(AdRequest.Builder().build())
     }
 
     DisposableEffect(adView) {
@@ -103,10 +108,12 @@ fun AdCard(
                     .wrapContentHeight(),
                 contentAlignment = Alignment.Center
             ) {
-                AndroidView(
-                    factory = { adView },
-                    modifier = Modifier.wrapContentHeight()
-                )
+                key(adView) {
+                    AndroidView(
+                        factory = { adView },
+                        modifier = Modifier.wrapContentHeight()
+                    )
+                }
             }
         }
     }

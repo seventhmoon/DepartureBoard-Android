@@ -732,6 +732,9 @@ fun DebugSettingsBody(
                                                     val pct = (status.progress * 100).toInt()
                                                     installStatusText = "Downloading: $pct%"
                                                 }
+                                                is com.androidfung.departureboard.ai.AiFeatureInstallStatus.RequiresConfirmation -> {
+                                                    installStatusText = "Requires confirmation"
+                                                }
                                                 is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Installed -> {
                                                     isDynamicAiInstalled = true
                                                     isInstallingModule = false

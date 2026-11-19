@@ -17,6 +17,7 @@ import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -375,11 +376,16 @@ object WearCompanionStateRepository {
      * ticks smoothly (`03:59 -> 03:58`) between phone polls.
      */
     fun tickTrackedJourneySecond() {
-        val current = _trackedJourneyFlow.value ?: return
-        if (current.isCancelled || current.remainingSeconds <= 0) return
-        _trackedJourneyFlow.value = current.copy(
-            remainingSeconds = (current.remainingSeconds - 1).coerceAtLeast(0)
-        )
+        _trackedJourneyFlow.update { current ->
+            if (current == null || current.isCancelled || current.remainingSeconds <= 0) {
+                current
+            } else {
+                current.copy(
+                    remainingSeconds = (current.remainingSeconds - 1).coerceAtLeast(0),
+                    syncedAtEpochMs = System.currentTimeMillis()
+                )
+            }
+        }
     }
 
     /**

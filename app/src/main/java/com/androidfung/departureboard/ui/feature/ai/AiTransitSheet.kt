@@ -124,6 +124,30 @@ fun AiTransitSheet(
 
     androidx.compose.runtime.DisposableEffect(localContext) {
         val speech = TextToSpeech(localContext) { _ -> }
+        speech.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {}
+            override fun onDone(utteranceId: String?) {
+                coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main.immediate) {
+                    isSpeaking = false
+                }
+            }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main.immediate) {
+                    isSpeaking = false
+                }
+            }
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main.immediate) {
+                    isSpeaking = false
+                }
+            }
+            override fun onStop(utteranceId: String?, interrupted: Boolean) {
+                coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main.immediate) {
+                    isSpeaking = false
+                }
+            }
+        })
         tts = speech
         onDispose {
             speech.stop()
@@ -138,8 +162,16 @@ fun AiTransitSheet(
         } else {
             val activeLocale = com.androidfung.departureboard.util.LocaleHelper.getActiveLocale()
             tts?.language = activeLocale
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_answer")
-            isSpeaking = true
+            val result = tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_answer")
+            isSpeaking = (result == TextToSpeech.SUCCESS)
+        }
+    }
+
+    val splitInstallConfirmLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) {
+            isInstallingModule = false
         }
     }
 
@@ -150,6 +182,16 @@ fun AiTransitSheet(
                 when (status) {
                     is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Downloading -> {
                         installProgress = status.progress
+                    }
+                    is com.androidfung.departureboard.ai.AiFeatureInstallStatus.RequiresConfirmation -> {
+                        val launched = dynamicAiProvider.startConfirmationDialogForResult(
+                            status.state,
+                            splitInstallConfirmLauncher
+                        )
+                        if (!launched) {
+                            isInstallingModule = false
+                            Toast.makeText(localContext, resources.getString(R.string.ai_toast_install_failed), Toast.LENGTH_SHORT).show()
+                        }
                     }
                     is com.androidfung.departureboard.ai.AiFeatureInstallStatus.Installed -> {
                         isInstallingModule = false
@@ -262,23 +304,25 @@ fun AiTransitSheet(
     }
 
     var isQuotaExceeded by remember { mutableStateOf(false) }
+    var activeQueryJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
     fun submitQuery(prompt: String) {
         if (prompt.isBlank()) return
+        activeQueryJob?.cancel()
         queryText = prompt
         isThinking = true
         isQuotaExceeded = false
 
-        coroutineScope.launch {
+        val job = coroutineScope.launch {
             try {
-                // Check daily AI quota if billingRepository is provided
-                val allowed = billingRepository?.tryConsumeAiQuery() ?: true
-                if (!allowed) {
+                // Check remaining daily AI quota before running non-deterministic AI queries
+                val isDeterministicOnly = aiModelType == com.androidfung.departureboard.ai.AiModelType.LOGIC_FALLBACK
+                val remaining = if (isDeterministicOnly) Int.MAX_VALUE else (billingRepository?.getRemainingAiQueries() ?: Int.MAX_VALUE)
+                if (remaining <= 0) {
                     isQuotaExceeded = true
                     aiResult = AiTransitResult(
                         answer = resources.getString(R.string.ai_quota_exceeded, SubscriptionTier.FREE_MAX_DAILY_AI_QUERIES)
                     )
-                    isThinking = false
                     return@launch
                 }
 
@@ -331,14 +375,22 @@ fun AiTransitSheet(
                 val res = assistant.answerQuery(prompt, savedStations, effectiveNearest, aiModelType)
                 android.util.Log.d("AiTransitSheet", "got answer: ${res.answer}")
                 aiResult = res
+                if (!isDeterministicOnly) {
+                    billingRepository?.tryConsumeAiQuery()
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("AiTransitSheet", "error answering query", e)
+                aiResult = AiTransitResult(
+                    answer = e.localizedMessage?.takeIf { it.isNotBlank() }
+                        ?: resources.getString(R.string.departures_load_error)
+                )
             } finally {
                 isThinking = false
             }
         }
+        activeQueryJob = job
     }
 
     val speechRecognizerLauncher = rememberLauncherForActivityResult(

@@ -54,6 +54,20 @@ class DashboardViewModelRegionTest {
 
     private class FakeApplication : Application()
 
+    private val viewModelStore = androidx.lifecycle.ViewModelStore()
+
+    private fun createViewModel(
+        repo: FakeTransitRepository = FakeTransitRepository(),
+        billing: FakeBillingRepository = FakeBillingRepository()
+    ): DashboardViewModel {
+        val vm = DashboardViewModel(FakeApplication(), repo, billing)
+        val factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T = vm as T
+        }
+        return androidx.lifecycle.ViewModelProvider(viewModelStore, factory)["vm_${System.nanoTime()}", DashboardViewModel::class.java]
+    }
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
@@ -61,6 +75,7 @@ class DashboardViewModelRegionTest {
 
     @After
     fun tearDown() {
+        viewModelStore.clear()
         Dispatchers.resetMain()
     }
 
@@ -68,7 +83,7 @@ class DashboardViewModelRegionTest {
     fun testRegionSwitchingToHkAndBackToGb() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository()
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 
@@ -95,7 +110,7 @@ class DashboardViewModelRegionTest {
     fun testHkExperimentalToggle() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository()
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 
@@ -115,7 +130,7 @@ class DashboardViewModelRegionTest {
     fun testRecentSearchedStationsAreScopedByRegion() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository()
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 

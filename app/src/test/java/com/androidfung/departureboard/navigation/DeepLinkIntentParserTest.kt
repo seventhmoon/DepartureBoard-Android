@@ -20,7 +20,7 @@ class DeepLinkIntentParserTest {
         assertNull(DeepLinkIntentParser.sanitizeTransitId("940G..LUKSX"))
         assertNull(DeepLinkIntentParser.sanitizeTransitId("940G/LUKSX"))
         assertNull(DeepLinkIntentParser.sanitizeTransitId("station?inject=1"))
-        assertNull(DeepLinkIntentParser.sanitizeTransitId("a".repeat(97)))
+        assertNull(DeepLinkIntentParser.sanitizeTransitId("a".repeat(129)))
     }
 
     @Test
@@ -123,5 +123,28 @@ class DeepLinkIntentParserTest {
         assertNull(parsed.stationId)
         assertNull(parsed.aiQuery)
         assertFalse(parsed.autoSubmitAiQuery)
+    }
+
+    @Test
+    fun `national rail base64 departureId with plus slash and equals is preserved`() {
+        val parsed = DeepLinkIntentParser.parseParameters(
+            action = Intent.ACTION_VIEW,
+            hasBrowsableCategory = true,
+            isHierarchicalUri = true,
+            uriScheme = "mindtheboard",
+            uriHost = "station",
+            uriLastPathSegment = "KGX",
+            uriQueryName = "King's Cross",
+            uriQueryDepartureId = "nr_1A23+b/c==",
+            uriQueryAi = null,
+            extraStationId = null,
+            extraStationName = null,
+            extraDepartureId = null,
+            extraAiQuery = null,
+            extraAutoSubmitAi = false
+        )
+
+        assertEquals("KGX", parsed.stationId)
+        assertEquals("nr_1A23+b/c==", parsed.departureId)
     }
 }

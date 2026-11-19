@@ -1,10 +1,15 @@
 package com.androidfung.departureboard.ai
 
+import android.app.Activity
 import android.content.Context
+import android.content.IntentSender
 import android.util.Log
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
 import com.google.android.play.core.splitinstall.SplitInstallManager
 import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
 import com.google.android.play.core.splitinstall.SplitInstallRequest
+import com.google.android.play.core.splitinstall.SplitInstallSessionState
 import com.google.android.play.core.splitinstall.SplitInstallStateUpdatedListener
 import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
 import kotlinx.coroutines.channels.awaitClose
@@ -15,6 +20,7 @@ sealed interface AiFeatureInstallStatus {
     data object Installed : AiFeatureInstallStatus
     data object NotInstalled : AiFeatureInstallStatus
     data class Downloading(val progress: Float) : AiFeatureInstallStatus
+    data class RequiresConfirmation(val state: SplitInstallSessionState) : AiFeatureInstallStatus
     data class Failed(val errorCode: Int) : AiFeatureInstallStatus
 }
 
@@ -59,8 +65,9 @@ class DynamicAiAssistantProvider(
                 (constructor.newInstance(context) as? DynamicLmEngine)?.also {
                     cachedEngine = it
                 }
-            } catch (e: Exception) {
-                Log.w("DynamicAiAssistant", "Failed to instantiate DynamicLmEngine via reflection", e)
+            } catch (t: Throwable) {
+                if (t is VirtualMachineError) throw t
+                Log.w("DynamicAiAssistant", "Failed to instantiate DynamicLmEngine via reflection", t)
                 null
             }
         }
@@ -103,9 +110,11 @@ class DynamicAiAssistantProvider(
                         trySend(AiFeatureInstallStatus.Installed)
                         close()
                     }
-                    SplitInstallSessionStatus.FAILED,
-                    SplitInstallSessionStatus.CANCELED,
                     SplitInstallSessionStatus.REQUIRES_USER_CONFIRMATION -> {
+                        trySend(AiFeatureInstallStatus.RequiresConfirmation(state))
+                    }
+                    SplitInstallSessionStatus.FAILED,
+                    SplitInstallSessionStatus.CANCELED -> {
                         trySend(AiFeatureInstallStatus.Failed(state.errorCode()))
                         close()
                     }
@@ -126,6 +135,29 @@ class DynamicAiAssistantProvider(
 
         awaitClose {
             splitInstallManager.unregisterListener(listener)
+        }
+    }
+
+    fun startConfirmationDialogForResult(
+        state: SplitInstallSessionState,
+        launcher: ActivityResultLauncher<IntentSenderRequest>
+    ): Boolean {
+        return try {
+            splitInstallManager.startConfirmationDialogForResult(
+                state,
+                { intent: IntentSender, _, fillInIntent, flagsMask, flagsValues, _, _ ->
+                    launcher.launch(
+                        IntentSenderRequest.Builder(intent)
+                            .setFillInIntent(fillInIntent)
+                            .setFlags(flagsValues, flagsMask)
+                            .build()
+                    )
+                },
+                0
+            )
+        } catch (e: Exception) {
+            Log.w("DynamicAiAssistant", "Failed to launch Play Feature confirmation dialog", e)
+            false
         }
     }
 }

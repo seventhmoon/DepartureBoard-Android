@@ -97,9 +97,14 @@ fun rememberNativeAds(
     var loadedAds by remember(adUnitId, count) { mutableStateOf<List<NativeAd>>(emptyList()) }
 
     DisposableEffect(context, adUnitId, count) {
+        var isDisposed = false
         val adsList = mutableListOf<NativeAd>()
         val adLoader = AdLoader.Builder(context, adUnitId)
             .forNativeAd { nativeAd ->
+                if (isDisposed) {
+                    nativeAd.destroy()
+                    return@forNativeAd
+                }
                 adsList.add(nativeAd)
                 loadedAds = adsList.toList()
             }
@@ -121,6 +126,7 @@ fun rememberNativeAds(
         adLoader.loadAds(AdRequest.Builder().build(), count)
 
         onDispose {
+            isDisposed = true
             adsList.forEach { it.destroy() }
             adsList.clear()
             loadedAds = emptyList()
@@ -230,18 +236,22 @@ fun NativeAdViewContainer(
                                 onSurfaceVariantColor = onSurfaceVariantColor,
                                 primaryColor = primaryColor,
                                 onPrimaryColor = onPrimaryColor
-                            )
+                            ).also { it.tag = nativeAd }
                         },
                         update = { view ->
-                            populateCardNativeAdView(
-                                nativeAdView = view,
-                                nativeAd = nativeAd,
-                                onSurfaceColor = onSurfaceColor,
-                                onSurfaceVariantColor = onSurfaceVariantColor,
-                                primaryColor = primaryColor,
-                                onPrimaryColor = onPrimaryColor
-                            )
+                            if (view.tag !== nativeAd) {
+                                populateCardNativeAdView(
+                                    nativeAdView = view,
+                                    nativeAd = nativeAd,
+                                    onSurfaceColor = onSurfaceColor,
+                                    onSurfaceVariantColor = onSurfaceVariantColor,
+                                    primaryColor = primaryColor,
+                                    onPrimaryColor = onPrimaryColor
+                                )
+                                view.tag = nativeAd
+                            }
                         },
+                        onRelease = { it.destroy() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .wrapContentHeight()
@@ -267,18 +277,22 @@ fun NativeAdViewContainer(
                             onSurfaceVariantColor = onSurfaceVariantColor,
                             primaryColor = primaryColor,
                             onPrimaryColor = onPrimaryColor
-                        )
+                        ).also { it.tag = nativeAd }
                     },
                     update = { view ->
-                        populateRowNativeAdView(
-                            nativeAdView = view,
-                            nativeAd = nativeAd,
-                            onSurfaceColor = onSurfaceColor,
-                            onSurfaceVariantColor = onSurfaceVariantColor,
-                            primaryColor = primaryColor,
-                            onPrimaryColor = onPrimaryColor
-                        )
+                        if (view.tag !== nativeAd) {
+                            populateRowNativeAdView(
+                                nativeAdView = view,
+                                nativeAd = nativeAd,
+                                onSurfaceColor = onSurfaceColor,
+                                onSurfaceVariantColor = onSurfaceVariantColor,
+                                primaryColor = primaryColor,
+                                onPrimaryColor = onPrimaryColor
+                            )
+                            view.tag = nativeAd
+                        }
                     },
+                    onRelease = { it.destroy() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight()
@@ -345,18 +359,22 @@ fun NativeAdViewContainer(
                                 onSurfaceVariantColor = onSurfaceVariantColor,
                                 primaryColor = primaryColor,
                                 onPrimaryColor = onPrimaryColor
-                            )
+                            ).also { it.tag = nativeAd }
                         },
                         update = { view ->
-                            populateTimelineNativeAdView(
-                                nativeAdView = view,
-                                nativeAd = nativeAd,
-                                onSurfaceColor = onSurfaceColor,
-                                onSurfaceVariantColor = onSurfaceVariantColor,
-                                primaryColor = primaryColor,
-                                onPrimaryColor = onPrimaryColor
-                            )
+                            if (view.tag !== nativeAd) {
+                                populateTimelineNativeAdView(
+                                    nativeAdView = view,
+                                    nativeAd = nativeAd,
+                                    onSurfaceColor = onSurfaceColor,
+                                    onSurfaceVariantColor = onSurfaceVariantColor,
+                                    primaryColor = primaryColor,
+                                    onPrimaryColor = onPrimaryColor
+                                )
+                                view.tag = nativeAd
+                            }
                         },
+                        onRelease = { it.destroy() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .wrapContentHeight()

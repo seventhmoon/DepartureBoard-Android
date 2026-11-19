@@ -2,6 +2,7 @@ package com.androidfung.departureboard.data.datastore
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
@@ -18,7 +19,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
-internal val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "station_preferences")
+internal val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "station_preferences",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() }
+)
 
 /**
  * Interface defining station preferences data source operations.
@@ -326,7 +330,10 @@ class StationPreferencesDataStore(private val context: Context) : StationPrefere
      */
     private fun parseRecentStations(json: String?): List<StationDto> {
         if (json.isNullOrBlank()) return emptyList()
-        return runCatching { stationListAdapter.fromJson(json) }.getOrNull() ?: emptyList()
+        return runCatching {
+            @Suppress("USELESS_CAST")
+            (stationListAdapter.fromJson(json) as? List<StationDto?>)?.filterNotNull()
+        }.getOrNull() ?: emptyList()
     }
 
     override suspend fun addRecentSearchedStation(station: Station) {

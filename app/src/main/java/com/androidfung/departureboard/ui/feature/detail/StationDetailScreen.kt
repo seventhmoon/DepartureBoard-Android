@@ -2,6 +2,7 @@ package com.androidfung.departureboard.ui.feature.detail
 
 import android.content.Intent
 import androidx.compose.animation.animateColorAsState
+import com.androidfung.departureboard.ui.designsystem.sharedStationElement
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -377,8 +378,9 @@ private fun StationDetailContent(
 
     val density = LocalDensity.current
     val windowInfo = LocalWindowInfo.current
-    val screenHeightDp = remember(density, windowInfo) {
-        with(density) { windowInfo.containerSize.height.toDp().value.toInt() }
+    val containerHeightPx = windowInfo.containerSize.height
+    val screenHeightDp = remember(density, containerHeightPx) {
+        with(density) { containerHeightPx.toDp().value.toInt() }
     }
 
     val departureItemHeightDp = 72 // DepartureDetailItemRow height + 8dp spacing
@@ -525,7 +527,8 @@ private fun StationDetailContent(
                 ),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.sharedStationElement("station_title_${station.id}")
             )
 
             if (showBackButton && hasPagerMetadata) {

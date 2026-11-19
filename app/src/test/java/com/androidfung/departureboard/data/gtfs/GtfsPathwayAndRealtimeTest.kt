@@ -217,4 +217,49 @@ class GtfsPathwayAndRealtimeTest {
         override suspend fun clearLevels() = Unit
         override suspend fun clearPathways() = Unit
     }
+
+    @Test
+    fun decodeFeed_rejectsOversizedLengthDelimitedVarint_withoutOOM() {
+        // Tag 1 (FeedHeader, wire type 2) followed by varint 0x7FFFFFF0 (~2GB)
+        val malformed = ByteArrayOutputStream().apply {
+            write((1 shl 3) or 2)
+            // 0x7FFFFFF0 as varint
+            var v = 0x7FFFFFF0
+            while (v > 0x7F) {
+                write((v and 0x7F) or 0x80)
+                v = v ushr 7
+            }
+            write(v)
+        }.toByteArray()
+
+        val feed = GtfsRealtimeDecoder.decode(malformed)
+        assertNotNull(feed)
+        assertTrue(feed.entities.isEmpty())
+    }
+
+    @Test
+    fun applyRealtimeUpdates_matchesByTrainServiceId() {
+        val tripDesc = protoMsg {
+            writeString(1, "SVC_999")
+        }
+        val tripUpdate = protoMsg {
+            writeBytes(1, tripDesc)
+            writeVarint(5, 180)
+        }
+        val feedBytes = protoMsg {
+            writeBytes(2, protoMsg {
+                writeString(1, "ent_1")
+                writeBytes(3, tripUpdate)
+            })
+        }
+        val feed = GtfsRealtimeDecoder.decode(feedBytes)
+        val dep = sampleDeparture("row_key_1", 300).copy(
+            train = com.androidfung.departureboard.data.model.TrainInfo(serviceId = "SVC_999")
+        )
+
+        val updated = GtfsRealtimeDecoder.applyRealtimeUpdates(listOf(dep), feed)
+        assertEquals(1, updated.size)
+        assertEquals(DepartureStatus.DELAYED, updated.first().status)
+        assertEquals(480, updated.first().timeToStationSeconds)
+    }
 }

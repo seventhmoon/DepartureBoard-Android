@@ -379,8 +379,16 @@ private fun ActionButtonChip(
         is A2UiAction.OpenGoogleMaps -> {
             AssistChip(
                 onClick = {
-                    val uri = "google.navigation:q=${android.net.Uri.encode(action.destination)}&mode=r".toUri()
-                    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    val navUri = "google.navigation:q=${android.net.Uri.encode(action.destination)}&mode=r".toUri()
+                    val launchedMaps = runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, navUri))
+                    }.isSuccess
+                    if (!launchedMaps) {
+                        val webUri = "https://www.google.com/maps/search/?api=1&query=${android.net.Uri.encode(action.destination)}".toUri()
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, webUri))
+                        }
+                    }
                     onActionClick(action)
                 },
                 label = { Text(stringResource(R.string.ai_action_maps)) },
@@ -398,7 +406,9 @@ private fun ActionButtonChip(
             AssistChip(
                 onClick = {
                     val url = "https://tfl.gov.uk/plan-a-journey/results?From=${android.net.Uri.encode(action.origin)}&To=${android.net.Uri.encode(action.destination)}"
-                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                    }
                     onActionClick(action)
                 },
                 label = { Text(stringResource(R.string.ai_action_tfl)) },

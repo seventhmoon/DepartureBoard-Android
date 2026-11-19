@@ -106,6 +106,15 @@ fun TrainJourneyScreen(
         departureList.indexOfFirst { it.id == departure.id }.coerceAtLeast(0)
     }
 
+    val sharedNativeAd = com.androidfung.departureboard.ui.ads.rememberNativeAd(
+        adUnitId = if (com.androidfung.departureboard.BuildConfig.DEBUG) {
+            "ca-app-pub-3940256099942544/2247696110"
+        } else {
+            com.androidfung.departureboard.ui.ads.NativeAdUnits.TRAIN_JOURNEY
+        },
+        enabled = !isPro
+    )
+
     if (departureList.size <= 1) {
         TrainJourneyContent(
             departure = departure,
@@ -113,6 +122,8 @@ fun TrainJourneyScreen(
             onLoadCallingPoints = onLoadCallingPoints,
             modifier = modifier,
             isPro = isPro,
+            sharedNativeAd = sharedNativeAd,
+            isCurrentPage = true,
             onCallingPointClick = onCallingPointClick
         )
     } else {
@@ -141,6 +152,8 @@ fun TrainJourneyScreen(
                 onLoadCallingPoints = onLoadCallingPoints,
                 modifier = Modifier.fillMaxSize(),
                 isPro = isPro,
+                sharedNativeAd = sharedNativeAd,
+                isCurrentPage = pagerState.currentPage == page,
                 onCallingPointClick = onCallingPointClick,
                 pageInfo = stringResource(R.string.pager_page_of_total, page + 1, departureList.size)
             )
@@ -155,6 +168,8 @@ private fun TrainJourneyContent(
     onLoadCallingPoints: suspend (Departure) -> List<CallingPoint>,
     modifier: Modifier = Modifier,
     isPro: Boolean = false,
+    sharedNativeAd: com.google.android.gms.ads.nativead.NativeAd? = null,
+    isCurrentPage: Boolean = true,
     onCallingPointClick: (CallingPoint, List<CallingPoint>) -> Unit = { _, _ -> },
     pageInfo: String? = null
 ) {
@@ -171,18 +186,19 @@ private fun TrainJourneyContent(
 
     val density = LocalDensity.current
     val windowInfo = LocalWindowInfo.current
-    val screenHeightDp = remember(density, windowInfo) {
-        with(density) { windowInfo.containerSize.height.toDp().value.toInt() }
+    val containerHeightPx = windowInfo.containerSize.height
+    val screenHeightDp = remember(density, containerHeightPx) {
+        with(density) { containerHeightPx.toDp().value.toInt() }
     }
 
-    val timelineItems = remember(callingPoints, isPro, screenHeightDp) {
+    val timelineItems = remember(callingPoints, isPro, sharedNativeAd, screenHeightDp) {
         buildList<JourneyTimelineListItem> {
             callingPoints.forEachIndexed { index, cp ->
                 add(JourneyTimelineListItem.CallingPointItem(cp, index))
             }
             // Always place ad at the end of the journey timeline so the calling points sequence is never interrupted.
             // If the route is short and leaves empty space on screen, use a large CARD ad; otherwise a compact ROW ad at the end.
-            if (!isPro && callingPoints.isNotEmpty()) {
+            if (!isPro && sharedNativeAd != null && callingPoints.isNotEmpty()) {
                 val callingPointItemHeightDp = 52
                 val headerHeightEstimateDp = 220
                 val cardAdHeightDp = 240
@@ -255,8 +271,8 @@ private fun TrainJourneyContent(
         com.androidfung.departureboard.util.DelayRepayCalculator.evaluate(departure, callingPoints)
     }
 
-    LaunchedEffect(departure.id, delayRepay) {
-        if (delayRepay != null) {
+    LaunchedEffect(departure.id, delayRepay, isCurrentPage) {
+        if (isCurrentPage && delayRepay != null) {
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 com.androidfung.departureboard.util.DelayRepayReceiptLog.recordReceipt(
                     context = context,
@@ -1103,13 +1119,16 @@ private fun TrainJourneyContent(
                             )
                         }
                         is JourneyTimelineListItem.AdItem -> {
-                            NativeAdViewContainer(
-                                style = item.style,
-                                accentColor = departure.lineBadge.backgroundColor,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 16.dp, bottom = 8.dp)
-                            )
+                            sharedNativeAd?.let { ad ->
+                                NativeAdViewContainer(
+                                    nativeAd = ad,
+                                    style = item.style,
+                                    accentColor = departure.lineBadge.backgroundColor,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 16.dp, bottom = 8.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -1157,8 +1176,9 @@ private fun TrainJourneyContent(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            if (!isPro) {
+                            if (!isPro && sharedNativeAd != null) {
                                 NativeAdViewContainer(
+                                    nativeAd = sharedNativeAd,
                                     style = NativeAdStyle.CARD,
                                     modifier = Modifier
                                         .fillMaxWidth()

@@ -456,14 +456,12 @@ fun DashboardContent(
         }
 
         val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+        val topInset = innerPadding.calculateTopPadding()
+        val startInset = innerPadding.calculateLeftPadding(layoutDirection)
+        val endInset = innerPadding.calculateRightPadding(layoutDirection)
+        val bottomInset = innerPadding.calculateBottomPadding()
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(
-                    top = innerPadding.calculateTopPadding(),
-                    start = innerPadding.calculateLeftPadding(layoutDirection),
-                    end = innerPadding.calculateRightPadding(layoutDirection)
-                )
+            modifier = Modifier.fillMaxSize()
         ) {
             PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
@@ -478,10 +476,10 @@ fun DashboardContent(
                         .fillMaxSize()
                         .reorderableStaggeredGrid(reorderState),
                     contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 10.dp,
-                        bottom = 96.dp + innerPadding.calculateBottomPadding() // Extra clearance for FAB + edge-to-edge nav bar
+                        start = 16.dp + startInset,
+                        end = 16.dp + endInset,
+                        top = 10.dp + topInset,
+                        bottom = 96.dp + bottomInset // Extra clearance for FAB + edge-to-edge nav bar
                     ),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalItemSpacing = 20.dp

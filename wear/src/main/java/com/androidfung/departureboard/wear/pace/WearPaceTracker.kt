@@ -118,6 +118,7 @@ class WearHealthPaceClient(private val context: Context) {
         runCatching { HealthServices.getClient(context).passiveMonitoringClient }.getOrNull()
     }
     private var sensorListener: SensorEventListener? = null
+    private val stepLock = Any()
     private val stepTimestampsMs = ArrayDeque<Long>()
 
     private val passiveCallback = object : PassiveListenerCallback {
@@ -132,9 +133,26 @@ class WearHealthPaceClient(private val context: Context) {
                 _observedSpeedMps.value = PaceSprintEvaluator.speedFromStepsPerMinute(spmSample.toDouble())
             }
         }
+
+        override fun onRegistrationFailed(throwable: Throwable) {
+            startStepCadenceFallback()
+        }
+
+        override fun onPermissionLost() {
+            stop()
+        }
+    }
+
+    private fun hasActivityRecognitionPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return true
+        return ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.ACTIVITY_RECOGNITION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     }
 
     suspend fun start() {
+        if (!hasActivityRecognitionPermission()) return
         var registeredHealthServices = false
         val client = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) passiveClient else null
         if (client != null) {
@@ -166,27 +184,40 @@ class WearHealthPaceClient(private val context: Context) {
     }
 
     fun stop() {
-        runCatching { passiveClient?.clearPassiveListenerCallbackAsync() }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            runCatching { passiveClient?.clearPassiveListenerCallbackAsync() }
+        }
         sensorListener?.let { listener ->
             runCatching { context.getSystemService<SensorManager>()?.unregisterListener(listener) }
         }
         sensorListener = null
-        stepTimestampsMs.clear()
+        synchronized(stepLock) {
+            stepTimestampsMs.clear()
+        }
     }
 
     private fun startStepCadenceFallback() {
+        if (!hasActivityRecognitionPermission()) return
         val sensorManager = context.getSystemService<SensorManager>() ?: return
         val stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR) ?: return
+        sensorListener?.let { existing ->
+            runCatching { sensorManager.unregisterListener(existing) }
+            sensorListener = null
+        }
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent) {
                 val now = System.currentTimeMillis()
-                stepTimestampsMs.addLast(now)
-                while (stepTimestampsMs.isNotEmpty() && now - stepTimestampsMs.first() > 10_000L) {
-                    stepTimestampsMs.removeFirst()
+                val spm: Double? = synchronized(stepLock) {
+                    stepTimestampsMs.addLast(now)
+                    while (stepTimestampsMs.isNotEmpty() && now - stepTimestampsMs.first() > 10_000L) {
+                        stepTimestampsMs.removeFirst()
+                    }
+                    if (stepTimestampsMs.size >= 3) {
+                        val spanSec = ((now - stepTimestampsMs.first()).coerceAtLeast(1000L)) / 1000.0
+                        ((stepTimestampsMs.size - 1) / spanSec) * 60.0
+                    } else null
                 }
-                if (stepTimestampsMs.size >= 3) {
-                    val spanSec = ((now - stepTimestampsMs.first()).coerceAtLeast(1000L)) / 1000.0
-                    val spm = ((stepTimestampsMs.size - 1) / spanSec) * 60.0
+                if (spm != null) {
                     _observedSpeedMps.value = PaceSprintEvaluator.speedFromStepsPerMinute(spm)
                 }
             }

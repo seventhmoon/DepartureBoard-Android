@@ -1,5 +1,7 @@
 package com.androidfung.departureboard.data.gtfs
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -393,5 +395,22 @@ class GtfsDatabaseTest {
         val mappedStation = resolver.mapStopToStation(stops.first())
         assertEquals("1", mappedStation.zone)
         assertEquals(com.androidfung.departureboard.data.model.WheelchairBoardingStatus.STEP_FREE_LEVEL_BOARDING, mappedStation.wheelchairStatus)
+    }
+
+    @Test
+    fun gtfsTunnelSeedHelper_isIdempotentUnderConcurrentCalls() = runTest {
+        val field = GtfsTunnelSeedHelper::class.java.getDeclaredField("seededInSession")
+        field.isAccessible = true
+        field.setBoolean(GtfsTunnelSeedHelper, false)
+
+        coroutineScope {
+            val job1 = async { GtfsTunnelSeedHelper.ensureCoreMetroSeeded(fakeDao) }
+            val job2 = async { GtfsTunnelSeedHelper.ensureCoreMetroSeeded(fakeDao) }
+            job1.await()
+            job2.await()
+        }
+
+        val stop = fakeDao.getStopById("940GZZLUOXC")
+        assertNotNull(stop)
     }
 }

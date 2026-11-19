@@ -16,14 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.OpenInNew
-import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.NotificationsOff
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.ui.res.painterResource
+import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.Text
+import com.androidfung.departureboard.wear.R
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,7 +45,7 @@ internal fun WearTrackedJourneyCard(
     onOpenOnPhone: () -> Unit,
     onStopTracking: () -> Unit
 ) {
-    Surface(
+    WearSurface(
         shape = RoundedCornerShape(14.dp),
         color = Color(0xFF0D2538),
         border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
@@ -127,7 +124,7 @@ internal fun WearTrackedJourneyCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                            painter = painterResource(R.drawable.ic_open_in_new),
                             contentDescription = "Open on Phone",
                             tint = Color.White,
                             modifier = Modifier.size(11.dp)
@@ -142,7 +139,7 @@ internal fun WearTrackedJourneyCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.NotificationsOff,
+                            painter = painterResource(R.drawable.ic_notifications_off),
                             contentDescription = "Stop tracking",
                             tint = Color.White,
                             modifier = Modifier.size(11.dp)
@@ -202,7 +199,7 @@ internal fun WearDepartureCard(
     onOpenOnPhone: () -> Unit,
     onSimulatePlatformAnnouncement: (() -> Unit)? = null
 ) {
-    Surface(
+    WearSurface(
         shape = RoundedCornerShape(14.dp),
         color = if (isAmbientMode) Color.Black else Color(0xFF14171C),
         border = BorderStroke(
@@ -289,7 +286,7 @@ internal fun WearDepartureCard(
                         departure.isPlatformTbd -> Color(0xFF37474F)
                         else -> Color(0xFF1B5E20)
                     }
-                    Surface(
+                    WearSurface(
                         shape = RoundedCornerShape(6.dp),
                         color = platBg,
                         border = if (isAmbientMode) BorderStroke(1.dp, Color(0xFF546E7A)) else null
@@ -312,7 +309,7 @@ internal fun WearDepartureCard(
                     }
 
                     if (!isAmbientMode && departure.delayRepayBadge != null) {
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(6.dp),
                             color = Color(0xFF00695C)
                         ) {
@@ -354,7 +351,7 @@ internal fun WearDepartureCard(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                                painter = painterResource(R.drawable.ic_open_in_new),
                                 contentDescription = "Open on Phone",
                                 tint = Color(0xFF81D4FA),
                                 modifier = Modifier.size(11.dp)
@@ -371,7 +368,9 @@ internal fun WearDepartureCard(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = if (isWatched) Icons.Rounded.NotificationsActive else Icons.Rounded.NotificationsOff,
+                                painter = painterResource(
+                                    if (isWatched) R.drawable.ic_notifications_active else R.drawable.ic_notifications_off
+                                ),
                                 contentDescription = if (isWatched) "Watching platform" else "Watch platform",
                                 tint = Color.White,
                                 modifier = Modifier.size(11.dp)
@@ -417,7 +416,7 @@ internal fun WearDepartureCard(
                     )
 
                     if (onSimulatePlatformAnnouncement != null && departure.isPlatformTbd) {
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(50),
                             color = Color(0xFF004D40),
                             modifier = Modifier

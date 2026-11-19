@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -155,9 +157,7 @@ fun LineStatusBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 16.dp)
         ) {
             // Header
             Row(
@@ -290,9 +290,12 @@ fun LineStatusBottomSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            val navBottomPadding = WindowInsets.navigationBars
+                .asPaddingValues()
+                .calculateBottomPadding()
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(bottom = 28.dp),
+                contentPadding = PaddingValues(bottom = 28.dp + navBottomPadding),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(

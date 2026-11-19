@@ -11,9 +11,8 @@ plugins {
 
 android {
     namespace = "com.androidfung.departureboard"
-    compileSdk {
-        version = release(37)
-    }
+    compileSdk = 37
+    compileSdkExtension = 2
 
     androidResources {
         generateLocaleConfig = true
@@ -25,8 +24,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 60
-        versionName = "1.3.4-261113"
+        versionCode = 61
+        versionName = "1.3.5-261114"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

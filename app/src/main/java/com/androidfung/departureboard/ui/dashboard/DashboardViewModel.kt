@@ -535,10 +535,12 @@ class DashboardViewModel @JvmOverloads constructor(
                 lastUpdatedTimestamp = System.currentTimeMillis()
             )
         }
-        com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishStationBoards(
-            getApplication(),
-            _uiState.value.stationCards
-        )
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishStationBoards(
+                getApplication(),
+                _uiState.value.stationCards
+            )
+        }
     }
 
     /**
@@ -1192,10 +1194,12 @@ class DashboardViewModel @JvmOverloads constructor(
                             concoursePollIntervalMs = concourseDecision.recommendedPollIntervalMs
                         )
                     }
-                    com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishStationBoards(
-                        getApplication(),
-                        _uiState.value.stationCards
-                    )
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                        com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishStationBoards(
+                            getApplication(),
+                            _uiState.value.stationCards
+                        )
+                    }
                 } else {
                     _uiState.update { state ->
                         val updatedCardsWithoutDistance = state.stationCards.map { card ->

@@ -7,6 +7,7 @@ import com.androidfung.departureboard.billing.SubscriptionTier
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.gb.GbDefaultStations
 import com.androidfung.departureboard.test.FakeTransitRepository
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -58,6 +59,23 @@ class DashboardViewModelTest {
 
     private class FakeApplication : Application()
 
+    private val viewModelStore = androidx.lifecycle.ViewModelStore()
+    private val createdViewModels = mutableListOf<DashboardViewModel>()
+
+    private fun register(vm: DashboardViewModel): DashboardViewModel {
+        createdViewModels.add(vm)
+        val factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T = vm as T
+        }
+        return androidx.lifecycle.ViewModelProvider(viewModelStore, factory)["vm_${System.nanoTime()}", DashboardViewModel::class.java]
+    }
+
+    private fun createViewModel(
+        repo: FakeTransitRepository = FakeTransitRepository(),
+        billing: FakeBillingRepository = FakeBillingRepository(isProInitial = false)
+    ): DashboardViewModel = register(DashboardViewModel(FakeApplication(), repo, billing))
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
@@ -65,6 +83,14 @@ class DashboardViewModelTest {
 
     @After
     fun tearDown() {
+        val jobs = createdViewModels.flatMap { vm ->
+            vm.viewModelScope.coroutineContext[kotlinx.coroutines.Job]?.children?.toList().orEmpty()
+        }
+        viewModelStore.clear()
+        kotlinx.coroutines.runBlocking {
+            jobs.forEach { it.join() }
+        }
+        createdViewModels.clear()
         Dispatchers.resetMain()
     }
 
@@ -72,7 +98,7 @@ class DashboardViewModelTest {
     fun testInitialLoadingAndSavedStationsLoaded() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository(isProInitial = false)
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 
@@ -89,7 +115,7 @@ class DashboardViewModelTest {
         val initialStations = GbDefaultStations.POPULAR_STATIONS.take(SubscriptionTier.FREE_MAX_STATIONS)
         val fakeRepo = FakeTransitRepository(initialStations)
         val fakeBilling = FakeBillingRepository(isProInitial = false)
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 
@@ -109,7 +135,7 @@ class DashboardViewModelTest {
         val initialStations = GbDefaultStations.POPULAR_STATIONS.take(2)
         val fakeRepo = FakeTransitRepository(initialStations)
         val fakeBilling = FakeBillingRepository(isProInitial = true)
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
         assertTrue(viewModel.uiState.value.isPro)
@@ -132,7 +158,7 @@ class DashboardViewModelTest {
         }
         val fakeRepo = FakeTransitRepository(maxStations)
         val fakeBilling = FakeBillingRepository(isProInitial = true)
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
         assertEquals(SubscriptionTier.PRO_MAX_STATIONS, viewModel.uiState.value.stationCards.size)
@@ -151,7 +177,7 @@ class DashboardViewModelTest {
     fun testDismissPaywallClearsReason() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository(isProInitial = false)
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         viewModel.showPaywall("Upgrade reason")
         assertEquals("Upgrade reason", viewModel.uiState.value.paywallPromptReason)
@@ -164,7 +190,7 @@ class DashboardViewModelTest {
     fun testRemoveStationUpdatesStateAndCallsRepository() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository()
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 
@@ -182,7 +208,7 @@ class DashboardViewModelTest {
     fun testUndoRemoveStationRestoresStation() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository()
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 
@@ -201,7 +227,7 @@ class DashboardViewModelTest {
     fun testRefreshDeparturesUpdatesTimestamps() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository()
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 
@@ -218,7 +244,7 @@ class DashboardViewModelTest {
     fun testRefreshStationUpdatesSingleCard() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository()
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 
@@ -235,7 +261,7 @@ class DashboardViewModelTest {
     fun testSearchStationsReturnsMatchingStations() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository()
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         val results = viewModel.searchStations("Oxford")
         assertTrue(results.any { it.name == "Oxford Circus" })
@@ -245,7 +271,7 @@ class DashboardViewModelTest {
     fun testCountdownTickerDecrementsDepartureTimes() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository()
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         advanceUntilIdle()
 
@@ -262,7 +288,7 @@ class DashboardViewModelTest {
     fun testOpenStationDetailLoadsDeparturesEvenWhenNotInCards() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository()
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         val externalStation = Station(id = "EXTERNAL_ST", name = "Stratford")
         viewModel.openStationDetail(externalStation)
@@ -283,7 +309,7 @@ class DashboardViewModelTest {
     fun testOpenStationDetailWithTargetDepartureIdOpensJourneyScreen() = runTest {
         val fakeRepo = FakeTransitRepository()
         val fakeBilling = FakeBillingRepository()
-        val viewModel = DashboardViewModel(FakeApplication(), fakeRepo, fakeBilling)
+        val viewModel = createViewModel(fakeRepo, fakeBilling)
 
         val externalStation = Station(id = "EXTERNAL_ST", name = "Stratford")
         viewModel.openStationDetail(externalStation, targetDepartureId = "fb_gen_1")
@@ -310,7 +336,7 @@ class DashboardViewModelTest {
                 dynamicColorFlow.value = enabled
             }
         }
-        val viewModel = DashboardViewModel(FakeApplication(), repo, FakeBillingRepository())
+        val viewModel = createViewModel(repo, FakeBillingRepository())
         advanceUntilIdle()
 
         assertEquals(com.androidfung.departureboard.ui.theme.AppThemeMode.SYSTEM, viewModel.uiState.value.themeMode)
@@ -331,12 +357,12 @@ class DashboardViewModelTest {
         val fakeObserver = object : com.androidfung.departureboard.util.NetworkConnectivityObserver {
             override val isOnline: Flow<Boolean> = onlineFlow
         }
-        val viewModel = DashboardViewModel(
+        val viewModel = register(DashboardViewModel(
             application = FakeApplication(),
             repository = fakeRepo,
             billingRepository = FakeBillingRepository(),
             networkConnectivityObserver = fakeObserver
-        )
+        ))
         advanceUntilIdle()
         assertTrue(viewModel.uiState.value.isOnline)
 
@@ -369,14 +395,14 @@ class DashboardViewModelTest {
                 )
             )
         }
-        val viewModel = DashboardViewModel(
+        val viewModel = register(DashboardViewModel(
             application = FakeApplication(),
             repository = fakeRepo,
             billingRepository = FakeBillingRepository(),
             locationDataSource = object : com.androidfung.departureboard.util.LocationDataSource {
                 override suspend fun getCurrentLocation(): android.location.Location? = null
             }
-        )
+        ))
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.lineStatuses.containsKey("victoria"))
@@ -390,14 +416,14 @@ class DashboardViewModelTest {
     @Test
     fun testOpenStationDetailFromCallingPoint_placesDetailAboveJourneyAndRestoresOnBack() = runTest {
         val fakeRepo = FakeTransitRepository()
-        val viewModel = DashboardViewModel(
+        val viewModel = register(DashboardViewModel(
             application = FakeApplication(),
             repository = fakeRepo,
             billingRepository = FakeBillingRepository(),
             locationDataSource = object : com.androidfung.departureboard.util.LocationDataSource {
                 override suspend fun getCurrentLocation(): android.location.Location? = null
             }
-        )
+        ))
         advanceUntilIdle()
 
         val departure = com.androidfung.departureboard.data.model.Departure(

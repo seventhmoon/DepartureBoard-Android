@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 class TrainTrackingService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    @Volatile
     private var trackingJob: Job? = null
     @Volatile
     private var retainNotificationOnDestroy = false
@@ -424,7 +425,7 @@ class TrainTrackingService : Service() {
                 serviceScope.launch {
                     var points = latestCallingPoints
                     if (points.isEmpty() && snap.lineId.isNotBlank()) {
-                        points = runCatching {
+                        points = com.androidfung.departureboard.util.runSuspendCatching {
                             applicationContext.appContainer.transitRepository.getCallingPoints(
                                 Departure(
                                     id = snap.departureId,
@@ -632,6 +633,8 @@ class TrainTrackingService : Service() {
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start foreground service", e)
+                    currentlyTrackedDepartureId = null
+                    latestSnapshot = null
                     stopSelf()
                     return START_NOT_STICKY
                 }
@@ -707,10 +710,8 @@ class TrainTrackingService : Service() {
     ) {
         val previousJob = trackingJob
         trackingJob = serviceScope.launch {
-            try {
-                previousJob?.cancelAndJoin()
-            } catch (_: CancellationException) {
-            }
+            // Propagate CancellationException if this new job itself is cancelled while awaiting previousJob.
+            previousJob?.cancelAndJoin()
 
             val repository = applicationContext.appContainer.transitRepository
             var activeDepartureId = departureId
@@ -974,7 +975,7 @@ class TrainTrackingService : Service() {
 
                 // Eagerly fetch calling points once so +1 Stop cycling & Share ETA have downstream stops ready
                 if (cachedCallingPoints == null && lineId.isNotBlank()) {
-                    runCatching {
+                    com.androidfung.departureboard.util.runSuspendCatching {
                         val sampleDeparture = Departure(
                             id = activeDepartureId,
                             stationId = stationId,

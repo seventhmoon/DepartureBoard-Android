@@ -17,6 +17,8 @@
 package com.androidfung.departureboard.ui.feature.detail
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.animateBounds
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -30,6 +32,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.LookaheadScope
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavMetadataKey
 import androidx.navigation3.runtime.contains
@@ -67,16 +70,25 @@ data class ListDetailScene<T : Any>(
             LocalIsTwoPaneMode provides true,
             LocalIsThreePaneMode provides isThreePaneMode
         ) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                if (isThreePaneMode) {
-                    // 3-Pane Layout on Desktop (EXTRA_LARGE >= 1200dp)
-                    // List: 30% | Middle Pane: 35% | Right Pane: 35%
-                    Column(modifier = Modifier.weight(0.30f)) {
-                        listEntry.Content()
-                    }
+            androidx.compose.ui.layout.LookaheadScope {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    if (isThreePaneMode) {
+                        // 3-Pane Layout on Desktop (EXTRA_LARGE >= 1200dp)
+                        // List: 30% | Middle Pane: 35% | Right Pane: 35%
+                        Column(
+                            modifier = Modifier
+                                .weight(0.30f)
+                                .animateBounds(lookaheadScope = this@LookaheadScope)
+                        ) {
+                            listEntry.Content()
+                        }
 
-                    CompositionLocalProvider(LocalBackButtonVisibility provides false) {
-                        Column(modifier = Modifier.weight(0.35f)) {
+                        CompositionLocalProvider(LocalBackButtonVisibility provides false) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(0.35f)
+                                    .animateBounds(lookaheadScope = this@LookaheadScope)
+                            ) {
                             val middleTransition = remember(detailEntry.contentKey) {
                                 androidx.compose.animation.core.MutableTransitionState(false).apply {
                                     targetState = true
@@ -101,7 +113,11 @@ data class ListDetailScene<T : Any>(
                     }
 
                     CompositionLocalProvider(LocalBackButtonVisibility provides false) {
-                        Column(modifier = Modifier.weight(0.35f)) {
+                        Column(
+                            modifier = Modifier
+                                .weight(0.35f)
+                                .animateBounds(lookaheadScope = this@LookaheadScope)
+                        ) {
                             val rightTransition = remember(supportingEntry.contentKey) {
                                 androidx.compose.animation.core.MutableTransitionState(false).apply {
                                     targetState = true
@@ -130,7 +146,11 @@ data class ListDetailScene<T : Any>(
                     val listWeight = if (isUltraWide) 0.50f else 0.45f
                     val detailWeight = if (isUltraWide) 0.50f else 0.55f
 
-                    Column(modifier = Modifier.weight(listWeight)) {
+                    Column(
+                        modifier = Modifier
+                            .weight(listWeight)
+                            .animateBounds(lookaheadScope = this@LookaheadScope)
+                    ) {
                         listEntry.Content()
                     }
 
@@ -138,7 +158,11 @@ data class ListDetailScene<T : Any>(
                     val activeRightPane = activeSecondaryEntry ?: supportingEntry ?: detailEntry
                     if (activeRightPane != null) {
                         CompositionLocalProvider(LocalBackButtonVisibility provides (secondaryCount > 1)) {
-                            Column(modifier = Modifier.weight(detailWeight)) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(detailWeight)
+                                    .animateBounds(lookaheadScope = this@LookaheadScope)
+                            ) {
                                 AnimatedContent(
                                     targetState = activeRightPane,
                                     contentKey = { entry -> entry.contentKey },
@@ -147,12 +171,17 @@ data class ListDetailScene<T : Any>(
                                                 slideOutHorizontally(targetOffsetX = { -it })
                                     }
                                 ) { entry ->
-                                    entry.Content()
+                                    CompositionLocalProvider(
+                                        com.androidfung.departureboard.ui.designsystem.LocalAnimatedVisibilityScope provides this
+                                    ) {
+                                        entry.Content()
+                                    }
                                 }
                             }
                         }
                     }
                 }
+            }
             }
         }
     }

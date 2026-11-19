@@ -38,16 +38,27 @@ object DeepLinkIntentParser {
      */
     val INTERNAL_CAPABILITY_TOKEN: String = java.util.UUID.randomUUID().toString()
 
-    private const val MAX_ID_LENGTH = 96
+    private const val MAX_ID_LENGTH = 128
     private const val MAX_NAME_LENGTH = 80
     private const val MAX_AI_QUERY_LENGTH = 200
 
-    private val SAFE_TRANSIT_ID_REGEX = Regex("""^[A-Za-z0-9_.:-]{1,96}$""")
+    private val SAFE_TRANSIT_ID_REGEX = Regex("""^[A-Za-z0-9_.:-]{1,128}$""")
+    private val SAFE_DEPARTURE_ID_REGEX = Regex("""^[A-Za-z0-9_.:+/=-]{1,128}$""")
     private val CONTROL_CHARS_REGEX = Regex("""[\u0000-\u001F\u007F]""")
 
     fun sanitizeTransitId(raw: String?): String? {
         val trimmed = raw?.trim()?.takeIf { it.isNotEmpty() && it.length <= MAX_ID_LENGTH } ?: return null
         if (trimmed.contains("..") || !SAFE_TRANSIT_ID_REGEX.matches(trimmed)) return null
+        return trimmed
+    }
+
+    /**
+     * Sanitizes a departure/service identifier (including Base64-encoded National Rail LDBWS
+     * `serviceID` tokens containing `+`, `/`, and `=`), while still blocking `..` traversal.
+     */
+    fun sanitizeDepartureId(raw: String?): String? {
+        val trimmed = raw?.trim()?.takeIf { it.isNotEmpty() && it.length <= MAX_ID_LENGTH } ?: return null
+        if (trimmed.contains("..") || !SAFE_DEPARTURE_ID_REGEX.matches(trimmed)) return null
         return trimmed
     }
 
@@ -136,8 +147,8 @@ object DeepLinkIntentParser {
             sanitizeDisplayText(extraStationName, MAX_NAME_LENGTH)
         }
 
-        val departureId = sanitizeTransitId(extraDepartureId)
-            ?: if (isValidStationDeepLink) sanitizeTransitId(uriQueryDepartureId) else null
+        val departureId = sanitizeDepartureId(extraDepartureId)
+            ?: if (isValidStationDeepLink) sanitizeDepartureId(uriQueryDepartureId) else null
 
         val sanitizedExtraAi = sanitizeDisplayText(extraAiQuery, MAX_AI_QUERY_LENGTH)
         val sanitizedUriAi = if (isValidStationDeepLink) {

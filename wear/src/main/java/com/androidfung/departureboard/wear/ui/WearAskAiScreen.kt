@@ -27,13 +27,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.Mic
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.ui.res.painterResource
+import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.Text
+import com.androidfung.departureboard.wear.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -109,7 +107,7 @@ internal fun WearAskAiScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             item(key = "back_button", contentType = "back_button") {
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(50),
                     color = Color(0xFF1E2229),
                     border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
@@ -132,7 +130,7 @@ internal fun WearAskAiScreen(
             // Glanceable 2-Line AI Concourse Answer Card
             aiResponse?.let { resp ->
                 item(key = "ai_response_card") {
-                    Surface(
+                    WearSurface(
                         shape = RoundedCornerShape(14.dp),
                         color = Color(0xFF1C1429),
                         border = BorderStroke(1.dp, Color(0xFFB388FF)),
@@ -163,7 +161,7 @@ internal fun WearAskAiScreen(
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
                                 color = Color(0xFFE0E0E0)
                             )
-                            Surface(
+                            WearSurface(
                                 shape = RoundedCornerShape(50),
                                 color = Color(0xFF311B92),
                                 modifier = Modifier
@@ -188,7 +186,7 @@ internal fun WearAskAiScreen(
 
             // Combined Text + Voice Input Pill (opens Wear OS Gboard swipe/voice keyboard or speech recognizer)
             item(key = "text_and_voice_input") {
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(14.dp),
                     color = Color(0xFF0D2538),
                     border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
@@ -260,7 +258,7 @@ internal fun WearAskAiScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.Send,
+                                    painter = painterResource(R.drawable.ic_send),
                                     contentDescription = "Send AI query",
                                     tint = Color.White,
                                     modifier = Modifier.size(12.dp)
@@ -300,7 +298,7 @@ internal fun WearAskAiScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.Mic,
+                                painter = painterResource(R.drawable.ic_mic),
                                 contentDescription = "Speak question",
                                 tint = Color(0xFF81D4FA),
                                 modifier = Modifier.size(13.dp)
@@ -316,7 +314,7 @@ internal fun WearAskAiScreen(
                 key = { it.first.name },
                 contentType = { "triage_prompt" }
             ) { (promptType, label) ->
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(12.dp),
                     color = Color(0xFF14171C),
                     border = BorderStroke(1.dp, Color(0xFF262B33)),

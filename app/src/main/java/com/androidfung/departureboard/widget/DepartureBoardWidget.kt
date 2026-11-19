@@ -96,12 +96,15 @@ class DepartureBoardWidget : GlanceAppWidget() {
         internal suspend fun resolveSmartCommuteStation(
             repository: com.androidfung.departureboard.data.repository.TransitRepository
         ): Pair<Station, String> {
-            val fallbackRegion = runCatching { repository.selectedRegionFlow.firstOrNull() }
-                .getOrNull() ?: com.androidfung.departureboard.data.model.TransitRegion.GB
+            val fallbackRegion = com.androidfung.departureboard.util.runSuspendCatching {
+                repository.selectedRegionFlow.firstOrNull()
+            }.getOrNull() ?: com.androidfung.departureboard.data.model.TransitRegion.GB
             val period = com.androidfung.departureboard.util.SmartCommuteHelper.getCommutePeriod(
                 java.time.LocalTime.now(fallbackRegion.timeZone)
             )
-            val saved = runCatching { repository.savedStationsFlow.firstOrNull().orEmpty() }.getOrDefault(emptyList())
+            val saved = com.androidfung.departureboard.util.runSuspendCatching {
+                repository.savedStationsFlow.firstOrNull().orEmpty()
+            }.getOrDefault(emptyList())
             val ordered = com.androidfung.departureboard.util.SmartCommuteHelper.reorderForCommute(
                 items = saved,
                 tagSelector = { it.commuteTag },
@@ -150,6 +153,9 @@ class DepartureBoardWidget : GlanceAppWidget() {
         val fastFilterDirection = if (appWidgetId != -1) sp.getString("filter_direction_$appWidgetId", null) else null
 
         val smartCommuteResolved = resolveSmartCommuteStation(repository)
+        val isBilingual = com.androidfung.departureboard.util.runSuspendCatching {
+            repository.isBilingualEnabledFlow.firstOrNull()
+        }.getOrNull() ?: true
 
         provideContent {
             GlanceTheme {
@@ -162,7 +168,6 @@ class DepartureBoardWidget : GlanceAppWidget() {
                 val filterDirection = prefs[PREF_FILTER_DIRECTION] ?: fastFilterDirection
                 val refreshTimestamp = prefs[PREF_LAST_REFRESH_TIMESTAMP] ?: 0L
 
-                val isBilingual by repository.isBilingualEnabledFlow.collectAsState(initial = true)
                 val isSmartCommuteMode = rawStationId == SMART_COMMUTE_WIDGET_STATION_ID
                 val stationId = if (isSmartCommuteMode) smartCommuteResolved.first.id else rawStationId
                 val stationName = if (isSmartCommuteMode) {
@@ -440,7 +445,10 @@ class DepartureBoardWidget : GlanceAppWidget() {
         for (ch in value) {
             hash = (hash xor ch.code.toLong()) * 0x100000001b3L
         }
-        return hash
+        // Glance reserves item ids less than -4611686018427387904 (Long.MIN_VALUE / 2).
+        // Masking with 0x3FFFFFFFFFFFFFFF ensures the hash is positive and fits in 62 bits,
+        // avoiding the reserved negative range entirely while keeping collision probability extremely low.
+        return hash and 0x3FFFFFFFFFFFFFFFL
     }
 
     @Composable

@@ -5,6 +5,7 @@ import android.content.Context
 import com.androidfung.departureboard.data.repository.TransitRepository
 import com.androidfung.departureboard.di.AppContainer
 import com.androidfung.departureboard.di.DefaultAppContainer
+import com.google.android.play.core.splitcompat.SplitCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -16,6 +17,11 @@ class DepartureBoardApp : Application() {
 
     val repository: TransitRepository
         get() = container.transitRepository
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(base)
+        SplitCompat.install(this)
+    }
 
     override fun onCreate() {
         super.onCreate()

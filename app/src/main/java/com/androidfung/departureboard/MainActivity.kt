@@ -40,6 +40,8 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import com.androidfung.departureboard.billing.BillingRepository
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.data.model.TransitRegion
@@ -103,6 +105,11 @@ class MainActivity : AppCompatActivity() {
         } else {
             android.util.Log.w(TAG, "In-app update flow failed with resultCode: ${result.resultCode}")
         }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase)
+        com.google.android.play.core.splitcompat.SplitCompat.installActivity(this)
     }
 
     @OptIn(ExperimentalSharedTransitionApi::class)
@@ -172,13 +179,20 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             val viewModel: DashboardViewModel = viewModel()
-            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val themeConfig by remember(viewModel) {
+                viewModel.uiState
+                    .map { it.themeMode to it.isDynamicColor }
+                    .distinctUntilChanged()
+            }.collectAsStateWithLifecycle(
+                initialValue = viewModel.uiState.value.let { it.themeMode to it.isDynamicColor }
+            )
 
-            // Observe persisted theme mode and dynamic color preferences
+            // Observe persisted theme mode and dynamic color preferences without recomposing root on 1 Hz ticks
             DepartureBoardTheme(
-                themeMode = uiState.themeMode,
-                dynamicColor = uiState.isDynamicColor
+                themeMode = themeConfig.first,
+                dynamicColor = themeConfig.second
             ) {
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 androidx.compose.runtime.CompositionLocalProvider(
                     com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled provides uiState.isBilingualEnabled
                 ) {
@@ -204,10 +218,12 @@ class MainActivity : AppCompatActivity() {
                             val targetDepId = initialDepartureId
                             initialStation = null
                             initialDepartureId = null
-                            com.androidfung.departureboard.util.DynamicShortcutHelper.reportStationUsed(
-                                context = applicationContext,
-                                stationId = station.id
-                            )
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                com.androidfung.departureboard.util.DynamicShortcutHelper.reportStationUsed(
+                                    context = applicationContext,
+                                    stationId = station.id
+                                )
+                            }
                             viewModel.openStationDetail(
                                 station = station,
                                 targetDepartureId = targetDepId
@@ -387,27 +403,33 @@ class MainActivity : AppCompatActivity() {
                     val staggeredGridState = androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState()
 
                     SharedTransitionLayout {
-                        NavDisplay(
-                            backStack = backStack,
-                            onBack = { 
-                                val last = backStack.lastOrNull()
-                                if (last is TrainJourneyRoute) {
-                                    viewModel.closeTrainJourney()
-                                } else if (last is StationDetailRoute) {
-                                    viewModel.closeStationDetail()
-                                }
-                                if (backStack.size > 1) {
-                                    backStack.remove(backStack.last())
-                                }
-                            },
-                            sceneStrategies = listOf(listDetailStrategy),
-                            sharedTransitionScope = this,
-                            modifier = Modifier.fillMaxSize(),
-                            entryProvider = entryProvider {
+                        androidx.compose.runtime.CompositionLocalProvider(
+                            com.androidfung.departureboard.ui.designsystem.LocalSharedTransitionScope provides this
+                        ) {
+                            NavDisplay(
+                                backStack = backStack,
+                                onBack = { 
+                                    val last = backStack.lastOrNull()
+                                    if (last is TrainJourneyRoute) {
+                                        viewModel.closeTrainJourney()
+                                    } else if (last is StationDetailRoute) {
+                                        viewModel.closeStationDetail()
+                                    }
+                                    if (backStack.size > 1) {
+                                        backStack.remove(backStack.last())
+                                    }
+                                },
+                                sceneStrategies = listOf(listDetailStrategy),
+                                sharedTransitionScope = this,
+                                modifier = Modifier.fillMaxSize(),
+                                entryProvider = entryProvider {
                                     entry<DashboardListRoute>(
                                         metadata = ListDetailScene.listPane()
                                     ) {
-                                        DashboardContent(
+                                        androidx.compose.runtime.CompositionLocalProvider(
+                                            com.androidfung.departureboard.ui.designsystem.LocalAnimatedVisibilityScope provides androidx.navigation3.ui.LocalNavAnimatedContentScope.current
+                                        ) {
+                                            DashboardContent(
                                             uiState = uiState,
                                             snackbarHostState = snackbarHostState,
                                             staggeredGridState = staggeredGridState,
@@ -458,10 +480,14 @@ class MainActivity : AppCompatActivity() {
                                                 showAiSheet = true
                                             }
                                         )
+                                        }
                                     }
                                     entry<StationDetailRoute>(
                                         metadata = ListDetailScene.detailPane()
                                     ) {
+                                        androidx.compose.runtime.CompositionLocalProvider(
+                                            com.androidfung.departureboard.ui.designsystem.LocalAnimatedVisibilityScope provides androidx.navigation3.ui.LocalNavAnimatedContentScope.current
+                                        ) {
                                         val station = uiState.selectedDetailStation
                                         if (station != null) {
                                             val savedIds = remember(uiState.stationCards) {
@@ -510,10 +536,14 @@ class MainActivity : AppCompatActivity() {
                                                 isBikeshareEnabled = uiState.isBikeshareEnabled
                                             )
                                         }
+                                        }
                                     }
                                     entry<TrainJourneyRoute>(
                                         metadata = ListDetailScene.supportingPane()
                                     ) {
+                                        androidx.compose.runtime.CompositionLocalProvider(
+                                            com.androidfung.departureboard.ui.designsystem.LocalAnimatedVisibilityScope provides androidx.navigation3.ui.LocalNavAnimatedContentScope.current
+                                        ) {
                                         val journeyDep = uiState.selectedJourneyDeparture
                                         if (journeyDep != null) {
                                             TrainJourneyScreen(
@@ -532,10 +562,12 @@ class MainActivity : AppCompatActivity() {
                                                 isPro = uiState.isPro
                                             )
                                         }
+                                        }
                                     }
                                 }
                             )
                         }
+                    }
 
                     // Full-screen Split-Flap Desk Clock & Foldable Tabletop Kiosk Mode
                     val windowPosture = com.androidfung.departureboard.ui.theme.LocalWindowPosture.current

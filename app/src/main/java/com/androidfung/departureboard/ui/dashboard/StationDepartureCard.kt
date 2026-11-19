@@ -4,6 +4,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import com.androidfung.departureboard.ui.designsystem.sharedStationBounds
+import com.androidfung.departureboard.ui.designsystem.sharedStationElement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -196,6 +198,7 @@ fun StationDepartureCard(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .sharedStationBounds("station_card_${cardModel.station.id}")
                 .clip(RoundedCornerShape(32.dp)),
             shape = RoundedCornerShape(32.dp),
             border = if (isSelectedInDetailPane) {
@@ -476,7 +479,8 @@ private fun StationHeaderSection(
                         ),
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.sharedStationElement("station_title_${station.id}")
                     )
 
                     // Subtitle: Bus stop "towards ..." indicator (e.g. "towards Edgware or Millbrook Park")

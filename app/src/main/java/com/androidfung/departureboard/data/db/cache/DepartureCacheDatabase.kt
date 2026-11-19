@@ -50,6 +50,12 @@ abstract class DepartureCacheDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE cached_departures ADD COLUMN localizedDestinationNamesJson TEXT")
+            }
+        }
+
         @Volatile
         private var instance: DepartureCacheDatabase? = null
 
@@ -60,7 +66,7 @@ abstract class DepartureCacheDatabase : RoomDatabase() {
                     DepartureCacheDatabase::class.java,
                     "departure_cache.db"
                 )
-                    .addMigrations(MIGRATION_4_5)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6)
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     .also { instance = it }

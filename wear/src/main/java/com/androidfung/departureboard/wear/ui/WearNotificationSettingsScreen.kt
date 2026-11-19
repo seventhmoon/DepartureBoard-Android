@@ -18,9 +18,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -210,7 +209,7 @@ internal fun WearNotificationSettingsScreen(
             }
 
             item(key = "system_all_channels") {
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(50),
                     color = Color(0xFF1E2229),
                     border = BorderStroke(1.dp, Color(0xFF4FC3F7).copy(alpha = 0.6f)),
@@ -231,7 +230,7 @@ internal fun WearNotificationSettingsScreen(
             }
 
             item(key = "back_btn") {
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(50),
                     color = Color(0xFF263238),
                     modifier = Modifier
@@ -261,7 +260,7 @@ private fun WearNotificationToggleRow(
     onToggle: () -> Unit,
     onChannelSettings: () -> Unit
 ) {
-    Surface(
+    WearSurface(
         shape = RoundedCornerShape(12.dp),
         color = if (enabled) Color(0xFF142229) else Color(0xFF14161A),
         border = BorderStroke(
@@ -307,7 +306,7 @@ private fun WearNotificationToggleRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(50),
                     color = if (enabled) Color(0xFF00C853) else Color(0xFF37474F)
                 ) {
@@ -321,7 +320,7 @@ private fun WearNotificationToggleRow(
                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                     )
                 }
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(50),
                     color = Color(0xFF263238),
                     modifier = Modifier

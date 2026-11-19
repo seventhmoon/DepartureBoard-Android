@@ -1,5 +1,8 @@
 package com.androidfung.departureboard.data.gtfs
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
 /**
  * Seeds essential underground metro / rapid-transit static GTFS entries into [GtfsDao] when
  * the local GTFS database is empty so "Underground Tunnel Mode" works out of the box when
@@ -9,13 +12,17 @@ object GtfsTunnelSeedHelper {
 
     @Volatile
     private var seededInSession = false
+    private val seedMutex = Mutex()
 
     suspend fun ensureCoreMetroSeeded(dao: GtfsDao) {
         if (seededInSession) return
-        seededInSession = true
-
-        // Skip seeding if GTFS feeds have already been imported or seeded
-        if (dao.getAllCalendars().isNotEmpty()) return
+        seedMutex.withLock {
+            if (seededInSession) return
+            // Skip seeding if GTFS feeds have already been imported or seeded
+            if (dao.getAllCalendars().isNotEmpty()) {
+                seededInSession = true
+                return
+            }
 
         val calendars = listOf(
             GtfsCalendarEntity(
@@ -122,10 +129,16 @@ object GtfsTunnelSeedHelper {
             idx++
         }
 
-        dao.insertCalendars(calendars)
-        dao.insertStops(stops)
-        dao.insertRoutes(routes)
-        dao.insertTrips(trips)
-        dao.insertStopTimes(stopTimes)
+        dao.importScheduleBatchTransactional(
+            stops = stops,
+            routes = routes,
+            trips = trips,
+            stopTimes = stopTimes,
+            calendars = calendars,
+            calendarDates = emptyList(),
+            clearExisting = false
+        )
+        seededInSession = true
+        }
     }
 }

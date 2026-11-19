@@ -96,7 +96,9 @@ object GtfsRealtimeDecoder {
                     }
                     2 if wireType == WIRE_LEN -> {
                         val sub = reader.readBytes()
-                        entities.add(parseFeedEntity(sub))
+                        if (entities.size < MAX_FEED_ENTITIES) {
+                            entities.add(parseFeedEntity(sub))
+                        }
                     }
                     else -> reader.skip(wireType)
                 }
@@ -129,8 +131,9 @@ object GtfsRealtimeDecoder {
             }
         }
         return departures.map { dep ->
-            val tripUpdate = tripUpdatesByTripId[dep.id]
-            val rtOccupancy = occupancyByTripId[dep.id]
+            val lookupKey = dep.train?.serviceId?.takeIf { it.isNotBlank() }
+            val tripUpdate = (lookupKey?.let { tripUpdatesByTripId[it] }) ?: tripUpdatesByTripId[dep.id]
+            val rtOccupancy = (lookupKey?.let { occupancyByTripId[it] }) ?: occupancyByTripId[dep.id]
             if (tripUpdate == null && rtOccupancy == null) return@map dep
 
             val isCancelled = tripUpdate?.trip?.scheduleRelationship == 3
@@ -299,22 +302,35 @@ object GtfsRealtimeDecoder {
     private const val WIRE_VARINT = 0
     private const val WIRE_FIXED64 = 1
     private const val WIRE_LEN = 2
+    private const val WIRE_START_GROUP = 3
+    private const val WIRE_END_GROUP = 4
     private const val WIRE_FIXED32 = 5
+    private const val MAX_FIELD_BYTES = 8 * 1024 * 1024
+    private const val MAX_FEED_ENTITIES = 50_000
 
-    private class WireReader(private val input: InputStream) {
-        fun readTag(): Int {
-            val v = readRawVarint32()
-            return v
+    private class WireReader(
+        private val input: InputStream,
+        private val maxBytes: Int = MAX_FIELD_BYTES
+    ) {
+        private var bytesConsumed = 0
+
+        private fun readByte(): Int {
+            if (bytesConsumed >= maxBytes) return -1
+            val b = input.read()
+            if (b >= 0) bytesConsumed++
+            return b
         }
 
-        private fun readRawVarint32(): Int {
-            val first = input.read()
+        fun hasRemaining(): Boolean = bytesConsumed < maxBytes
+
+        fun readTag(): Int {
+            val first = readByte()
             if (first < 0) return 0
             return readVarintTail(first).toInt()
         }
 
         fun readVarint(): Long {
-            val first = input.read()
+            val first = readByte()
             if (first < 0) return 0L
             return readVarintTail(first)
         }
@@ -324,47 +340,68 @@ object GtfsRealtimeDecoder {
             if ((firstByte and 0x80) == 0) return result
             var shift = 7
             while (shift < 64) {
-                val b = input.read()
+                val b = readByte()
                 if (b < 0) break
                 result = result or ((b and 0x7F).toLong() shl shift)
                 if ((b and 0x80) == 0) return result
+                shift += 7
+            }
+            // Drain any overlong varint continuation bytes cleanly without desynchronizing
+            while (shift >= 64) {
+                val b = readByte()
+                if (b < 0 || (b and 0x80) == 0) break
                 shift += 7
             }
             return result
         }
 
         fun readBytes(): ByteArray {
-            val len = readVarint().toInt().coerceAtLeast(0).coerceAtMost(8 * 1024 * 1024)
-            val buf = ByteArray(len)
+            val rawLen = readVarint()
+            if (rawLen <= 0L) return ByteArray(0)
+            val remainingBudget = (maxBytes - bytesConsumed).coerceAtLeast(0)
+            val availableHint = input.available().coerceAtLeast(0)
+            val capped = rawLen
+                .coerceAtMost(remainingBudget.toLong())
+                .coerceAtMost(availableHint.toLong().coerceAtLeast(64L * 1024L).coerceAtMost(MAX_FIELD_BYTES.toLong()))
+                .toInt()
+            if (capped <= 0) return ByteArray(0)
+
+            val buf = ByteArray(capped)
             var offset = 0
-            while (offset < len) {
-                val read = input.read(buf, offset, len - offset)
+            while (offset < capped) {
+                val read = input.read(buf, offset, capped - offset)
                 if (read <= 0) break
                 offset += read
+                bytesConsumed += read
             }
-            return if (offset == len) buf else buf.copyOf(offset)
+            return if (offset == capped) buf else buf.copyOf(offset)
         }
 
         fun readString(): String = String(readBytes(), StandardCharsets.UTF_8)
 
-        fun skip(wireType: Int) {
+        fun skip(wireType: Int): Boolean {
             when (wireType) {
                 WIRE_VARINT -> readVarint()
-                WIRE_FIXED64 -> skipExact(8)
-                WIRE_LEN -> skipExact(readVarint().toInt().coerceAtLeast(0))
-                WIRE_FIXED32 -> skipExact(4)
-                else -> Unit
+                WIRE_FIXED64 -> skipExact(8L)
+                WIRE_LEN -> skipExact(readVarint().coerceAtLeast(0L))
+                WIRE_FIXED32 -> skipExact(4L)
+                WIRE_START_GROUP, WIRE_END_GROUP -> return false
+                else -> return false
             }
+            return true
         }
 
-        private fun skipExact(count: Int) {
-            var remaining = count.toLong()
-            while (remaining > 0) {
+        private fun skipExact(count: Long) {
+            if (count <= 0L) return
+            val budget = (maxBytes - bytesConsumed).toLong().coerceAtLeast(0L)
+            var remaining = count.coerceAtMost(budget)
+            while (remaining > 0L) {
                 val skipped = input.skip(remaining)
-                if (skipped > 0) {
+                if (skipped > 0L) {
                     remaining -= skipped
+                    bytesConsumed += skipped.toInt().coerceAtLeast(0)
                 } else {
-                    if (input.read() < 0) break
+                    if (readByte() < 0) break
                     remaining--
                 }
             }
@@ -373,15 +410,19 @@ object GtfsRealtimeDecoder {
 
     private inline fun readMessage(
         input: InputStream,
-        @Suppress("UNUSED_PARAMETER") maxBytes: Int,
+        maxBytes: Int,
         onField: (fieldNumber: Int, wireType: Int, reader: WireReader) -> Unit
     ) {
-        val reader = WireReader(input)
-        while (true) {
+        val effectiveMax = maxBytes.coerceIn(0, MAX_FIELD_BYTES)
+        val reader = WireReader(input, effectiveMax)
+        while (reader.hasRemaining()) {
             val tag = reader.readTag()
             if (tag == 0) break
             val fieldNumber = tag ushr 3
             val wireType = tag and 0x07
+            if (fieldNumber == 0 || wireType > WIRE_FIXED32 || wireType == WIRE_START_GROUP || wireType == WIRE_END_GROUP) {
+                break
+            }
             onField(fieldNumber, wireType, reader)
         }
     }

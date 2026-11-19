@@ -31,12 +31,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.ui.res.painterResource
+import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.Text
+import com.androidfung.departureboard.wear.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -116,7 +116,7 @@ internal fun WearStationManagerScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             item(key = "back_button", contentType = "back_button") {
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(50),
                     color = Color(0xFF1E2229),
                     border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
@@ -138,7 +138,7 @@ internal fun WearStationManagerScreen(
 
             // Station Search (Text + Voice Input)
             item(key = "station_search_bar") {
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(14.dp),
                     color = Color(0xFF0D2538),
                     border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
@@ -243,7 +243,7 @@ internal fun WearStationManagerScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.Mic,
+                                painter = painterResource(R.drawable.ic_mic),
                                 contentDescription = "Speak station name",
                                 tint = Color(0xFF81D4FA),
                                 modifier = Modifier.size(13.dp)
@@ -258,7 +258,7 @@ internal fun WearStationManagerScreen(
                 item(key = "add_custom_phone_station") {
                     val customName = searchQuery.trim()
                     val customCrs = CompactTransitFormatter.deriveStationShortCode("search:$customName", customName)
-                    Surface(
+                    WearSurface(
                         shape = RoundedCornerShape(12.dp),
                         color = Color(0xFF102A3B),
                         border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
@@ -322,7 +322,7 @@ internal fun WearStationManagerScreen(
                 key = { _, board -> "active_${board.stationId}" },
                 contentType = { _, _ -> "active_station" }
             ) { idx, board ->
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(12.dp),
                     color = Color(0xFF14171C),
                     border = BorderStroke(1.dp, Color(0xFF262B33)),
@@ -394,7 +394,7 @@ internal fun WearStationManagerScreen(
                     key = { "add_${it.stationId}" },
                     contentType = { "add_station" }
                 ) { candidate ->
-                    Surface(
+                    WearSurface(
                         shape = RoundedCornerShape(12.dp),
                         color = Color(0xFF101D26),
                         border = BorderStroke(1.dp, Color(0xFF0277BD).copy(alpha = 0.6f)),

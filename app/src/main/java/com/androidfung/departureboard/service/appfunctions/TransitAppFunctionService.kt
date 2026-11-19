@@ -99,7 +99,9 @@ abstract class BaseTransitAppFunctionService : AppFunctionService() {
         val stationA = resolveStationOrThrow(firstStationName)
         val stationB = resolveStationOrThrow(secondStationName)
 
-        val userLoc = runCatching { LocationHelper.getCurrentLocation(applicationContext) }.getOrNull()
+        val userLoc = com.androidfung.departureboard.util.runSuspendCatching {
+            LocationHelper.getCurrentLocation(applicationContext)
+        }.getOrNull()
         val distA = if (userLoc != null && stationA.lat != null && stationA.lon != null) {
             LocationHelper.calculateDistanceMeters(userLoc.latitude, userLoc.longitude, stationA.lat, stationA.lon)
         } else null
@@ -307,7 +309,16 @@ abstract class BaseTransitAppFunctionService : AppFunctionService() {
             throw AppFunctionElementNotFoundException("No upcoming departures found from ${station.name} to $destinationName.")
         }
 
-        TrainTrackingService.startTracking(applicationContext, targetDeparture)
+        val started = runCatching {
+            TrainTrackingService.startTracking(applicationContext, targetDeparture)
+        }.isSuccess
+
+        if (!started) {
+            return@withContext ActionResult(
+                success = false,
+                message = "Unable to start live tracking notification while app is in the background. Open EkiBoard to track ${targetDeparture.lineName} to ${targetDeparture.destinationName}."
+            )
+        }
 
         ActionResult(
             success = true,
@@ -371,11 +382,18 @@ abstract class BaseTransitAppFunctionService : AppFunctionService() {
             val provider = ComponentName(applicationContext, DepartureBoardWidgetReceiver::class.java)
 
             if (appWidgetManager.isRequestPinAppWidgetSupported) {
-                appWidgetManager.requestPinAppWidget(provider, null, null)
-                ActionResult(
-                    success = true,
-                    message = "Requested home screen widget for $resolvedName. Confirm the system prompt to place it."
-                )
+                val pinned = appWidgetManager.requestPinAppWidget(provider, null, null)
+                if (pinned) {
+                    ActionResult(
+                        success = true,
+                        message = "Requested home screen widget for $resolvedName. Confirm the system prompt to place it."
+                    )
+                } else {
+                    ActionResult(
+                        success = false,
+                        message = "The launcher declined or could not display the widget pin prompt for $resolvedName."
+                    )
+                }
             } else {
                 throw AppFunctionInvalidArgumentException("Widget pinning is not supported on this device.")
             }

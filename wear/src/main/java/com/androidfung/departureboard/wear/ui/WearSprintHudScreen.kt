@@ -19,16 +19,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import com.androidfung.departureboard.wear.pace.CommuterPaceMode
 import com.androidfung.departureboard.wear.pace.PaceSprintEvaluator
@@ -67,16 +69,21 @@ internal fun WearSprintHudScreen(
     val focusReq = remember { FocusRequester() }
     val hudContext = LocalContext.current
     val paceClient = remember(hudContext) { WearHealthPaceClient(hudContext.applicationContext) }
-    val observedSpeed by paceClient.observedSpeedMps.collectAsState()
+    val observedSpeed by paceClient.observedSpeedMps.collectAsStateWithLifecycle()
 
     BackHandler(onBack = onBackToBoard)
 
-    DisposableEffect(paceClient, isAmbientMode) {
-        onDispose { paceClient.stop() }
+    var isResumed by remember { mutableStateOf(true) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(paceClient) {
+        isResumed = true
+        onPauseOrDispose {
+            isResumed = false
+            paceClient.stop()
+        }
     }
 
-    LaunchedEffect(paceClient, isAmbientMode) {
-        if (!isAmbientMode) {
+    LaunchedEffect(paceClient, isAmbientMode, isResumed) {
+        if (isResumed && !isAmbientMode) {
             paceClient.start()
         } else {
             paceClient.stop()
@@ -123,7 +130,7 @@ internal fun WearSprintHudScreen(
         ) {
             item(key = "hud_back") {
                 if (isAmbientMode) {
-                    Surface(
+                    WearSurface(
                         shape = RoundedCornerShape(50),
                         color = Color.Black,
                         border = BorderStroke(1.dp, Color(0xFF37474F)),
@@ -143,7 +150,7 @@ internal fun WearSprintHudScreen(
                         horizontalArrangement = Arrangement.spacedBy(5.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(50),
                             color = Color(0xFF1E2229),
                             border = BorderStroke(1.dp, Color(0xFF37474F)),
@@ -161,7 +168,7 @@ internal fun WearSprintHudScreen(
                                 modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
                             )
                         }
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(50),
                             color = Color(0xFF14171C),
                             border = BorderStroke(1.dp, Color(0xFF37474F)),
@@ -195,7 +202,7 @@ internal fun WearSprintHudScreen(
                         journey.isPlatformTbd -> Color(0xFF78909C)
                         else -> Color(0xFF00E676)
                     }
-                    Surface(
+                    WearSurface(
                         shape = RoundedCornerShape(10.dp),
                         color = platBg,
                         border = BorderStroke(1.dp, platBorder)
@@ -290,7 +297,7 @@ internal fun WearSprintHudScreen(
                             SprintCatchability.SPRINT_NEEDED -> Color(0xFFFFB74D)
                             SprintCatchability.UNLIKELY -> Color(0xFFFF5252)
                         }
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(50),
                             color = paceColor.copy(alpha = 0.14f),
                             border = BorderStroke(0.8.dp, paceColor.copy(alpha = 0.55f)),
@@ -325,7 +332,7 @@ internal fun WearSprintHudScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         // Share ETA
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFF003D33),
                             border = BorderStroke(1.dp, Color(0xFF26A69A)),
@@ -355,7 +362,7 @@ internal fun WearSprintHudScreen(
                         }
 
                         // Open on Phone
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFF0D2538),
                             border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
@@ -382,7 +389,7 @@ internal fun WearSprintHudScreen(
                         }
 
                         // Stop Tracking
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFF3E1A1A),
                             border = BorderStroke(1.dp, Color(0xFFEF5350)),
@@ -431,7 +438,7 @@ internal fun WearSprintHudScreen(
                     contentType = { _, _ -> "calling_point" }
                 ) { _, stopName ->
                     val isSelected = journey.targetAlightStopName.equals(stopName, ignoreCase = true)
-                    Surface(
+                    WearSurface(
                         shape = RoundedCornerShape(10.dp),
                         color = if (isSelected) Color(0xFF004D40) else Color(0xFF14171C),
                         border = BorderStroke(

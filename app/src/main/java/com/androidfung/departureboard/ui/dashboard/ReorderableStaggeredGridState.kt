@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -17,6 +18,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
@@ -25,7 +27,7 @@ import kotlinx.coroutines.launch
 class ReorderableStaggeredGridState(
     val staggeredGridState: LazyStaggeredGridState,
     private val scope: CoroutineScope,
-    private val onMoveKeys: (fromKey: Any, toKey: Any) -> Unit
+    private val onMoveKeysProvider: () -> (fromKey: Any, toKey: Any) -> Unit
 ) {
     var draggingKey by mutableStateOf<Any?>(null)
         private set
@@ -33,6 +35,10 @@ class ReorderableStaggeredGridState(
     val dragOffset = Animatable(Offset.Zero, Offset.VectorConverter)
 
     private var initialItemPosition: Offset? = null
+    private var dragSessionToken: Long = 0L
+    private var activeDragJob: Job? = null
+    private var lastSwapTimeMs: Long = 0L
+    private var lastSwappedTargetKey: Any? = null
 
     fun onDragStart(offset: Offset) {
         val hitItem = staggeredGridState.layoutInfo.visibleItemsInfo.firstOrNull { item ->
@@ -47,14 +53,24 @@ class ReorderableStaggeredGridState(
             return
         }
 
+        activeDragJob?.cancel()
+        dragSessionToken++
+        lastSwapTimeMs = 0L
+        lastSwappedTargetKey = null
         draggingKey = hitItem.key
         initialItemPosition = Offset(hitItem.offset.x.toFloat(), hitItem.offset.y.toFloat())
+        activeDragJob = scope.launch {
+            dragOffset.snapTo(Offset.Zero)
+        }
     }
 
     fun onDrag(dragAmount: Offset) {
         val activeDraggingKey = draggingKey ?: return
+        val token = dragSessionToken
 
-        scope.launch {
+        activeDragJob?.cancel()
+        activeDragJob = scope.launch {
+            if (dragSessionToken != token) return@launch
             dragOffset.snapTo(dragOffset.value + dragAmount)
 
             val currentDraggedItem = staggeredGridState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == activeDraggingKey }
@@ -71,25 +87,45 @@ class ReorderableStaggeredGridState(
             }
 
             if (targetItem != null) {
-                onMoveKeys(activeDraggingKey, targetItem.key)
+                val now = System.currentTimeMillis()
+                // Cooldown prevents swap oscillation when item boundaries overlap mid-layout
+                if (targetItem.key == lastSwappedTargetKey && now - lastSwapTimeMs < 140L) {
+                    return@launch
+                }
+                lastSwappedTargetKey = targetItem.key
+                lastSwapTimeMs = now
+                onMoveKeysProvider().invoke(activeDraggingKey, targetItem.key)
                 dragOffset.snapTo(Offset.Zero)
             }
         }
     }
 
     fun onDragEnd() {
-        scope.launch {
-            dragOffset.animateTo(Offset.Zero)
-            draggingKey = null
-            initialItemPosition = null
+        val token = dragSessionToken
+        activeDragJob?.cancel()
+        activeDragJob = scope.launch {
+            try {
+                dragOffset.animateTo(Offset.Zero)
+            } finally {
+                if (dragSessionToken == token) {
+                    draggingKey = null
+                    initialItemPosition = null
+                    lastSwappedTargetKey = null
+                }
+            }
         }
     }
 
     fun onDragCancel() {
-        scope.launch {
+        val token = dragSessionToken
+        activeDragJob?.cancel()
+        activeDragJob = scope.launch {
             dragOffset.snapTo(Offset.Zero)
-            draggingKey = null
-            initialItemPosition = null
+            if (dragSessionToken == token) {
+                draggingKey = null
+                initialItemPosition = null
+                lastSwappedTargetKey = null
+            }
         }
     }
 }
@@ -100,8 +136,9 @@ fun rememberReorderableStaggeredGridState(
     onMoveKeys: (fromKey: Any, toKey: Any) -> Unit
 ): ReorderableStaggeredGridState {
     val scope = rememberCoroutineScope()
-    return remember(staggeredGridState, onMoveKeys) {
-        ReorderableStaggeredGridState(staggeredGridState, scope, onMoveKeys)
+    val currentOnMoveKeys by rememberUpdatedState(onMoveKeys)
+    return remember(staggeredGridState) {
+        ReorderableStaggeredGridState(staggeredGridState, scope) { currentOnMoveKeys }
     }
 }
 

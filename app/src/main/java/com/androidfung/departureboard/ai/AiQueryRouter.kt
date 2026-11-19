@@ -46,11 +46,9 @@ class AiQueryRouter(
             AiModelType.LOGIC_FALLBACK -> return AiExecutionTier.INSTANT_DETERMINISTIC
             AiModelType.CLOUD -> return AiExecutionTier.CLOUD_SYNTHESIS
             AiModelType.LOCAL -> {
-                if (hasSystemAiCore) {
-                    return AiExecutionTier.SYSTEM_AICORE
-                }
-                if (dynamicAiProvider?.isFeatureInstalled == true) {
-                    return AiExecutionTier.ON_DEVICE_LLM
+                return when {
+                    hasSystemAiCore -> AiExecutionTier.SYSTEM_AICORE
+                    else -> AiExecutionTier.ON_DEVICE_LLM
                 }
             }
             AiModelType.DEFAULT -> { /* Proceed to cascading auto-routing */ }

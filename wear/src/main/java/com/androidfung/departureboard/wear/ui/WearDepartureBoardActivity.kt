@@ -31,12 +31,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.SwapHoriz
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.ui.res.painterResource
+import androidx.wear.compose.material3.AppScaffold
+import androidx.wear.compose.material3.ColorScheme
+import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -113,8 +113,6 @@ class WearDepartureBoardActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         lifecycle.addObserver(ambientObserver)
-        setShowWhenLocked(true)
-        setTurnScreenOn(true)
         val openSprintHudInitially = intent?.getBooleanExtra(
             WearNotificationPublisher.EXTRA_OPEN_SPRINT_HUD,
             false
@@ -124,18 +122,20 @@ class WearDepartureBoardActivity : ComponentActivity() {
         }
         setContent {
             MaterialTheme(
-                colorScheme = darkColorScheme(
+                colorScheme = ColorScheme(
                     background = Color.Black,
-                    surface = Color(0xFF14161A),
+                    surfaceContainer = Color(0xFF14161A),
                     primary = Color(0xFF4FC3F7),
                     secondary = Color(0xFFFFB74D)
                 )
             ) {
-                WearConcourseBoardScreen(
-                    openSprintHudInitially = openSprintHudInitially,
-                    openSprintHudTrigger = forceOpenSprintHudTrigger,
-                    isSystemAmbient = isSystemAmbient
-                )
+                AppScaffold {
+                    WearConcourseBoardScreen(
+                        openSprintHudInitially = openSprintHudInitially,
+                        openSprintHudTrigger = forceOpenSprintHudTrigger,
+                        isSystemAmbient = isSystemAmbient
+                    )
+                }
             }
         }
     }
@@ -168,7 +168,7 @@ fun WearConcourseBoardScreen(
     val boards = localBoardsOverride ?: syncedBoards
 
     var selectedStationIndex by remember { mutableIntStateOf(0) }
-    var watchedDepartureIds by remember { mutableStateOf(setOf("wat_1", "eus_1")) }
+    var watchedDepartureIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var expandedDepartureId by remember { mutableStateOf<String?>(null) }
     var manualAmbientMode by remember { mutableStateOf(false) }
     val isAmbientMode = manualAmbientMode || isSystemAmbient
@@ -180,8 +180,9 @@ fun WearConcourseBoardScreen(
     val latestAiResponse by WearCompanionStateRepository.latestAiResponseFlow.collectAsStateWithLifecycle()
     val wearNotificationPrefs by WearNotificationPublisher.preferencesFlow.collectAsStateWithLifecycle()
 
-    // Immediately switch to the Full-Screen Concourse Sprint HUD whenever a new train is tracked on the phone or watch
-    LaunchedEffect(trackedJourney?.departureId, openSprintHudTrigger) {
+    // Immediately switch to the Full-Screen Concourse Sprint HUD when a new train is tracked (if auto-launch is enabled)
+    // or when explicitly opened from a notification/Tile tap (openSprintHudTrigger > 0).
+    LaunchedEffect(trackedJourney?.departureId) {
         if (trackedJourney != null && wearNotificationPrefs.autoLaunchSprintHudEnabled) {
             showSprintHud = true
             showAskAiScreen = false
@@ -189,10 +190,24 @@ fun WearConcourseBoardScreen(
             showNotificationSettings = false
         }
     }
+    LaunchedEffect(openSprintHudTrigger) {
+        if (openSprintHudTrigger > 0 && trackedJourney != null) {
+            showSprintHud = true
+            showAskAiScreen = false
+            showStationManager = false
+            showNotificationSettings = false
+        }
+    }
 
-    // Live 1-second wrist countdown ticker while a train is being tracked (paused in Ambient Mode to save battery)
-    LaunchedEffect(trackedJourney != null, isAmbientMode) {
-        while (trackedJourney != null && !isAmbientMode) {
+    var isResumed by remember { mutableStateOf(true) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        isResumed = true
+        onPauseOrDispose { isResumed = false }
+    }
+
+    // Live 1-second wrist countdown ticker while a train is being tracked (paused when backgrounded or in Ambient Mode)
+    LaunchedEffect(trackedJourney != null, isAmbientMode, isResumed) {
+        while (isResumed && trackedJourney != null && !isAmbientMode) {
             kotlinx.coroutines.delay(1000L)
             WearCompanionStateRepository.tickTrackedJourneySecond()
         }
@@ -207,8 +222,11 @@ fun WearConcourseBoardScreen(
     ) { _ -> }
 
     LaunchedEffect(Unit) {
-        WearNotificationPublisher.loadPreferences(context)
-        WearNotificationPublisher.ensureAllChannels(context)
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            WearNotificationPublisher.loadPreferences(context)
+            WearNotificationPublisher.ensureAllChannels(context)
+            WearCompanionStateRepository.requestPhoneSync(context)
+        }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (androidx.core.content.ContextCompat.checkSelfPermission(
                     context,
@@ -220,7 +238,6 @@ fun WearConcourseBoardScreen(
                 }
             }
         }
-        WearCompanionStateRepository.requestPhoneSync(context)
         runCatching { rotaryFocusRequester.requestFocus() }
     }
 
@@ -324,7 +341,7 @@ fun WearConcourseBoardScreen(
                     color = Color.White,
                     textAlign = TextAlign.Center
                 )
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(50),
                     color = Color(0xFF1E2229),
                     border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
@@ -427,7 +444,7 @@ fun WearConcourseBoardScreen(
         ) {
             // 1. Top Curved-safe Complication Pill + Phone Sync Badge
             item(key = "complication_pill") {
-                Surface(
+                WearSurface(
                     shape = RoundedCornerShape(50),
                     color = if (isAmbientMode) Color.Black else Color(0xFF1E2229),
                     border = BorderStroke(1.dp, Color(0xFF37474F))
@@ -480,7 +497,7 @@ fun WearConcourseBoardScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
-                            imageVector = Icons.Rounded.SwapHoriz,
+                            painter = painterResource(R.drawable.ic_swap_horiz),
                             contentDescription = stringResource(R.string.wear_switch_station),
                             tint = Color(0xFF90CAF9),
                             modifier = Modifier.size(14.dp)
@@ -513,7 +530,7 @@ fun WearConcourseBoardScreen(
 
             if (isAmbientMode) {
                 item(key = "ambient_exit_pill") {
-                    Surface(
+                    WearSurface(
                         shape = RoundedCornerShape(50),
                         color = Color.Black,
                         border = BorderStroke(1.dp, Color(0xFF37474F)),
@@ -534,7 +551,7 @@ fun WearConcourseBoardScreen(
             // 3. Wrist Haptic Platform / Alight Alert Banner (when triggered)
             activeWristAlert?.let { alert ->
                 item(key = "wrist_alert_banner") {
-                    Surface(
+                    WearSurface(
                         shape = RoundedCornerShape(12.dp),
                         color = Color(0xFF004D40),
                         border = BorderStroke(1.dp, Color(0xFF26A69A)),
@@ -592,9 +609,11 @@ fun WearConcourseBoardScreen(
             }
 
             // 5. Departure Rows
+            val displayDepartures = (if (isAmbientMode) currentBoard.departures.take(2) else currentBoard.departures)
+                .distinctBy { it.id }
             items(
-                items = if (isAmbientMode) currentBoard.departures.take(2) else currentBoard.departures,
-                key = { it.id },
+                items = displayDepartures,
+                key = { dep -> dep.id.ifBlank { "${dep.lineName}_${dep.destination}_${dep.countdownMinutes}_${dep.scheduledTime}" } },
                 contentType = { "departure_row" }
             ) { dep ->
                 val isWatched = watchedDepartureIds.contains(dep.id) || trackedJourney?.departureId == dep.id
@@ -634,7 +653,7 @@ fun WearConcourseBoardScreen(
                         )
                         Toast.makeText(context, openingOnPhoneMsg, Toast.LENGTH_SHORT).show()
                     },
-                    onSimulatePlatformAnnouncement = if (dep.isPlatformTbd) {
+                    onSimulatePlatformAnnouncement = if (dep.isPlatformTbd && com.androidfung.departureboard.wear.BuildConfig.DEBUG) {
                         {
                             val announcedDep = dep.copy(
                                 platformCode = "11",
@@ -678,7 +697,7 @@ fun WearConcourseBoardScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(50),
                             color = Color(0xFF231934),
                             border = BorderStroke(1.dp, Color(0xFFB388FF).copy(alpha = 0.7f)),
@@ -711,7 +730,7 @@ fun WearConcourseBoardScreen(
                             }
                         }
 
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(50),
                             color = Color(0xFF1E2229),
                             border = BorderStroke(1.dp, Color(0xFF37474F)),
@@ -746,7 +765,7 @@ fun WearConcourseBoardScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(50),
                             color = Color(0xFF14171C),
                             border = BorderStroke(1.dp, Color(0xFF37474F)),
@@ -767,7 +786,7 @@ fun WearConcourseBoardScreen(
                             }
                         }
 
-                        Surface(
+                        WearSurface(
                             shape = RoundedCornerShape(50),
                             color = Color(0xFF14171C),
                             border = BorderStroke(1.dp, Color(0xFF37474F)),

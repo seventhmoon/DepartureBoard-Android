@@ -92,6 +92,8 @@ class InAppReviewManager(
                 val count = prefs[KEY_APP_OPEN_COUNT] ?: 0
                 prefs[KEY_APP_OPEN_COUNT] = count + 1
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w(TAG, "Error recording app launch for reviews", e)
         }
@@ -132,6 +134,8 @@ class InAppReviewManager(
             if (timeSinceLastPrompt < COOLDOWN_BETWEEN_REVIEWS) return false
 
             true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w(TAG, "Error evaluating shouldTriggerSmartReview", e)
             false
@@ -163,6 +167,8 @@ class InAppReviewManager(
             // In accordance with guidelines, treat completion as a successful prompt attempt.
             recordReviewPrompted(completed = !force)
             Log.d(TAG, "In-app review flow completed.")
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w(TAG, "In-app review flow encountered error", e)
             if (fallbackToPlayStore) {
@@ -193,6 +199,8 @@ class InAppReviewManager(
                     prefs[KEY_REVIEW_COMPLETED] = true
                 }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w(TAG, "Failed to persist review prompted state", e)
         }
@@ -210,6 +218,8 @@ class InAppReviewManager(
                 prefs.remove(KEY_REVIEW_COMPLETED)
             }
             Log.d(TAG, "Review state reset for testing.")
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w(TAG, "Failed to reset review data", e)
         }

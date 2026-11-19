@@ -172,17 +172,8 @@ object WearNotificationPublisher {
         }
     }
 
-    fun launchSprintHudImmediately(context: Context) {
-        if (!loadPreferences(context).autoLaunchSprintHudEnabled) return
-        runCatching {
-            val openHudIntent = Intent(context, WearDepartureBoardActivity::class.java).apply {
-                putExtra(EXTRA_OPEN_SPRINT_HUD, true)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
-            context.startActivity(openHudIntent)
-        }
+    fun launchSprintHudImmediately(@Suppress("UNUSED_PARAMETER") context: Context) {
+        // Handled via OngoingActivity + high-priority notification instead of background startActivity/FSI.
     }
 
     fun postTrackedJourneyNotification(
@@ -278,14 +269,6 @@ object WearNotificationPublisher {
                         .setContentAction(0)
                 )
 
-            if (shouldWakeWithFullScreen) {
-                val canUseFsi = android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
-                    nm.canUseFullScreenIntent()
-                if (canUseFsi) {
-                    builder.setFullScreenIntent(openHudPendingIntent, true)
-                }
-            }
-
             if (isOngoing) {
                 runCatching {
                     val statusText = "$platLabel • ${journey.formattedMmSsCountdown}"
@@ -366,7 +349,7 @@ object WearNotificationPublisher {
                 .setContentText(event.detail)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(event.detail))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
                 .setAutoCancel(true)
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setContentIntent(pendingIntent)

@@ -47,8 +47,12 @@ class DynamicLmEngineImpl(
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
     private val mutex = Mutex()
 
+    @Volatile
     private var engine: Engine? = null
+    @Volatile
     private var conversation: Conversation? = null
+    @Volatile
+    private var isClosed = false
     private val isBusy = java.util.concurrent.atomic.AtomicBoolean(false)
 
     override val isReady: Boolean
@@ -64,62 +68,80 @@ class DynamicLmEngineImpl(
         return candidates.firstOrNull { it.exists() && it.length() > 0 }
     }
 
-    override suspend fun loadModel(): Boolean = withContext(dispatcher) {
-        val modelFile = getModelFile() ?: return@withContext false
-        mutex.withLock {
-            if (isReady) return@withLock true
+    override suspend fun loadModel(): Boolean {
+        if (isClosed) return false
+        return withContext(dispatcher) {
+            if (isClosed) return@withContext false
+            val modelFile = getModelFile() ?: return@withContext false
+            mutex.withLock {
+                if (isClosed) return@withLock false
+                if (isReady) return@withLock true
 
-            releaseInternal()
-            try {
-                Log.d(TAG, "Initializing LiteRT-LM Engine from: ${modelFile.absolutePath}")
-                val config = EngineConfig(
-                    modelPath = modelFile.absolutePath,
-                    backend = Backend.GPU(),
-                    cacheDir = context.cacheDir.path
-                )
-                val newEngine = Engine(config).also { it.initialize() }
-                engine = newEngine
-
-                conversation = newEngine.createConversation(
-                    ConversationConfig(
-                        systemInstruction = Contents.of(SYSTEM_INSTRUCTION),
-                        samplerConfig = SamplerConfig(
-                            topK = 20,
-                            topP = 0.9,
-                            temperature = 0.7
-                        )
-                    )
-                )
-                Log.d(TAG, "LiteRT-LM Engine successfully initialized.")
-                true
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed initializing with GPU, falling back to CPU: ${e.message}")
                 releaseInternal()
-                runCatching {
-                    val cpuConfig = EngineConfig(
+                try {
+                    Log.d(TAG, "Initializing LiteRT-LM Engine from: ${modelFile.absolutePath}")
+                    val config = EngineConfig(
                         modelPath = modelFile.absolutePath,
-                        backend = Backend.CPU(),
+                        backend = Backend.GPU(),
                         cacheDir = context.cacheDir.path
                     )
-                    val cpuEngine = Engine(cpuConfig).also { it.initialize() }
-                    engine = cpuEngine
-                    conversation = cpuEngine.createConversation(
+                    val newEngine = Engine(config).also { it.initialize() }
+                    engine = newEngine
+
+                    conversation = newEngine.createConversation(
                         ConversationConfig(
-                            systemInstruction = Contents.of(SYSTEM_INSTRUCTION)
+                            systemInstruction = Contents.of(SYSTEM_INSTRUCTION),
+                            samplerConfig = SamplerConfig(
+                                topK = 20,
+                                topP = 0.9,
+                                temperature = 0.7
+                            )
                         )
                     )
+                    Log.d(TAG, "LiteRT-LM Engine successfully initialized.")
                     true
-                }.getOrDefault(false)
+                } catch (t: Throwable) {
+                    if (t is kotlinx.coroutines.CancellationException) throw t
+                    if (t is VirtualMachineError) throw t
+                    Log.w(TAG, "Failed initializing with GPU, falling back to CPU: ${t.message}")
+                    releaseInternal()
+                    try {
+                        val cpuConfig = EngineConfig(
+                            modelPath = modelFile.absolutePath,
+                            backend = Backend.CPU(),
+                            cacheDir = context.cacheDir.path
+                        )
+                        val cpuEngine = Engine(cpuConfig).also { it.initialize() }
+                        engine = cpuEngine
+                        conversation = cpuEngine.createConversation(
+                            ConversationConfig(
+                                systemInstruction = Contents.of(SYSTEM_INSTRUCTION)
+                            )
+                        )
+                        true
+                    } catch (cpuErr: Throwable) {
+                        if (cpuErr is kotlinx.coroutines.CancellationException) throw cpuErr
+                        if (cpuErr is VirtualMachineError) throw cpuErr
+                        Log.w(TAG, "Failed initializing with CPU: ${cpuErr.message}")
+                        releaseInternal()
+                        false
+                    }
+                }
             }
         }
     }
 
     override fun streamReply(prompt: String): Flow<String> = callbackFlow {
+        if (isClosed) {
+            trySend("Local LLM model is closed.")
+            close()
+            return@callbackFlow
+        }
         var activeConv: com.google.ai.edge.litertlm.Conversation? = null
         val job = scope.launch {
             val conv = mutex.withLock {
                 val current = conversation
-                if (current == null) {
+                if (current == null || isClosed) {
                     trySend("Local LLM model is not ready.")
                     close()
                     return@launch
@@ -141,9 +163,10 @@ class DynamicLmEngineImpl(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 runCatching { conv.cancelProcess() }
                 throw e
-            } catch (e: Exception) {
-                Log.e(TAG, "Error during LiteRT-LM reply streaming", e)
-                trySend("\n[Inference error: ${e.localizedMessage}]")
+            } catch (t: Throwable) {
+                if (t is VirtualMachineError) throw t
+                Log.e(TAG, "Error during LiteRT-LM reply streaming", t)
+                trySend("\n[Inference error: ${t.localizedMessage}]")
             } finally {
                 isBusy.set(false)
                 close()
@@ -164,15 +187,15 @@ class DynamicLmEngineImpl(
                 delay(50L.milliseconds)
             }
         }
-        if (!isBusy.get()) {
-            runCatching { conversation?.close() }
-            conversation = null
-            runCatching { engine?.close() }
-            engine = null
-        }
+        runCatching { conversation?.close() }
+        conversation = null
+        runCatching { engine?.close() }
+        engine = null
     }
 
     override fun close() {
+        if (isClosed) return
+        isClosed = true
         scope.launch {
             mutex.withLock { releaseInternal() }
             executor.shutdown()
