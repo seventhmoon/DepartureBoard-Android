@@ -1,0 +1,303 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 6,
+    "identityHash": "126b183426934de4d510437dc134832c",
+    "entities": [
+      {
+        "tableName": "cached_departures",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `stationId` TEXT NOT NULL, `stationName` TEXT NOT NULL, `lineId` TEXT NOT NULL, `lineName` TEXT NOT NULL, `platformName` TEXT NOT NULL, `destinationName` TEXT NOT NULL, `towards` TEXT, `direction` TEXT, `timeToStationSeconds` INTEGER NOT NULL, `expectedArrivalIso` TEXT, `currentLocation` TEXT, `modeName` TEXT NOT NULL, `destinationStationId` TEXT, `badgeBgColorArgb` INTEGER, `badgeTextColorArgb` INTEGER, `badgeLineCode` TEXT, `isWheelchairAccessible` INTEGER, `occupancyStatus` TEXT, `platformCode` TEXT, `isPlatformConfirmed` INTEGER, `isHistoricalExpectedPlatform` INTEGER, `expectedPlatformConfidence` INTEGER, `operatorCode` TEXT, `operatorName` TEXT, `coachCount` INTEGER, `cancelReason` TEXT, `delayReason` TEXT, `headwaySeconds` INTEGER, `stopActivityName` TEXT, `statusName` TEXT, `scheduledDepartureEpochMillis` INTEGER, `expectedDepartureEpochMillis` INTEGER, `localizedDestinationNamesJson` TEXT, `cachedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`stationId`, `id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stationId",
+            "columnName": "stationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stationName",
+            "columnName": "stationName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lineId",
+            "columnName": "lineId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lineName",
+            "columnName": "lineName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "platformName",
+            "columnName": "platformName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinationName",
+            "columnName": "destinationName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "towards",
+            "columnName": "towards",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "direction",
+            "columnName": "direction",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "timeToStationSeconds",
+            "columnName": "timeToStationSeconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "expectedArrivalIso",
+            "columnName": "expectedArrivalIso",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "currentLocation",
+            "columnName": "currentLocation",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "modeName",
+            "columnName": "modeName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinationStationId",
+            "columnName": "destinationStationId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "badgeBgColorArgb",
+            "columnName": "badgeBgColorArgb",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "badgeTextColorArgb",
+            "columnName": "badgeTextColorArgb",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "badgeLineCode",
+            "columnName": "badgeLineCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isWheelchairAccessible",
+            "columnName": "isWheelchairAccessible",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "occupancyStatus",
+            "columnName": "occupancyStatus",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "platformCode",
+            "columnName": "platformCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isPlatformConfirmed",
+            "columnName": "isPlatformConfirmed",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isHistoricalExpectedPlatform",
+            "columnName": "isHistoricalExpectedPlatform",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "expectedPlatformConfidence",
+            "columnName": "expectedPlatformConfidence",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "operatorCode",
+            "columnName": "operatorCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "operatorName",
+            "columnName": "operatorName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "coachCount",
+            "columnName": "coachCount",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "cancelReason",
+            "columnName": "cancelReason",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "delayReason",
+            "columnName": "delayReason",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "headwaySeconds",
+            "columnName": "headwaySeconds",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "stopActivityName",
+            "columnName": "stopActivityName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "statusName",
+            "columnName": "statusName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "scheduledDepartureEpochMillis",
+            "columnName": "scheduledDepartureEpochMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "expectedDepartureEpochMillis",
+            "columnName": "expectedDepartureEpochMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "localizedDestinationNamesJson",
+            "columnName": "localizedDestinationNamesJson",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cachedAtMillis",
+            "columnName": "cachedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "stationId",
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_cached_departures_stationId_timeToStationSeconds",
+            "unique": false,
+            "columnNames": [
+              "stationId",
+              "timeToStationSeconds"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_cached_departures_stationId_timeToStationSeconds` ON `${TABLE_NAME}` (`stationId`, `timeToStationSeconds`)"
+          },
+          {
+            "name": "index_cached_departures_cachedAtMillis",
+            "unique": false,
+            "columnNames": [
+              "cachedAtMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_cached_departures_cachedAtMillis` ON `${TABLE_NAME}` (`cachedAtMillis`)"
+          }
+        ]
+      },
+      {
+        "tableName": "historical_platform_observations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`stationId` TEXT NOT NULL, `operatorId` TEXT NOT NULL, `destinationKey` TEXT NOT NULL, `scheduledMinuteBucket` INTEGER NOT NULL, `platformCode` TEXT NOT NULL, `observationCount` INTEGER NOT NULL, `lastObservedEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`stationId`, `operatorId`, `destinationKey`, `scheduledMinuteBucket`, `platformCode`))",
+        "fields": [
+          {
+            "fieldPath": "stationId",
+            "columnName": "stationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operatorId",
+            "columnName": "operatorId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinationKey",
+            "columnName": "destinationKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scheduledMinuteBucket",
+            "columnName": "scheduledMinuteBucket",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "platformCode",
+            "columnName": "platformCode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observationCount",
+            "columnName": "observationCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastObservedEpochMillis",
+            "columnName": "lastObservedEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "stationId",
+            "operatorId",
+            "destinationKey",
+            "scheduledMinuteBucket",
+            "platformCode"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_historical_platform_observations_stationId_operatorId_destinationKey",
+            "unique": false,
+            "columnNames": [
+              "stationId",
+              "operatorId",
+              "destinationKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_historical_platform_observations_stationId_operatorId_destinationKey` ON `${TABLE_NAME}` (`stationId`, `operatorId`, `destinationKey`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '126b183426934de4d510437dc134832c')"
+    ]
+  }
+}

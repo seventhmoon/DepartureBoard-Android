@@ -18,7 +18,10 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlexAlignItems
+import androidx.compose.foundation.layout.FlexBox
+import androidx.compose.foundation.layout.FlexDirection
+import androidx.compose.foundation.layout.FlexWrap
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -62,6 +65,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Constraints
@@ -94,6 +98,8 @@ import com.androidfung.departureboard.ui.designsystem.LastTrainServiceBanner
 import com.androidfung.departureboard.ui.designsystem.LineDisruptionBanner
 import com.androidfung.departureboard.ui.designsystem.MultipleDisruptionsBanner
 import com.androidfung.departureboard.ui.designsystem.TransitIconHelper
+import com.androidfung.departureboard.ui.theme.LocalIsDarkTheme
+import com.androidfung.departureboard.util.CustomTabsLauncher
 
 private sealed interface StationDetailListItem {
     data class DepartureItem(val departure: Departure, val index: Int, val stableKey: String) : StationDetailListItem
@@ -301,11 +307,14 @@ private fun StationDetailPagerBar(
     onPageClick: ((Int) -> Unit)?,
     modifier: Modifier = Modifier
 ) {
-    FlowRow(
-        itemVerticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-        modifier = modifier
+    FlexBox(
+        modifier = modifier,
+        config = {
+            direction(FlexDirection.Row)
+            wrap(FlexWrap.Wrap)
+            alignItems(FlexAlignItems.Center)
+            gap(row = 2.dp, column = 8.dp)
+        }
     ) {
         if (pageCount > 1) {
             StationDetailPagerIndicator(
@@ -573,10 +582,13 @@ private fun StationDetailContent(
             val hasWheelchairBadge = wheelchairStatus != com.androidfung.departureboard.data.model.WheelchairBoardingStatus.UNKNOWN
 
             if (hasWheelchairBadge || modeLabels.isNotEmpty()) {
-                FlowRow(
-                    itemVerticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                FlexBox(
+                    config = {
+                        direction(FlexDirection.Row)
+                        wrap(FlexWrap.Wrap)
+                        alignItems(FlexAlignItems.Center)
+                        gap(row = 2.dp, column = 6.dp)
+                    }
                 ) {
                     // Station accessibility badge
                     if (hasWheelchairBadge) {
@@ -621,6 +633,8 @@ private fun StationDetailContent(
         },
         headerActions = {
             val context = androidx.compose.ui.platform.LocalContext.current
+            val mapsToolbarColor = MaterialTheme.colorScheme.surface.toArgb()
+            val mapsIsDark = LocalIsDarkTheme.current
 
             // Open in Maps Button
             DetailHeaderIconButton(
@@ -643,8 +657,13 @@ private fun StationDetailContent(
                         try {
                             context.startActivity(fallbackIntent)
                         } catch (_: android.content.ActivityNotFoundException) {
-                            val browserUri = "https://www.google.com/maps/search/?api=1&query=$encodedQuery".toUri()
-                            context.startActivity(Intent(Intent.ACTION_VIEW, browserUri))
+                            val browserUrl = "https://www.google.com/maps/search/?api=1&query=$encodedQuery"
+                            CustomTabsLauncher.openWebUrl(
+                                context = context,
+                                url = browserUrl,
+                                toolbarColor = mapsToolbarColor,
+                                isDarkTheme = mapsIsDark
+                            )
                         }
                     }
                 },

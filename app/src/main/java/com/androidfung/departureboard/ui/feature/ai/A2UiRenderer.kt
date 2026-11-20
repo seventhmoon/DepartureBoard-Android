@@ -6,8 +6,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlexAlignItems
+import androidx.compose.foundation.layout.FlexBox
+import androidx.compose.foundation.layout.FlexDirection
+import androidx.compose.foundation.layout.FlexWrap
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,9 +44,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -57,8 +61,9 @@ import com.androidfung.departureboard.ai.A2UiSeverity
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.Station
 import com.androidfung.departureboard.service.TrainTrackingService
+import com.androidfung.departureboard.ui.theme.LocalIsDarkTheme
+import com.androidfung.departureboard.util.CustomTabsLauncher
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun A2UiRenderer(
     response: A2UiResponse,
@@ -168,13 +173,22 @@ fun A2UiRenderer(
                 }
 
                 is A2UiBlock.ActionButtons -> {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    FlexBox(
+                        modifier = Modifier.fillMaxWidth(),
+                        config = {
+                            direction(FlexDirection.Row)
+                            wrap(FlexWrap.Wrap)
+                            alignItems(FlexAlignItems.Center)
+                            gap(8.dp)
+                        }
                     ) {
                         block.actions.forEach { action ->
-                            ActionButtonChip(action, context, onActionClick)
+                            ActionButtonChip(
+                                action = action,
+                                context = context,
+                                onActionClick = onActionClick,
+                                modifier = Modifier.flex { grow(1f) }
+                            )
                         }
                     }
                 }
@@ -373,21 +387,28 @@ private fun DeparturesActionCard(
 private fun ActionButtonChip(
     action: A2UiAction,
     context: Context,
-    onActionClick: (A2UiAction) -> Unit
+    onActionClick: (A2UiAction) -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
+    val isDark = LocalIsDarkTheme.current
     when (action) {
         is A2UiAction.OpenGoogleMaps -> {
             AssistChip(
+                modifier = modifier,
                 onClick = {
                     val navUri = "google.navigation:q=${android.net.Uri.encode(action.destination)}&mode=r".toUri()
                     val launchedMaps = runCatching {
                         context.startActivity(Intent(Intent.ACTION_VIEW, navUri))
                     }.isSuccess
                     if (!launchedMaps) {
-                        val webUri = "https://www.google.com/maps/search/?api=1&query=${android.net.Uri.encode(action.destination)}".toUri()
-                        runCatching {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, webUri))
-                        }
+                        val webUrl = "https://www.google.com/maps/search/?api=1&query=${android.net.Uri.encode(action.destination)}"
+                        CustomTabsLauncher.openWebUrl(
+                            context = context,
+                            url = webUrl,
+                            toolbarColor = toolbarColor,
+                            isDarkTheme = isDark
+                        )
                     }
                     onActionClick(action)
                 },
@@ -404,11 +425,15 @@ private fun ActionButtonChip(
 
         is A2UiAction.OpenTflJourneyPlanner -> {
             AssistChip(
+                modifier = modifier,
                 onClick = {
                     val url = "https://tfl.gov.uk/plan-a-journey/results?From=${android.net.Uri.encode(action.origin)}&To=${android.net.Uri.encode(action.destination)}"
-                    runCatching {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-                    }
+                    CustomTabsLauncher.openWebUrl(
+                        context = context,
+                        url = url,
+                        toolbarColor = toolbarColor,
+                        isDarkTheme = isDark
+                    )
                     onActionClick(action)
                 },
                 label = { Text(stringResource(R.string.ai_action_tfl)) },
@@ -425,6 +450,7 @@ private fun ActionButtonChip(
         is A2UiAction.PinStation -> {
             val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
             AssistChip(
+                modifier = modifier,
                 onClick = { onActionClick(action) },
                 label = { Text(stringResource(R.string.ai_action_pin, action.station.resolveDisplayName(isBilingual).substringBefore("(").trim())) },
                 leadingIcon = {
@@ -439,6 +465,7 @@ private fun ActionButtonChip(
 
         is A2UiAction.QueryPrompt -> {
             AssistChip(
+                modifier = modifier,
                 onClick = { onActionClick(action) },
                 label = { Text(action.text) }
             )
@@ -538,7 +565,6 @@ private fun AlternativeRouteActionCard(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DelayRepayClaimCard(
     block: A2UiBlock.DelayRepayClaimBlock,
@@ -576,11 +602,17 @@ private fun DelayRepayClaimCard(
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Spacer(modifier = Modifier.height(10.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+            FlexBox(
+                modifier = Modifier.fillMaxWidth(),
+                config = {
+                    direction(FlexDirection.Row)
+                    wrap(FlexWrap.Wrap)
+                    alignItems(FlexAlignItems.Center)
+                    gap(row = 6.dp, column = 8.dp)
+                }
             ) {
                 AssistChip(
+                    modifier = Modifier.flex { grow(1f) },
                     onClick = {
                         com.androidfung.departureboard.util.DelayRepayReceiptLog.recordReceipt(
                             context = context,
@@ -599,18 +631,35 @@ private fun DelayRepayClaimCard(
                             ?.let { com.androidfung.departureboard.util.DelayRepayReceiptLog.copyReceiptToClipboard(context, it) }
                         android.widget.Toast.makeText(context, receiptSavedToast, android.widget.Toast.LENGTH_SHORT).show()
                     },
-                    label = { Text(stringResource(R.string.a2ui_delay_repay_save_copy), fontSize = 11.sp) }
+                    label = {
+                        Text(
+                            text = stringResource(R.string.a2ui_delay_repay_save_copy),
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 )
+                val claimToolbarColor = MaterialTheme.colorScheme.surface.toArgb()
+                val claimIsDark = LocalIsDarkTheme.current
                 AssistChip(
+                    modifier = Modifier.flex { grow(1f) },
                     onClick = {
-                        runCatching {
-                            val intent = Intent(Intent.ACTION_VIEW, block.claimUrl.toUri()).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            context.startActivity(intent)
-                        }
+                        CustomTabsLauncher.openWebUrl(
+                            context = context,
+                            url = block.claimUrl,
+                            toolbarColor = claimToolbarColor,
+                            isDarkTheme = claimIsDark
+                        )
                     },
-                    label = { Text(stringResource(R.string.a2ui_delay_repay_open_portal), fontSize = 11.sp) }
+                    label = {
+                        Text(
+                            text = stringResource(R.string.a2ui_delay_repay_open_portal),
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 )
             }
         }

@@ -535,10 +535,11 @@ class DashboardViewModel @JvmOverloads constructor(
                 lastUpdatedTimestamp = System.currentTimeMillis()
             )
         }
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+        val cardsSnapshot = _uiState.value.stationCards
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.Default) {
             com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishStationBoards(
                 getApplication(),
-                _uiState.value.stationCards
+                cardsSnapshot
             )
         }
     }
@@ -1194,10 +1195,11 @@ class DashboardViewModel @JvmOverloads constructor(
                             concoursePollIntervalMs = concourseDecision.recommendedPollIntervalMs
                         )
                     }
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                    val cardsSnapshot = _uiState.value.stationCards
+                    viewModelScope.launch(kotlinx.coroutines.Dispatchers.Default) {
                         com.androidfung.departureboard.wear.WearCompanionSyncPublisher.publishStationBoards(
                             getApplication(),
-                            _uiState.value.stationCards
+                            cardsSnapshot
                         )
                     }
                 } else {

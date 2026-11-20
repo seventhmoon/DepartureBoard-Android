@@ -11,8 +11,12 @@ plugins {
 
 android {
     namespace = "com.androidfung.departureboard"
-    compileSdk = 37
-    compileSdkExtension = 2
+
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
 
     androidResources {
         generateLocaleConfig = true
@@ -24,8 +28,8 @@ android {
         applicationId = "com.androidfung.departureboard"
         minSdk = 28
         targetSdk = 37
-        versionCode = 61
-        versionName = "1.3.5-261114"
+        versionCode = 62
+        versionName = "1.3.5-261118"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -90,6 +94,10 @@ android {
             isReturnDefaultValues = true
         }
     }
+    sourceSets {
+        getByName("androidTest").assets.directories.add("$projectDir/schemas")
+        getByName("test").assets.directories.add("$projectDir/schemas")
+    }
     packaging {
         resources {
             excludes += setOf(
@@ -105,8 +113,9 @@ kotlin {
     }
 }
 
-// AppFunctions Configuration
+// AppFunctions & Room Configuration
 ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -120,12 +129,15 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.browser)
+    implementation(libs.androidx.window)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     
     // Compose UI & Material 3
+    implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
@@ -198,7 +210,10 @@ dependencies {
     testImplementation(libs.kxml2)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4.accessibility)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.runner)

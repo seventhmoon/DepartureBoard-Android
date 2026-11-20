@@ -1,7 +1,5 @@
 package com.androidfung.departureboard.ui.designsystem
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -39,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
@@ -49,11 +48,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.LineBadgeInfo
 import com.androidfung.departureboard.data.model.StationServiceHoursInfo
 import com.androidfung.departureboard.ui.theme.LocalIsDarkTheme
+import com.androidfung.departureboard.util.CustomTabsLauncher
 import com.androidfung.departureboard.util.PlatformBacklogAlert
 
 private val HTTPS_URL_REGEX = Regex("""(https://[^\s]+)""")
@@ -281,6 +280,7 @@ fun LineDisruptionBanner(
 ) {
     val context = LocalContext.current
     val isDark = LocalIsDarkTheme.current
+    val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
     val isSevere = badge.statusSeverity <= 6
 
     val accentColor = if (isSevere) {
@@ -321,9 +321,12 @@ fun LineDisruptionBanner(
                         color = accentColor,
                         modifier = Modifier
                             .clickable {
-                                try {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-                                } catch (_: ActivityNotFoundException) {}
+                                CustomTabsLauncher.openWebUrl(
+                                    context = context,
+                                    url = url,
+                                    toolbarColor = toolbarColor,
+                                    isDarkTheme = isDark
+                                )
                             }
                             .padding(vertical = 1.dp)
                     )
@@ -346,9 +349,12 @@ fun LineDisruptionBanner(
                         color = accentColor,
                         modifier = Modifier
                             .clickable {
-                                try {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-                                } catch (_: ActivityNotFoundException) {}
+                                CustomTabsLauncher.openWebUrl(
+                                    context = context,
+                                    url = url,
+                                    toolbarColor = toolbarColor,
+                                    isDarkTheme = isDark
+                                )
                             }
                             .padding(top = 2.dp)
                     )

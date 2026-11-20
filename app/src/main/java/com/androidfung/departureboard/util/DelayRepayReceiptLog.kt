@@ -3,10 +3,8 @@ package com.androidfung.departureboard.util
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
 import androidx.core.content.edit
 import androidx.core.content.getSystemService
-import androidx.core.net.toUri
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -126,12 +124,10 @@ object DelayRepayReceiptLog {
     }
 
     fun openClaimPortal(context: Context, receipt: DelayRepayReceipt) {
-        runCatching {
-            val intent = Intent(Intent.ACTION_VIEW, receipt.claimUrl.toUri()).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(intent)
-        }
+        CustomTabsLauncher.openWebUrl(
+            context = context,
+            url = receipt.claimUrl
+        )
     }
 
     fun resolveOperatorClaimUrl(lineOrOperator: String): String {

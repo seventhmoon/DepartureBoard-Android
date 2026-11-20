@@ -510,6 +510,9 @@
     <string name="desk_clock_auto_cycle">Auto-Cycle (15s)</string>
     <string name="desk_clock_tabletop_toggle">Tabletop Deck</string>
     <string name="desk_clock_dim_mode">Night Dimmer</string>
+    <string name="desk_clock_outer_screen">Outer Screen</string>
+    <string name="desk_clock_outer_screen_active">Outer On</string>
+    <string name="desk_clock_outer_screen_unavailable">Outer screen display is currently unavailable</string>
     <string name="desk_clock_col_line">LINE</string>
     <string name="desk_clock_col_destination">DESTINATION</string>
     <string name="desk_clock_col_platform">PLAT</string>

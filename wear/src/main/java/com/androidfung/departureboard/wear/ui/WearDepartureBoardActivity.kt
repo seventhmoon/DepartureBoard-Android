@@ -17,6 +17,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Grid
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -686,125 +687,134 @@ fun WearConcourseBoardScreen(
 
             // 6. Bottom Concourse Actions: [✨ Ask AI], [+ Stations], [🔔 Alerts], [🌙 AOD]
             item(key = "manage_stations_button") {
-                Column(
+                Grid(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                        .padding(top = 8.dp, start = 6.dp, end = 6.dp),
+                    config = {
+                        column(minmax(0.dp, 1.fr))
+                        column(minmax(0.dp, 1.fr))
+                        gap(row = 8.dp, column = 6.dp)
+                    }
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        WearSurface(
-                            shape = RoundedCornerShape(50),
-                            color = Color(0xFF231934),
-                            border = BorderStroke(1.dp, Color(0xFFB388FF).copy(alpha = 0.7f)),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .clickable {
-                                    if (latestAiResponse?.stationId != currentBoard.stationId) {
-                                        WearCompanionStateRepository.askAiConcourseTriage(
-                                            context = context,
-                                            station = currentBoard,
-                                            promptType = WearAiPromptType.FASTEST_TRAIN
-                                        )
-                                    }
-                                    showAskAiScreen = true
+                    WearSurface(
+                        shape = RoundedCornerShape(50),
+                        color = Color(0xFF231934),
+                        border = BorderStroke(1.dp, Color(0xFFB388FF).copy(alpha = 0.7f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(50))
+                            .clickable {
+                                if (latestAiResponse?.stationId != currentBoard.stationId) {
+                                    WearCompanionStateRepository.askAiConcourseTriage(
+                                        context = context,
+                                        station = currentBoard,
+                                        promptType = WearAiPromptType.FASTEST_TRAIN
+                                    )
                                 }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.wear_btn_ask_ai),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp
-                                    ),
-                                    color = Color(0xFFD1C4E9)
-                                )
+                                showAskAiScreen = true
                             }
-                        }
-
-                        WearSurface(
-                            shape = RoundedCornerShape(50),
-                            color = Color(0xFF1E2229),
-                            border = BorderStroke(1.dp, Color(0xFF37474F)),
+                    ) {
+                        Row(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .clickable { showStationManager = true }
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Add,
-                                    contentDescription = null,
-                                    tint = Color(0xFF81D4FA),
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Text(
-                                    text = stringResource(R.string.wear_btn_stations),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp
-                                    ),
-                                    color = Color(0xFF81D4FA)
-                                )
-                            }
+                            Text(
+                                text = stringResource(R.string.wear_btn_ask_ai),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp
+                                ),
+                                color = Color(0xFFD1C4E9),
+                                maxLines = 1
+                            )
                         }
                     }
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    WearSurface(
+                        shape = RoundedCornerShape(50),
+                        color = Color(0xFF1E2229),
+                        border = BorderStroke(1.dp, Color(0xFF37474F)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(50))
+                            .clickable { showStationManager = true }
                     ) {
-                        WearSurface(
-                            shape = RoundedCornerShape(50),
-                            color = Color(0xFF14171C),
-                            border = BorderStroke(1.dp, Color(0xFF37474F)),
+                        Row(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .clickable { showNotificationSettings = true }
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterHorizontally)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.wear_btn_alerts),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = Color(0xFF80CBC4)
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Rounded.Add,
+                                contentDescription = null,
+                                tint = Color(0xFF81D4FA),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.wear_btn_stations),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp
+                                ),
+                                color = Color(0xFF81D4FA),
+                                maxLines = 1
+                            )
                         }
+                    }
 
-                        WearSurface(
-                            shape = RoundedCornerShape(50),
-                            color = Color(0xFF14171C),
-                            border = BorderStroke(1.dp, Color(0xFF37474F)),
+                    WearSurface(
+                        shape = RoundedCornerShape(50),
+                        color = Color(0xFF14171C),
+                        border = BorderStroke(1.dp, Color(0xFF37474F)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(50))
+                            .clickable { showNotificationSettings = true }
+                    ) {
+                        Row(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .clickable { manualAmbientMode = true }
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.wear_btn_ambient),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = Color(0xFF90A4AE)
-                                )
-                            }
+                            Text(
+                                text = stringResource(R.string.wear_btn_alerts),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = Color(0xFF80CBC4),
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    WearSurface(
+                        shape = RoundedCornerShape(50),
+                        color = Color(0xFF14171C),
+                        border = BorderStroke(1.dp, Color(0xFF37474F)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(50))
+                            .clickable { manualAmbientMode = true }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.wear_btn_ambient),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = Color(0xFF90A4AE),
+                                maxLines = 1
+                            )
                         }
                     }
                 }

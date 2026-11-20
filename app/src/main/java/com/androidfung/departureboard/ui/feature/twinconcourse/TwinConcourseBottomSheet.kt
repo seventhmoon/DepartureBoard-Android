@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Grid
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -265,25 +266,37 @@ fun TwinConcourseContent(
         }
 
         // Departures comparison
-        HubDeparturesSection(
-            card = cardA,
-            evaluated = comparison.evaluatedA,
-            walkMinutes = comparison.walkMinutesA,
-            hubTag = "Hub A",
-            onSelectStation = onSelectStation,
-            onDepartureClick = onDepartureClick
-        )
+        Grid(
+            modifier = Modifier.fillMaxWidth(),
+            config = {
+                val isSideBySide = constraints.maxWidth >= 520.dp.roundToPx()
+                column(minmax(0.dp, 1.fr))
+                if (isSideBySide) {
+                    column(minmax(0.dp, 1.fr))
+                }
+                gap(row = 16.dp, column = 16.dp)
+            }
+        ) {
+            HubDeparturesSection(
+                card = cardA,
+                evaluated = comparison.evaluatedA,
+                walkMinutes = comparison.walkMinutesA,
+                hubTag = "Hub A",
+                onSelectStation = onSelectStation,
+                onDepartureClick = onDepartureClick,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        HubDeparturesSection(
-            card = cardB,
-            evaluated = comparison.evaluatedB,
-            walkMinutes = comparison.walkMinutesB,
-            hubTag = "Hub B",
-            onSelectStation = onSelectStation,
-            onDepartureClick = onDepartureClick
-        )
+            HubDeparturesSection(
+                card = cardB,
+                evaluated = comparison.evaluatedB,
+                walkMinutes = comparison.walkMinutesB,
+                hubTag = "Hub B",
+                onSelectStation = onSelectStation,
+                onDepartureClick = onDepartureClick,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
 
@@ -343,13 +356,14 @@ private fun HubDeparturesSection(
     walkMinutes: Int?,
     hubTag: String,
     onSelectStation: ((Station) -> Unit)?,
-    onDepartureClick: ((Departure) -> Unit)?
+    onDepartureClick: ((Departure) -> Unit)?,
+    modifier: Modifier = Modifier
 ) {
     val isDark = LocalIsDarkTheme.current
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(

@@ -1,6 +1,8 @@
 package com.androidfung.departureboard.ui
 
+import android.os.Build
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -13,6 +15,7 @@ import com.androidfung.departureboard.ui.designsystem.EmptyDashboardState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,6 +25,13 @@ class DashboardScreenUiTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    @Before
+    fun setUpAccessibilityChecks() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            composeTestRule.enableAccessibilityChecks()
+        }
+    }
 
     @Test
     fun testEmptyDashboardStateOnDevice() {

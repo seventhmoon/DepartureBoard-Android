@@ -52,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -74,6 +75,8 @@ import com.androidfung.departureboard.ui.ads.NativeAdStyle
 import com.androidfung.departureboard.ui.ads.NativeAdViewContainer
 import com.androidfung.departureboard.ui.designsystem.LineDisruptionBanner
 import com.androidfung.departureboard.ui.designsystem.UnifiedDepartureTimeBadge
+import com.androidfung.departureboard.ui.theme.LocalIsDarkTheme
+import com.androidfung.departureboard.util.CustomTabsLauncher
 
 private val HH_MM_REGEX = Regex("^[0-9]{2}:[0-9]{2}$")
 
@@ -739,16 +742,19 @@ private fun TrainJourneyContent(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                val claimToolbarColor = MaterialTheme.colorScheme.surface.toArgb()
+                                val claimIsDark = LocalIsDarkTheme.current
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
                                     color = Color(0xFF00897B).copy(alpha = 0.22f),
                                     modifier = Modifier.clickable {
                                         val claimUrl = com.androidfung.departureboard.util.DelayRepayReceiptLog.resolveOperatorClaimUrl(delayRepay.operatorLabel)
-                                        val intent = android.content.Intent(
-                                            android.content.Intent.ACTION_VIEW,
-                                            claimUrl.toUri()
+                                        CustomTabsLauncher.openWebUrl(
+                                            context = context,
+                                            url = claimUrl,
+                                            toolbarColor = claimToolbarColor,
+                                            isDarkTheme = claimIsDark
                                         )
-                                        runCatching { context.startActivity(intent) }
                                     }
                                 ) {
                                     Text(

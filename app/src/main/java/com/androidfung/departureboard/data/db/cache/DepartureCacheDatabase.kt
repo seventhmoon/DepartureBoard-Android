@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         HistoricalPlatformObservationEntity::class
     ],
     version = 6,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class DepartureCacheDatabase : RoomDatabase() {
 
@@ -52,7 +52,113 @@ abstract class DepartureCacheDatabase : RoomDatabase() {
 
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE cached_departures ADD COLUMN localizedDestinationNamesJson TEXT")
+                val existingColumns = mutableSetOf<String>()
+                db.query("PRAGMA table_info(`cached_departures`)").use { cursor ->
+                    val nameIndex = cursor.getColumnIndex("name")
+                    while (cursor.moveToNext()) {
+                        if (nameIndex >= 0) {
+                            existingColumns.add(cursor.getString(nameIndex))
+                        }
+                    }
+                }
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `cached_departures_new` (
+                        `id` TEXT NOT NULL,
+                        `stationId` TEXT NOT NULL,
+                        `stationName` TEXT NOT NULL,
+                        `lineId` TEXT NOT NULL,
+                        `lineName` TEXT NOT NULL,
+                        `platformName` TEXT NOT NULL,
+                        `destinationName` TEXT NOT NULL,
+                        `towards` TEXT,
+                        `direction` TEXT,
+                        `timeToStationSeconds` INTEGER NOT NULL,
+                        `expectedArrivalIso` TEXT,
+                        `currentLocation` TEXT,
+                        `modeName` TEXT NOT NULL,
+                        `destinationStationId` TEXT,
+                        `badgeBgColorArgb` INTEGER,
+                        `badgeTextColorArgb` INTEGER,
+                        `badgeLineCode` TEXT,
+                        `isWheelchairAccessible` INTEGER,
+                        `occupancyStatus` TEXT,
+                        `platformCode` TEXT,
+                        `isPlatformConfirmed` INTEGER,
+                        `isHistoricalExpectedPlatform` INTEGER,
+                        `expectedPlatformConfidence` INTEGER,
+                        `operatorCode` TEXT,
+                        `operatorName` TEXT,
+                        `coachCount` INTEGER,
+                        `cancelReason` TEXT,
+                        `delayReason` TEXT,
+                        `headwaySeconds` INTEGER,
+                        `stopActivityName` TEXT,
+                        `statusName` TEXT,
+                        `scheduledDepartureEpochMillis` INTEGER,
+                        `expectedDepartureEpochMillis` INTEGER,
+                        `localizedDestinationNamesJson` TEXT,
+                        `cachedAtMillis` INTEGER NOT NULL,
+                        PRIMARY KEY(`stationId`, `id`)
+                    )
+                    """.trimIndent()
+                )
+
+                val targetColumns = listOf(
+                    "id" to "''",
+                    "stationId" to "''",
+                    "stationName" to "''",
+                    "lineId" to "''",
+                    "lineName" to "''",
+                    "platformName" to "''",
+                    "destinationName" to "''",
+                    "towards" to "NULL",
+                    "direction" to "NULL",
+                    "timeToStationSeconds" to "0",
+                    "expectedArrivalIso" to "NULL",
+                    "currentLocation" to "NULL",
+                    "modeName" to "''",
+                    "destinationStationId" to "NULL",
+                    "badgeBgColorArgb" to "NULL",
+                    "badgeTextColorArgb" to "NULL",
+                    "badgeLineCode" to "NULL",
+                    "isWheelchairAccessible" to "NULL",
+                    "occupancyStatus" to "NULL",
+                    "platformCode" to "NULL",
+                    "isPlatformConfirmed" to "NULL",
+                    "isHistoricalExpectedPlatform" to "NULL",
+                    "expectedPlatformConfidence" to "NULL",
+                    "operatorCode" to "NULL",
+                    "operatorName" to "NULL",
+                    "coachCount" to "NULL",
+                    "cancelReason" to "NULL",
+                    "delayReason" to "NULL",
+                    "headwaySeconds" to "NULL",
+                    "stopActivityName" to "NULL",
+                    "statusName" to "NULL",
+                    "scheduledDepartureEpochMillis" to "NULL",
+                    "expectedDepartureEpochMillis" to "NULL",
+                    "localizedDestinationNamesJson" to "NULL",
+                    "cachedAtMillis" to "0"
+                )
+
+                val insertCols = targetColumns.joinToString(", ") { "`${it.first}`" }
+                val selectExprs = targetColumns.joinToString(", ") { (col, fallback) ->
+                    if (col in existingColumns) "`$col`" else "$fallback AS `$col`"
+                }
+
+                db.execSQL(
+                    "INSERT OR REPLACE INTO `cached_departures_new` ($insertCols) SELECT $selectExprs FROM `cached_departures`"
+                )
+                db.execSQL("DROP TABLE `cached_departures`")
+                db.execSQL("ALTER TABLE `cached_departures_new` RENAME TO `cached_departures`")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_cached_departures_stationId_timeToStationSeconds` ON `cached_departures` (`stationId`, `timeToStationSeconds`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_cached_departures_cachedAtMillis` ON `cached_departures` (`cachedAtMillis`)"
+                )
             }
         }
 

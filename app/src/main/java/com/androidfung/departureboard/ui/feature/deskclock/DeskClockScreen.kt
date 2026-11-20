@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.view.WindowManager
+import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -22,6 +24,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Grid
+import androidx.compose.foundation.layout.GridConfigurationScope
+import androidx.compose.foundation.layout.GridTrackSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +34,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -42,6 +48,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BrightnessLow
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DevicesFold
+import androidx.compose.material.icons.rounded.FlipToFront
 import androidx.compose.material.icons.rounded.NightsStay
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Sync
@@ -55,6 +62,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -72,6 +80,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -81,6 +92,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidfung.departureboard.R
 import com.androidfung.departureboard.data.model.Departure
 import com.androidfung.departureboard.data.model.DepartureStatus
@@ -196,6 +208,58 @@ fun DeskClockScreen(
         }
     }
 
+    val isBilingual = com.androidfung.departureboard.ui.theme.LocalIsBilingualEnabled.current
+    val outerController = remember { OuterDisplayDeskClockController() }
+    val outerDisplayState by outerController.uiState.collectAsStateWithLifecycle()
+    val outerSnapshotState = remember {
+        mutableStateOf(
+            OuterDisplayBoardSnapshot(
+                station = station,
+                departures = filteredDepartures,
+                serviceHoursInfo = serviceHoursInfo,
+                currentTime = currentTime,
+                boardStyle = boardStyle,
+                brightnessMultiplier = brightnessMultiplier,
+                isBilingualEnabled = isBilingual
+            )
+        )
+    }
+    SideEffect {
+        outerSnapshotState.value = OuterDisplayBoardSnapshot(
+            station = station,
+            departures = filteredDepartures,
+            serviceHoursInfo = serviceHoursInfo,
+            currentTime = currentTime,
+            boardStyle = boardStyle,
+            brightnessMultiplier = brightnessMultiplier,
+            isBilingualEnabled = isBilingual
+        )
+    }
+    LaunchedEffect(outerController) {
+        outerController.observeRearDisplay()
+    }
+    DisposableEffect(outerController) {
+        onDispose {
+            outerController.dispose()
+        }
+    }
+    val outerUnavailableMessage = stringResource(R.string.desk_clock_outer_screen_unavailable)
+    LaunchedEffect(outerDisplayState.lastErrorMessage) {
+        val error = outerDisplayState.lastErrorMessage
+        if (!error.isNullOrBlank()) {
+            Toast.makeText(context, outerUnavailableMessage, Toast.LENGTH_SHORT).show()
+            outerController.clearError()
+        }
+    }
+    val onToggleOuterDisplay: () -> Unit = {
+        val componentActivity = context.findDeskClockComponentActivity()
+        if (componentActivity != null) {
+            outerController.toggleOuterDisplay(componentActivity) {
+                { OuterDisplayConcourseBoard(snapshot = outerSnapshotState.value) }
+            }
+        }
+    }
+
     val backgroundColor = when (boardStyle) {
         DeskClockBoardStyle.SPLIT_FLAP -> Color(0xFF101216)
         DeskClockBoardStyle.AMBER_LED -> Color(0xFF08090C)
@@ -268,6 +332,8 @@ fun DeskClockScreen(
                     isAutoCycleEnabled = isAutoCycleEnabled,
                     isTabletopActive = true,
                     isDimmed = isDimmed,
+                    outerDisplayMode = outerDisplayState.mode,
+                    isOuterDisplayActive = outerDisplayState.isActive,
                     serviceHoursInfo = serviceHoursInfo,
                     onSelectStation = onSelectStation,
                     onSelectLine = { lineId ->
@@ -279,6 +345,7 @@ fun DeskClockScreen(
                         manualTabletopOverride = !isEffectiveTabletop
                     },
                     onToggleDim = { isDimmed = !isDimmed },
+                    onToggleOuterDisplay = onToggleOuterDisplay,
                     onRefresh = onRefresh,
                     onClose = onClose,
                     modifier = Modifier
@@ -323,6 +390,8 @@ fun DeskClockScreen(
                         isAutoCycleEnabled = isAutoCycleEnabled,
                         isTabletopActive = false,
                         isDimmed = isDimmed,
+                        outerDisplayMode = outerDisplayState.mode,
+                        isOuterDisplayActive = outerDisplayState.isActive,
                         onSelectStation = onSelectStation,
                         onSelectLine = { lineId ->
                             selectedLineId = if (selectedLineId.equals(lineId, ignoreCase = true)) null else lineId
@@ -331,6 +400,7 @@ fun DeskClockScreen(
                         onToggleAutoCycle = { isAutoCycleEnabled = !isAutoCycleEnabled },
                         onToggleTabletop = { manualTabletopOverride = true },
                         onToggleDim = { isDimmed = !isDimmed },
+                        onToggleOuterDisplay = onToggleOuterDisplay,
                         onRefresh = onRefresh,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -459,17 +529,22 @@ private fun DeskClockBoardPane(
 
                 IconButton(
                     onClick = onClose,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF222631))
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.cd_close),
-                        tint = Color.White.copy(alpha = 0.85f),
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF222631)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.cd_close),
+                            tint = Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
@@ -477,12 +552,12 @@ private fun DeskClockBoardPane(
         Spacer(modifier = Modifier.height(if (isCompactTabletop) 8.dp else 14.dp))
 
         // 2. Column Headers: LINE | DESTINATION | PLAT | TIME
-        Row(
+        Grid(
+            config = { deskClockBoardTracks(fillRowHeight = false) },
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFF191C24), RoundedCornerShape(6.dp))
-                .padding(horizontal = 12.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 12.dp, vertical = 5.dp)
         ) {
             Text(
                 text = stringResource(R.string.desk_clock_col_line),
@@ -493,7 +568,7 @@ private fun DeskClockBoardPane(
                     fontSize = 10.sp
                 ),
                 color = secondaryTextColor,
-                modifier = Modifier.width(86.dp)
+                modifier = Modifier.gridItem(row = 1, column = 1, alignment = Alignment.CenterStart)
             )
             Text(
                 text = stringResource(R.string.desk_clock_col_destination),
@@ -504,7 +579,7 @@ private fun DeskClockBoardPane(
                     fontSize = 10.sp
                 ),
                 color = secondaryTextColor,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.gridItem(row = 1, column = 2, alignment = Alignment.CenterStart)
             )
             Text(
                 text = stringResource(R.string.desk_clock_col_platform),
@@ -516,7 +591,7 @@ private fun DeskClockBoardPane(
                 ),
                 color = secondaryTextColor,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.width(64.dp)
+                modifier = Modifier.gridItem(row = 1, column = 3, alignment = Alignment.Center)
             )
             Text(
                 text = stringResource(R.string.desk_clock_col_time),
@@ -528,7 +603,7 @@ private fun DeskClockBoardPane(
                 ),
                 color = secondaryTextColor,
                 textAlign = TextAlign.End,
-                modifier = Modifier.width(96.dp)
+                modifier = Modifier.gridItem(row = 1, column = 4, alignment = Alignment.CenterEnd)
             )
         }
 
@@ -666,6 +741,16 @@ private fun SplitFlapClockDisplay(
     }
 }
 
+private fun GridConfigurationScope.deskClockBoardTracks(fillRowHeight: Boolean = false) {
+    val isNarrowWidth = constraints.maxWidth < 380.dp.roundToPx()
+    column(if (isNarrowWidth) 66.dp else 74.dp) // 1: LINE
+    column(minmax(0.dp, 1.fr))                  // 2: DESTINATION
+    column(if (isNarrowWidth) 52.dp else 64.dp) // 3: PLAT
+    column(if (isNarrowWidth) 84.dp else 96.dp) // 4: TIME
+    row(if (fillRowHeight) minmax(0.dp, 1.fr) else GridTrackSize.Auto)
+    columnGap(8.dp)
+}
+
 /**
  * Individual mechanical Split-Flap or LED Matrix departure row.
  */
@@ -742,17 +827,17 @@ private fun SplitFlapDepartureRow(
                     )
                 }
             }
-            .padding(horizontal = 10.dp)
+            .padding(horizontal = 12.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
+        Grid(
+            config = { deskClockBoardTracks(fillRowHeight = true) },
+            modifier = Modifier.fillMaxSize()
         ) {
             // 1. Line Pill / Code
             Box(
                 modifier = Modifier
-                    .width(78.dp)
-                    .padding(end = 8.dp)
+                    .fillMaxWidth()
+                    .gridItem(row = 1, column = 1, alignment = Alignment.Center)
                     .clip(RoundedCornerShape(5.dp))
                     .background(
                         if (boardStyle == DeskClockBoardStyle.AMBER_LED) {
@@ -784,7 +869,9 @@ private fun SplitFlapDepartureRow(
 
             // 2. Destination & Last Train / Night Tag
             Row(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .gridItem(row = 1, column = 2, alignment = Alignment.CenterStart),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
@@ -841,45 +928,37 @@ private fun SplitFlapDepartureRow(
             }
 
             // 3. Platform Flap
-            Box(
-                modifier = Modifier.width(64.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                FlapTileBox(
-                    text = platformShort.uppercase(),
-                    textColor = destinationColor.copy(alpha = 0.9f),
-                    fontSize = if (isCompact) 12.sp else 13.sp,
-                    boardStyle = boardStyle
-                )
-            }
+            FlapTileBox(
+                text = platformShort.uppercase(),
+                textColor = destinationColor.copy(alpha = 0.9f),
+                fontSize = if (isCompact) 12.sp else 13.sp,
+                boardStyle = boardStyle,
+                modifier = Modifier.gridItem(row = 1, column = 3, alignment = Alignment.Center)
+            )
 
             // 4. Countdown & Scheduled Clock Time Flap
-            Box(
-                modifier = Modifier.width(96.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                val timeLabel = when {
-                    isCancelled -> "CANCEL"
-                    isDue -> "DUE"
-                    else -> {
-                        val mins = (departure.timeToStationSeconds / 60).coerceAtLeast(1)
-                        "${mins}m ${departure.formattedActualClockTime.orEmpty()}".trim()
-                    }
+            val timeLabel = when {
+                isCancelled -> "CANCEL"
+                isDue -> "DUE"
+                else -> {
+                    val mins = (departure.timeToStationSeconds / 60).coerceAtLeast(1)
+                    "${mins}m ${departure.formattedActualClockTime.orEmpty()}".trim()
                 }
-                val timeColor = when {
-                    isCancelled -> Color(0xFFEF4444)
-                    isDue -> Color(0xFF22C55E)
-                    boardStyle == DeskClockBoardStyle.AMBER_LED -> Color(0xFFFFD54F)
-                    else -> Color(0xFFFBBF24)
-                }
-
-                FlapTileBox(
-                    text = timeLabel,
-                    textColor = timeColor,
-                    fontSize = if (isCompact) 12.sp else 13.sp,
-                    boardStyle = boardStyle
-                )
             }
+            val timeColor = when {
+                isCancelled -> Color(0xFFEF4444)
+                isDue -> Color(0xFF22C55E)
+                boardStyle == DeskClockBoardStyle.AMBER_LED -> Color(0xFFFFD54F)
+                else -> Color(0xFFFBBF24)
+            }
+
+            FlapTileBox(
+                text = timeLabel,
+                textColor = timeColor,
+                fontSize = if (isCompact) 12.sp else 13.sp,
+                boardStyle = boardStyle,
+                modifier = Modifier.gridItem(row = 1, column = 4, alignment = Alignment.CenterEnd)
+            )
         }
     }
 }
@@ -949,6 +1028,8 @@ private fun TabletopControlDeck(
     isAutoCycleEnabled: Boolean,
     isTabletopActive: Boolean,
     isDimmed: Boolean,
+    outerDisplayMode: OuterDisplayMode,
+    isOuterDisplayActive: Boolean,
     serviceHoursInfo: StationServiceHoursInfo?,
     onSelectStation: (Station) -> Unit,
     onSelectLine: (String) -> Unit,
@@ -956,6 +1037,7 @@ private fun TabletopControlDeck(
     onToggleAutoCycle: () -> Unit,
     onToggleTabletop: () -> Unit,
     onToggleDim: () -> Unit,
+    onToggleOuterDisplay: () -> Unit,
     onRefresh: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
@@ -991,7 +1073,11 @@ private fun TabletopControlDeck(
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 DeckControlChip(
                     label = stringResource(R.string.desk_clock_auto_cycle),
                     icon = Icons.Rounded.Sync,
@@ -1004,6 +1090,17 @@ private fun TabletopControlDeck(
                     isSelected = isDimmed,
                     onClick = onToggleDim
                 )
+                if (outerDisplayMode != OuterDisplayMode.UNAVAILABLE) {
+                    DeckControlChip(
+                        label = stringResource(
+                            if (isOuterDisplayActive) R.string.desk_clock_outer_screen_active
+                            else R.string.desk_clock_outer_screen
+                        ),
+                        icon = Icons.Rounded.FlipToFront,
+                        isSelected = isOuterDisplayActive,
+                        onClick = onToggleOuterDisplay
+                    )
+                }
                 DeckControlChip(
                     label = "Full",
                     icon = Icons.Rounded.DevicesFold,
@@ -1012,17 +1109,22 @@ private fun TabletopControlDeck(
                 )
                 IconButton(
                     onClick = onRefresh,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF222634))
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Refresh,
-                        contentDescription = stringResource(R.string.cd_refresh_departures),
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF222634)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Refresh,
+                            contentDescription = stringResource(R.string.cd_refresh_departures),
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }
@@ -1135,12 +1237,15 @@ private fun FullScreenControlStrip(
     isAutoCycleEnabled: Boolean,
     isTabletopActive: Boolean,
     isDimmed: Boolean,
+    outerDisplayMode: OuterDisplayMode,
+    isOuterDisplayActive: Boolean,
     onSelectStation: (Station) -> Unit,
     onSelectLine: (String) -> Unit,
     onSelectStyle: (DeskClockBoardStyle) -> Unit,
     onToggleAutoCycle: () -> Unit,
     onToggleTabletop: () -> Unit,
     onToggleDim: () -> Unit,
+    onToggleOuterDisplay: () -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1217,6 +1322,17 @@ private fun FullScreenControlStrip(
                     isSelected = isDimmed,
                     onClick = onToggleDim
                 )
+                if (outerDisplayMode != OuterDisplayMode.UNAVAILABLE) {
+                    DeckControlChip(
+                        label = stringResource(
+                            if (isOuterDisplayActive) R.string.desk_clock_outer_screen_active
+                            else R.string.desk_clock_outer_screen
+                        ),
+                        icon = Icons.Rounded.FlipToFront,
+                        isSelected = isOuterDisplayActive,
+                        onClick = onToggleOuterDisplay
+                    )
+                }
                 DeskClockBoardStyle.entries.forEach { style ->
                     val label = when (style) {
                         DeskClockBoardStyle.SPLIT_FLAP -> stringResource(R.string.desk_clock_style_split_flap)
@@ -1243,34 +1359,42 @@ private fun DeckControlChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) Color(0xFFFFB300).copy(alpha = 0.22f) else Color(0xFF232836),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = if (isSelected) Color(0xFFFFB300) else Color.White.copy(alpha = 0.1f)
-        ),
-        modifier = modifier.clickable(onClick = onClick)
+    Box(
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .semantics(mergeDescendants = true) { selected = isSelected }
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = if (isSelected) Color(0xFFFFB300).copy(alpha = 0.22f) else Color(0xFF232836),
+            border = androidx.compose.foundation.BorderStroke(
+                width = 1.dp,
+                color = if (isSelected) Color(0xFFFFB300) else Color.White.copy(alpha = 0.1f)
+            )
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (isSelected) Color(0xFFFFB300) else Color.White.copy(alpha = 0.8f),
-                modifier = Modifier.size(14.dp)
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    fontSize = 11.sp
-                ),
-                color = if (isSelected) Color(0xFFFFB300) else Color.White.copy(alpha = 0.85f)
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (isSelected) Color(0xFFFFB300) else Color.White.copy(alpha = 0.8f),
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 11.sp
+                    ),
+                    color = if (isSelected) Color(0xFFFFB300) else Color.White.copy(alpha = 0.85f)
+                )
+            }
         }
     }
 }
@@ -1297,5 +1421,11 @@ internal fun extractShortPlatformCode(rawPlatformName: String): String {
 private tailrec fun Context.findDeskClockActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findDeskClockActivity()
+    else -> null
+}
+
+private tailrec fun Context.findDeskClockComponentActivity(): ComponentActivity? = when (this) {
+    is ComponentActivity -> this
+    is ContextWrapper -> baseContext.findDeskClockComponentActivity()
     else -> null
 }

@@ -83,13 +83,8 @@ class DashboardViewModelTest {
 
     @After
     fun tearDown() {
-        val jobs = createdViewModels.flatMap { vm ->
-            vm.viewModelScope.coroutineContext[kotlinx.coroutines.Job]?.children?.toList().orEmpty()
-        }
         viewModelStore.clear()
-        kotlinx.coroutines.runBlocking {
-            jobs.forEach { it.join() }
-        }
+        testDispatcher.scheduler.advanceUntilIdle()
         createdViewModels.clear()
         Dispatchers.resetMain()
     }

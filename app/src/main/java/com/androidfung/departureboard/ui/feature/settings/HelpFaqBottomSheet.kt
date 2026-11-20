@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -60,6 +61,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.androidfung.departureboard.BuildConfig
+import com.androidfung.departureboard.ui.theme.LocalIsDarkTheme
+import com.androidfung.departureboard.util.CustomTabsLauncher
 
 data class FaqItem(
     val question: String,
@@ -241,13 +244,16 @@ fun HelpFaqBottomSheet(
                 }
 
                 item {
+                    val policyToolbarColor = MaterialTheme.colorScheme.surface.toArgb()
+                    val isDark = LocalIsDarkTheme.current
                     AppInfoCard(
                         onOpenPrivacyPolicy = {
-                            val intent = Intent(
-                                Intent.ACTION_VIEW,
-                                "https://github.com/seventhmoon/DepartureBoard-Android".toUri()
+                            CustomTabsLauncher.openWebUrl(
+                                context = context,
+                                url = "https://github.com/seventhmoon/DepartureBoard-Android",
+                                toolbarColor = policyToolbarColor,
+                                isDarkTheme = isDark
                             )
-                            context.startActivity(intent)
                         },
                         onOpenPlayStore = onRateApp
                     )

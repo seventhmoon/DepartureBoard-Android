@@ -9,6 +9,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlexAlignItems
+import androidx.compose.foundation.layout.FlexBox
+import androidx.compose.foundation.layout.FlexDirection
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -228,29 +231,17 @@ fun PaywallBottomSheet(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Subscription Options Selector
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Annual Plan (Featured)
-                PlanOptionCard(
-                    title = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_plan_annual_title),
-                    subtitle = annualPlanPricing.subtitle,
-                    price = annualPlanPricing.formattedPrice,
-                    tag = annualPlanPricing.savingsTag,
-                    isSelected = selectedPlanType == SubscriptionTier.BASE_PLAN_ANNUAL,
-                    onClick = { selectedPlanType = SubscriptionTier.BASE_PLAN_ANNUAL }
-                )
-
-                // Monthly Plan
-                PlanOptionCard(
-                    title = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_plan_monthly_title),
-                    subtitle = monthlyPlanPricing.subtitle,
-                    price = monthlyPlanPricing.formattedPrice,
-                    isSelected = selectedPlanType == SubscriptionTier.BASE_PLAN_MONTHLY,
-                    onClick = { selectedPlanType = SubscriptionTier.BASE_PLAN_MONTHLY }
-                )
-            }
+            PaywallPlanSelector(
+                annualTitle = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_plan_annual_title),
+                annualSubtitle = annualPlanPricing.subtitle,
+                annualPrice = annualPlanPricing.formattedPrice,
+                annualTag = annualPlanPricing.savingsTag,
+                monthlyTitle = androidx.compose.ui.res.stringResource(com.androidfung.departureboard.R.string.paywall_plan_monthly_title),
+                monthlySubtitle = monthlyPlanPricing.subtitle,
+                monthlyPrice = monthlyPlanPricing.formattedPrice,
+                selectedPlanType = selectedPlanType,
+                onSelectPlan = { selectedPlanType = it }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -384,12 +375,58 @@ private fun ProFeatureRow(
 }
 
 @Composable
+internal fun PaywallPlanSelector(
+    annualTitle: String,
+    annualSubtitle: String,
+    annualPrice: String,
+    annualTag: String?,
+    monthlyTitle: String,
+    monthlySubtitle: String,
+    monthlyPrice: String,
+    selectedPlanType: String,
+    onSelectPlan: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FlexBox(
+        modifier = modifier.fillMaxWidth(),
+        config = {
+            direction(
+                if (constraints.maxWidth >= 480.dp.roundToPx()) FlexDirection.Row
+                else FlexDirection.Column
+            )
+            gap(10.dp)
+            alignItems(FlexAlignItems.Stretch)
+        }
+    ) {
+        PlanOptionCard(
+            title = annualTitle,
+            subtitle = annualSubtitle,
+            price = annualPrice,
+            tag = annualTag,
+            isSelected = selectedPlanType == SubscriptionTier.BASE_PLAN_ANNUAL,
+            onClick = { onSelectPlan(SubscriptionTier.BASE_PLAN_ANNUAL) },
+            modifier = Modifier.flex { grow(1f) }
+        )
+
+        PlanOptionCard(
+            title = monthlyTitle,
+            subtitle = monthlySubtitle,
+            price = monthlyPrice,
+            isSelected = selectedPlanType == SubscriptionTier.BASE_PLAN_MONTHLY,
+            onClick = { onSelectPlan(SubscriptionTier.BASE_PLAN_MONTHLY) },
+            modifier = Modifier.flex { grow(1f) }
+        )
+    }
+}
+
+@Composable
 private fun PlanOptionCard(
     title: String,
     subtitle: String,
     price: String,
     isSelected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     tag: String? = null
 ) {
     val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
@@ -397,8 +434,7 @@ private fun PlanOptionCard(
     val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceContainer
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .background(containerColor)
             .border(borderWidth, borderColor, RoundedCornerShape(16.dp))
